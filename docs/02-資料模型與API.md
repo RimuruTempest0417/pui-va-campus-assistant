@@ -1,6 +1,6 @@
 # 資料模型與 API 契約 v1
 
-> 對應檔案：`docs/schema.prisma`（已用 Prisma 6.19 驗證通過）、`docs/openapi.yaml`
+> 對應檔案：`docs/openapi.yaml`（本倉庫）｜ `prisma/schema.prisma`（後端倉庫 pui-va-campus-server，資料庫唯一來源）
 > 資料庫：PostgreSQL 16 ｜ ORM：Prisma ｜ 風格：RESTful + JSON
 
 ---
