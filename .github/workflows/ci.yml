@@ -28,7 +28,7 @@ jobs:
           done
           exit $fail
 
-      - name: 資料層自我檢查（示範模式 12 項）
+      - name: 資料層自我檢查（示範模式 36 項）
         run: node scripts/check-data-layer.mjs
 
       - name: 檢查 API 契約（openapi.yaml）存在且非空
