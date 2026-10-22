@@ -43,6 +43,10 @@ function copy(src, dest) {
 }
 
 if (!existsSync(distDir)) mkdirSync(distDir, { recursive: true });
+// 清掉上一次展開的目錄，避免 dist/ 越積越多
+for (const entry of readdirSync(distDir)) {
+  if (/^pui-va-campus-assistant-v[\d.]+$/.test(entry)) rmSync(join(distDir, entry), { recursive: true, force: true });
+}
 const stage = join(distDir, name);
 rmSync(stage, { recursive: true, force: true });
 mkdirSync(stage, { recursive: true });
