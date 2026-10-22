@@ -98,3 +98,6 @@ if (missing.length) {
   process.exit(1);
 }
 console.log('  四個模組頁面與使用說明都在包內 ✅');
+
+// 只留 zip，展開目錄清掉（真的要展開給老師看時再手動解壓）
+rmSync(stage, { recursive: true, force: true });
