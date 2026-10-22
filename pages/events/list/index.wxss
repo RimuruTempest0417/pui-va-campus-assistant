@@ -1,0 +1,17 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.list-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+.tabs-wrap { margin-bottom: var(--pv-sp-2); }
+.mine-link {
+  text-align: right;
+  padding: var(--pv-sp-1) 0 0;
+  font-size: var(--pv-fs-subhead);
+  color: var(--pv-tint);
+}
+.ev-title { flex: 1; margin-right: var(--pv-sp-2); }
+.ev-meta { display: block; margin-top: 6rpx; }
+.cap { margin-top: var(--pv-sp-2); display: flex; flex-direction: row; align-items: center; }
+.cap__bar { flex: 1; height: 10rpx; border-radius: var(--pv-r-pill); background: var(--pv-fill); overflow: hidden; }
+.cap__fill { height: 10rpx; background: var(--pv-tint); border-radius: var(--pv-r-pill); }
+.cap__text { margin-left: var(--pv-sp-2); font-size: var(--pv-fs-caption-1); color: var(--pv-label-2); }

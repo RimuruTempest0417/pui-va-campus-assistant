@@ -59,16 +59,24 @@ try {
 }
 check('重複認領被擋', claimErr === 'ALREADY_CLAIMED', claimErr || '沒有擋下');
 
-let fullErr = '';
-try {
-  await data.signup('e2'); // 名額 20 / 已報 20
-} catch (e) {
-  fullErr = e.code;
-}
-check('滿額轉候補', fullErr === 'EVENT_FULL', fullErr || '沒有擋下');
+// 滿額 → 進候補（不是丟錯，而是回傳 WAITLIST 並帶候補位置）
+const fullRec = await data.signupEvent('e2'); // 名額 20 / 已報 20
+check('滿額轉候補', fullRec.status === 'WAITLIST' && fullRec.waitlistPos >= 1, `${fullRec.status} 第 ${fullRec.waitlistPos} 位`);
 
-const okSignup = await data.signup('e1'); // 名額 40 / 已報 37
+const okSignup = await data.signupEvent('e1'); // 名額 40 / 已報 37
 check('有名額可報名', okSignup && okSignup.status === 'CONFIRMED', okSignup.status);
+
+// 候補補位：e4 只有 1 個名額，A 報名後 B 只能進候補；A 取消後 B 自動補位
+const userA = await data.me();
+await data.signupEvent('e4');
+await data.switchDemoUser('候補同學', 'demo-user-b');
+const bSignup = await data.signupEvent('e4');
+check('第二人自動進候補', bSignup.status === 'WAITLIST' && bSignup.waitlistPos === 1, `${bSignup.status} 第 ${bSignup.waitlistPos} 位`);
+const bCancel = await data.cancelSignup('e4'); // B 取消候補
+check('候補可取消', bCancel.cancelled === true, 'OK');
+await data.switchDemoUser(userA.nickname, userA.id);
+const aCancel = await data.cancelSignup('e4'); // A 取消（此時沒人候補）
+check('正式報名可取消', aCancel.cancelled === true, 'OK');
 
 const menu = await data.weekMenu();
 check('當週菜單', menu.days.length >= 1, `${menu.days.length} 天`);

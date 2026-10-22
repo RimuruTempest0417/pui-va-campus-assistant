@@ -6,7 +6,10 @@
     "pages/items/list/index",
     "pages/items/detail/index",
     "pages/items/create/index",
-    "pages/items/mine/index"
+    "pages/items/mine/index",
+    "pages/events/list/index",
+    "pages/events/detail/index",
+    "pages/events/mine/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",

@@ -1,0 +1,46 @@
+<view class="ui-page ui-page--withbar page-root">
+  <pv-navbar title="活動詳情" back="{{true}}" />
+
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="detail-inner">
+      <block wx:if="{{loading}}">
+        <view class="ui-card"><pv-skeleton rows="3" avatar /></view>
+      </block>
+
+      <pv-empty wx:elif="{{!ev}}" icon="🕳" title="找不到這個活動" desc="可能已取消或刪除" />
+
+      <block wx:else>
+        <view class="ev-head">
+          <text class="ev-head__title">{{ev.title}}</text>
+          <view class="ui-row ev-head__tags">
+            <pv-tag class="ev-tag" text="{{ev.club}}" type="tint" plain />
+            <pv-tag class="ev-tag" text="{{ev.ended ? '已結束' : (ev.full ? '已滿' : '報名中')}}" type="{{ev.ended ? 'neutral' : (ev.full ? 'danger' : 'success')}}" />
+          </view>
+        </view>
+
+        <pv-card>
+          <view class="meta-row"><text class="meta-k">時間</text><text class="meta-v">{{ev.timeText}}{{ev.endText ? ' — ' + ev.endText : ''}}</text></view>
+          <view class="meta-row"><text class="meta-k">地點</text><text class="meta-v">{{ev.location}}</text></view>
+          <view class="meta-row"><text class="meta-k">名額</text><text class="meta-v">{{ev.capacityText}}</text></view>
+          <view class="cap"><view class="cap__bar"><view class="cap__fill" style="width: {{ev.ratio}}%" /></view></view>
+          <text wx:if="{{ev.remaining !== null}}" class="ui-meta">{{ev.remaining > 0 ? '剩 ' + ev.remaining + ' 個名額' : '已額滿，報名將自動排入候補'}}</text>
+        </pv-card>
+
+        <view class="pv-group-title">活動說明</view>
+        <pv-card>
+          <text class="ui-body">{{ev.description || '主辦方沒有填寫說明'}}</text>
+        </pv-card>
+
+        <view wx:if="{{ev.mySignup}}" class="my-state">
+          <text wx:if="{{ev.myStatus === 'CONFIRMED'}}">你已報名成功，記得準時出席。</text>
+          <text wx:else>你在候補第 {{ev.waitlistPos}} 位，有名額釋出時會自動補上。</text>
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+
+  <view wx:if="{{ev}}" class="ui-bar">
+    <text class="ui-bar__hint">{{barHint}}</text>
+    <pv-button type="{{barType}}" bind:tap="onPrimary" loading="{{submitting}}" disabled="{{submitting || barDisabled}}">{{barText}}</pv-button>
+  </view>
+</view>

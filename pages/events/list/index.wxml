@@ -1,0 +1,39 @@
+<view class="ui-page page-root">
+  <pv-navbar title="活動與社團" back="{{true}}" />
+
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="list-inner">
+      <view class="tabs-wrap">
+        <pv-tabs tabs="{{tabs}}" current="{{scope}}" bind:change="onScopeChange" />
+        <view class="mine-link" bindtap="goMine">我的報名 ›</view>
+      </view>
+
+      <block wx:if="{{loading}}">
+        <view class="ui-card"><pv-skeleton rows="2" /></view>
+        <view class="ui-card"><pv-skeleton rows="2" /></view>
+      </block>
+
+      <pv-empty wx:elif="{{!items.length}}" icon="🎪" title="目前沒有活動" desc="有新活動時會出現在這裡" />
+
+      <view wx:else class="ui-list">
+        <view wx:for="{{items}}" wx:key="id" class="ui-card"
+              data-id="{{item.id}}" bindtap="goDetail"
+              hover-class="ui-card--pressed" hover-start-time="0">
+          <view class="ui-row-between">
+            <text class="ui-title ev-title">{{item.title}}</text>
+            <pv-tag wx:if="{{item.myLabel}}" text="{{item.myLabel}}" type="{{item.myStatus === 'CONFIRMED' ? 'success' : 'warning'}}" />
+            <pv-tag wx:elif="{{item.ended}}" text="已結束" />
+            <pv-tag wx:elif="{{item.full}}" text="已滿" type="danger" />
+          </view>
+          <text class="ui-meta ev-meta">{{item.club}} · {{item.timeText}}</text>
+          <text class="ui-meta">{{item.location}}</text>
+
+          <view class="cap">
+            <view class="cap__bar"><view class="cap__fill" style="width: {{item.ratio}}%" /></view>
+            <text class="cap__text">{{item.capacityText}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

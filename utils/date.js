@@ -31,4 +31,10 @@ function clock(d) {
   return pad(dt.getHours()) + ':' + pad(dt.getMinutes());
 }
 
-module.exports = { dateKey, weekday, greeting, fromNow, clock };
+function dateTimeText(ts) {
+  const dt = new Date(Number(ts));
+  const W = ['日', '一', '二', '三', '四', '五', '六'];
+  return (dt.getMonth() + 1) + '/' + dt.getDate() + '（' + W[dt.getDay()] + '）' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+}
+
+module.exports = { dateKey, weekday, greeting, fromNow, clock, dateTimeText };

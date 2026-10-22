@@ -32,8 +32,20 @@ module.exports = {
   listEvents(query) {
     return http.get('/events', query);
   },
-  signup(eventId) {
+  getEvent(id) {
+    return http.get('/events/' + id);
+  },
+  signupEvent(eventId) {
     return http.post('/events/' + eventId + '/signup', {});
+  },
+  cancelSignup(eventId) {
+    return http.del('/events/' + eventId + '/signup');
+  },
+  mySignups() {
+    return http.get('/events/mine');
+  },
+  switchDemoUser() {
+    return Promise.reject({ code: 'FORBIDDEN', message: '示範模式專用' });
   },
   weekMenu(query) {
     return http.get('/menu', query);

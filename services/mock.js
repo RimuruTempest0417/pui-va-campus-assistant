@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 2;
+const SEED_VERSION = 3;
 
 function seed() {
   const now = Date.now();
@@ -29,11 +29,26 @@ function seed() {
       { id: 'i6', type: 'LOST', title: '計算機（Casio fx-991）', place: '三樓自習室', status: 'OPEN', categoryKey: 'phone', categoryName: '電子產品', happenedAt: now - 12 * h, description: '背面貼了姓名貼。', images: [], author: { nickname: '鄭同學' }, contactType: 'inApp', viewCount: 22 },
     ],
     events: [
-      { id: 'e1', title: '校運會報名', location: '操場', startAt: now + 24 * h, capacity: 40, signedCount: 37, status: 'PUBLISHED' },
-      { id: 'e2', title: '科學社 · 水質檢測工作坊', location: '實驗室 B', startAt: now + 48 * h, capacity: 20, signedCount: 20, status: 'PUBLISHED' },
-      { id: 'e3', title: '英文歌唱比賽', location: '禮堂', startAt: now + 72 * h, capacity: 0, signedCount: 12, status: 'PUBLISHED' },
+      { id: 'e1', title: '校運會報名', club: '體育組', location: '二號操場', startAt: now + 24 * h, endAt: now + 27 * h,
+        capacity: 40, signedCount: 37, status: 'PUBLISHED',
+        description: '個人項目與接力，報名後請於賽前到體育組領取號碼布。' },
+      { id: 'e2', title: '科學社 · 水質檢測工作坊', club: '科學社', location: '實驗室 B', startAt: now + 48 * h, endAt: now + 51 * h,
+        capacity: 20, signedCount: 20, status: 'PUBLISHED',
+        description: '帶一支學校附近收集的水樣，現場測 pH 與濁度。' },
+      { id: 'e3', title: '英文歌唱比賽', club: '英文科', location: '禮堂', startAt: now + 72 * h, endAt: now + 75 * h,
+        capacity: 0, signedCount: 12, status: 'PUBLISHED',
+        description: '不限名額，歡迎個人或組隊參加。' },
+      { id: 'e4', title: '班際籃球賽（示範只有 1 個名額）', club: '體育組', location: '體育館', startAt: now + 96 * h, endAt: now + 98 * h,
+        capacity: 1, signedCount: 0, status: 'PUBLISHED',
+        description: '用來驗證「第二個人報名會自動進候補」。' },
+      { id: 'e5', title: '畢業旅行說明會', club: '訓導處', location: '禮堂', startAt: now + 240 * h, endAt: now + 242 * h,
+        capacity: 200, signedCount: 85, status: 'PUBLISHED',
+        description: '家長與同學都可參加，會後可現場提問。' },
+      { id: 'e6', title: '上學期成果回顧展', club: '視藝科', location: '一樓展覽廳', startAt: now - 72 * h, endAt: now - 60 * h,
+        capacity: 0, signedCount: 64, status: 'FINISHED',
+        description: '已結束。' },
     ],
-    signups: [],
+    signups: [], // { id, eventId, userId, status: CONFIRMED|WAITLIST, waitlistPos, createdAt }
     menu: [
       { date: '2026-10-20', lunch: [{ id: 'd1', name: '葡式焗雞飯', avgScore: 4.6, ratingCount: 32, liked: 18 }], snack: [{ id: 'd2', name: '菠蘿包', price: 8 }] },
       { date: '2026-10-21', lunch: [{ id: 'd3', name: '豉汁排骨飯', avgScore: 4.2, ratingCount: 25, liked: 11 }], snack: [{ id: 'd4', name: '魚蛋', price: 10 }] },
@@ -62,6 +77,14 @@ function db() {
 function save(data) {
   wx.setStorageSync(KEY, data);
   return data;
+}
+
+function mineFor(data, eventId) {
+  return data.signups.filter((x) => x.eventId === eventId && x.userId === data.user.id)[0] || null;
+}
+
+function waitlistCount(data, eventId) {
+  return data.signups.filter((x) => x.eventId === eventId && x.status === 'WAITLIST').length;
 }
 
 module.exports = {
@@ -169,25 +192,110 @@ module.exports = {
   },
 
   // ── 活動 ──
-  listEvents() {
-    return Promise.resolve({ items: db().events });
-  },
-  signup(eventId) {
+  listEvents(query) {
+    const q = query || {};
     const data = db();
-    const ev = data.events.filter((e) => e.id === eventId)[0];
-    if (!ev) return Promise.reject({ code: 'NOT_FOUND' });
-    if (data.signups.some((s) => s.eventId === eventId)) return Promise.reject({ code: 'ALREADY_SIGNED_UP' });
-    const full = ev.capacity > 0 && ev.signedCount >= ev.capacity;
+    const now = Date.now();
+    let items = data.events.slice();
+
+    if (q.scope === 'upcoming') items = items.filter((e) => e.status === 'PUBLISHED' && e.startAt >= now);
+    if (q.scope === 'past') items = items.filter((e) => e.status === 'FINISHED' || e.startAt < now);
+
+    items.sort((a, b) => a.startAt - b.startAt);
+    return Promise.resolve({
+      items: items.map((e) => Object.assign({}, e, { mySignup: mineFor(data, e.id) })),
+    });
+  },
+
+  getEvent(id) {
+    const data = db();
+    const e = data.events.filter((x) => x.id === id)[0];
+    if (!e) return Promise.reject({ code: 'NOT_FOUND' });
+    return Promise.resolve(Object.assign({}, e, { mySignup: mineFor(data, id) }));
+  },
+
+  signupEvent(id) {
+    const data = db();
+    const e = data.events.filter((x) => x.id === id)[0];
+    if (!e) return Promise.reject({ code: 'NOT_FOUND' });
+
+    const me = mineFor(data, id);
+    if (me) return Promise.reject({ code: 'ALREADY_SIGNED_UP' });
+
+    const full = e.capacity > 0 && e.signedCount >= e.capacity;
     const rec = {
-      id: 's' + Date.now(),
-      eventId: eventId,
+      id: 's' + Date.now() + Math.random().toString(16).slice(2, 6),
+      eventId: id,
+      userId: data.user.id,
       status: full ? 'WAITLIST' : 'CONFIRMED',
-      waitlistPos: full ? data.signups.filter((s) => s.status === 'WAITLIST').length + 1 : null,
+      waitlistPos: full ? waitlistCount(data, id) + 1 : null,
+      createdAt: Date.now(),
     };
-    if (!full) ev.signedCount += 1;
+    if (!full) e.signedCount += 1;
     data.signups.push(rec);
     save(data);
-    return full ? Promise.reject({ code: 'EVENT_FULL', data: rec }) : Promise.resolve(rec);
+
+    // 滿額不是「錯誤」而是「進候補」—— 用結果表達，不讓呼叫端把它當失敗吞掉
+    return Promise.resolve(Object.assign({}, rec));
+  },
+
+  cancelSignup(id) {
+    const data = db();
+    const rec = mineFor(data, id);
+    if (!rec) return Promise.reject({ code: 'NOT_FOUND' });
+
+    const e = data.events.filter((x) => x.id === id)[0];
+    data.signups = data.signups.filter((x) => x.id !== rec.id);
+
+    let promoted = null;
+    if (rec.status === 'CONFIRMED' && e) {
+      e.signedCount = Math.max(0, e.signedCount - 1);
+      // 有人取消 → 最早排隊的人補位
+      const waiting = data.signups
+        .filter((x) => x.eventId === id && x.status === 'WAITLIST')
+        .sort((a, b) => a.createdAt - b.createdAt);
+      if (waiting.length) {
+        promoted = waiting[0];
+        promoted.status = 'CONFIRMED';
+        promoted.waitlistPos = null;
+        e.signedCount += 1;
+      }
+      // 重排候補序號
+      data.signups
+        .filter((x) => x.eventId === id && x.status === 'WAITLIST')
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .forEach((x, i) => { x.waitlistPos = i + 1; });
+    }
+    save(data);
+    return Promise.resolve({ cancelled: true, promoted: promoted ? promoted.id : null });
+  },
+
+  mySignups() {
+    const data = db();
+    const mine = data.signups.filter((x) => x.userId === data.user.id);
+    const items = mine.map((rec) => {
+      const e = data.events.filter((x) => x.id === rec.eventId)[0] || {};
+      return {
+        id: rec.id,
+        eventId: rec.eventId,
+        status: rec.status,
+        waitlistPos: rec.waitlistPos,
+        title: e.title,
+        location: e.location,
+        startAt: e.startAt,
+        capacity: e.capacity,
+        signedCount: e.signedCount,
+      };
+    });
+    return Promise.resolve({ items: items });
+  },
+
+  // 示範模式專用：切換身分（用來驗證「第二個人報名 → 候補」）
+  switchDemoUser(nickname, id) {
+    const data = db();
+    data.user = Object.assign({}, data.user, { nickname: nickname, id: id || 'demo-' + nickname });
+    save(data);
+    return Promise.resolve(data.user);
   },
 
   // ── 菜單 ──
