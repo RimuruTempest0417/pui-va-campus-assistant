@@ -1,0 +1,43 @@
+{
+  "compileType": "miniprogram",
+  "appid": "wx9f104c034c07e15f",
+  "projectname": "pui-va-campus-assistant",
+  "description": "培華校園助手 Pui Va Campus Assistant — 失物招領 / 活動報名 / 菜單評價 / 公告提示",
+  "setting": {
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "uglifyFileName": true,
+    "enhance": true,
+    "packNpmRelationList": [],
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "useCompilerPlugins": false,
+    "condition": true,
+    "compileWorklet": true,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false
+  },
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "docs"
+      },
+      {
+        "type": "file",
+        "value": "README.md"
+      }
+    ],
+    "include": []
+  },
+  "editorSetting": {}
+}

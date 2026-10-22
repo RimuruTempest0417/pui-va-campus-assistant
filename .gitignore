@@ -1,0 +1,26 @@
+# macOS / Windows
+.DS_Store
+._*
+Thumbs.db
+[Dd]esktop.ini
+
+# 微信開發者工具個人設定（各機不同，不入庫）
+project.private.config.json
+miniprogram_npm/
+npm/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# 環境變數與憑證
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# 建置產物
+dist/
+coverage/
+*.log
