@@ -1,12 +1,10 @@
-<view class="pv-card {{tapable ? 'is-tapable' : ''}}" bindtap="onTap" hover-class="{{tapable ? 'pv-card--hover' : 'none'}}">
+<view class="pv-card">
   <view wx:if="{{title || extra}}" class="pv-card__head">
     <text class="pv-card__title">{{title}}</text>
     <text wx:if="{{extra}}" class="pv-card__extra">{{extra}}</text>
   </view>
-  <view class="pv-card__body {{padded ? 'is-padded' : ''}}">
+  <view class="pv-card__body {{padded ? 'is-padded' : ''}}" bindtap="onTap" hover-class="{{tapable ? 'is-pressed' : 'none'}}" hover-start-time="0">
     <slot />
   </view>
-  <view wx:if="{{title || extra}}" class="pv-card__foot">
-    <slot name="footer" />
-  </view>
+  <view class="pv-card__foot"><slot name="footer" /></view>
 </view>

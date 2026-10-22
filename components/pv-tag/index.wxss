@@ -3,15 +3,17 @@
 .pv-tag {
   display: inline-flex;
   align-items: center;
-  height: 44rpx;
+  height: 40rpx;
   padding: 0 var(--pv-sp-2);
-  border-radius: 999rpx;
-  font-size: var(--pv-fs-caption);
+  border-radius: var(--pv-r-pill);
+  font-size: var(--pv-fs-caption-1);
   font-weight: 500;
+  letter-spacing: var(--pv-ls-caption);
 }
-.pv-tag--default { background: #eef3f0; color: var(--pv-text-2); }
-.pv-tag--success { background: var(--pv-primary-soft); color: var(--pv-primary); }
+.pv-tag--neutral { background: var(--pv-fill); color: var(--pv-label-2); }
+.pv-tag--tint { background: var(--pv-tint-soft); color: var(--pv-tint); }
+.pv-tag--success { background: var(--pv-success-soft); color: var(--pv-success); }
 .pv-tag--warning { background: var(--pv-warning-soft); color: var(--pv-warning); }
-.pv-tag--danger { background: var(--pv-danger-soft); color: var(--pv-danger); }
-.pv-tag--info { background: var(--pv-info-soft); color: var(--pv-info); }
-.pv-tag.is-plain { background: transparent; border: 2rpx solid currentColor; }
+.pv-tag--danger { background: var(--pv-brand-soft); color: var(--pv-danger); }
+.pv-tag--brand { background: var(--pv-brand); color: #ffffff; }
+.pv-tag.is-plain { background: transparent; border: 1rpx solid currentColor; }

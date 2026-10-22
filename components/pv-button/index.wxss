@@ -6,31 +6,34 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  border-radius: var(--pv-radius);
+  border-radius: var(--pv-r);
   font-weight: 600;
-  border: 2rpx solid transparent;
-  transition: opacity 0.15s ease, background-color 0.15s ease;
+  letter-spacing: -0.2rpx;
+  transition: transform var(--pv-dur-fast) var(--pv-ease), opacity var(--pv-dur-fast) var(--pv-ease);
 }
-.pv-btn--md { height: 88rpx; padding: 0 var(--pv-sp-4); font-size: var(--pv-fs-title); }
-.pv-btn--sm { height: 64rpx; padding: 0 var(--pv-sp-3); font-size: var(--pv-fs-body); }
-.pv-btn--block { display: flex; width: 100%; }
+/* 尺寸：44pt 是最小可點區域 */
+.pv-btn--lg { height: 112rpx; padding: 0 var(--pv-sp-5); font-size: var(--pv-fs-headline); }
+.pv-btn--md { height: 88rpx; padding: 0 var(--pv-sp-4); font-size: var(--pv-fs-headline); }
+.pv-btn--sm { height: 68rpx; padding: 0 var(--pv-sp-3); font-size: var(--pv-fs-subhead); border-radius: var(--pv-r-sm); }
+.is-block { display: flex; width: 100%; }
 
-.pv-btn--primary { background: var(--pv-primary); color: #ffffff; }
-.pv-btn--primary.pv-btn--hover { background: var(--pv-primary-strong); }
-.pv-btn--secondary { background: var(--pv-primary-soft); color: var(--pv-primary); }
-.pv-btn--secondary.pv-btn--hover { background: #dcebe4; }
-.pv-btn--ghost { background: transparent; color: var(--pv-text-2); border-color: var(--pv-line); }
-.pv-btn--ghost.pv-btn--hover { background: #eef4f1; }
-.pv-btn--danger { background: var(--pv-danger-soft); color: var(--pv-danger); }
-.pv-btn--danger.pv-btn--hover { background: #fbdcd9; }
+/* 按下：立刻縮一下（原則 1 即時回饋，不等 release） */
+.is-pressed { transform: scale(0.97); opacity: 0.86; }
 
-.pv-btn.is-disabled { opacity: 0.45; }
-.pv-btn.is-loading { opacity: 0.7; }
+.pv-btn--filled { background: var(--pv-tint); color: #ffffff; }
+.pv-btn--tinted { background: var(--pv-tint-soft); color: var(--pv-tint); }
+.pv-btn--plain { background: transparent; color: var(--pv-tint); }
+.pv-btn--destructive { background: transparent; color: var(--pv-danger); }
+
+.is-disabled { opacity: 0.35; }
+.is-loading { opacity: 0.7; }
 .pv-btn__spinner {
-  width: 28rpx;
-  height: 28rpx;
+  width: 30rpx;
+  height: 30rpx;
   margin-right: var(--pv-sp-1);
   border: 4rpx solid rgba(255, 255, 255, 0.45);
   border-top-color: #ffffff;
   border-radius: 50%;
+  animation: pv-spin 0.7s linear infinite;
 }
+@keyframes pv-spin { to { transform: rotate(360deg); } }

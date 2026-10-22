@@ -1,4 +1,2 @@
 <image wx:if="{{src}}" class="pv-avatar pv-avatar--{{size}}" src="{{src}}" mode="aspectFill" />
-<view wx:else class="pv-avatar pv-avatar--{{size}} pv-avatar--text">
-  <text>{{initial || '?'}}</text>
-</view>
+<view wx:else class="pv-avatar pv-avatar--{{size}} pv-avatar--text"><text>{{initial || '?'}}</text></view>

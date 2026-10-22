@@ -1,82 +1,97 @@
 /* ============================================================
-   培華校園助手 · design tokens
-   唯一來源。所有頁面與組件只准引用這裡的變數，不要寫死色碼。
-   主色暫定「培華綠」＋「校徽金」，待對照校徽實物微調（只改這幾行）。
+   培華校園助手 · design tokens v2（Apple HIG 風格）
+   主題色為培華紫 #6D3FC4（互動色）；培華紅 #C8102E 保留給校徽識別與緊急；藍綠僅作校徽紋樣點綴
+   字級/間距/圓角對照 Apple Human Interface Guidelines（pt → rpx，1pt ≈ 2rpx）
+   規則：頁面與組件只准用這些變數，不要寫死色值
    ============================================================ */
 page {
-  /* 品牌色 */
-  --pv-primary: #17694a;
-  --pv-primary-strong: #0f4f37;
-  --pv-primary-soft: #e8f3ee;
-  --pv-accent: #c9a227;
+  /* ── 品牌與語意色 ───────────────────────── */
+  --pv-tint: #6d3fc4;               /* 培華紫：學校主題色，主要動作與連結（白字對比 6.65:1） */
+  --pv-tint-pressed: #5a31a6;
+  --pv-tint-soft: #f0eafb;
+  --pv-brand: #c8102e;              /* 培華紅：校徽用色，保留給身份識別與緊急 */
+  --pv-brand-soft: #fcebec;
+  --pv-danger: #d70015;             /* iOS systemRed：破壞性操作 */
+  --pv-warning: #b25000;            /* iOS systemOrange（深） */
+  --pv-warning-soft: #fff3e0;
+  --pv-success: #248a3d;            /* iOS systemGreen（深） */
+  --pv-success-soft: #e9f7ec;
 
-  /* 語意色 */
-  --pv-danger: #c8372d;
-  --pv-danger-soft: #fdeceb;
-  --pv-warning: #e08a1e;
-  --pv-warning-soft: #fdf3e3;
-  --pv-info: #2f6fb0;
-  --pv-info-soft: #eaf2fb;
-  --pv-success: #1f8a5b;
+  /* ── 文字與中性（iOS label / fill 階層）──── */
+  --pv-label: #000000;
+  --pv-label-2: rgba(60, 60, 67, 0.6);   /* secondaryLabel */
+  --pv-label-3: rgba(60, 60, 67, 0.3);   /* tertiaryLabel */
+  --pv-sep: rgba(60, 60, 67, 0.29);      /* separator */
+  --pv-fill: rgba(120, 120, 128, 0.12);  /* systemFill（分段控制底） */
+  --pv-fill-2: rgba(120, 120, 128, 0.16);
+  --pv-bg: #f2f2f7;                      /* systemGroupedBackground */
+  --pv-surface: #ffffff;                 /* secondarySystemGroupedBackground */
+  --pv-bar: rgba(249, 249, 249, 0.86);   /* 半透明導航列（近似 material） */
 
-  /* 中性色 */
-  --pv-text: #10211a;
-  --pv-text-2: #4d5f57;
-  --pv-text-3: #8a9a92;
-  --pv-line: #e2eae6;
-  --pv-surface: #ffffff;
-  --pv-bg: #f5f9f7;
+  /* ── 字級（Apple 字階）──────────────────── */
+  --pv-fs-large-title: 68rpx; /* 34pt */
+  --pv-fs-title-1: 56rpx;     /* 28pt */
+  --pv-fs-title-2: 44rpx;     /* 22pt */
+  --pv-fs-title-3: 40rpx;     /* 20pt */
+  --pv-fs-headline: 34rpx;    /* 17pt semibold */
+  --pv-fs-body: 34rpx;        /* 17pt */
+  --pv-fs-callout: 32rpx;     /* 16pt */
+  --pv-fs-subhead: 30rpx;     /* 15pt */
+  --pv-fs-footnote: 26rpx;    /* 13pt */
+  --pv-fs-caption-1: 24rpx;   /* 12pt */
+  --pv-fs-caption-2: 22rpx;   /* 11pt */
 
-  /* 字級（rpx） */
-  --pv-fs-caption: 22rpx;
-  --pv-fs-body: 28rpx;
-  --pv-fs-title: 32rpx;
-  --pv-fs-h2: 38rpx;
-  --pv-fs-h1: 48rpx;
+  /* 字距：隨字級變化（大標題收緊、小字放寬） */
+  --pv-ls-large-title: -1.2rpx;
+  --pv-ls-title: -0.6rpx;
+  --pv-ls-body: -0.2rpx;
+  --pv-ls-caption: 0.2rpx;
 
-  /* 間距（8 的倍數） */
+  /* ── 間距（4pt 網格 → 8rpx 基準）────────── */
   --pv-sp-1: 8rpx;
   --pv-sp-2: 16rpx;
   --pv-sp-3: 24rpx;
   --pv-sp-4: 32rpx;
-  --pv-sp-5: 48rpx;
-  --pv-sp-6: 64rpx;
+  --pv-sp-5: 40rpx;
+  --pv-sp-6: 56rpx;
 
-  /* 圓角與陰影 */
-  --pv-radius-sm: 8rpx;
-  --pv-radius: 16rpx;
-  --pv-radius-lg: 24rpx;
-  --pv-shadow: 0 4rpx 16rpx rgba(11, 26, 20, 0.06);
-  --pv-shadow-lg: 0 12rpx 32rpx rgba(11, 26, 20, 0.12);
+  /* ── 圓角（Apple 常用 10/14pt）──────────── */
+  --pv-r-sm: 12rpx;
+  --pv-r: 20rpx;
+  --pv-r-lg: 28rpx;
+  --pv-r-pill: 999rpx;
+
+  /* ── 動效（iOS 彈簧曲線的 CSS 近似）──────── */
+  --pv-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --pv-dur: 320ms;
+  --pv-dur-fast: 140ms;
 
   background: var(--pv-bg);
-  color: var(--pv-text);
-  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  color: var(--pv-label);
+  font-family: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
   font-size: var(--pv-fs-body);
-  line-height: 1.5;
+  letter-spacing: var(--pv-ls-body);
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* 通用容器 */
-.pv-page {
-  min-height: 100vh;
-  padding: var(--pv-sp-3);
-  box-sizing: border-box;
+/* ── 通用排版與容器 ─────────────────────── */
+.pv-page { min-height: 100vh; padding: var(--pv-sp-3) var(--pv-sp-3) var(--pv-sp-6); box-sizing: border-box; }
+.pv-large-title { font-size: var(--pv-fs-large-title); font-weight: 700; letter-spacing: var(--pv-ls-large-title); line-height: 1.1; }
+.pv-title { font-size: var(--pv-fs-title-2); font-weight: 600; letter-spacing: var(--pv-ls-title); line-height: 1.2; }
+.pv-group-title {                     /* iOS 列表的分組標題 */
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-label-2);
+  text-transform: none;
+  padding: var(--pv-sp-3) var(--pv-sp-2) var(--pv-sp-1);
+  letter-spacing: var(--pv-ls-caption);
 }
-.pv-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
+.pv-footnote { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); line-height: 1.4; }
+.pv-caption { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); letter-spacing: var(--pv-ls-caption); }
+.pv-row { display: flex; flex-direction: row; align-items: center; }
+.pv-row-between { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+
+/* 減少動態：尊重系統設定 */
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 1ms !important; }
 }
-.pv-row-between {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-}
-.pv-gap-2 > .pv-gap-item { margin-right: var(--pv-sp-2); }
-.pv-section-title {
-  font-size: var(--pv-fs-h2);
-  font-weight: 600;
-  margin: var(--pv-sp-4) 0 var(--pv-sp-2);
-}
-.pv-muted { color: var(--pv-text-2); font-size: var(--pv-fs-caption); }

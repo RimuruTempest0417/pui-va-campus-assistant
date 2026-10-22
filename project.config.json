@@ -35,9 +35,14 @@
       {
         "value": "README.md",
         "type": "file"
+      },
+      {
+        "type": "folder",
+        "value": "/minitest"
       }
     ],
     "include": []
   },
-  "editorSetting": {}
+  "editorSetting": {},
+  "testRoot": "minitest/"
 }

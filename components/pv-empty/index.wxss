@@ -1,12 +1,7 @@
 @import "../../styles/tokens.wxss";
 
-.pv-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--pv-sp-6) var(--pv-sp-4);
-}
-.pv-empty__icon { font-size: 72rpx; opacity: 0.7; }
-.pv-empty__title { margin-top: var(--pv-sp-2); font-size: var(--pv-fs-title); font-weight: 600; color: var(--pv-text-2); }
-.pv-empty__desc { margin-top: var(--pv-sp-1); font-size: var(--pv-fs-caption); color: var(--pv-text-3); text-align: center; }
+.pv-empty { display: flex; flex-direction: column; align-items: center; padding: var(--pv-sp-6) var(--pv-sp-4); }
+.pv-empty__icon { font-size: 64rpx; opacity: 0.35; }
+.pv-empty__title { margin-top: var(--pv-sp-2); font-size: var(--pv-fs-headline); font-weight: 600; color: var(--pv-label-2); }
+.pv-empty__desc { margin-top: var(--pv-sp-1); font-size: var(--pv-fs-footnote); color: var(--pv-label-3); text-align: center; line-height: 1.4; }
 .pv-empty__action { margin-top: var(--pv-sp-3); }

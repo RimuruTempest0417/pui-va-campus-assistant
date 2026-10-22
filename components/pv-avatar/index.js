@@ -6,8 +6,6 @@ Component({
   },
   data: { initial: '' },
   observers: {
-    name(v) {
-      this.setData({ initial: (v || '').slice(0, 1) });
-    },
+    name(v) { this.setData({ initial: (v || '').slice(0, 1) }); },
   },
 });

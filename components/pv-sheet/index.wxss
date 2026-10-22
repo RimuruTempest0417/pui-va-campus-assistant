@@ -1,29 +1,33 @@
 @import "../../styles/tokens.wxss";
 
 .pv-sheet { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 900; }
-.pv-sheet__mask { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background: rgba(11, 26, 20, 0.45); }
+.pv-sheet__mask { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background: rgba(0, 0, 0, 0.28); }
 .pv-sheet__panel {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: absolute; left: 0; right: 0; bottom: 0;
   background: var(--pv-surface);
-  border-radius: var(--pv-radius-lg) var(--pv-radius-lg) 0 0;
-  box-shadow: var(--pv-shadow-lg);
+  border-radius: var(--pv-r-lg) var(--pv-r-lg) 0 0;
   padding-bottom: calc(var(--pv-sp-3) + env(safe-area-inset-bottom));
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
+  max-height: 82vh;
+  display: flex; flex-direction: column;
+  animation: pv-sheet-in var(--pv-dur) var(--pv-ease);
+}
+@keyframes pv-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.pv-sheet__grabber {
+  width: 72rpx; height: 10rpx; border-radius: var(--pv-r-pill);
+  background: var(--pv-fill-2); margin: var(--pv-sp-1) auto 0;
 }
 .pv-sheet__head {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--pv-sp-3) var(--pv-sp-3) var(--pv-sp-2);
-  border-bottom: 2rpx solid var(--pv-line);
+  display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+  padding: var(--pv-sp-2) var(--pv-sp-3);
+  border-bottom: 1rpx solid var(--pv-sep);
 }
-.pv-sheet__title { font-size: var(--pv-fs-title); font-weight: 600; }
-.pv-sheet__close { color: var(--pv-text-3); font-size: var(--pv-fs-body); padding: 0 var(--pv-sp-1); }
+.pv-sheet__title { font-size: var(--pv-fs-headline); font-weight: 600; }
+.pv-sheet__close { font-size: var(--pv-fs-headline); color: var(--pv-tint); }
 .pv-sheet__body { padding: var(--pv-sp-3); overflow-y: auto; }
+.pv-sheet__body > .pv-sheet-item {
+  padding: var(--pv-sp-2) 0;
+  border-bottom: 1rpx solid var(--pv-sep);
+  font-size: var(--pv-fs-body);
+}
 .pv-sheet__foot:empty { display: none; }

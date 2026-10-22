@@ -1,9 +1,10 @@
 <view wx:if="{{show}}" class="pv-sheet">
   <view class="pv-sheet__mask" bindtap="onMask" />
   <view class="pv-sheet__panel" catchtap="noop">
-    <view class="pv-sheet__head">
+    <view wx:if="{{grabber}}" class="pv-sheet__grabber" />
+    <view wx:if="{{title || closable}}" class="pv-sheet__head">
       <text class="pv-sheet__title">{{title}}</text>
-      <view wx:if="{{closable}}" class="pv-sheet__close" bindtap="onClose">✕</view>
+      <view wx:if="{{closable}}" class="pv-sheet__close" bindtap="onClose">完成</view>
     </view>
     <view class="pv-sheet__body"><slot /></view>
     <view class="pv-sheet__foot"><slot name="footer" /></view>

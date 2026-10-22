@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "設計系統",
+  "navigationStyle": "custom",
   "usingComponents": {
     "pv-button": "/components/pv-button/index",
     "pv-card": "/components/pv-card/index",

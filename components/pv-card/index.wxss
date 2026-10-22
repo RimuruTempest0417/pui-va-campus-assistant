@@ -1,12 +1,11 @@
 @import "../../styles/tokens.wxss";
 
+/* Apple 的 grouped 卡片：白底、無陰影、靠髮絲線與留白分層 */
 .pv-card {
   background: var(--pv-surface);
-  border-radius: var(--pv-radius-lg);
-  box-shadow: var(--pv-shadow);
+  border-radius: var(--pv-r-lg);
   overflow: hidden;
 }
-.pv-card--hover { background: #fafcfb; }
 .pv-card__head {
   display: flex;
   flex-direction: row;
@@ -14,7 +13,9 @@
   justify-content: space-between;
   padding: var(--pv-sp-3) var(--pv-sp-3) 0;
 }
-.pv-card__title { font-size: var(--pv-fs-title); font-weight: 600; }
-.pv-card__extra { font-size: var(--pv-fs-caption); color: var(--pv-text-3); }
+.pv-card__title { font-size: var(--pv-fs-headline); font-weight: 600; letter-spacing: var(--pv-ls-body); }
+.pv-card__extra { font-size: var(--pv-fs-subhead); color: var(--pv-tint); }
 .pv-card__body.is-padded { padding: var(--pv-sp-3); }
+.pv-card__body.is-pressed { background: var(--pv-fill); }
+.pv-card__foot { border-top: 1rpx solid var(--pv-sep); }
 .pv-card__foot:empty { display: none; }

@@ -1,13 +1,15 @@
-<view class="pv-tabs">
+<view class="pv-seg">
   <view
     wx:for="{{tabs}}"
     wx:key="key"
-    class="pv-tabs__item {{current === item.key ? 'is-active' : ''}}"
+    class="pv-seg__item {{current === item.key ? 'is-active' : ''}}"
     data-key="{{item.key}}"
     bindtap="onTap"
+    hover-class="is-pressed"
+    hover-start-time="0"
+    hover-stay-time="80"
   >
     <text>{{item.label}}</text>
-    <view wx:if="{{item.badge}}" class="pv-tabs__badge">{{item.badge}}</view>
-    <view class="pv-tabs__bar" />
+    <view wx:if="{{item.badge}}" class="pv-seg__badge">{{item.badge}}</view>
   </view>
 </view>
