@@ -9,7 +9,7 @@
 
 | 表 | 用途 | 關鍵設計 |
 |---|---|---|
-| `users` | 師生身份（openid、角色、班級） | `openid` unique；`role` = STUDENT / TEACHER / ADMIN |
+| `users` | 師生身份（openid、角色、班級） | `openid` unique；`role` = SUPER_ADMIN / ADMIN / TEACHER / STUDENT（**未登入不是角色，是沒有 JWT 的狀態**）；權限矩陣見後端 `docs/03-權限分級.md` |
 | `categories` | 失物分類（卡證、電子、書本…） | `applicableTo` 區分失物／拾獲 |
 | `lost_items` | 失物與拾獲主表 | `type` + `status` 狀態機；soft delete `deletedAt` |
 | `item_images` | 失物圖片（1–3 張） | 存 COS key；`sortOrder` 控制封面 |
