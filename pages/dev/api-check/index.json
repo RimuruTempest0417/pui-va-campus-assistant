@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "資料層自我檢查",
+  "usingComponents": {
+    "pv-button": "/components/pv-button/index",
+    "pv-card": "/components/pv-card/index",
+    "pv-tag": "/components/pv-tag/index"
+  }
+}

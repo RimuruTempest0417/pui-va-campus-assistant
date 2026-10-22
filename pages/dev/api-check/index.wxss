@@ -1,0 +1,9 @@
+@import "../../styles/tokens.wxss";
+
+.checks { margin: var(--pv-sp-3) 0; background: var(--pv-surface); border-radius: var(--pv-r-lg); overflow: hidden; }
+.check { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: var(--pv-sp-2) var(--pv-sp-3); border-bottom: 1rpx solid var(--pv-sep); }
+.check:last-child { border-bottom: none; }
+.check__name { font-size: var(--pv-fs-subhead); color: var(--pv-label-2); }
+.check__val { font-size: var(--pv-fs-subhead); font-weight: 600; }
+.check.ok .check__val { color: var(--pv-success); }
+.check.bad .check__val { color: var(--pv-danger); }

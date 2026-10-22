@@ -1,7 +1,8 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/style-guide/index"
+    "pages/style-guide/index",
+    "pages/dev/api-check/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",

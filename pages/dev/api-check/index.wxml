@@ -1,0 +1,19 @@
+<view class="pv-page">
+  <view class="pv-large-title">資料層自我檢查</view>
+  <view class="pv-footnote" id="mode-line">模式：{{modeText}}｜通過 {{passed}}／{{total}}</view>
+
+  <view id="check-summary" class="checks">
+    <view wx:for="{{lines}}" wx:key="name" class="check {{item.ok ? 'ok' : 'bad'}}">
+      <text class="check__name">{{item.name}}</text>
+      <text class="check__val">{{item.value}}</text>
+    </view>
+  </view>
+
+  <pv-card>
+    <pv-button type="filled" block bind:tap="rerun">重新檢查</pv-button>
+  </pv-card>
+  <pv-card>
+    <pv-button type="tinted" block bind:tap="resetDemo">重置示範資料</pv-button>
+  </pv-card>
+  <view class="pv-caption" id="result-line">{{resultLine}}</view>
+</view>
