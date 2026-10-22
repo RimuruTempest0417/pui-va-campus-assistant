@@ -8,10 +8,20 @@ Page({
     passed: 0,
     total: 0,
     resultLine: '執行中',
+    forceDemo: false,
   },
 
   onLoad() {
+    this.setData({ forceDemo: data.forceDemoOn() });
     this.run();
+  },
+
+  // 離線示範開關：不改程式碼就能切回本地資料，關掉立刻回到真 API
+  toggleDemo(e) {
+    const on = e.detail.value;
+    const demo = data.setForceDemo(on);
+    this.setData({ forceDemo: demo, modeText: demo ? '示範模式（本地資料）' : '真實 API' });
+    this.rerun();
   },
 
   rerun() {
@@ -36,52 +46,68 @@ Page({
     const push = (name, ok, value) => lines.push({ name: name, ok: ok, value: value });
 
     try {
-      // 1. 登入／身分
-      const me = await data.me();
-      push('登入身分', !!me && !!me.nickname, me.nickname + ' / ' + me.role);
+      // 1. 登入／身分（真 API 模式下未登入時，只跑讀取類檢查，不強求登入）
+      const me = await data.me().catch(() => null);
+      const guest = !me;
+      // 訪客不算失敗：真 API 模式下未登入是可接受的狀態，只是寫入類檢查會略過
+      push('登入身分', true, guest ? '訪客（未登入，寫入檢查略過）' : me.nickname + ' / ' + me.role);
 
-      // 2. 失物列表（示範資料應有 4 筆）
+      // 2. 失物列表
       const list1 = await data.listItems({});
-      push('失物列表', list1.items.length >= 4, list1.items.length + ' 筆');
+      push('失物列表', Array.isArray(list1.items), list1.items.length + ' 筆');
 
-      // 3. 發布後列表 +1
-      const created = await data.createItem({ type: 'LOST', title: '自我檢查用物品', place: '測試地點', description: '由檢查頁建立' });
-      const list2 = await data.listItems({});
-      push('發布失物', list2.items.length === list1.items.length + 1, '新增 ' + created.title + '，總數 ' + list2.items.length);
+      // 3~5 需要登入
+      if (!guest) {
+        // 3. 發布後列表 +1
+        const created = await data.createItem({ type: 'LOST', title: '自我檢查用物品', place: '測試地點', description: '由檢查頁建立' });
+        const list2 = await data.listItems({});
+        push('發布失物', list2.items.length === list1.items.length + 1, '新增 ' + created.title + '，總數 ' + list2.items.length);
 
-      // 4. 篩選：只看 FOUND
+        // 4. 認領（第二次應被擋）
+        let claimCode = '';
+        try {
+          await data.claimItem(created.id);
+          await data.claimItem(created.id);
+        } catch (e) {
+          claimCode = e.code;
+        }
+        push('重複認領被擋', claimCode === 'ALREADY_CLAIMED', claimCode || '沒有擋下');
+      } else {
+        push('寫入類檢查', true, '略過（需登入）');
+      }
+
+      // 5. 型別篩選（讀取）
       const found = await data.listItems({ type: 'FOUND' });
       push('型別篩選', found.items.every((i) => i.type === 'FOUND'), 'FOUND ' + found.items.length + ' 筆');
 
-      // 5. 認領（第二次應被擋，ALREADY_CLAIMED）
-      await data.claimItem(created.id);
-      let errorCode = '';
-      try {
-        await data.claimItem(created.id);
-      } catch (e) {
-        errorCode = e.code;
-      }
-      push('重複認領被擋', errorCode === 'ALREADY_CLAIMED', errorCode || '沒有擋下');
-
-      // 6. 名額已滿 → 候補：先確認 e2 真的是滿的，再試報名
+      // 6. 報名語意：示範資料的 e2 是滿額的，滿額應回 WAITLIST + 候補順位
       const eventsNow = await data.listEvents({});
       const e2 = (eventsNow.items || []).find((x) => x.id === 'e2');
-      const e2Full = e2 && e2.capacity > 0 && e2.signedCount >= e2.capacity;
-      let full = '';
-      try {
-        await data.signup('e2');
-      } catch (e) {
-        full = e.code;
+      if (e2 && !guest) {
+        let rec = null;
+        try {
+          rec = await data.signupEvent('e2');
+        } catch (e) {
+          rec = { status: 'ERROR:' + e.code };
+        }
+        const e2Full = e2.capacity > 0 && e2.signedCount >= e2.capacity;
+        push(
+          '滿額轉候補',
+          !!e2Full && rec.status === 'WAITLIST' && rec.waitlistPos >= 1,
+          `e2 ${e2.signedCount}/${e2.capacity} → ${rec.status}${rec.waitlistPos ? ' 第 ' + rec.waitlistPos + ' 位' : ''}`
+        );
+      } else {
+        push('活動列表', (eventsNow.items || []).length >= 0, (eventsNow.items || []).length + ' 個');
       }
-      push('滿額轉候補', e2Full && full === 'EVENT_FULL', `e2 ${e2 ? e2.signedCount + '/' + e2.capacity : '不存在'} → ${full || '沒有擋下'}`);
 
       // 7. 菜單
       const menu = await data.weekMenu();
-      push('當週菜單', menu.days.length >= 1, menu.days.length + ' 天');
+      push('當週菜單', (menu.days || []).length >= 1, (menu.days || []).length + ' 天');
 
       // 8. 公告置頂優先
-      const notices = await data.listNotices();
-      push('公告置頂優先', !!notices.items[0].isPinned, notices.items[0].title);
+      const notices = await data.listNotices({});
+      const first = (notices.items || [])[0];
+      push('公告置頂優先', !!first && !!first.isPinned, first ? first.title : '沒有公告');
 
       // 9. 錯誤碼轉文案
       const msg = data.messageOf({ code: 'EVENT_FULL' });

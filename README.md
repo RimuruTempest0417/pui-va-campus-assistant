@@ -38,15 +38,21 @@
 | 圖片 | 騰訊雲 COS + CDN，**簽名直傳**（圖片不經過 API） | 省頻寬、避開 1 MB body 限制 |
 | 認證 | `wx.login` → `code2Session` → 自簽 JWT | 不用微信雲開發，身分仍由微信保證 |
 
-## 示範模式（沒有後端也能完整操作）
+## 資料來源：預設連真後端（不是示範版）
 
-前端請求層三種模式，切換只改 `config/config.js` 一個值：
+**預設 `DEMO_MODE: 'off'`，一律打真 API。** 後端沒開就會看到錯誤與重試，不會偷偷換成假資料——
+「刷新一下就變示範版」這種事不會再發生。
 
-| `DEMO_MODE` | 行為 | 用途 |
-|---|---|---|
-| `'auto'`（預設） | 先打真 API，逾時／失敗自動落回本地 mock（資料存 storage） | 老師在自己電腦打開就能操作，不必跑後端 |
-| `'on'` | 只用本地 mock | 完全離線、錄屏演示 |
-| `'off'` | 只用真 API，失敗直接報錯 | 接後端驗證真實流程 |
+| 設定 | 行為 |
+|---|---|
+| `'off'`（**預設**） | 只用真 API；連不上就是連不上（首頁會顯示失敗與重試） |
+| `'auto'` | 先打真 API，網路類錯誤才落回本地 mock（適合隨時給人看的場合） |
+| `'on'` | 一律本地 mock（完全離線） |
+
+**要離線演示又不想改程式**：首頁拉到底部點「資料來源」→ 打開「**離線示範模式**」開關。
+這個開關存在本地 storage（`pv_force_demo`），關掉立刻回到真 API，不需要重新編譯。
+
+未登入也能瀏覽（訪客）：首頁、失物、活動、菜單、公告都會正常載入，只有發布／認領／報名／評分會提示「請先登入」。
 
 頁面只 require `services/data.js` 一個入口，所以切模式不用改任何頁面。
 
@@ -85,17 +91,26 @@
 
 > `docs/` 與 `README.md` 已在 `project.config.json` 的 `packOptions.ignore` 中排除，不會被打包進小程序。
 
+## 打包交付（給老師）
+
+```bash
+node scripts/package.mjs     # → dist/pui-va-campus-assistant-vX.Y.Z.zip
+```
+
+會自動排除 `.git`／`node_modules`／`docs`／`.github`／個人設定，並把 `docs/交付給老師.md` 複製成包內的 `使用說明.md`；
+打包後會驗證四個模組的頁面都在包內。zip 約 120 KB。
+
 ## 本地開發
 
 ```bash
 # 結構與資料層自檢（CI 也會跑）
 node scripts/check-project.mjs     # 14 頁面 / 0 警告
-node scripts/check-data-layer.mjs  # ALL PASS 36/36
+node scripts/check-data-layer.mjs  # ALL PASS 36/36（固定跑示範資料層）
 ```
 
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄
 2. 直接編譯預覽（appid：`wx9f104c034c07e15f`）；**不跑後端也能操作**（示範模式）
-3. 要接真後端：後端 `npm run dev`（`127.0.0.1:3100`），把 `config/config.js` 的 `API_BASE_URL` 指過去、`DEMO_MODE` 設 `'off'`，並在開發者工具勾「不校驗合法域名」
+3. 後端：`npm run dev`（`127.0.0.1:3100`），`config/config.js` 預設就指向它；開發者工具要勾「不校驗合法域名」
 4. `project.private.config.json` 為個人本機設定，已加入 `.gitignore`
 
 ## 目前進度
@@ -109,7 +124,7 @@ node scripts/check-data-layer.mjs  # ALL PASS 36/36
 - [x] 後端 P0 端點（認領審批、報名行鎖＋候補、菜單評分、公告已讀、上傳簽名）
 - [x] 後端 e2e（真實 Postgres，27 項，含 20 併發超賣壓測）
 - [ ] 老師端管理後台（W-10）｜失物智能匹配（W-9）｜訂閱消息（W-11）
-- [ ] 交付給老師的一鍵包與 5 步說明（W-12）
+- [x] 交付給老師的一鍵包與 5 步說明（W-12：`node scripts/package.mjs`）
 - [ ] 上線（ICP 備案 → 提審 → 灰度）
 
 詳細待辦與順序見 [`docs/規劃書-待完成.md`](docs/規劃書-待完成.md)，每版變更與驗證數據見 [`docs/releases/`](docs/releases)。

@@ -98,9 +98,10 @@
       </view>
     </pv-card>
 
-    <view class="home__foot">
+    <view class="home__foot" bindtap="goDev" hover-class="home__foot--pressed" hover-start-time="0">
       <text>{{updatedAt}}</text>
-      <text wx:if="{{isDemo}}"> · 目前使用示範資料，未連接後端</text>
+      <text wx:if="{{isDemo}}"> · 示範資料（未連後端）</text>
+      <text class="home__foot-link"> · 資料來源</text>
     </view>
   </block>
 

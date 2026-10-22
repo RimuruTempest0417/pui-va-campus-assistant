@@ -7,3 +7,8 @@
 .check__val { font-size: var(--pv-fs-subhead); font-weight: 600; }
 .check.ok .check__val { color: var(--pv-success); }
 .check.bad .check__val { color: var(--pv-danger); }
+
+.demo-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.demo-row__text { flex: 1; display: flex; flex-direction: column; margin-right: var(--pv-sp-2); }
+.demo-row__title { font-size: var(--pv-fs-body); font-weight: 600; }
+.demo-row__desc { font-size: var(--pv-fs-caption-1); color: var(--pv-label-2); margin-top: 4rpx; line-height: 1.4; }

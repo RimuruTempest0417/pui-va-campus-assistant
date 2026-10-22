@@ -31,4 +31,9 @@ function isNetworkish(err) {
   return NETWORK_CODES.indexOf(codeOf(err)) !== -1;
 }
 
-module.exports = { TEXT, messageOf, codeOf, isNetworkish };
+/** 401／UNAUTHORIZED：未登入。讀取類頁面可以當成「訪客」繼續，不用整頁失敗。 */
+function isUnauthorized(err) {
+  return codeOf(err) === 'UNAUTHORIZED';
+}
+
+module.exports = { TEXT, messageOf, codeOf, isNetworkish, isUnauthorized };

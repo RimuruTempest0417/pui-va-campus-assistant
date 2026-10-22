@@ -47,6 +47,10 @@ Page({
     if (!this.data.loading) this.setClockFields();
   },
 
+  goDev() {
+    wx.navigateTo({ url: '/pages/dev/api-check/index' });
+  },
+
   setClockFields() {
     this.setData({
       greeting: greeting(),
@@ -62,7 +66,8 @@ Page({
 
     try {
       const [me, items, events, menu, notices] = await Promise.all([
-        data.me(),
+        // 未登入時 me() 會 401；首頁是公開頁，訪客照樣要能看到四個模組
+        data.me().catch(() => null),
         data.listItems({}),
         data.listEvents({}),
         data.weekMenu(),

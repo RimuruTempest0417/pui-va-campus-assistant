@@ -1,5 +1,5 @@
 // 資料入口：頁面只 require 這支，不直接碰 api.js / mock.js
-// 自動模式：有 API_BASE_URL 就先用真的；遇到網路類錯誤才落回示範資料，並在頁面上標示。
+// 預設（DEMO_MODE='off'）一律打真 API；只有明確開啟「離線示範」才會用本地資料。
 const config = require('../config/config');
 const api = require('./api');
 const mock = require('./mock');
@@ -7,11 +7,32 @@ const { codeOf, isNetworkish, messageOf } = require('../utils/errors');
 
 let demoActive = false;
 
+function forceDemoOn() {
+  try {
+    const v = wx.getStorageSync(config.STORAGE_KEYS.forceDemo);
+    return v === '1' || v === true;
+  } catch (e) {
+    return false;
+  }
+}
+
 function isDemo() {
   if (config.DEMO_MODE === 'on') return true;
+  if (forceDemoOn()) return true; // 開發自檢頁的臨時開關
   if (config.DEMO_MODE === 'off') return false;
   if (!config.API_BASE_URL) return true;
   return demoActive;
+}
+
+/** 開發自檢頁用：切換離線示範（不改程式碼、關掉即回真 API） */
+function setForceDemo(on) {
+  try {
+    wx.setStorageSync(config.STORAGE_KEYS.forceDemo, on ? '1' : '');
+  } catch (e) {
+    // storage 失敗不影響主流程
+  }
+  demoActive = false;
+  return isDemo();
 }
 
 async function call(name, args) {
@@ -30,6 +51,8 @@ async function call(name, args) {
 
 module.exports = {
   isDemo: isDemo,
+  setForceDemo: setForceDemo,
+  forceDemoOn: forceDemoOn,
   messageOf: messageOf,
   resetDemo: () => mock.reset(),
   login: (...a) => call('login', a),

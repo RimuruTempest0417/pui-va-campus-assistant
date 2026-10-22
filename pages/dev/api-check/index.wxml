@@ -16,6 +16,15 @@
     <pv-button type="filled" block bind:tap="rerun">重新檢查</pv-button>
   </pv-card>
   <pv-card>
+    <view class="demo-row">
+      <view class="demo-row__text">
+        <text class="demo-row__title">離線示範模式</text>
+        <text class="demo-row__desc">打開後不連後端，只用本地示範資料；關掉立刻回真 API</text>
+      </view>
+      <switch checked="{{forceDemo}}" bindchange="toggleDemo" color="#17694a" />
+    </view>
+  </pv-card>
+  <pv-card>
     <pv-button type="tinted" block bind:tap="resetDemo">重置示範資料</pv-button>
   </pv-card>
   <view class="pv-caption" id="result-line">{{resultLine}}</view>

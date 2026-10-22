@@ -25,3 +25,6 @@ npm-debug.log*
 dist/
 coverage/
 *.log
+
+# 微信開發者工具自動化產物
+minitest/

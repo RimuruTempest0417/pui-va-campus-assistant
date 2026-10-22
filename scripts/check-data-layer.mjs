@@ -18,7 +18,16 @@ globalThis.wx = {
   removeStorageSync: (k) => void store.delete(k),
 };
 
+// 這支檢查的對象是「示範資料層」，所以先明確打開離線示範開關，
+// 不受 config.DEMO_MODE 預設值（'off'）影響 —— 否則在 Node 裡會去打 wx.request。
+store.set('pv_force_demo', '1');
+
 const data = require(join(here, '..', 'services', 'data.js'));
+
+if (!data.isDemo()) {
+  console.error('❌ 無法啟用示範模式，檢查中止（data.isDemo() 應為 true）');
+  process.exit(1);
+}
 
 const results = [];
 const check = (name, ok, value) => results.push({ name, ok: !!ok, value: String(value) });

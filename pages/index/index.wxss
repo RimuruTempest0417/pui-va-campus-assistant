@@ -111,3 +111,7 @@
 .home__sk-cell { width: 48.5%; }
 .home__retry { color: var(--pv-tint); font-size: var(--pv-fs-body); font-weight: 600; }
 .home__foot { margin-top: var(--pv-sp-4); text-align: center; font-size: var(--pv-fs-caption-2); color: var(--pv-label-3); }
+
+.home__foot { padding: var(--pv-sp-3) 0 var(--pv-sp-4); }
+.home__foot--pressed { opacity: 0.55; }
+.home__foot-link { color: var(--pv-tint); }

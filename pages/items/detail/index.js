@@ -22,7 +22,7 @@ Page({
       const raw = await data.getItem(this.id);
       const item = decorate(raw);
       item.happenedAtText = dateKey(new Date(item.happenedAt));
-      const me = await data.me();
+      const me = await data.me().catch(() => null); // 訪客也能看詳情
       const isMine = item.author && item.author.nickname === me.nickname;
       this.setData(Object.assign({ loading: false, item: item, isMine: isMine }, this.barFor(item, isMine)));
     } catch (e) {
