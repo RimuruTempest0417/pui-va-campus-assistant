@@ -6,6 +6,7 @@ Thumbs.db
 
 # 微信開發者工具個人設定（各機不同，不入庫）
 project.private.config.json
+.cloudbase/
 miniprogram_npm/
 npm/
 

@@ -1,0 +1,820 @@
+openapi: 3.0.3
+info:
+  title: 培華校園助手 API
+  version: 1.0.0
+  description: |
+    澳門培華中學「培華校園助手」小程序後端契約。
+    認證：Authorization: Bearer <JWT>（/auth/login 除外）。
+    錯誤格式：{ "error": { "code", "message", "details"? } }
+servers:
+  - url: https://api.example.edu.mo/api/v1
+    description: 生產（已備案域名，待填）
+  - url: http://127.0.0.1:3000/api/v1
+    description: 本地開發
+tags:
+  - name: auth
+  - name: items
+  - name: events
+  - name: menu
+  - name: notices
+  - name: uploads
+  - name: admin
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      security: []
+      summary: 微信登入（code2Session）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, description: wx.login 取得的 code }
+      responses:
+        '200':
+          description: 登入成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: 當前使用者
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      tags: [auth]
+      summary: 更新暱稱／班級
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nickname: { type: string, maxLength: 64 }
+                className: { type: string, maxLength: 32 }
+                grade: { type: string, maxLength: 16 }
+      responses:
+        '200':
+          description: 更新後的使用者
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /items:
+    get:
+      tags: [items]
+      summary: 失物列表（篩選＋分頁）
+      parameters:
+        - { in: query, name: type, schema: { type: string, enum: [LOST, FOUND] } }
+        - { in: query, name: categoryId, schema: { type: string } }
+        - { in: query, name: status, schema: { type: string, enum: [OPEN, MATCHED, CLAIMED, CLOSED] } }
+        - { in: query, name: q, schema: { type: string }, description: 標題／描述關鍵字 }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: pageSize, schema: { type: integer, default: 20, maximum: 50 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/LostItem' }
+    post:
+      tags: [items]
+      summary: 發布失物／拾獲
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LostItemInput' }
+      responses:
+        '201':
+          description: 建立成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LostItem' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /items/mine:
+    get:
+      tags: [items]
+      summary: 我發布的失物
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/LostItem' }
+
+  /items/matches:
+    get:
+      tags: [items]
+      summary: 智能匹配推薦
+      parameters:
+        - { in: query, name: itemId, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 依分數降序，低於 0.45 不回傳
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matches:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        title: { type: string }
+                        score: { type: number, format: float }
+                        reasons:
+                          type: array
+                          items: { type: string }
+
+  /items/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      tags: [items]
+      summary: 失物詳情
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LostItem' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [items]
+      summary: 修改（作者或 ADMIN）
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LostItemInput' }
+      responses:
+        '200':
+          description: 修改後
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LostItem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [items]
+      summary: 下架（soft delete）
+      responses:
+        '204': { description: 已刪除 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /items/{id}/claims:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    post:
+      tags: [items]
+      summary: 申請認領
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message: { type: string, maxLength: 300, description: 特徵描述，防冒領 }
+      responses:
+        '201':
+          description: 已提交
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemClaim' }
+        '409':
+          description: 已有人認領或本人已申請
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /items/{id}/claims/{claimId}/review:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+      - { in: path, name: claimId, required: true, schema: { type: string } }
+    post:
+      tags: [items]
+      summary: 審批認領（作者或 ADMIN）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approve]
+              properties:
+                approve: { type: boolean }
+      responses:
+        '200':
+          description: 審批結果
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemClaim' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /events:
+    get:
+      tags: [events]
+      summary: 活動列表
+      parameters:
+        - { in: query, name: status, schema: { type: string, enum: [DRAFT, PUBLISHED, CANCELLED, FINISHED] } }
+        - { in: query, name: clubId, schema: { type: string } }
+        - { in: query, name: from, schema: { type: string, format: date-time } }
+        - { in: query, name: to, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Event' }
+
+  /events/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      tags: [events]
+      summary: 活動詳情（含我是否已報名）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Event'
+                  - type: object
+                    properties:
+                      mySignup:
+                        type: object
+                        nullable: true
+                        properties:
+                          status: { type: string, enum: [CONFIRMED, WAITLIST, CANCELLED] }
+                          waitlistPos: { type: integer, nullable: true }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /events/{id}/signup:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    post:
+      tags: [events]
+      summary: 報名（名額樂觀鎖，滿員回 409）
+      responses:
+        '201':
+          description: 報名成功或已進入候補
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventSignup' }
+        '409':
+          description: EVENT_FULL 或 ALREADY_SIGNED_UP
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    delete:
+      tags: [events]
+      summary: 取消報名（觸發候補自動補位）
+      responses:
+        '204': { description: 已取消 }
+
+  /events/mine:
+    get:
+      tags: [events]
+      summary: 我的報名（含候補位置）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/EventSignup' }
+
+  /menu:
+    get:
+      tags: [menu]
+      summary: 該週菜單（依日期分組）
+      parameters:
+        - { in: query, name: week, schema: { type: string }, description: 'ISO 週，如 2026-W43' }
+        - { in: query, name: date, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  days:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        lunch:
+                          type: array
+                          items: { $ref: '#/components/schemas/MenuDish' }
+                        snack:
+                          type: array
+                          items: { $ref: '#/components/schemas/MenuDish' }
+
+  /dishes/{id}/ratings:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    post:
+      tags: [menu]
+      summary: 評分／點讚（upsert，一人一評）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [score]
+              properties:
+                score: { type: integer, minimum: 1, maximum: 5 }
+                liked: { type: boolean }
+                comment: { type: string, maxLength: 200 }
+      responses:
+        '200':
+          description: 更新後的平均分與評分數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  avgScore: { type: number, format: float }
+                  ratingCount: { type: integer }
+                  likedCount: { type: integer }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /dishes/top:
+    get:
+      tags: [menu]
+      summary: 熱門菜式排行
+      parameters:
+        - { in: query, name: days, schema: { type: integer, default: 7 } }
+        - { in: query, name: limit, schema: { type: integer, default: 10, maximum: 30 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/MenuDish' }
+
+  /notices:
+    get:
+      tags: [notices]
+      summary: 公告列表（預設排除已過期）
+      parameters:
+        - { in: query, name: kind, schema: { type: string, enum: [NORMAL, URGENT, CALENDAR] } }
+        - { in: query, name: pinnedOnly, schema: { type: boolean } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notice' }
+
+  /notices/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      tags: [notices]
+      summary: 公告詳情
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Notice' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /uploads/policy:
+    post:
+      tags: [uploads]
+      summary: 取得 COS 直傳簽名
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scope]
+              properties:
+                scope: { type: string, enum: [item, notice], description: 上傳用途前綴 }
+                ext: { type: string, enum: [jpg, jpeg, png, webp] }
+      responses:
+        '200':
+          description: 簽名資訊
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key: { type: string }
+                  url: { type: string, description: 上傳目標 URL 或預簽名完整 URL }
+                  method: { type: string, default: PUT }
+                  headers: { type: object, additionalProperties: { type: string } }
+                  expiresAt: { type: string, format: date-time }
+
+  /admin/notices:
+    post:
+      tags: [admin]
+      summary: 發公告（可推送訂閱消息）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, content]
+              properties:
+                title: { type: string, maxLength: 120 }
+                content: { type: string }
+                kind: { type: string, enum: [NORMAL, URGENT, CALENDAR] }
+                isPinned: { type: boolean }
+                push: { type: boolean, description: 是否發訂閱消息 }
+      responses:
+        '201':
+          description: 建立成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Notice' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/stats:
+    get:
+      tags: [admin]
+      summary: 營運看板數據
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dau: { type: integer }
+                  itemCount7d: { type: integer }
+                  signupCount7d: { type: integer }
+                  claimSuccessRate: { type: number, format: float }
+
+  /dishes/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      tags: [menu]
+      summary: 菜式詳情（含平均分與評分數）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MenuDish' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /notices/{id}/read:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    post:
+      tags: [notices]
+      summary: 標記已讀
+      responses:
+        '204': { description: 已標記 }
+
+  /subscriptions:
+    post:
+      tags: [notices]
+      summary: 記錄使用者同意的訂閱模板
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [templates]
+              properties:
+                templates:
+                  type: array
+                  items:
+                    type: string
+                    enum: [itemClaimed, eventOpen, urgentNotice]
+      responses:
+        '204': { description: 已記錄 }
+
+  /admin/items:
+    get:
+      tags: [admin]
+      summary: 待審核／全部失物
+      parameters:
+        - { in: query, name: status, schema: { type: string, enum: [OPEN, MATCHED, CLAIMED, CLOSED] } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/LostItem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/items/{id}/approve:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    post:
+      tags: [admin]
+      summary: 審核失物（通過／下架）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approve]
+              properties:
+                approve: { type: boolean }
+                reason: { type: string, maxLength: 200 }
+      responses:
+        '200':
+          description: 審核後狀態
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LostItem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/menu:
+    post:
+      tags: [admin]
+      summary: 批次排菜單（upsert）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entries]
+              properties:
+                entries:
+                  type: array
+                  items:
+                    type: object
+                    required: [date, mealType, dishId]
+                    properties:
+                      date: { type: string, format: date }
+                      mealType: { type: string, enum: [LUNCH, SNACK] }
+                      dishId: { type: string }
+                      soldOut: { type: boolean }
+      responses:
+        '200':
+          description: 寫入結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  upserted: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/events/{id}/signups.csv:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      tags: [admin]
+      summary: 匯出報名名單（CSV）
+      responses:
+        '200':
+          description: CSV 檔案
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: 未認證
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: 權限不足
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: 資源不存在
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ValidationFailed:
+      description: 欄位驗證失敗
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: 觸發限流
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                [UNAUTHORIZED, FORBIDDEN, NOT_FOUND, VALIDATION_FAILED, EVENT_FULL,
+                 ALREADY_SIGNED_UP, ALREADY_CLAIMED, CONTENT_RISKY, RATE_LIMITED]
+            message: { type: string }
+            details: { type: object, nullable: true }
+
+    Page:
+      type: object
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        hasMore: { type: boolean }
+
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        nickname: { type: string, nullable: true }
+        avatarUrl: { type: string, nullable: true }
+        role: { type: string, enum: [STUDENT, TEACHER, ADMIN] }
+        grade: { type: string, nullable: true }
+        className: { type: string, nullable: true }
+
+    LostItemInput:
+      type: object
+      required: [type, title, place, happenedAt]
+      properties:
+        type: { type: string, enum: [LOST, FOUND] }
+        title: { type: string, maxLength: 80 }
+        description: { type: string }
+        categoryId: { type: string, nullable: true }
+        place: { type: string, maxLength: 120 }
+        happenedAt: { type: string, format: date-time }
+        contactType: { type: string, enum: [inApp, wechat, phone] }
+        contactValue: { type: string, nullable: true }
+        images:
+          type: array
+          maxItems: 3
+          items:
+            type: object
+            properties:
+              key: { type: string, description: COS 物件 key }
+              width: { type: integer }
+              height: { type: integer }
+
+    LostItem:
+      allOf:
+        - $ref: '#/components/schemas/LostItemInput'
+        - type: object
+          properties:
+            id: { type: string }
+            status: { type: string, enum: [OPEN, MATCHED, CLAIMED, CLOSED] }
+            author: { $ref: '#/components/schemas/User' }
+            viewCount: { type: integer }
+            claimCount: { type: integer }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+
+    ItemClaim:
+      type: object
+      properties:
+        id: { type: string }
+        itemId: { type: string }
+        claimantId: { type: string }
+        message: { type: string, nullable: true }
+        status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+        createdAt: { type: string, format: date-time }
+        handledAt: { type: string, format: date-time, nullable: true }
+
+    Event:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        coverImage: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        clubId: { type: string, nullable: true }
+        location: { type: string, nullable: true }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time, nullable: true }
+        signupStartAt: { type: string, format: date-time, nullable: true }
+        signupEndAt: { type: string, format: date-time, nullable: true }
+        capacity: { type: integer, description: '0 = 不限' }
+        signedCount: { type: integer }
+        status: { type: string, enum: [DRAFT, PUBLISHED, CANCELLED, FINISHED] }
+
+    EventSignup:
+      type: object
+      properties:
+        id: { type: string }
+        eventId: { type: string }
+        userId: { type: string }
+        status: { type: string, enum: [CONFIRMED, WAITLIST, CANCELLED] }
+        waitlistPos: { type: integer, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    MenuDish:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        mealType: { type: string, enum: [LUNCH, SNACK] }
+        price: { type: number, nullable: true }
+        image: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+        soldOut: { type: boolean }
+        avgScore: { type: number, format: float }
+        ratingCount: { type: integer }
+        likedCount: { type: integer }
+
+    Notice:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        content: { type: string }
+        kind: { type: string, enum: [NORMAL, URGENT, CALENDAR] }
+        isPinned: { type: boolean }
+        coverImage: { type: string, nullable: true }
+        publishedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time, nullable: true }

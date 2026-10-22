@@ -42,9 +42,12 @@
 │   └── index/
 ├── components/                     # 自建組件
 │   └── navigation-bar/
-├── docs/                           # 設計文件（藍圖、架構圖）
+├── docs/                           # 設計文件（藍圖、架構、資料模型、API 契約）
 │   ├── 01-藍圖與競賽對標.md
-│   └── architecture.html
+│   ├── architecture.html
+│   ├── 02-資料模型與API.md
+│   ├── schema.prisma
+│   └── openapi.yaml
 ├── project.config.json             # 開發者工具專案設定（含 appid）
 └── README.md
 ```
@@ -62,7 +65,7 @@
 - [x] 產品定位、痛點分析、功能地圖（P0/P1/P2）
 - [x] 競賽評分對標與系統架構設計
 - [ ] 設計系統（色彩／字級／組件規範）
-- [ ] 資料模型與 RESTful API 契約
+- [x] 資料模型與 RESTful API 契約（`docs/schema.prisma` 13 張表、`docs/openapi.yaml` 32 個操作）
 - [ ] 前端 P0 四大模組
 - [ ] 後端 API 與圖片直傳
 - [ ] 上線（ICP 備案 → 提審 → 灰度）

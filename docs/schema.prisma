@@ -1,0 +1,334 @@
+// 培華校園助手 · 資料模型 v1（Prisma 5 · PostgreSQL）
+// 用途：資料庫 schema 唯一來源；後端專案建立後會把本檔移到 server/prisma/schema.prisma
+// 設計原則：狀態用 enum、可審計（createdAt/updatedAt/soft delete）、計數器留在主表避免 JOIN 聚合
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── 用戶與身份 ───────────────────────────
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(cuid())
+  openid    String   @unique // wx.login → code2Session
+  unionid   String?  @unique
+  nickname  String?  @db.VarChar(64)
+  avatarUrl String?  @db.VarChar(512)
+  role      Role     @default(STUDENT)
+  grade     String?  @db.VarChar(16) // 初一 / 高二 …
+  className String?  @db.VarChar(32) // 忠 / 孝 / 仁 …
+  bannedAt  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLoginAt DateTime?
+
+  lostItems    LostItem[]
+  claims       ItemClaim[]
+  signups      EventSignup[]
+  ratings      DishRating[]
+  notices      Notice[]
+  reports      Report[]
+
+  @@index([role])
+  @@index([className])
+  @@map("users")
+}
+
+// ─────────────────────────── 失物招領 ───────────────────────────
+
+enum ItemType {
+  LOST // 我丟了東西
+  FOUND // 我撿到東西
+}
+
+enum ItemStatus {
+  OPEN // 待認領 / 待回應
+  MATCHED // 已匹配到可能的另一方
+  CLAIMED // 已認領，待交接
+  CLOSED // 已完成或已撤銷
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  key       String    @unique @db.VarChar(32) // card / phone / book / clothing…
+  name      String    @db.VarChar(32)
+  appliesTo ItemType? // null = 兩種都適用
+  icon      String?   @db.VarChar(128)
+  sortOrder Int       @default(0)
+  items     LostItem[]
+
+  @@map("categories")
+}
+
+model LostItem {
+  id           String     @id @default(cuid())
+  type         ItemType
+  title        String     @db.VarChar(80)
+  description  String?    @db.Text
+  categoryId   String?
+  category     Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  place        String     @db.VarChar(120) // 圖書館三樓 / 二號操場…
+  happenedAt   DateTime // 遺失或拾獲時間
+  status       ItemStatus @default(OPEN)
+  contactType  String     @default("inApp") @db.VarChar(16) // inApp / wechat / phone
+  contactValue String?    @db.VarChar(64)
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  viewCount    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  images  ItemImage[]
+  claims  ItemClaim[]
+
+  @@index([type, status])
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("lost_items")
+}
+
+model ItemImage {
+  id        String   @id @default(cuid())
+  itemId    String
+  item      LostItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  url       String   @db.VarChar(512) // COS 物件 key 或完整 URL
+  width     Int?
+  height    Int?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([itemId])
+  @@map("item_images")
+}
+
+enum ClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ItemClaim {
+  id        String      @id @default(cuid())
+  itemId    String
+  item      LostItem    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  claimantId String
+  claimant  User        @relation(fields: [claimantId], references: [id], onDelete: Cascade)
+  message   String?     @db.VarChar(300) // 特徵描述，防止冒領
+  status    ClaimStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  handledAt DateTime?
+
+  @@unique([itemId, claimantId]) // 同一個人對同一件物品只能申請一次
+  @@index([itemId, status])
+  @@map("item_claims")
+}
+
+// ─────────────────────────── 社團與活動 ───────────────────────────
+
+model Club {
+  id      String  @id @default(cuid())
+  name    String  @unique @db.VarChar(64)
+  logo    String? @db.VarChar(512)
+  intro   String? @db.Text
+  isActive Boolean @default(true)
+
+  events Event[]
+
+  @@map("clubs")
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  FINISHED
+}
+
+model Event {
+  id            String      @id @default(cuid())
+  title         String      @db.VarChar(100)
+  coverImage    String?     @db.VarChar(512)
+  description   String?     @db.Text
+  clubId        String?
+  club          Club?       @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  location      String?     @db.VarChar(120)
+  startAt       DateTime
+  endAt         DateTime?
+  signupStartAt DateTime?
+  signupEndAt   DateTime?
+  capacity      Int         @default(0) // 0 = 不限
+  signedCount   Int         @default(0) // 樂觀鎖計數器
+  status        EventStatus @default(DRAFT)
+  createdBy     String?     // User.id（老師）
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  signups EventSignup[]
+
+  @@index([status, startAt])
+  @@index([clubId])
+  @@map("events")
+}
+
+enum SignupStatus {
+  CONFIRMED
+  WAITLIST
+  CANCELLED
+}
+
+model EventSignup {
+  id          String       @id @default(cuid())
+  eventId     String
+  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      SignupStatus @default(CONFIRMED)
+  waitlistPos Int? // 候補順序，CONFIRMED 時為 null
+  createdAt   DateTime     @default(now())
+  cancelledAt DateTime?
+
+  @@unique([eventId, userId]) // 同一活動不可重複報名
+  @@index([eventId, status])
+  @@index([userId])
+  @@map("event_signups")
+}
+
+// ─────────────────────────── 午餐與小賣部 ───────────────────────────
+
+enum MealType {
+  LUNCH
+  SNACK
+}
+
+model Dish {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(64)
+  mealType    MealType @default(LUNCH)
+  price       Decimal? @db.Decimal(8, 2)
+  image       String?  @db.VarChar(512)
+  description String?  @db.VarChar(300)
+  tags        String[] // 素食 / 辣 / 招牌…
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  menuEntries MenuEntry[]
+  ratings     DishRating[]
+
+  @@index([mealType, isActive])
+  @@map("dishes")
+}
+
+model MenuEntry {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date // 只存日期
+  mealType  MealType
+  dishId    String
+  dish      Dish     @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  soldOut   Boolean  @default(false)
+  note      String?  @db.VarChar(120)
+
+  @@unique([date, mealType, dishId])
+  @@index([date])
+  @@map("menu_entries")
+}
+
+model DishRating {
+  id        String   @id @default(cuid())
+  dishId    String
+  dish      Dish     @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score     Int // 1–5
+  liked     Boolean  @default(false)
+  comment   String?  @db.VarChar(200)
+  createdAt DateTime @default(now())
+
+  @@unique([dishId, userId]) // 一人一菜一評，可更新
+  @@index([dishId])
+  @@map("dish_ratings")
+}
+
+// ─────────────────────────── 公告 ───────────────────────────
+
+enum NoticeKind {
+  NORMAL
+  URGENT
+  CALENDAR
+}
+
+model Notice {
+  id          String     @id @default(cuid())
+  title       String     @db.VarChar(120)
+  content     String     @db.Text // 富文本或 markdown
+  kind        NoticeKind @default(NORMAL)
+  isPinned    Boolean    @default(false)
+  coverImage  String?    @db.VarChar(512)
+  authorId    String?
+  author      User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  publishedAt DateTime   @default(now())
+  expiresAt   DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([kind, publishedAt])
+  @@index([isPinned, publishedAt])
+  @@map("notices")
+}
+
+// ─────────────────────────── 治理與審計 ───────────────────────────
+
+enum ReportTarget {
+  ITEM
+  EVENT
+  NOTICE
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  targetType ReportTarget
+  targetId   String
+  reporterId String
+  reporter   User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reason     String       @db.VarChar(200)
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+  handledAt  DateTime?
+
+  // 多型關聯：targetType + targetId 人工保證一致性（Prisma 不支援多型 FK）
+  @@index([targetType, targetId])
+  @@index([status])
+  @@map("reports")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String? // 操作者 User.id，null = 系統
+  action    String   @db.VarChar(64) // item.approve / notice.create / user.ban
+  target    String?  @db.VarChar(64) // lost_items:<id>
+  payload   Json?
+  ip        String?  @db.VarChar(64)
+  createdAt DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@index([actorId])
+  @@map("audit_logs")
+}
