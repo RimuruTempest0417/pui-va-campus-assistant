@@ -87,18 +87,23 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
       if (e.isDirectory()) walk(full);
       else if (e.name.endsWith('.wxss')) {
         const rel = full.slice(root.length + 1);
-        for (const line of readFileSync(full, 'utf8').split('\n')) {
+        const text = readFileSync(full, 'utf8');
+        const stripped = text.replace(/\/\*[\s\S]*?\*\//g, ''); // 先整檔去註解（註解裡的 * 不算）
+
+        for (const line of text.split('\n')) {
           const m = line.match(/^\s*@import\s+['"]([^'"]+)['"]/);
           if (m) {
             const target = join(full, '..', m[1]);
             if (!existsSync(target)) errors.push(`${rel} 的 @import 找不到檔案：${m[1]}`);
           }
-          // 已知在 WXSS 有風險的寫法：列出警告，讓它被看見而不是等上傳才炸
           const risky = line.match(/:(empty|root|not)\(?|::?(before|after)/);
           if (risky) warnings.push(`${rel} 使用了可能在 WXSS 不支援的選擇器：${risky[0]}`);
-          if (/^\s*\*\s*\{/.test(line)) {
-            errors.push(`${rel} 使用了萬用選擇器 *（WXSS 不支援，會導致整個 wxss 編譯失敗）`);
-          }
+        }
+
+        // 萬用選擇器：`* {`、`> *`、`, *` 全部不行（WXSS 會整檔編譯失敗）
+        if (stripped.includes('*')) {
+          const where = stripped.split('\n').findIndex((l) => l.includes('*'));
+          errors.push(`${rel} 第 ${where + 1} 行附近使用了萬用選擇器 *（WXSS 不支援，會導致整個 wxss 編譯失敗）`);
         }
       }
     }

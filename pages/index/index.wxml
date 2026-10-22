@@ -22,8 +22,8 @@
   <block wx:if="{{loading}}">
     <pv-card padded="{{false}}"><pv-skeleton rows="2" /></pv-card>
     <view class="home__sk-grid">
-      <pv-card padded="{{false}}"><pv-skeleton rows="2" /></pv-card>
-      <pv-card padded="{{false}}"><pv-skeleton rows="2" /></pv-card>
+      <view class="home__sk-cell"><pv-card padded="{{false}}"><pv-skeleton rows="2" /></pv-card></view>
+      <view class="home__sk-cell"><pv-card padded="{{false}}"><pv-skeleton rows="2" /></pv-card></view>
     </view>
   </block>
 

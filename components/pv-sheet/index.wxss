@@ -25,7 +25,7 @@
 .pv-sheet__title { font-size: var(--pv-fs-headline); font-weight: 600; }
 .pv-sheet__close { font-size: var(--pv-fs-headline); color: var(--pv-tint); }
 .pv-sheet__body { padding: var(--pv-sp-3); overflow-y: auto; }
-.pv-sheet__body > .pv-sheet-item {
+.pv-sheet-item {
   padding: var(--pv-sp-2) 0;
   border-bottom: 1rpx solid var(--pv-sep);
   font-size: var(--pv-fs-body);

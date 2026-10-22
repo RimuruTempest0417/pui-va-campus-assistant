@@ -49,8 +49,9 @@
 .t-footnote { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
 
 .sv-gap { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; margin-bottom: var(--pv-sp-2); }
-.sv-gap > * { margin-right: var(--pv-sp-2); margin-bottom: var(--pv-sp-1); }
+.sv-gap__item { margin-right: var(--pv-sp-2); margin-bottom: var(--pv-sp-1); }
 .sv-avatars { align-items: flex-end; }
+.sv-avatars .sv-gap__item { margin-bottom: 0; }
 
 /* iOS 列表 cell */
 .sv-cell {

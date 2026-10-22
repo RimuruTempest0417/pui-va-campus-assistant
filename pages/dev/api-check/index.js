@@ -2,6 +2,7 @@ const data = require('../../../services/data');
 
 Page({
   data: {
+    running: false,
     modeText: '檢查中…',
     lines: [],
     passed: 0,
@@ -25,6 +26,10 @@ Page({
   },
 
   async run() {
+    // 併發鎖：連點會讓兩個檢查互相重置示範資料，導致「發布失物」「滿額轉候補」隨機失敗
+    if (this.data.running) return;
+    this.setData({ running: true });
+
     // 每次檢查都從乾淨的示範資料開始，避免「發布失物」把測試資料累積進交付狀態
     data.resetDemo();
     const lines = [];
@@ -58,14 +63,17 @@ Page({
       }
       push('重複認領被擋', errorCode === 'ALREADY_CLAIMED', errorCode || '沒有擋下');
 
-      // 6. 名額已滿 → 候補（e2 名額 20 已滿 20）
+      // 6. 名額已滿 → 候補：先確認 e2 真的是滿的，再試報名
+      const eventsNow = await data.listEvents({});
+      const e2 = (eventsNow.items || []).find((x) => x.id === 'e2');
+      const e2Full = e2 && e2.capacity > 0 && e2.signedCount >= e2.capacity;
       let full = '';
       try {
         await data.signup('e2');
       } catch (e) {
         full = e.code;
       }
-      push('滿額轉候補', full === 'EVENT_FULL', full || '沒有擋下');
+      push('滿額轉候補', e2Full && full === 'EVENT_FULL', `e2 ${e2 ? e2.signedCount + '/' + e2.capacity : '不存在'} → ${full || '沒有擋下'}`);
 
       // 7. 菜單
       const menu = await data.weekMenu();
@@ -96,6 +104,8 @@ Page({
         total: lines.length,
         resultLine: 'EXCEPTION ' + (e && (e.code || e.message)),
       });
+    } finally {
+      this.setData({ running: false });
     }
   },
 });

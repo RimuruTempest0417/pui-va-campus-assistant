@@ -34,18 +34,18 @@
   <view class="pv-group-title">按鈕（44pt 最小觸控，按下即時縮放）</view>
   <pv-card>
     <view class="sv-gap">
-      <pv-button type="filled" bind:tap="simulateLoading" loading="{{loading}}">發布失物</pv-button>
-      <pv-button type="tinted">我要認領</pv-button>
-      <pv-button type="plain">取消</pv-button>
-      <pv-button type="destructive">刪除</pv-button>
+      <pv-button class="sv-gap__item" type="filled" bind:tap="simulateLoading" loading="{{loading}}">發布失物</pv-button>
+      <pv-button class="sv-gap__item" type="tinted">我要認領</pv-button>
+      <pv-button class="sv-gap__item" type="plain">取消</pv-button>
+      <pv-button class="sv-gap__item" type="destructive">刪除</pv-button>
     </view>
     <view class="sv-gap">
-      <pv-button type="filled" size="sm">小 34pt</pv-button>
-      <pv-button type="tinted" size="lg">大 56pt</pv-button>
-      <pv-button type="filled" disabled>禁用</pv-button>
+      <pv-button class="sv-gap__item" type="filled" size="sm">小 34pt</pv-button>
+      <pv-button class="sv-gap__item" type="tinted" size="lg">大 56pt</pv-button>
+      <pv-button class="sv-gap__item" type="filled" disabled>禁用</pv-button>
     </view>
     <view class="sv-gap">
-      <pv-button type="filled" block>整行主要動作</pv-button>
+      <pv-button class="sv-gap__item" type="filled" block>整行主要動作</pv-button>
     </view>
   </pv-card>
 
@@ -53,17 +53,17 @@
   <view class="pv-group-title">標籤與頭像</view>
   <pv-card>
     <view class="sv-gap">
-      <pv-tag text="待認領" type="warning" />
-      <pv-tag text="已認領" type="success" />
-      <pv-tag text="已結束" />
-      <pv-tag text="緊急" type="danger" />
-      <pv-tag text="校曆" type="tint" plain />
-      <pv-tag text="培華" type="brand" />
+      <pv-tag class="sv-gap__item" text="待認領" type="warning" />
+      <pv-tag class="sv-gap__item" text="已認領" type="success" />
+      <pv-tag class="sv-gap__item" text="已結束" />
+      <pv-tag class="sv-gap__item" text="緊急" type="danger" />
+      <pv-tag class="sv-gap__item" text="校曆" type="tint" plain />
+      <pv-tag class="sv-gap__item" text="培華" type="brand" />
     </view>
     <view class="sv-gap sv-avatars">
-      <pv-avatar name="霖" size="sm" />
-      <pv-avatar name="培華" size="md" />
-      <pv-avatar name="資訊管理員" size="lg" />
+      <pv-avatar class="sv-gap__item" name="霖" size="sm" />
+      <pv-avatar class="sv-gap__item" name="培華" size="md" />
+      <pv-avatar class="sv-gap__item" name="資訊管理員" size="lg" />
     </view>
   </pv-card>
 
@@ -85,7 +85,7 @@
     </view>
     <view class="sv-cell sv-cell--last">
       <text class="sv-cell__label">緊急公告</text>
-      <pv-tag text="1" type="danger" />
+      <pv-tag class="sv-gap__item" text="1" type="danger" />
     </view>
   </pv-card>
 
@@ -101,13 +101,13 @@
   <view class="pv-group-title">空狀態</view>
   <pv-card padded="{{false}}">
     <pv-empty icon="🔍" title="還沒有人發布失物" desc="第一個發布的人，最有機會找回東西">
-      <pv-button type="tinted" size="sm">我要發布</pv-button>
+      <pv-button class="sv-gap__item" type="tinted" size="sm">我要發布</pv-button>
     </pv-empty>
   </pv-card>
 
   <!-- 彈層 -->
   <view class="pv-group-title">底部彈層（抓手 + 安全區）</view>
-  <pv-button type="plain" block bind:tap="openSheet">開啟彈層</pv-button>
+  <pv-button class="sv-gap__item" type="plain" block bind:tap="openSheet">開啟彈層</pv-button>
 
   <pv-sheet show="{{sheetShow}}" title="選擇分類" bind:close="closeSheet">
     <view class="pv-sheet-item">卡證／學生證</view>
