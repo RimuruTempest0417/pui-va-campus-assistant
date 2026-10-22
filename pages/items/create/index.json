@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "發布失物／拾獲",
+  "usingComponents": {
+    "pv-card": "/components/pv-card/index",
+    "pv-button": "/components/pv-button/index",
+    "pv-tabs": "/components/pv-tabs/index",
+    "pv-sheet": "/components/pv-sheet/index"
+  }
+}

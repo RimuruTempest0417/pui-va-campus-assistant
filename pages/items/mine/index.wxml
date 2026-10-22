@@ -1,0 +1,21 @@
+<view class="ui-page">
+  <pv-empty wx:if="{{!loading && !items.length}}" icon="📭" title="你還沒發布過"
+            desc="東西丟了或撿到東西，都在這裡管理">
+    <pv-button type="tinted" size="sm" bind:tap="goCreate">去發布</pv-button>
+  </pv-empty>
+
+  <view wx:else class="ui-list">
+    <view wx:for="{{items}}" wx:key="id" class="ui-card">
+      <view class="ui-row-between">
+        <text class="ui-title">{{item.title}}</text>
+        <pv-tag text="{{item.statusLabel}}" type="{{item.statusTag}}" />
+      </view>
+      <text class="ui-meta mine-meta">{{item.typeLabel}} · {{item.categoryName || '其他'}} · {{item.place}} · {{item.timeText}}</text>
+      <view class="mine-actions">
+        <pv-button class="mine-btn" wx:if="{{item.status === 'OPEN'}}" type="tinted" size="sm" data-id="{{item.id}}" data-next="CLAIMED" bind:tap="advance">標記已認領</pv-button>
+        <pv-button class="mine-btn" wx:if="{{item.status === 'CLAIMED'}}" type="filled" size="sm" data-id="{{item.id}}" data-next="CLOSED" bind:tap="advance">標記已完成</pv-button>
+        <pv-button wx:if="{{item.status !== 'CLOSED'}}" type="plain" size="sm" data-id="{{item.id}}" bind:tap="goDetail">查看</pv-button>
+      </view>
+    </view>
+  </view>
+</view>

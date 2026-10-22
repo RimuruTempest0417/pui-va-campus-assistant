@@ -1,0 +1,12 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.chev { color: var(--pv-label-3); font-size: var(--pv-fs-title-3); }
+.seg-row { display: flex; flex-direction: row; flex-wrap: wrap; margin-top: 6rpx; }
+.seg-item {
+  font-size: var(--pv-fs-subhead); color: var(--pv-label-2);
+  background: var(--pv-fill); border-radius: var(--pv-r-pill);
+  padding: 10rpx var(--pv-sp-3); margin-right: var(--pv-sp-2); margin-bottom: var(--pv-sp-1);
+}
+.seg-item.is-active { background: var(--pv-tint); color: #fff; font-weight: 600; }
+.sheet-row { padding: var(--pv-sp-3) 0; border-bottom: 1rpx solid var(--pv-sep); font-size: var(--pv-fs-body); }

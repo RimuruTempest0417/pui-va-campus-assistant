@@ -2,7 +2,11 @@
   "pages": [
     "pages/index/index",
     "pages/style-guide/index",
-    "pages/dev/api-check/index"
+    "pages/dev/api-check/index",
+    "pages/items/list/index",
+    "pages/items/detail/index",
+    "pages/items/create/index",
+    "pages/items/mine/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",

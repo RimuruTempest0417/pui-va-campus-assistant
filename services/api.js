@@ -14,6 +14,18 @@ module.exports = {
   createItem(payload) {
     return http.post('/items', payload);
   },
+  getItem(id) {
+    return http.get('/items/' + id);
+  },
+  myItems() {
+    return http.get('/items/mine');
+  },
+  updateItemStatus(id, status) {
+    return http.patch('/items/' + id, { status: status });
+  },
+  categories() {
+    return http.get('/categories');
+  },
   claimItem(id) {
     return http.post('/items/' + id + '/claims', {});
   },

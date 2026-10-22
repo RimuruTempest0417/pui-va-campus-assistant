@@ -1,0 +1,60 @@
+<view class="ui-page ui-page--withbar">
+  <block wx:if="{{loading}}">
+    <view class="ui-card ui-mt-2"><pv-skeleton rows="3" avatar /></view>
+  </block>
+
+  <pv-empty wx:elif="{{!item}}" icon="🕳" title="找不到這筆資料" desc="可能已被作者刪除" />
+
+  <block wx:else>
+    <swiper class="gallery" indicator-dots="{{item.images.length > 1}}" indicator-active-color="#ffffff">
+      <swiper-item wx:for="{{item.images}}" wx:key="*this">
+        <image class="gallery__img" src="{{item}}" mode="aspectFill" />
+      </swiper-item>
+      <swiper-item wx:if="{{!item.images.length}}">
+        <view class="gallery__placeholder">
+          <text class="gallery__ph-icon">{{item.type === 'LOST' ? '🔍' : '📦'}}</text>
+          <text class="ui-meta">沒有圖片</text>
+        </view>
+      </swiper-item>
+    </swiper>
+
+    <view class="head">
+      <view class="ui-row-between">
+        <text class="head__title">{{item.title}}</text>
+        <pv-tag text="{{item.statusLabel}}" type="{{item.statusTag}}" />
+      </view>
+      <view class="ui-row head__tags">
+        <pv-tag class="head__tag" text="{{item.typeLabel}}" type="tint" plain />
+        <pv-tag class="head__tag" text="{{item.categoryName || '其他'}}" plain />
+      </view>
+    </view>
+
+    <pv-card>
+      <view class="meta-row"><text class="meta-k">地點</text><text class="meta-v">{{item.place}}</text></view>
+      <view class="meta-row"><text class="meta-k">時間</text><text class="meta-v">{{item.timeText}} · {{item.happenedAtText}}</text></view>
+      <view class="meta-row"><text class="meta-k">聯絡</text><text class="meta-v">{{item.contactLabel}}</text></view>
+      <view class="meta-row"><text class="meta-k">瀏覽</text><text class="meta-v">{{item.viewCount}} 次</text></view>
+    </pv-card>
+
+    <view class="pv-group-title">說明</view>
+    <pv-card>
+      <text class="ui-body">{{item.description || '作者沒有填寫說明'}}</text>
+    </pv-card>
+
+    <view class="pv-group-title">發布者</view>
+    <pv-card>
+      <view class="ui-row">
+        <pv-avatar name="{{item.author.nickname}}" size="md" />
+        <view class="author">
+          <text class="ui-title">{{item.author.nickname}}</text>
+          <text class="ui-meta">{{item.timeText}}發布</text>
+        </view>
+      </view>
+    </pv-card>
+  </block>
+
+  <view wx:if="{{item}}" class="ui-bar">
+    <text class="ui-bar__hint">{{barHint}}</text>
+    <pv-button type="filled" size="md" disabled="{{barDisabled}}" bind:tap="onPrimaryAction">{{barText}}</pv-button>
+  </view>
+</view>

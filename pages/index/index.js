@@ -3,7 +3,7 @@ const { dateKey, weekday, greeting, fromNow } = require('../../utils/date');
 
 // 尚未實作的模組先用提示卡，實作後只要改這裡的路徑
 const MODULE_ROUTES = {
-  items: { path: '/pages/items/list/index', ready: false, name: '失物招領' },
+  items: { path: '/pages/items/list/index', ready: true, name: '失物招領' },
   events: { path: '/pages/events/list/index', ready: false, name: '活動與社團' },
   menu: { path: '/pages/menu/index/index', ready: false, name: '午餐與小賣部' },
   notices: { path: '/pages/notices/list/index', ready: false, name: '公告與提示' },

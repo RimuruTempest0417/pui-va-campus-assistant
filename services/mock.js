@@ -4,16 +4,29 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
+const SEED_VERSION = 2;
+
 function seed() {
   const now = Date.now();
   const h = 3600 * 1000;
   return {
+    seedVersion: SEED_VERSION,
     user: { id: 'demo-user', nickname: '示範學生', role: 'STUDENT', grade: '高二', className: '仁' },
+    categories: [
+      { key: 'card', name: '卡證', icon: '🪪' },
+      { key: 'phone', name: '電子產品', icon: '📱' },
+      { key: 'book', name: '書本／文具', icon: '📚' },
+      { key: 'clothes', name: '衣物', icon: '🧥' },
+      { key: 'daily', name: '日用品', icon: '🧴' },
+      { key: 'other', name: '其他', icon: '📦' },
+    ],
     items: [
-      { id: 'i1', type: 'LOST', title: '藍色水壺', place: '圖書館三樓', status: 'OPEN', categoryName: '日用品', happenedAt: now - 2 * h, description: '瓶身有貼紙', images: [], author: { nickname: '陳同學' } },
-      { id: 'i2', type: 'FOUND', title: '學生證（已遮姓名）', place: '二號操場', status: 'OPEN', categoryName: '卡證', happenedAt: now - 5 * h, description: '在跑道邊撿到', images: [], author: { nickname: '李同學' } },
-      { id: 'i3', type: 'LOST', title: '黑色耳機盒', place: '禮堂', status: 'CLAIMED', categoryName: '電子', happenedAt: now - 26 * h, description: 'AirPods 盒子', images: [], author: { nickname: '黃同學' } },
-      { id: 'i4', type: 'FOUND', title: '數學課本（初二）', place: '二樓走廊', status: 'CLOSED', categoryName: '書本', happenedAt: now - 50 * h, description: '封面有名字', images: [], author: { nickname: '周同學' } },
+      { id: 'i1', type: 'LOST', title: '藍色水壺', place: '圖書館三樓', status: 'OPEN', categoryKey: 'daily', categoryName: '日用品', happenedAt: now - 2 * h, description: '瓶身有貼紙，瓶蓋是白色的。', images: [], author: { nickname: '陳同學' }, contactType: 'inApp', viewCount: 12 },
+      { id: 'i2', type: 'FOUND', title: '學生證（已遮姓名）', place: '二號操場', status: 'OPEN', categoryKey: 'card', categoryName: '卡證', happenedAt: now - 5 * h, description: '在跑道邊撿到，已交到教務處。', images: [], author: { nickname: '李同學' }, contactType: 'inApp', viewCount: 31 },
+      { id: 'i3', type: 'LOST', title: '黑色耳機盒', place: '禮堂', status: 'CLAIMED', categoryKey: 'phone', categoryName: '電子產品', happenedAt: now - 26 * h, description: 'AirPods 盒子，上面有卡通貼紙。', images: [], author: { nickname: '黃同學' }, contactType: 'inApp', viewCount: 44 },
+      { id: 'i4', type: 'FOUND', title: '數學課本（初二）', place: '二樓走廊', status: 'CLOSED', categoryKey: 'book', categoryName: '書本／文具', happenedAt: now - 50 * h, description: '封面有名字，已歸還。', images: [], author: { nickname: '周同學' }, contactType: 'inApp', viewCount: 9 },
+      { id: 'i5', type: 'FOUND', title: '灰色外套', place: '體育館', status: 'OPEN', categoryKey: 'clothes', categoryName: '衣物', happenedAt: now - 8 * h, description: '尺寸 M，左袖有校徽。', images: [], author: { nickname: '吳同學' }, contactType: 'inApp', viewCount: 17 },
+      { id: 'i6', type: 'LOST', title: '計算機（Casio fx-991）', place: '三樓自習室', status: 'OPEN', categoryKey: 'phone', categoryName: '電子產品', happenedAt: now - 12 * h, description: '背面貼了姓名貼。', images: [], author: { nickname: '鄭同學' }, contactType: 'inApp', viewCount: 22 },
     ],
     events: [
       { id: 'e1', title: '校運會報名', location: '操場', startAt: now + 24 * h, capacity: 40, signedCount: 37, status: 'PUBLISHED' },
@@ -39,7 +52,8 @@ function seed() {
 
 function db() {
   let data = wx.getStorageSync(KEY);
-  if (!data || !data.items) {
+  // 版本不符就重生：改過 seed 之後，舊裝置上才不會一直看到舊的示範資料
+  if (!data || !data.items || data.seedVersion !== SEED_VERSION) {
     data = seed();
     wx.setStorageSync(KEY, data);
   }
@@ -71,8 +85,55 @@ module.exports = {
     let items = db().items.slice();
     if (q.type) items = items.filter((i) => i.type === q.type);
     if (q.status) items = items.filter((i) => i.status === q.status);
-    if (q.q) items = items.filter((i) => (i.title + i.place + (i.description || '')).indexOf(q.q) !== -1);
-    return Promise.resolve({ items: items, total: items.length, page: 1, pageSize: 20, hasMore: false });
+    if (q.categoryKey) items = items.filter((i) => i.categoryKey === q.categoryKey);
+    if (q.q) {
+      const kw = String(q.q);
+      items = items.filter((i) => (i.title + i.place + (i.description || '')).indexOf(kw) !== -1);
+    }
+    items.sort((a, b) => b.happenedAt - a.happenedAt);
+
+    const page = Number(q.page) || 1;
+    const pageSize = Number(q.pageSize) || 10;
+    const start = (page - 1) * pageSize;
+    const slice = items.slice(start, start + pageSize);
+    return Promise.resolve({
+      items: slice,
+      total: items.length,
+      page: page,
+      pageSize: pageSize,
+      hasMore: start + slice.length < items.length,
+    });
+  },
+
+  getItem(id) {
+    const item = db().items.filter((i) => i.id === id)[0];
+    if (!item) return Promise.reject({ code: 'NOT_FOUND' });
+    item.viewCount = (item.viewCount || 0) + 1;
+    save(db());
+    return Promise.resolve(item);
+  },
+
+  myItems() {
+    const data = db();
+    const mine = data.items.filter((i) => (i.author && i.author.nickname === data.user.nickname) || i.isMine);
+    return Promise.resolve({ items: mine });
+  },
+
+  updateItemStatus(id, status) {
+    const data = db();
+    const item = data.items.filter((i) => i.id === id)[0];
+    if (!item) return Promise.reject({ code: 'NOT_FOUND' });
+    const allowed = { OPEN: ['CLAIMED', 'CLOSED'], CLAIMED: ['CLOSED'], CLOSED: [] };
+    if ((allowed[item.status] || []).indexOf(status) === -1) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '狀態不可從 ' + item.status + ' 變成 ' + status });
+    }
+    item.status = status;
+    save(data);
+    return Promise.resolve(Object.assign({}, item));
+  },
+
+  categories() {
+    return Promise.resolve({ items: db().categories });
   },
   createItem(payload) {
     const data = db();
@@ -87,6 +148,12 @@ module.exports = {
       payload
     );
     item.place = payload.place;
+    item.isMine = true;
+    item.viewCount = 0;
+    if (payload.categoryKey) {
+      const c = (data.categories || []).filter((x) => x.key === payload.categoryKey)[0];
+      item.categoryName = c ? c.name : '';
+    }
     data.items.unshift(item);
     save(data);
     return Promise.resolve(item);
@@ -95,10 +162,10 @@ module.exports = {
     const data = db();
     const item = data.items.filter((i) => i.id === id)[0];
     if (!item) return Promise.reject({ code: 'NOT_FOUND' });
-    if (item.status === 'CLAIMED') return Promise.reject({ code: 'ALREADY_CLAIMED' });
+    if (item.status !== 'OPEN') return Promise.reject({ code: 'ALREADY_CLAIMED' });
     item.status = 'CLAIMED';
     save(data);
-    return Promise.resolve(item);
+    return Promise.resolve(Object.assign({}, item));
   },
 
   // ── 活動 ──

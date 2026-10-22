@@ -41,6 +41,9 @@ const created = await data.createItem({
 const list2 = await data.listItems({});
 check('發布失物', list2.items.length === list1.items.length + 1, `新增後總數 ${list2.items.length}`);
 
+const firstNow = await data.listItems({ page: 1, pageSize: 10 });
+check('發布後排在最前', firstNow.items[0] && firstNow.items[0].id === created.id, firstNow.items[0] ? firstNow.items[0].title : '空');
+
 const found = await data.listItems({ type: 'FOUND' });
 check('型別篩選', found.items.every((i) => i.type === 'FOUND'), `FOUND ${found.items.length} 筆`);
 
@@ -78,6 +81,37 @@ check('錯誤碼轉文案', msg.includes('候補'), msg);
 
 const isDemoMode = data.isDemo();
 check('模式判定（無 API 時為示範）', isDemoMode, isDemoMode ? '示範模式' : '真實 API');
+
+
+// ── 失物模組（W-4）──
+const cats = await data.categories();
+check('分類清單', cats.items.length >= 5, `${cats.items.length} 個分類`);
+
+const filteredCat = await data.listItems({ categoryKey: 'phone' });
+check('分類篩選', filteredCat.items.every((i) => i.categoryKey === 'phone') && filteredCat.items.length >= 1, `電子產品 ${filteredCat.items.length} 筆`);
+
+const page1 = await data.listItems({ page: 1, pageSize: 2 });
+const page2 = await data.listItems({ page: 2, pageSize: 2 });
+check('分頁', page1.items.length === 2 && page2.page === 2, `第1頁 ${page1.items.length} 筆 / hasMore=${page1.hasMore}`);
+
+const detail = await data.getItem('i2');
+check('取得詳情', detail && detail.id === 'i2' && detail.viewCount > 0, `瀏覽 ${detail.viewCount} 次`);
+
+const fresh = await data.createItem({ type: 'LOST', title: '狀態流轉測試', place: '禮堂', description: '' });
+const mineAfter = await data.myItems();
+check('我的發布包含新建', mineAfter.items.some((i) => i.id === fresh.id), `${mineAfter.items.length} 筆`);
+
+const step1 = (await data.updateItemStatus(fresh.id, 'CLAIMED')).status;
+const step2 = (await data.updateItemStatus(fresh.id, 'CLOSED')).status;
+check('狀態流轉 OPEN→CLAIMED→CLOSED', step1 === 'CLAIMED' && step2 === 'CLOSED', `${step1} → ${step2}`);
+
+let bad = '';
+try {
+  await data.updateItemStatus(fresh.id, 'OPEN'); // 已完成不可回頭
+} catch (e) {
+  bad = e.code;
+}
+check('非法狀態被擋', bad === 'VALIDATION_FAILED', bad || '沒有擋下');
 
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));

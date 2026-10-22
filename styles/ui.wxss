@@ -1,0 +1,66 @@
+/* 共用 UI：列表卡、表單、底部操作列。引用時先 import tokens 再 import 這支 */
+.ui-page { min-height: 100vh; background: var(--pv-bg); padding: 0 var(--pv-sp-3); box-sizing: border-box; }
+.ui-page--withbar { padding-bottom: 200rpx; }
+
+.ui-list { margin-top: var(--pv-sp-2); }
+.ui-card {
+  background: var(--pv-surface);
+  border-radius: var(--pv-r-lg);
+  padding: var(--pv-sp-3);
+  margin-bottom: var(--pv-sp-2);
+  transition: transform var(--pv-dur-release) var(--pv-ease);
+}
+.ui-card--pressed { transform: scale(0.985); transition-duration: var(--pv-dur-press); }
+
+.ui-row { display: flex; flex-direction: row; align-items: center; }
+.ui-row-between { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.ui-gap-1 { margin-right: var(--pv-sp-1); }
+.ui-gap-2 { margin-right: var(--pv-sp-2); }
+.ui-mt-2 { margin-top: var(--pv-sp-2); }
+.ui-mt-3 { margin-top: var(--pv-sp-3); }
+
+.ui-title { font-size: var(--pv-fs-callout); font-weight: 600; letter-spacing: var(--pv-ls-body); }
+.ui-body { font-size: var(--pv-fs-body); letter-spacing: var(--pv-ls-body); line-height: 1.45; }
+.ui-sub { font-size: var(--pv-fs-subhead); color: var(--pv-label-2); }
+.ui-meta { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+
+.ui-thumb {
+  width: 132rpx; height: 132rpx; border-radius: var(--pv-r-sm);
+  background: var(--pv-fill); flex-shrink: 0;
+}
+.ui-thumbs { display: flex; flex-direction: row; flex-wrap: wrap; }
+.ui-thumb-item { position: relative; margin-right: var(--pv-sp-2); margin-bottom: var(--pv-sp-2); }
+.ui-thumb-del {
+  position: absolute; top: -8rpx; right: -8rpx;
+  width: 40rpx; height: 40rpx; border-radius: 50%;
+  background: rgba(0,0,0,0.65); color: #fff;
+  font-size: 22rpx; display: flex; align-items: center; justify-content: center;
+}
+.ui-thumb-add {
+  width: 132rpx; height: 132rpx; border-radius: var(--pv-r-sm);
+  border: 2rpx dashed var(--pv-sep);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--pv-label-3); font-size: 40rpx; margin-bottom: var(--pv-sp-2);
+}
+
+/* 表單 */
+.ui-field { padding: var(--pv-sp-2) 0; border-bottom: 1rpx solid var(--pv-sep); }
+.ui-field:last-child { border-bottom: none; }
+.ui-field__label { font-size: var(--pv-fs-subhead); color: var(--pv-label-2); margin-bottom: 6rpx; }
+.ui-input {
+  font-size: var(--pv-fs-body); color: var(--pv-label);
+  min-height: 64rpx; line-height: 64rpx;
+}
+.ui-textarea { font-size: var(--pv-fs-body); color: var(--pv-label); width: 100%; min-height: 160rpx; line-height: 1.45; }
+.ui-placeholder { color: var(--pv-label-3); }
+
+/* 底部固定操作列（含安全區） */
+.ui-bar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: var(--pv-bar);
+  border-top: 1rpx solid var(--pv-sep);
+  padding: var(--pv-sp-2) var(--pv-sp-3) calc(var(--pv-sp-2) + env(safe-area-inset-bottom));
+  display: flex; flex-direction: row; align-items: center;
+  z-index: 50;
+}
+.ui-bar__hint { flex: 1; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }

@@ -1,0 +1,21 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.gallery { height: 420rpx; background: var(--pv-fill); border-radius: 0 0 var(--pv-r-lg) var(--pv-r-lg); overflow: hidden; }
+.gallery__img { width: 100%; height: 420rpx; }
+.gallery__placeholder {
+  width: 100%; height: 420rpx;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: var(--pv-fill);
+}
+.gallery__ph-icon { font-size: 88rpx; opacity: 0.4; margin-bottom: var(--pv-sp-1); }
+
+.head { padding: var(--pv-sp-3) 0 var(--pv-sp-1); }
+.head__title { font-size: var(--pv-fs-title-2); font-weight: 700; letter-spacing: var(--pv-ls-title); flex: 1; margin-right: var(--pv-sp-2); }
+.head__tags { margin-top: var(--pv-sp-1); }
+.head__tag { margin-right: var(--pv-sp-1); }
+
+.meta-row { display: flex; flex-direction: row; align-items: flex-start; padding: var(--pv-sp-1) 0; }
+.meta-k { width: 96rpx; font-size: var(--pv-fs-subhead); color: var(--pv-label-2); }
+.meta-v { flex: 1; font-size: var(--pv-fs-body); }
+.author { margin-left: var(--pv-sp-2); display: flex; flex-direction: column; }
