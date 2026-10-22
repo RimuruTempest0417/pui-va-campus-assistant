@@ -6,6 +6,8 @@
     "pv-avatar": "/components/pv-avatar/index",
     "pv-button": "/components/pv-button/index",
     "pv-empty": "/components/pv-empty/index",
-    "pv-skeleton": "/components/pv-skeleton/index"
-  }
+    "pv-skeleton": "/components/pv-skeleton/index",
+    "pv-navbar": "/components/pv-navbar/index"
+  },
+  "navigationStyle": "custom"
 }

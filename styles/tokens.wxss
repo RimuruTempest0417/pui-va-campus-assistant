@@ -100,5 +100,5 @@ page {
 */
 
 /* ── 全站滾動容器（Skyline 下用 scroll-view 才穩定，bounces 提供回彈）── */
-.page-root { height: 100vh; display: flex; flex-direction: column; }
-.page-scroll { flex: 1; height: 100vh; box-sizing: border-box; }
+.page-root { height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+.page-scroll { flex: 1; min-height: 0; box-sizing: border-box; }

@@ -1,0 +1,30 @@
+@import "../../styles/tokens.wxss";
+
+.nav { background: var(--pv-bg); }
+.nav.is-transparent { background: transparent; }
+.nav__bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 var(--pv-sp-2) 0 var(--pv-sp-1);
+}
+.nav__back {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--pv-r-pill);
+}
+.nav__back--pressed { background: var(--pv-fill); }
+.nav__chev { font-size: 56rpx; color: var(--pv-tint); line-height: 1; margin-top: -6rpx; }
+.nav__spacer { width: var(--pv-sp-2); }
+.nav__title {
+  flex: 1;
+  font-size: var(--pv-fs-headline);
+  font-weight: 600;
+  letter-spacing: var(--pv-ls-body);
+  color: var(--pv-label);
+}
+/* 右上角膠囊寬度約 87pt，留白避免壓到標題 */
+.nav__capsule-space { width: 190rpx; }

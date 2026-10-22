@@ -1,0 +1,11 @@
+<view class="nav {{transparent ? 'is-transparent' : ''}}" style="padding-top: {{nav.statusBarHeight}}px">
+  <view class="nav__bar" style="height: {{nav.navHeight}}px">
+    <view wx:if="{{back}}" class="nav__back" bindtap="onBack" hover-class="nav__back--pressed" hover-start-time="0">
+      <text class="nav__chev">‹</text>
+    </view>
+    <view wx:else class="nav__spacer" />
+    <text class="nav__title">{{title}}</text>
+    <!-- 右側留給膠囊按鈕，避免標題被蓋 -->
+    <view class="nav__capsule-space" />
+  </view>
+</view>

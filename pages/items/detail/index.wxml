@@ -1,4 +1,5 @@
-<view class="ui-page ui-page--withbar">
+<view class="ui-page ui-page--withbar page-root">
+  <pv-navbar title="失物詳情" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="detail-inner">
   <block wx:if="{{loading}}">

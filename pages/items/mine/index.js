@@ -9,7 +9,8 @@ Page({
   },
 
   onShow() {
-    if (!this.data.loading) this.load();
+    if (this._loadedOnce) this.load();
+    this._loadedOnce = true;
   },
 
   async load() {

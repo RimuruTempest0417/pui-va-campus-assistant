@@ -1,6 +1,7 @@
-<view class="sv-page">
+<view class="sv-page page-root">
+  <pv-navbar title="設計系統" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
-    <view class="sv-inner" style="padding-top: {{navTotal}}px">
+    <view class="sv-inner">
   <!-- 探針：尺寸完全由 CSS 變數決定；var() 不生效時會量到 0 -->
   <view id="token-probe" class="sv-probe" />
 

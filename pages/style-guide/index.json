@@ -9,6 +9,7 @@
     "pv-empty": "/components/pv-empty/index",
     "pv-skeleton": "/components/pv-skeleton/index",
     "pv-tabs": "/components/pv-tabs/index",
-    "pv-sheet": "/components/pv-sheet/index"
+    "pv-sheet": "/components/pv-sheet/index",
+    "pv-navbar": "/components/pv-navbar/index"
   }
 }

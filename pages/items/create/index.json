@@ -4,6 +4,8 @@
     "pv-card": "/components/pv-card/index",
     "pv-button": "/components/pv-button/index",
     "pv-tabs": "/components/pv-tabs/index",
-    "pv-sheet": "/components/pv-sheet/index"
-  }
+    "pv-sheet": "/components/pv-sheet/index",
+    "pv-navbar": "/components/pv-navbar/index"
+  },
+  "navigationStyle": "custom"
 }

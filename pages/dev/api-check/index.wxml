@@ -1,4 +1,5 @@
-<view class="pv-page">
+<view class="pv-page page-root">
+  <pv-navbar title="資料層自我檢查" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="check-inner">
   <view class="pv-large-title">資料層自我檢查</view>

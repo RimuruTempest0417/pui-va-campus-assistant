@@ -31,6 +31,12 @@ Page({
     this.load(true);
   },
 
+  // 從詳情／發布頁返回時要重新抓，否則認領後狀態還是舊的
+  onShow() {
+    if (this._loadedOnce) this.load(true);
+    this._loadedOnce = true;
+  },
+
   onRefresh() {
     this.setData({ refreshing: true });
     this.load(true, false).then(() => this.setData({ refreshing: false }));

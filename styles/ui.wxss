@@ -1,6 +1,6 @@
 /* 共用 UI：列表卡、表單、底部操作列。引用時先 import tokens 再 import 這支 */
 .ui-page { min-height: 100vh; background: var(--pv-bg); padding: 0 var(--pv-sp-3); box-sizing: border-box; }
-.ui-page--withbar { padding-bottom: 200rpx; }
+.ui-page--withbar { padding-bottom: 260rpx; }
 
 .ui-list { margin-top: var(--pv-sp-2); }
 .ui-card {
