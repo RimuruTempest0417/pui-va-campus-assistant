@@ -44,6 +44,27 @@
       <text class="ui-body">{{item.description || '作者沒有填寫說明'}}</text>
     </pv-card>
 
+    <block wx:if="{{matches.length}}">
+      <view class="pv-group-title">可能是你的東西</view>
+      <pv-card>
+        <text class="ui-meta match-hint">依分類、地點、時間與描述自動比對，{{matchHint}}</text>
+        <view wx:for="{{matches}}" wx:key="id" class="match-row" data-id="{{item.id}}" bindtap="goMatch"
+              hover-class="match-row--pressed" hover-start-time="0">
+          <view class="match-row__main">
+            <view class="ui-row">
+              <text class="match-row__title">{{item.title}}</text>
+              <text class="match-row__score">{{item.percent}}%</text>
+            </view>
+            <text class="ui-meta">{{item.typeLabel}} · {{item.place}}</text>
+            <view class="ui-row match-row__reasons">
+              <pv-tag wx:for="{{item.reasons}}" wx:for-item="r" wx:key="*this" class="match-reason" text="{{r}}" plain />
+            </view>
+          </view>
+          <text class="match-row__go">›</text>
+        </view>
+      </pv-card>
+    </block>
+
     <view class="pv-group-title">發布者</view>
     <pv-card>
       <view class="ui-row">

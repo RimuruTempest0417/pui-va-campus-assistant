@@ -177,6 +177,22 @@ await data.markAllNoticesRead();
 const afterAll = await data.listNotices({});
 check('全部標為已讀', afterAll.unread === 0, `未讀 ${afterAll.unread}`);
 
+
+// ── 資料入口／真實 API／示範資料三方方法必須對齊 ──
+const dataKeys = Object.keys(data).filter((k) => typeof data[k] === 'function' && !['isDemo', 'setForceDemo', 'forceDemoOn', 'messageOf', 'resetDemo'].includes(k));
+const api = require(join(here, '..', 'services', 'api.js'));
+const mock = require(join(here, '..', 'services', 'mock.js'));
+const missingApi = dataKeys.filter((k) => typeof api[k] !== 'function');
+const missingMock = dataKeys.filter((k) => typeof mock[k] !== 'function');
+check('方法對齊（data↔api↔mock）', !missingApi.length && !missingMock.length,
+  [missingApi.length ? 'api 缺 ' + missingApi.join(',') : '', missingMock.length ? 'mock 缺 ' + missingMock.join(',') : ''].filter(Boolean).join(' ') || `${dataKeys.length} 個方法`);
+
+// ── 失物智能匹配（W-9）──
+const m1 = await data.matches('i1'); // 藍色水壺（LOST）
+check('匹配命中相近物品', m1.items.some((x) => x.id === 'i7'), m1.items.map((x) => `${x.title} ${x.score}`).join(' / ') || '沒有推薦');
+const m2 = await data.matches('i2'); // 學生證（FOUND，操場）
+check('不相近就不推薦', m2.items.length === 0, `${m2.items.length} 筆`);
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

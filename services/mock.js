@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 5;
+const SEED_VERSION = 6;
 
 const weekUtil = require('../utils/week');
 
@@ -75,6 +75,7 @@ function seed() {
       { id: 'i3', type: 'LOST', title: '黑色耳機盒', place: '禮堂', status: 'CLAIMED', categoryKey: 'phone', categoryName: '電子產品', happenedAt: now - 26 * h, description: 'AirPods 盒子，上面有卡通貼紙。', images: [], author: { nickname: '黃同學' }, contactType: 'inApp', viewCount: 44 },
       { id: 'i4', type: 'FOUND', title: '數學課本（初二）', place: '二樓走廊', status: 'CLOSED', categoryKey: 'book', categoryName: '書本／文具', happenedAt: now - 50 * h, description: '封面有名字，已歸還。', images: [], author: { nickname: '周同學' }, contactType: 'inApp', viewCount: 9 },
       { id: 'i5', type: 'FOUND', title: '灰色外套', place: '體育館', status: 'OPEN', categoryKey: 'clothes', categoryName: '衣物', happenedAt: now - 8 * h, description: '尺寸 M，左袖有校徽。', images: [], author: { nickname: '吳同學' }, contactType: 'inApp', viewCount: 17 },
+      { id: 'i7', type: 'FOUND', title: '藍色保溫瓶', place: '圖書館三樓', status: 'OPEN', categoryKey: 'daily', categoryName: '日用品', happenedAt: now - 3 * h, description: '瓶身有貼紙，瓶蓋是白色的。', images: [], author: { nickname: '何同學' }, contactType: 'inApp', viewCount: 6 },
       { id: 'i6', type: 'LOST', title: '計算機（Casio fx-991）', place: '三樓自習室', status: 'OPEN', categoryKey: 'phone', categoryName: '電子產品', happenedAt: now - 12 * h, description: '背面貼了姓名貼。', images: [], author: { nickname: '鄭同學' }, contactType: 'inApp', viewCount: 22 },
     ],
     events: [
@@ -133,6 +134,33 @@ function db() {
 function save(data) {
   wx.setStorageSync(KEY, data);
   return data;
+}
+
+/** 雙字母組相似度（0–1），與後端 pg_trgm 的概念一致但更輕量 */
+function dice(a, b) {
+  const s1 = String(a || '').toLowerCase().replace(/\s+/g, '');
+  const s2 = String(b || '').toLowerCase().replace(/\s+/g, '');
+  if (!s1 || !s2) return 0;
+  if (s1 === s2) return 1;
+  const grams = (str) => {
+    const out = [];
+    for (let i = 0; i < str.length - 1; i += 1) out.push(str.slice(i, i + 2));
+    return out;
+  };
+  const g1 = grams(s1);
+  const g2 = grams(s2);
+  if (!g1.length || !g2.length) return s1 === s2 ? 1 : 0;
+  const pool = new Map();
+  g2.forEach((g) => pool.set(g, (pool.get(g) || 0) + 1));
+  let hit = 0;
+  g1.forEach((g) => {
+    const n = pool.get(g) || 0;
+    if (n > 0) {
+      hit += 1;
+      pool.set(g, n - 1);
+    }
+  });
+  return (2 * hit) / (g1.length + g2.length);
 }
 
 function decorateDish(data, dish) {
@@ -428,6 +456,53 @@ module.exports = {
       .sort((a, b) => b.avgScore - a.avgScore || b.ratingCount - a.ratingCount)
       .slice(0, limit);
     return Promise.resolve({ items: rows });
+  },
+
+  // ── 失物智能匹配（與後端 /items/:id/matches 同一套權重，示範模式才看得出效果）──
+  matches(id) {
+    const db0 = db();
+    const base = (db0.items || []).filter((x) => x.id === id)[0];
+    if (!base) return Promise.reject({ code: 'NOT_FOUND' });
+
+    const sim = (a, b) => dice(String(a || ''), String(b || ''));
+    const rows = (db0.items || [])
+      .filter((x) => x.id !== base.id && x.type !== base.type && x.status !== 'CLOSED')
+      .map((x) => {
+        const sameCat = !!x.categoryKey && x.categoryKey === base.categoryKey;
+        const placeSim = sim(x.place, base.place);
+        const textSim = Math.max(sim(x.title, base.title), sim(x.description, base.description));
+        const hoursApart = Math.abs(new Date(x.happenedAt) - new Date(base.happenedAt)) / 3600000;
+        const score =
+          (sameCat ? 0.35 : 0) +
+          (placeSim > 0.4 ? 0.25 * placeSim : 0) +
+          (hoursApart < 72 ? 0.15 : 0) +
+          0.25 * textSim;
+        return {
+          id: x.id,
+          type: x.type,
+          title: x.title,
+          place: x.place,
+          status: x.status,
+          happenedAt: x.happenedAt,
+          score: Math.round(score * 100) / 100,
+          gate: placeSim > 0.4 || textSim > 0.3,
+          reasons: [
+            sameCat ? '同分類' : null,
+            placeSim > 0.4 ? '地點相近' : null,
+            hoursApart < 72 ? Math.round(hoursApart) + ' 小時內' : null,
+            textSim > 0.3 ? '描述相似' : null,
+          ].filter(Boolean),
+        };
+      })
+      .filter((r) => r.gate && r.score >= 0.45)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map((r) => {
+        delete r.gate;
+        return r;
+      });
+
+    return Promise.resolve({ items: rows, minScore: 0.45 });
   },
 
   // ── 公告 ──

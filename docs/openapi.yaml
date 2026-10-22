@@ -162,6 +162,40 @@ paths:
                         name: { type: string }
                         icon: { type: string, nullable: true }
 
+  /items/{id}/matches:
+    get:
+      tags: [items]
+      summary: 失物智能匹配（相反類型、加權評分）
+      description: |
+        加權：同分類 0.35、地點相似（pg_trgm > 0.4）0.25、時間差 3 天內 0.15、標題／描述相似 0.25。
+        閘門：地點或文字至少要有一項像，否則不回傳；總分低於 0.45 也不回傳。
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 推薦清單（最多 5 筆）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  minScore: { type: number, example: 0.45 }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        type: { type: string, enum: [LOST, FOUND] }
+                        title: { type: string }
+                        place: { type: string }
+                        happenedAt: { type: string, format: date-time }
+                        score: { type: number }
+                        reasons:
+                          type: array
+                          items: { type: string, example: 同分類 }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /items/matches:
     get:
       tags: [items]

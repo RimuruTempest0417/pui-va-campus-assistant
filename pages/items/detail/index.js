@@ -6,6 +6,8 @@ Page({
   data: {
     loading: true,
     item: null,
+    matches: [],
+    matchHint: '分數越高越像',
     isMine: false,
     barText: '',
     barHint: '',
@@ -23,8 +25,16 @@ Page({
       const item = decorate(raw);
       item.happenedAtText = dateKey(new Date(item.happenedAt));
       const me = await data.me().catch(() => null); // 訪客也能看詳情
-      const isMine = item.author && item.author.nickname === me.nickname;
+      const isMine = !!(item.author && me && item.author.nickname === me.nickname); // 訪客時 me 是 null
       this.setData(Object.assign({ loading: false, item: item, isMine: isMine }, this.barFor(item, isMine)));
+
+      // 智能匹配：失敗不影響詳情本身（後端沒開或舊資料都只是沒有推薦）
+      const matches = await data.matches(this.id).catch(() => ({ items: [] }));
+      const rows = (matches.items || []).map((m) => Object.assign({}, m, {
+        percent: Math.round((m.score || 0) * 100),
+        typeLabel: m.type === 'FOUND' ? '拾獲' : '遺失',
+      }));
+      this.setData({ matches: rows });
     } catch (e) {
       this.setData({ loading: false, item: null });
     }
@@ -40,6 +50,11 @@ Page({
       return { barText: item.type === 'FOUND' ? '這是我的，申請認領' : '我撿到了', barHint: '', barDisabled: false };
     }
     return { barText: '已結束', barHint: '', barDisabled: true };
+  },
+
+  goMatch(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.navigateTo({ url: '/pages/items/detail/index?id=' + id });
   },
 
   async onPrimaryAction() {

@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.8.0-17694a.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.11.0-17694a.svg)](docs/releases)
 
 校園裡每天發生四件高頻小事：**東西丟了找不到人、活動報名靠群裡接龍、今天午餐吃什麼、重要通知埋在群訊息裡**。
 本項目把這四類校內資訊流做成可互動、有狀態、能閉環的產品——不是把學校官網搬進小程序，而是讓每一條校園資訊都有狀態、有用戶、有數據回饋。
@@ -19,7 +19,7 @@
 
 | 模組 | 核心能力 | 前端 | 後端 |
 |---|---|---|---|
-| 校園失物招領 | 發布（失物／拾獲）、分類篩選、狀態機（待認領 → 已匹配 → 已認領 → 已完成）、認領申請與審批、我的發布 | ✅ 4 頁 | ✅ 含審批與權限守衛 |
+| 校園失物招領 | 發布（失物／拾獲）、分類篩選、狀態機（待認領 → 已匹配 → 已認領 → 已完成）、認領申請與審批、我的發布、**智能匹配推薦** | ✅ 4 頁 | ✅ 含審批、權限守衛、pg_trgm 匹配 |
 | 活動與社團 | 列表（即將開始／已結束）、詳情、線上報名、名額行鎖防超賣、候補隊列與自動補位、我的報名 | ✅ 3 頁 | ✅ 20 併發壓測通過 |
 | 午餐與小賣部 | 週菜單（可切上／下週）、午餐與小賣部分區、1–5 星評分、點讚、每週熱門排行 | ✅ 2 頁 | ✅ 一人一評 upsert |
 | 公告與溫馨提示 | 置頂／緊急／校曆分類、詳情、已讀狀態、過期自動隱藏 | ✅ 2 頁 | ✅ 每人各自已讀 |
@@ -105,7 +105,7 @@ node scripts/package.mjs     # → dist/pui-va-campus-assistant-vX.Y.Z.zip
 ```bash
 # 結構與資料層自檢（CI 也會跑）
 node scripts/check-project.mjs     # 14 頁面 / 0 警告
-node scripts/check-data-layer.mjs  # ALL PASS 36/36（固定跑示範資料層）
+node scripts/check-data-layer.mjs  # ALL PASS 39/39（固定跑示範資料層，含 data↔api↔mock 方法對齊）
 ```
 
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄
@@ -122,8 +122,9 @@ node scripts/check-data-layer.mjs  # ALL PASS 36/36（固定跑示範資料層�
 - [x] 請求層與示範模式（JWT 注入、8s 逾時、重試、錯誤正規化）
 - [x] **前端 P0 四大模組**（失物 4 頁、活動 3 頁、菜單 2 頁、公告 2 頁 ＋ 首頁、自檢頁、展示頁）
 - [x] 後端 P0 端點（認領審批、報名行鎖＋候補、菜單評分、公告已讀、上傳簽名）
+- [x] **失物智能匹配**（pg_trgm 加權評分 + 詳情頁「可能是你的東西」）
 - [x] 後端 e2e（真實 Postgres，27 項，含 20 併發超賣壓測）
-- [ ] 老師端管理後台（W-10）｜失物智能匹配（W-9）｜訂閱消息（W-11）
+- [ ] 老師端管理後台（W-10）｜訂閱消息（W-11）
 - [x] 交付給老師的一鍵包與 5 步說明（W-12：`node scripts/package.mjs`）
 - [ ] 上線（ICP 備案 → 提審 → 灰度）
 

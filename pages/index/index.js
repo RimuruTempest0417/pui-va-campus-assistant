@@ -43,7 +43,16 @@ Page({
   },
 
   onShow() {
-    // 從其他頁返回時只更新時間欄位，不整頁重抓
+    // 從「資料來源」頁切換離線示範回來時，模式變了必須整頁重抓，
+    // 否則會出現「設定已改、首頁數字還是舊的」的假畫面。
+    const modeNow = data.isDemo();
+    if (this._lastDemo !== undefined && this._lastDemo !== modeNow) {
+      this._lastDemo = modeNow;
+      this.refresh();
+      return;
+    }
+    this._lastDemo = modeNow;
+    // 模式沒變：只更新時間欄位，不整頁重抓
     if (!this.data.loading) this.setClockFields();
   },
 
@@ -89,6 +98,7 @@ Page({
         { key: 'notices', icon: '📢', label: '公告與提示', sub: (notices.unread ? notices.unread + ' 則未讀' : (notices.items || []).length + ' 則'), tone: 'success' },
       ];
 
+      this._lastDemo = data.isDemo();
       this.setData({
         loading: false,
         failed: false,

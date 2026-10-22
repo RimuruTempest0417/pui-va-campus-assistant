@@ -26,6 +26,9 @@ module.exports = {
   categories() {
     return http.get('/categories');
   },
+  matches(id) {
+    return http.get('/items/' + id + '/matches');
+  },
   claimItem(id) {
     return http.post('/items/' + id + '/claims', {});
   },
