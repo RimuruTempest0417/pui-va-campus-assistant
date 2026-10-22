@@ -91,7 +91,7 @@ page {
 .pv-row { display: flex; flex-direction: row; align-items: center; }
 .pv-row-between { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
 
-/* 減少動態：尊重系統設定 */
-@media (prefers-reduced-motion: reduce) {
-  * { transition-duration: 1ms !important; }
-}
+/* 註：WXSS 不支援萬用選擇器 `*`（編譯會報 unexpected token），
+   而 @media (prefers-reduced-motion) 在目前版本的 wxss 編譯器行為未確認，
+   因此減少動態改在各組件用具體 class 處理，見 docs/04-設計規範.md「已知偏離」。
+*/

@@ -76,6 +76,33 @@ const ignored = project?.packOptions?.ignore ?? [];
 if (!ignored.some((i) => i.value === 'docs')) warnings.push('project.config.json 的 packOptions.ignore 沒有排除 docs/');
 if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config.json 的 packOptions.ignore 沒有排除 README.md');
 
+
+// 6) WXSS：@import 路徑必須存在；不得使用萬用選擇器（WXSS 編譯器會整檔失敗）
+{
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (e.name.endsWith('.wxss')) {
+        const rel = full.slice(root.length + 1);
+        for (const line of readFileSync(full, 'utf8').split('\n')) {
+          const m = line.match(/^\s*@import\s+['"]([^'"]+)['"]/);
+          if (m) {
+            const target = join(full, '..', m[1]);
+            if (!existsSync(target)) errors.push(`${rel} 的 @import 找不到檔案：${m[1]}`);
+          }
+          if (/^\s*\*\s*\{/.test(line)) {
+            errors.push(`${rel} 使用了萬用選擇器 *（WXSS 不支援，會導致整個 wxss 編譯失敗）`);
+          }
+        }
+      }
+    }
+  };
+  walk(root);
+}
+
 for (const w of warnings) console.warn(`⚠️  ${w}`);
 if (errors.length) {
   for (const e of errors) console.error(`❌ ${e}`);

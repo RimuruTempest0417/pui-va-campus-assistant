@@ -1,4 +1,4 @@
-@import "../../styles/tokens.wxss";
+@import "../../../styles/tokens.wxss";
 
 .checks { margin: var(--pv-sp-3) 0; background: var(--pv-surface); border-radius: var(--pv-r-lg); overflow: hidden; }
 .check { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: var(--pv-sp-2) var(--pv-sp-3); border-bottom: 1rpx solid var(--pv-sep); }
