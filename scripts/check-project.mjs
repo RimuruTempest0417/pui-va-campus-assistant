@@ -111,6 +111,29 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   walk(root);
 }
 
+
+// 7) 白屏守門：wxml 內用了 .page-scroll，根節點必須帶 page-root（否則 flex 高度塌成 0）
+{
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const walkWxml = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walkWxml(full);
+      else if (e.name.endsWith('.wxml')) {
+        const rel = full.slice(root.length + 1);
+        const text = readFileSync(full, 'utf8');
+        if (!text.includes('page-scroll')) continue;
+        const firstTag = text.slice(text.indexOf('<'), text.indexOf('>') + 1);
+        if (!firstTag.includes('page-root')) {
+          errors.push(`${rel} 用了 .page-scroll 但根節點沒有 page-root（高度會塌成 0 → 白屏）`);
+        }
+      }
+    }
+  };
+  walkWxml(root);
+}
+
 for (const w of warnings) console.warn(`⚠️  ${w}`);
 if (errors.length) {
   for (const e of errors) console.error(`❌ ${e}`);
