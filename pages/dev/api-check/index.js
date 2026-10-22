@@ -25,6 +25,8 @@ Page({
   },
 
   async run() {
+    // 每次檢查都從乾淨的示範資料開始，避免「發布失物」把測試資料累積進交付狀態
+    data.resetDemo();
     const lines = [];
     const push = (name, ok, value) => lines.push({ name: name, ok: ok, value: value });
 
@@ -85,6 +87,8 @@ Page({
         modeText: data.isDemo() ? '示範模式（本地資料）' : '真實 API',
         resultLine: passed === lines.length ? 'ALL PASS ' + passed + '/' + lines.length : 'FAIL ' + passed + '/' + lines.length,
       });
+      // 檢查完把示範資料還原，交付狀態永遠是乾淨的 4 筆
+      data.resetDemo();
     } catch (e) {
       this.setData({
         lines: lines,

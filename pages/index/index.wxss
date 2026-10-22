@@ -1,10 +1,118 @@
-/**index.wxss**/
-page {
-  height: 100vh;
+@import "../../styles/tokens.wxss";
+
+.home {
+  min-height: 100vh;
+  background: var(--pv-bg);
+  padding: 0 var(--pv-sp-3) var(--pv-sp-6);
+  box-sizing: border-box;
+}
+.home__status { height: env(safe-area-inset-top); min-height: 8rpx; }
+
+/* 頂部列：Apple 的 inline title 位置 */
+.home__top {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--pv-sp-2) 0 var(--pv-sp-1);
+}
+.home__brand { display: flex; flex-direction: column; }
+.home__brand-name { font-size: var(--pv-fs-subhead); font-weight: 600; letter-spacing: var(--pv-ls-body); }
+.home__brand-sub { font-size: 18rpx; letter-spacing: 2rpx; color: var(--pv-label-3); }
+.home__right { display: flex; flex-direction: row; align-items: center; }
+
+/* 大字問候（Large Title）*/
+.home__head { display: flex; flex-direction: column; padding: var(--pv-sp-1) 0 var(--pv-sp-3); }
+.home__greeting {
+  font-size: var(--pv-fs-title-1);
+  font-weight: 700;
+  letter-spacing: var(--pv-ls-large-title);
+  line-height: 1.15;
+}
+.home__meta { margin-top: 6rpx; font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+
+/* 緊急公告：培華紅實底，唯一會用紅色的地方 */
+.urgent {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--pv-brand);
+  border-radius: var(--pv-r);
+  padding: var(--pv-sp-2) var(--pv-sp-3);
+  margin-bottom: var(--pv-sp-3);
+  transition: transform var(--pv-dur-fast) var(--pv-ease);
+}
+.urgent--pressed { transform: scale(0.985); opacity: 0.92; }
+.urgent__left { display: flex; flex-direction: row; align-items: center; flex: 1; }
+.urgent__badge {
+  font-size: var(--pv-fs-caption-2);
+  color: var(--pv-brand);
+  background: #ffffff;
+  border-radius: var(--pv-r-pill);
+  padding: 2rpx 12rpx;
+  font-weight: 700;
+  margin-right: var(--pv-sp-2);
+}
+.urgent__title { color: #ffffff; font-size: var(--pv-fs-subhead); font-weight: 600; flex: 1; }
+.urgent__arrow { color: rgba(255, 255, 255, 0.8); font-size: var(--pv-fs-title-3); margin-left: var(--pv-sp-1); }
+
+/* 四宮格 */
+.grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.grid__cell {
+  width: 48.5%;
+  background: var(--pv-surface);
+  border-radius: var(--pv-r-lg);
+  padding: var(--pv-sp-3);
+  margin-bottom: var(--pv-sp-2);
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  transition: transform var(--pv-dur-fast) var(--pv-ease);
 }
-.scrollarea {
-  flex: 1;
-  overflow-y: hidden;
+.grid__cell--pressed { transform: scale(0.975); }
+.grid__icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: var(--pv-r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  margin-bottom: var(--pv-sp-2);
 }
+.grid__icon--tint { background: var(--pv-tint-soft); }
+.grid__icon--brand { background: var(--pv-brand-soft); }
+.grid__icon--warning { background: var(--pv-warning-soft); }
+.grid__icon--success { background: var(--pv-success-soft); }
+.grid__label { font-size: var(--pv-fs-callout); font-weight: 600; letter-spacing: var(--pv-ls-body); }
+.grid__sub { margin-top: 2rpx; font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+
+/* 菜式列 */
+.dish {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--pv-sp-2) 0;
+  border-bottom: 1rpx solid var(--pv-sep);
+}
+.dish:last-child { border-bottom: none; }
+.dish--snack { padding: var(--pv-sp-1) 0; }
+.dish__main { display: flex; flex-direction: column; flex: 1; }
+.dish__name { font-size: var(--pv-fs-body); letter-spacing: var(--pv-ls-body); }
+.dish__meta { margin-top: 2rpx; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+.dish__score { display: flex; flex-direction: row; align-items: baseline; }
+.dish__score-num { font-size: var(--pv-fs-title-3); font-weight: 700; color: var(--pv-warning); }
+.dish__score-unit { font-size: var(--pv-fs-caption-2); color: var(--pv-label-3); margin-left: 2rpx; }
+.dish__price { font-size: var(--pv-fs-subhead); color: var(--pv-label-2); }
+
+.home__sk-grid { display: flex; flex-direction: row; justify-content: space-between; margin-top: var(--pv-sp-2); }
+.home__sk-grid > * { width: 48.5%; }
+.home__retry { color: var(--pv-tint); font-size: var(--pv-fs-body); font-weight: 600; }
+.home__foot { margin-top: var(--pv-sp-4); text-align: center; font-size: var(--pv-fs-caption-2); color: var(--pv-label-3); }

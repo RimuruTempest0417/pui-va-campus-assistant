@@ -1,5 +1,13 @@
 {
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#F2F2F7",
+  "backgroundTextStyle": "dark",
   "usingComponents": {
-    "navigation-bar": "/components/navigation-bar/navigation-bar"
+    "pv-card": "/components/pv-card/index",
+    "pv-tag": "/components/pv-tag/index",
+    "pv-avatar": "/components/pv-avatar/index",
+    "pv-empty": "/components/pv-empty/index",
+    "pv-skeleton": "/components/pv-skeleton/index"
   }
 }
