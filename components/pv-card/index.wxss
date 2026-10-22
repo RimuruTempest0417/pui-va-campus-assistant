@@ -17,5 +17,3 @@
 .pv-card__extra { font-size: var(--pv-fs-subhead); color: var(--pv-tint); }
 .pv-card__body.is-padded { padding: var(--pv-sp-3); }
 .pv-card__body.is-pressed { background: var(--pv-fill); }
-.pv-card__foot { border-top: 1rpx solid var(--pv-sep); }
-.pv-card__foot:empty { display: none; }

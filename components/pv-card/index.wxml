@@ -6,5 +6,4 @@
   <view class="pv-card__body {{padded ? 'is-padded' : ''}}" bindtap="onTap" hover-class="{{tapable ? 'is-pressed' : 'none'}}" hover-start-time="0">
     <slot />
   </view>
-  <view class="pv-card__foot"><slot name="footer" /></view>
 </view>

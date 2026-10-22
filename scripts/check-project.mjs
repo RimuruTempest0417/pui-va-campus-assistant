@@ -93,6 +93,9 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
             const target = join(full, '..', m[1]);
             if (!existsSync(target)) errors.push(`${rel} 的 @import 找不到檔案：${m[1]}`);
           }
+          // 已知在 WXSS 有風險的寫法：列出警告，讓它被看見而不是等上傳才炸
+          const risky = line.match(/:(empty|root|not)\(?|::?(before|after)/);
+          if (risky) warnings.push(`${rel} 使用了可能在 WXSS 不支援的選擇器：${risky[0]}`);
           if (/^\s*\*\s*\{/.test(line)) {
             errors.push(`${rel} 使用了萬用選擇器 *（WXSS 不支援，會導致整個 wxss 編譯失敗）`);
           }

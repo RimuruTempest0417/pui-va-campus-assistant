@@ -7,6 +7,5 @@
       <view wx:if="{{closable}}" class="pv-sheet__close" bindtap="onClose">完成</view>
     </view>
     <view class="pv-sheet__body"><slot /></view>
-    <view class="pv-sheet__foot"><slot name="footer" /></view>
   </view>
 </view>

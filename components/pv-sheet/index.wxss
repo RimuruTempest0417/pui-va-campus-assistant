@@ -30,4 +30,3 @@
   border-bottom: 1rpx solid var(--pv-sep);
   font-size: var(--pv-fs-body);
 }
-.pv-sheet__foot:empty { display: none; }
