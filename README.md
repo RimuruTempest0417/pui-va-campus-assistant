@@ -5,6 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.8.0-17694a.svg)](docs/releases)
 
 校園裡每天發生四件高頻小事：**東西丟了找不到人、活動報名靠群裡接龍、今天午餐吃什麼、重要通知埋在群訊息裡**。
 本項目把這四類校內資訊流做成可互動、有狀態、能閉環的產品——不是把學校官網搬進小程序，而是讓每一條校園資訊都有狀態、有用戶、有數據回饋。
@@ -16,67 +17,102 @@
 
 ## 功能範圍
 
-| 模組 | 核心能力 | 狀態 |
-|---|---|---|
-| 校園失物招領 | 發布（失物／拾獲）、圖片、地點、分類篩選、狀態機（待認領 → 已認領 → 已完成）、智能匹配推薦 | 規劃完成 |
-| 活動與社團 | 活動列表與詳情、線上報名、名額樂觀鎖防超賣、候補隊列、訂閱消息提醒 | 規劃完成 |
-| 午餐與小賣部 | 當週菜單視圖、菜式評分與點讚、每週人氣排行 | 規劃完成 |
-| 公告與溫馨提示 | 置頂／緊急／校曆分類、詳情、訂閱推送 | 規劃完成 |
-| 老師端管理後台 | 審核失物、發布公告、排菜單、匯出報名名單 | 規劃完成 |
+| 模組 | 核心能力 | 前端 | 後端 |
+|---|---|---|---|
+| 校園失物招領 | 發布（失物／拾獲）、分類篩選、狀態機（待認領 → 已匹配 → 已認領 → 已完成）、認領申請與審批、我的發布 | ✅ 4 頁 | ✅ 含審批與權限守衛 |
+| 活動與社團 | 列表（即將開始／已結束）、詳情、線上報名、名額行鎖防超賣、候補隊列與自動補位、我的報名 | ✅ 3 頁 | ✅ 20 併發壓測通過 |
+| 午餐與小賣部 | 週菜單（可切上／下週）、午餐與小賣部分區、1–5 星評分、點讚、每週熱門排行 | ✅ 2 頁 | ✅ 一人一評 upsert |
+| 公告與溫馨提示 | 置頂／緊急／校曆分類、詳情、已讀狀態、過期自動隱藏 | ✅ 2 頁 | ✅ 每人各自已讀 |
+| 老師端管理後台 | 審核失物、發布公告、排菜單、匯出報名名單 | 規劃中（W-10） | 規劃中（W-10） |
 
 > 不含地圖／導覽功能；不使用微信雲開發（後端另行自建）。
 
 ## 技術棧
 
-| 層 | 選型 |
-|---|---|
-| 前端 | 微信小程序原生 + Skyline 渲染引擎 + glass-easel 組件框架 |
-| UI | 自建原子組件庫 + design tokens（避開第三方庫在 Skyline 下的相容性風險） |
-| 後端 | Node.js + Fastify + Prisma ORM（RESTful API，獨立部署） |
-| 資料庫 | PostgreSQL（開發期 Supabase／上線期騰訊雲，同 schema 平移） |
-| 圖片 | 騰訊雲 COS + CDN，客戶端簽名直傳 |
-| 認證 | `wx.login` → `code2Session` → 自簽 JWT |
+| 層 | 選型 | 理由 |
+|---|---|---|
+| 前端 | 微信小程序原生 + **Skyline** 渲染引擎 + glass-easel 組件框架 | 只發一端，跨端框架是額外成本；Skyline 是微信 2023 後的主力渲染引擎 |
+| UI | 自建 9 個組件 + design tokens | Vant Weapp／TDesign 在 Skyline 下相容性差；自建才能統一品牌色與按壓手感 |
+| 後端 | Fastify 5 + TypeScript（ESM）+ Prisma 6 | 與前端同語言；Prisma schema 即文件；Fastify 啟動快、外掛生態足夠 |
+| 資料庫 | PostgreSQL 16（開發本機／上線騰訊雲，同 schema 平移） | 支援關聯查詢與 `pg_trgm`（W-9 智能匹配要用） |
+| 圖片 | 騰訊雲 COS + CDN，**簽名直傳**（圖片不經過 API） | 省頻寬、避開 1 MB body 限制 |
+| 認證 | `wx.login` → `code2Session` → 自簽 JWT | 不用微信雲開發，身分仍由微信保證 |
+
+## 示範模式（沒有後端也能完整操作）
+
+前端請求層三種模式，切換只改 `config/config.js` 一個值：
+
+| `DEMO_MODE` | 行為 | 用途 |
+|---|---|---|
+| `'auto'`（預設） | 先打真 API，逾時／失敗自動落回本地 mock（資料存 storage） | 老師在自己電腦打開就能操作，不必跑後端 |
+| `'on'` | 只用本地 mock | 完全離線、錄屏演示 |
+| `'off'` | 只用真 API，失敗直接報錯 | 接後端驗證真實流程 |
+
+頁面只 require `services/data.js` 一個入口，所以切模式不用改任何頁面。
 
 ## 目錄結構
 
 ```
 .
-├── app.js / app.json / app.wxss    # 全局入口
-├── pages/                          # 頁面
-│   └── index/
-├── components/                     # 自建組件
-│   └── navigation-bar/
-├── docs/                           # 設計文件（藍圖、架構、資料模型、API 契約）
+├── app.js / app.json / app.wxss          # 全局入口（14 個頁面註冊）
+├── pages/
+│   ├── index/                            # 首頁：四模組入口、緊急公告、今日午餐
+│   ├── items/{list,detail,create,mine}/  # 失物招領
+│   ├── events/{list,detail,mine}/        # 活動與社團
+│   ├── menu/{index,dish}/                # 午餐與小賣部
+│   ├── notices/{list,detail}/            # 公告與提示
+│   ├── style-guide/                      # 設計系統展示頁
+│   └── dev/api-check/                    # 開發自檢頁（9 項互動檢查）
+├── components/                           # pv-navbar / pv-button / pv-card / pv-tag
+│   └── …                                 # pv-avatar / pv-empty / pv-skeleton / pv-tabs / pv-sheet
+├── styles/{tokens.wxss,ui.wxss}          # design tokens 與共用樣式
+├── services/{api.js,mock.js,data.js}     # 真 API／示範資料／唯一資料入口
+├── utils/{request,errors,date,event,week,notice,item,nav}.js
+├── config/config.js                      # API_BASE_URL、DEMO_MODE
+├── scripts/
+│   ├── check-project.mjs                 # 結構／WXSS／白屏守門
+│   └── check-data-layer.mjs              # 資料層自檢（Node 跑，36 項）
+├── docs/
 │   ├── 01-藍圖與競賽對標.md
-│   ├── architecture.html
-│   ├── 規劃書-待完成.md          # 還沒做的事（完成就刪除該節）
 │   ├── 02-資料模型與API.md
-│   ├── openapi.yaml
-│   └── releases/                # 版本說明（每版一份）
-├── scripts/check-project.mjs       # 結構檢查（CI 用）
-├── .github/workflows/ci.yml        # CI：結構檢查 + JSON 解析
-├── project.config.json             # 開發者工具專案設定（含 appid）
-└── README.md
+│   ├── openapi.yaml                      # API 契約（與後端實作對齊）
+│   ├── architecture.html                 # 系統架構圖
+│   ├── 規劃書-待完成.md                  # 還沒做的事（完成就刪除該節）
+│   └── releases/                         # 每版一份版本說明
+├── project.config.json                   # 開發者工具專案設定（含 appid）
+└── .github/workflows/ci.yml              # CI：結構檢查 + 資料層自檢
 ```
 
 > `docs/` 與 `README.md` 已在 `project.config.json` 的 `packOptions.ignore` 中排除，不會被打包進小程序。
 
 ## 本地開發
 
+```bash
+# 結構與資料層自檢（CI 也會跑）
+node scripts/check-project.mjs     # 14 頁面 / 0 警告
+node scripts/check-data-layer.mjs  # ALL PASS 36/36
+```
+
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄
-2. 直接編譯預覽（appid：`wx9f104c034c07e15f`）
-3. `project.private.config.json` 為個人本機設定，已加入 `.gitignore`
-4. 提交前跑結構檢查：`node scripts/check-project.mjs`（CI 也會跑）
+2. 直接編譯預覽（appid：`wx9f104c034c07e15f`）；**不跑後端也能操作**（示範模式）
+3. 要接真後端：後端 `npm run dev`（`127.0.0.1:3100`），把 `config/config.js` 的 `API_BASE_URL` 指過去、`DEMO_MODE` 設 `'off'`，並在開發者工具勾「不校驗合法域名」
+4. `project.private.config.json` 為個人本機設定，已加入 `.gitignore`
 
 ## 目前進度
 
 - [x] 產品定位、痛點分析、功能地圖（P0/P1/P2）
 - [x] 競賽評分對標與系統架構設計
-- [ ] 設計系統（色彩／字級／組件規範）
-- [x] 資料模型與 RESTful API 契約（13 張表在後端倉庫 `prisma/schema.prisma`；`docs/openapi.yaml` 32 個操作）
-- [ ] 前端 P0 四大模組
-- [ ] 後端 API 與圖片直傳
+- [x] 設計系統（品牌色、6 級字級、9 個組件、展示頁）
+- [x] 資料模型與 RESTful API 契約（14 張表；`docs/openapi.yaml`）
+- [x] 請求層與示範模式（JWT 注入、8s 逾時、重試、錯誤正規化）
+- [x] **前端 P0 四大模組**（失物 4 頁、活動 3 頁、菜單 2 頁、公告 2 頁 ＋ 首頁、自檢頁、展示頁）
+- [x] 後端 P0 端點（認領審批、報名行鎖＋候補、菜單評分、公告已讀、上傳簽名）
+- [x] 後端 e2e（真實 Postgres，27 項，含 20 併發超賣壓測）
+- [ ] 老師端管理後台（W-10）｜失物智能匹配（W-9）｜訂閱消息（W-11）
+- [ ] 交付給老師的一鍵包與 5 步說明（W-12）
 - [ ] 上線（ICP 備案 → 提審 → 灰度）
+
+詳細待辦與順序見 [`docs/規劃書-待完成.md`](docs/規劃書-待完成.md)，每版變更與驗證數據見 [`docs/releases/`](docs/releases)。
 
 ## 授權
 

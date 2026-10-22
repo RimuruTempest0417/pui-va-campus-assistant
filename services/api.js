@@ -48,7 +48,8 @@ module.exports = {
     return Promise.reject({ code: 'FORBIDDEN', message: '示範模式專用' });
   },
   weekMenu(query) {
-    return http.get('/menu', query);
+    const q = query || {};
+    return http.get('/menu/week', { weekOffset: q.offset || 0 });
   },
   getDish(id) {
     return http.get('/dishes/' + id);

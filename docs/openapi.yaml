@@ -138,6 +138,30 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/LostItem' }
 
+  /categories:
+    get:
+      tags: [items]
+      summary: 分類清單（失物用）
+      parameters:
+        - { in: query, name: type, schema: { type: string, enum: [LOST, FOUND] } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        key: { type: string }
+                        name: { type: string }
+                        icon: { type: string, nullable: true }
+
   /items/matches:
     get:
       tags: [items]
@@ -224,22 +248,25 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
-  /items/{id}/claims/{claimId}/review:
-    parameters:
-      - { in: path, name: id, required: true, schema: { type: string } }
-      - { in: path, name: claimId, required: true, schema: { type: string } }
-    post:
+  /claims/{id}:
+    patch:
       tags: [items]
-      summary: 審批認領（作者或 ADMIN）
+      summary: 審批認領申請（發布者本人或老師以上）
+      description: |
+        APPROVE 後物品轉為 CLAIMED，同物品其他待審申請自動 REJECTED。
+        需要 JWT；非發布者且非 TEACHER/ADMIN/SUPER_ADMIN 回 403。
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string }, description: claim id }
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [approve]
+              required: [action]
               properties:
-                approve: { type: boolean }
+                action: { type: string, enum: [APPROVE, REJECT] }
+                note: { type: string, maxLength: 200 }
       responses:
         '200':
           description: 審批結果
@@ -247,7 +274,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ItemClaim' }
         '403': { $ref: '#/components/responses/Forbidden' }
-
+        '404': { $ref: '#/components/responses/NotFound' }
   /events:
     get:
       tags: [events]
@@ -332,13 +359,13 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/EventSignup' }
 
-  /menu:
+  /menu/week:
     get:
       tags: [menu]
-      summary: 該週菜單（依日期分組）
+      summary: 某一週的菜單（週一到週五，依日期分組）
       parameters:
-        - { in: query, name: week, schema: { type: string }, description: 'ISO 週，如 2026-W43' }
-        - { in: query, name: date, schema: { type: string, format: date } }
+        - { in: query, name: weekStart, schema: { type: string, format: date }, description: '該週任一週一日期，如 2026-10-19；不帶則由 weekOffset 推算' }
+        - { in: query, name: weekOffset, schema: { type: integer, default: 0, minimum: -8, maximum: 8 }, description: '0 = 本週、1 = 下週' }
       responses:
         '200':
           description: OK
@@ -347,6 +374,8 @@ paths:
               schema:
                 type: object
                 properties:
+                  weekStart: { type: string, format: date }
+                  weekEnd: { type: string, format: date }
                   days:
                     type: array
                     items:
@@ -359,7 +388,6 @@ paths:
                         snack:
                           type: array
                           items: { $ref: '#/components/schemas/MenuDish' }
-
   /dishes/{id}/ratings:
     parameters:
       - { in: path, name: id, required: true, schema: { type: string } }
@@ -442,20 +470,22 @@ paths:
               schema: { $ref: '#/components/schemas/Notice' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  /uploads/policy:
+  /uploads/signature:
     post:
       tags: [uploads]
-      summary: 取得 COS 直傳簽名
+      summary: 取得 COS 直傳簽名（POST Object policy）
+      description: |
+        圖片不經過 API，客戶端拿 policy + signature 直接 POST 到 host。
+        未配置 COS_* 環境變數時回 422 並說明缺哪一組設定，**不會**回假簽名。
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [scope]
               properties:
-                scope: { type: string, enum: [item, notice], description: 上傳用途前綴 }
-                ext: { type: string, enum: [jpg, jpeg, png, webp] }
+                purpose: { type: string, enum: [item, avatar, notice], default: item }
+                ext: { type: string, enum: [jpg, jpeg, png, webp], default: jpg }
       responses:
         '200':
           description: 簽名資訊
@@ -464,12 +494,15 @@ paths:
               schema:
                 type: object
                 properties:
-                  key: { type: string }
-                  url: { type: string, description: 上傳目標 URL 或預簽名完整 URL }
-                  method: { type: string, default: PUT }
-                  headers: { type: object, additionalProperties: { type: string } }
-                  expiresAt: { type: string, format: date-time }
-
+                  host: { type: string }
+                  keyPrefix: { type: string }
+                  policy: { type: string }
+                  signature: { type: string }
+                  qSignAlgorithm: { type: string, default: sha1 }
+                  expiredAt: { type: integer, description: Unix 秒 }
+                  maxBytes: { type: integer, example: 4194304 }
+                  cdnBase: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /admin/notices:
     post:
       tags: [admin]
@@ -526,15 +559,22 @@ paths:
               schema: { $ref: '#/components/schemas/MenuDish' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  /notices/{id}/read:
-    parameters:
-      - { in: path, name: id, required: true, schema: { type: string } }
+  /notices/read-all:
     post:
       tags: [notices]
-      summary: 標記已讀
+      summary: 全部標為已讀
+      description: '打開公告詳情（GET /notices/{id}）本身就會標該則已讀。'
       responses:
-        '204': { description: 已標記 }
-
+        '200':
+          description: 已讀數量
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  count: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /subscriptions:
     post:
       tags: [notices]
