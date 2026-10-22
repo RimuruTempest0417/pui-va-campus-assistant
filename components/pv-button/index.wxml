@@ -1,0 +1,10 @@
+<view
+  class="pv-btn pv-btn--{{type}} pv-btn--{{size}} {{block ? 'pv-btn--block' : ''}} {{disabled ? 'is-disabled' : ''}} {{loading ? 'is-loading' : ''}}"
+  style="{{customStyle}}"
+  bindtap="onTap"
+  hover-class="pv-btn--hover"
+  hover-stay-time="80"
+>
+  <view wx:if="{{loading}}" class="pv-btn__spinner" />
+  <slot />
+</view>

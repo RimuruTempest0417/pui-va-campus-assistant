@@ -1,0 +1,20 @@
+@import "../../styles/tokens.wxss";
+
+.pv-card {
+  background: var(--pv-surface);
+  border-radius: var(--pv-radius-lg);
+  box-shadow: var(--pv-shadow);
+  overflow: hidden;
+}
+.pv-card--hover { background: #fafcfb; }
+.pv-card__head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--pv-sp-3) var(--pv-sp-3) 0;
+}
+.pv-card__title { font-size: var(--pv-fs-title); font-weight: 600; }
+.pv-card__extra { font-size: var(--pv-fs-caption); color: var(--pv-text-3); }
+.pv-card__body.is-padded { padding: var(--pv-sp-3); }
+.pv-card__foot:empty { display: none; }

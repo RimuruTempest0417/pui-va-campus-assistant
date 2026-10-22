@@ -1,0 +1,82 @@
+/* ============================================================
+   培華校園助手 · design tokens
+   唯一來源。所有頁面與組件只准引用這裡的變數，不要寫死色碼。
+   主色暫定「培華綠」＋「校徽金」，待對照校徽實物微調（只改這幾行）。
+   ============================================================ */
+page {
+  /* 品牌色 */
+  --pv-primary: #17694a;
+  --pv-primary-strong: #0f4f37;
+  --pv-primary-soft: #e8f3ee;
+  --pv-accent: #c9a227;
+
+  /* 語意色 */
+  --pv-danger: #c8372d;
+  --pv-danger-soft: #fdeceb;
+  --pv-warning: #e08a1e;
+  --pv-warning-soft: #fdf3e3;
+  --pv-info: #2f6fb0;
+  --pv-info-soft: #eaf2fb;
+  --pv-success: #1f8a5b;
+
+  /* 中性色 */
+  --pv-text: #10211a;
+  --pv-text-2: #4d5f57;
+  --pv-text-3: #8a9a92;
+  --pv-line: #e2eae6;
+  --pv-surface: #ffffff;
+  --pv-bg: #f5f9f7;
+
+  /* 字級（rpx） */
+  --pv-fs-caption: 22rpx;
+  --pv-fs-body: 28rpx;
+  --pv-fs-title: 32rpx;
+  --pv-fs-h2: 38rpx;
+  --pv-fs-h1: 48rpx;
+
+  /* 間距（8 的倍數） */
+  --pv-sp-1: 8rpx;
+  --pv-sp-2: 16rpx;
+  --pv-sp-3: 24rpx;
+  --pv-sp-4: 32rpx;
+  --pv-sp-5: 48rpx;
+  --pv-sp-6: 64rpx;
+
+  /* 圓角與陰影 */
+  --pv-radius-sm: 8rpx;
+  --pv-radius: 16rpx;
+  --pv-radius-lg: 24rpx;
+  --pv-shadow: 0 4rpx 16rpx rgba(11, 26, 20, 0.06);
+  --pv-shadow-lg: 0 12rpx 32rpx rgba(11, 26, 20, 0.12);
+
+  background: var(--pv-bg);
+  color: var(--pv-text);
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  font-size: var(--pv-fs-body);
+  line-height: 1.5;
+}
+
+/* 通用容器 */
+.pv-page {
+  min-height: 100vh;
+  padding: var(--pv-sp-3);
+  box-sizing: border-box;
+}
+.pv-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.pv-row-between {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.pv-gap-2 > .pv-gap-item { margin-right: var(--pv-sp-2); }
+.pv-section-title {
+  font-size: var(--pv-fs-h2);
+  font-weight: 600;
+  margin: var(--pv-sp-4) 0 var(--pv-sp-2);
+}
+.pv-muted { color: var(--pv-text-2); font-size: var(--pv-fs-caption); }

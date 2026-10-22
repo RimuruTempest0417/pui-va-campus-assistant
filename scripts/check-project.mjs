@@ -58,10 +58,11 @@ if (existsSync(compDir)) {
   const { readdirSync } = await import('node:fs');
   for (const entry of readdirSync(compDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
-    const rel = `components/${entry.name}/${entry.name}.json`;
-    const abs = join(root, rel);
-    if (!existsSync(abs)) {
-      warnings.push(`組件 ${entry.name} 沒有同名 .json（${rel}）`);
+    // 兩種慣例都接受：components/pv-x/pv-x.json 或 components/pv-x/index.json
+    const candidates = [`components/${entry.name}/${entry.name}.json`, `components/${entry.name}/index.json`];
+    const rel = candidates.find((c) => existsSync(join(root, c)));
+    if (!rel) {
+      warnings.push(`組件 ${entry.name} 找不到 .json（試過 ${candidates.join('、')}）`);
       continue;
     }
     const json = readJson(rel);

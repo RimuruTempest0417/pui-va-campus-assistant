@@ -1,0 +1,6 @@
+<view class="pv-sk">
+  <view wx:if="{{avatar}}" class="pv-sk__avatar" />
+  <view class="pv-sk__lines">
+    <view wx:for="{{list}}" wx:key="index" class="pv-sk__line" style="width: {{index === list.length - 1 ? '60%' : '100%'}}" />
+  </view>
+</view>

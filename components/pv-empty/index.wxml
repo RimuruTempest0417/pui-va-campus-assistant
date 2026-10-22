@@ -1,0 +1,6 @@
+<view class="pv-empty">
+  <view class="pv-empty__icon">{{icon}}</view>
+  <text class="pv-empty__title">{{title}}</text>
+  <text wx:if="{{desc}}" class="pv-empty__desc">{{desc}}</text>
+  <view class="pv-empty__action"><slot /></view>
+</view>

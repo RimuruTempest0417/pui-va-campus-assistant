@@ -1,0 +1,29 @@
+@import "../../styles/tokens.wxss";
+
+.pv-sheet { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 900; }
+.pv-sheet__mask { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background: rgba(11, 26, 20, 0.45); }
+.pv-sheet__panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--pv-surface);
+  border-radius: var(--pv-radius-lg) var(--pv-radius-lg) 0 0;
+  box-shadow: var(--pv-shadow-lg);
+  padding-bottom: calc(var(--pv-sp-3) + env(safe-area-inset-bottom));
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+.pv-sheet__head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--pv-sp-3) var(--pv-sp-3) var(--pv-sp-2);
+  border-bottom: 2rpx solid var(--pv-line);
+}
+.pv-sheet__title { font-size: var(--pv-fs-title); font-weight: 600; }
+.pv-sheet__close { color: var(--pv-text-3); font-size: var(--pv-fs-body); padding: 0 var(--pv-sp-1); }
+.pv-sheet__body { padding: var(--pv-sp-3); overflow-y: auto; }
+.pv-sheet__foot:empty { display: none; }

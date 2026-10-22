@@ -1,0 +1,13 @@
+{
+  "navigationBarTitleText": "設計系統",
+  "usingComponents": {
+    "pv-button": "/components/pv-button/index",
+    "pv-card": "/components/pv-card/index",
+    "pv-tag": "/components/pv-tag/index",
+    "pv-avatar": "/components/pv-avatar/index",
+    "pv-empty": "/components/pv-empty/index",
+    "pv-skeleton": "/components/pv-skeleton/index",
+    "pv-tabs": "/components/pv-tabs/index",
+    "pv-sheet": "/components/pv-sheet/index"
+  }
+}

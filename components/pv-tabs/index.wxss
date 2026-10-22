@@ -1,0 +1,36 @@
+@import "../../styles/tokens.wxss";
+
+.pv-tabs {
+  display: flex;
+  flex-direction: row;
+  background: var(--pv-surface);
+  border-radius: var(--pv-radius);
+  padding: var(--pv-sp-1);
+}
+.pv-tabs__item {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  height: 68rpx;
+  border-radius: var(--pv-radius-sm);
+  font-size: var(--pv-fs-body);
+  color: var(--pv-text-2);
+  position: relative;
+}
+.pv-tabs__item.is-active { background: var(--pv-primary-soft); color: var(--pv-primary); font-weight: 600; }
+.pv-tabs__badge {
+  margin-left: 6rpx;
+  min-width: 28rpx;
+  height: 28rpx;
+  border-radius: 999rpx;
+  background: var(--pv-danger);
+  color: #fff;
+  font-size: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6rpx;
+}
+.pv-tabs__bar { display: none; }

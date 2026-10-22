@@ -1,0 +1,17 @@
+@import "../../styles/tokens.wxss";
+
+.pv-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 44rpx;
+  padding: 0 var(--pv-sp-2);
+  border-radius: 999rpx;
+  font-size: var(--pv-fs-caption);
+  font-weight: 500;
+}
+.pv-tag--default { background: #eef3f0; color: var(--pv-text-2); }
+.pv-tag--success { background: var(--pv-primary-soft); color: var(--pv-primary); }
+.pv-tag--warning { background: var(--pv-warning-soft); color: var(--pv-warning); }
+.pv-tag--danger { background: var(--pv-danger-soft); color: var(--pv-danger); }
+.pv-tag--info { background: var(--pv-info-soft); color: var(--pv-info); }
+.pv-tag.is-plain { background: transparent; border: 2rpx solid currentColor; }

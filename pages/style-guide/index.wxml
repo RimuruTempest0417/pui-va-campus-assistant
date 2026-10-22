@@ -1,0 +1,96 @@
+<view class="pv-page">
+  <!-- 探針：尺寸完全由 CSS 變數決定；var() 不生效時會量到 0 -->
+  <view id="token-probe" class="token-probe" />
+  <view class="hero">
+    <text class="hero__title">培華校園助手</text>
+    <text class="hero__sub">設計系統 v1 · 8 個原子組件 · design tokens</text>
+  </view>
+
+  <!-- 色彩 -->
+  <view class="pv-section-title">色彩</view>
+  <pv-card>
+    <view class="swatches">
+      <view wx:for="{{colors}}" wx:key="name" class="swatch">
+        <view class="swatch__chip" style="background: {{item.value}}" />
+        <text class="swatch__name">{{item.name}}</text>
+        <text class="swatch__hex">{{item.value}}</text>
+      </view>
+    </view>
+  </pv-card>
+
+  <!-- 字級 -->
+  <view class="pv-section-title">字級</view>
+  <pv-card>
+    <view class="type-row"><text class="t-h1">標題一 48rpx</text></view>
+    <view class="type-row"><text class="t-h2">標題二 38rpx</text></view>
+    <view class="type-row"><text class="t-title">小標題 32rpx</text></view>
+    <view class="type-row"><text class="t-body">正文 28rpx —— 校園失物招領、活動報名、菜單評分</text></view>
+    <view class="type-row"><text class="t-caption">說明文字 22rpx</text></view>
+  </pv-card>
+
+  <!-- 按鈕 -->
+  <view class="pv-section-title">按鈕</view>
+  <pv-card>
+    <view class="gap-row">
+      <pv-button type="primary" bind:tap="simulateLoading" loading="{{loading}}">主要動作</pv-button>
+      <pv-button type="secondary">次要</pv-button>
+    </view>
+    <view class="gap-row">
+      <pv-button type="ghost" size="sm">小按鈕</pv-button>
+      <pv-button type="danger" size="sm">危險</pv-button>
+      <pv-button type="primary" size="sm" disabled>禁用</pv-button>
+    </view>
+    <view class="gap-row">
+      <pv-button type="primary" block>整行按鈕</pv-button>
+    </view>
+  </pv-card>
+
+  <!-- 標籤與頭像 -->
+  <view class="pv-section-title">標籤與頭像</view>
+  <pv-card>
+    <view class="gap-row">
+      <pv-tag text="待認領" type="warning" />
+      <pv-tag text="已認領" type="success" />
+      <pv-tag text="已結束" />
+      <pv-tag text="緊急" type="danger" />
+      <pv-tag text="校曆" type="info" plain />
+    </view>
+    <view class="gap-row avatar-row">
+      <pv-avatar name="霖" size="sm" />
+      <pv-avatar name="培華" size="md" />
+      <pv-avatar name="資訊管理員" size="lg" />
+    </view>
+  </pv-card>
+
+  <!-- Tabs -->
+  <view class="pv-section-title">分頁切換</view>
+  <pv-tabs tabs="{{tabs}}" current="{{tab}}" bind:change="onTabChange" />
+  <view class="pv-muted">目前選中：{{tab}}</view>
+
+  <!-- 骨架屏 -->
+  <view class="pv-section-title">載入中（骨架屏）</view>
+  <pv-card padded="{{false}}">
+    <pv-skeleton rows="3" avatar />
+    <view class="divider" />
+    <pv-skeleton rows="2" />
+  </pv-card>
+
+  <!-- 空狀態 -->
+  <view class="pv-section-title">空狀態</view>
+  <pv-card padded="{{false}}">
+    <pv-empty icon="🔍" title="還沒有人發布失物" desc="第一個發布的人，最有機會找回東西">
+      <pv-button type="primary" size="sm">我要發布</pv-button>
+    </pv-empty>
+  </pv-card>
+
+  <!-- 底部彈層 -->
+  <view class="pv-section-title">底部彈層</view>
+  <pv-button type="secondary" block bind:tap="openSheet">開啟彈層</pv-button>
+  <pv-sheet show="{{sheetShow}}" title="選擇分類" bind:close="closeSheet">
+    <view class="sheet-item">卡證／學生證</view>
+    <view class="sheet-item">電子產品</view>
+    <view class="sheet-item">書本／文具</view>
+  </pv-sheet>
+
+  <view class="foot-note">此頁僅供開發期檢視，不進正式導覽</view>
+</view>

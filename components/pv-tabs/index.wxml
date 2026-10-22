@@ -1,0 +1,13 @@
+<view class="pv-tabs">
+  <view
+    wx:for="{{tabs}}"
+    wx:key="key"
+    class="pv-tabs__item {{current === item.key ? 'is-active' : ''}}"
+    data-key="{{item.key}}"
+    bindtap="onTap"
+  >
+    <text>{{item.label}}</text>
+    <view wx:if="{{item.badge}}" class="pv-tabs__badge">{{item.badge}}</view>
+    <view class="pv-tabs__bar" />
+  </view>
+</view>

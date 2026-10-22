@@ -1,0 +1,3 @@
+<view class="pv-tag pv-tag--{{type}} {{plain ? 'is-plain' : ''}}">
+  <text><slot />{{text}}</text>
+</view>
