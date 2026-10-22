@@ -1,11 +1,7 @@
 @import "../../styles/tokens.wxss";
 
-.sv-page {
-  min-height: 100vh;
-  background: var(--pv-bg);
-  padding: 0 var(--pv-sp-3) var(--pv-sp-6);
-  box-sizing: border-box;
-}
+.sv-page { height: 100vh; background: var(--pv-bg); }
+.sv-inner { padding: 0 var(--pv-sp-3) var(--pv-sp-6); box-sizing: border-box; }
 .sv-probe { width: var(--pv-sp-5); height: var(--pv-sp-2); background: var(--pv-tint); }
 
 .sv-status-bar {

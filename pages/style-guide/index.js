@@ -1,5 +1,8 @@
+const { getNav } = require('../../utils/nav');
+
 Page({
   data: {
+    navTotal: 0,
     colors: [
       { name: 'tint 培華紫', value: '#6D3FC4', varName: '--pv-tint' },
       { name: 'brand 培華紅', value: '#C8102E', varName: '--pv-brand' },
@@ -26,6 +29,10 @@ Page({
     sheetShow: false,
     loading: false,
   },
+  onLoad() {
+    this.setData({ navTotal: getNav().total });
+  },
+
   onTabChange(e) { this.setData({ tab: e.detail.key }); },
   openSheet() { this.setData({ sheetShow: true }); },
   closeSheet() { this.setData({ sheetShow: false }); },

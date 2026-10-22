@@ -1,5 +1,6 @@
 const data = require('../../services/data');
 const { dateKey, weekday, greeting, fromNow } = require('../../utils/date');
+const { getNav } = require('../../utils/nav');
 
 // 尚未實作的模組先用提示卡，實作後只要改這裡的路徑
 const MODULE_ROUTES = {
@@ -11,6 +12,8 @@ const MODULE_ROUTES = {
 
 Page({
   data: {
+    navTotal: 0,
+    refreshing: false,
     loading: true,
     failed: false,
     isDemo: false,
@@ -29,16 +32,19 @@ Page({
   },
 
   onLoad() {
+    this.setData({ navTotal: getNav().total });
     this.refresh();
+  },
+
+  // scroll-view 的下拉刷新（頁面已改成 scroll-view，不再用 onPullDownRefresh）
+  onRefresh() {
+    this.setData({ refreshing: true });
+    this.refresh(true).then(() => this.setData({ refreshing: false }));
   },
 
   onShow() {
     // 從其他頁返回時只更新時間欄位，不整頁重抓
     if (!this.data.loading) this.setClockFields();
-  },
-
-  onPullDownRefresh() {
-    this.refresh(true);
   },
 
   setClockFields() {

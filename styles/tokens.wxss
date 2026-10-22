@@ -98,3 +98,7 @@ page {
    而 @media (prefers-reduced-motion) 在目前版本的 wxss 編譯器行為未確認，
    因此減少動態改在各組件用具體 class 處理，見 docs/04-設計規範.md「已知偏離」。
 */
+
+/* ── 全站滾動容器（Skyline 下用 scroll-view 才穩定，bounces 提供回彈）── */
+.page-root { height: 100vh; display: flex; flex-direction: column; }
+.page-scroll { flex: 1; height: 100vh; box-sizing: border-box; }

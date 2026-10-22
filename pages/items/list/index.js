@@ -3,6 +3,7 @@ const { decorate } = require('../../../utils/item');
 
 Page({
   data: {
+    refreshing: false,
     loading: true,
     loadingMore: false,
     items: [],
@@ -30,15 +31,16 @@ Page({
     this.load(true);
   },
 
-  onPullDownRefresh() {
-    this.load(true, true);
+  onRefresh() {
+    this.setData({ refreshing: true });
+    this.load(true, false).then(() => this.setData({ refreshing: false }));
   },
 
   onReachBottom() {
     if (this.data.hasMore && !this.data.loadingMore) this.load(false);
   },
 
-  async load(reset, fromPull) {
+  async load(reset) {
     if (reset) this.setData({ loading: true, page: 1 });
     else this.setData({ loadingMore: true });
 
@@ -62,8 +64,6 @@ Page({
     } catch (e) {
       this.setData({ loading: false, loadingMore: false });
       wx.showToast({ title: data.messageOf(e), icon: 'none' });
-    } finally {
-      if (fromPull) wx.stopPullDownRefresh();
     }
   },
 

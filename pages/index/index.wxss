@@ -1,12 +1,7 @@
 @import "../../styles/tokens.wxss";
 
-.home {
-  min-height: 100vh;
-  background: var(--pv-bg);
-  padding: 0 var(--pv-sp-3) var(--pv-sp-6);
-  box-sizing: border-box;
-}
-.home__status { height: env(safe-area-inset-top); min-height: 8rpx; }
+.home { height: 100vh; background: var(--pv-bg); }
+.home-inner { padding: 0 var(--pv-sp-3) var(--pv-sp-6); box-sizing: border-box; }
 
 /* 頂部列：Apple 的 inline title 位置 */
 .home__top {

@@ -1,4 +1,6 @@
 <view class="ui-page ui-page--withbar">
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="create-inner">
   <view class="ui-mt-2">
     <pv-tabs tabs="{{typeTabs}}" current="{{type}}" bind:change="onTypeChange" />
   </view>
@@ -69,12 +71,17 @@
     </view>
   </pv-card>
 
-  <view class="ui-bar">
+  
+
+  
+
+    </view>
+  </scroll-view>
+<view class="ui-bar">
     <text class="ui-bar__hint">{{form.images.length}}/3 張圖片</text>
     <pv-button type="filled" bind:tap="submit" loading="{{submitting}}" disabled="{{submitting}}">發布</pv-button>
   </view>
-
-  <pv-sheet show="{{categorySheet}}" title="選擇分類" bind:close="closeCategory">
+<pv-sheet show="{{categorySheet}}" title="選擇分類" bind:close="closeCategory">
     <view wx:for="{{categories}}" wx:key="key" class="sheet-row" data-key="{{item.key}}" bindtap="pickCategory">
       <text>{{item.icon}} {{item.name}}</text>
     </view>

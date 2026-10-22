@@ -1,4 +1,6 @@
 <view class="ui-page ui-page--withbar">
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="detail-inner">
   <block wx:if="{{loading}}">
     <view class="ui-card ui-mt-2"><pv-skeleton rows="3" avatar /></view>
   </block>
@@ -53,7 +55,11 @@
     </pv-card>
   </block>
 
-  <view wx:if="{{item}}" class="ui-bar">
+  
+
+    </view>
+  </scroll-view>
+<view wx:if="{{item}}" class="ui-bar">
     <text class="ui-bar__hint">{{barHint}}</text>
     <pv-button type="filled" size="md" disabled="{{barDisabled}}" bind:tap="onPrimaryAction">{{barText}}</pv-button>
   </view>

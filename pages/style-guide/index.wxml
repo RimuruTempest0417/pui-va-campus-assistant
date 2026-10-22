@@ -1,8 +1,9 @@
 <view class="sv-page">
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="sv-inner" style="padding-top: {{navTotal}}px">
   <!-- 探針：尺寸完全由 CSS 變數決定；var() 不生效時會量到 0 -->
   <view id="token-probe" class="sv-probe" />
 
-  <view class="sv-status-bar">9:41</view>
   <view class="sv-hero">
     <text class="sv-eyebrow">PUI VA CAMPUS</text>
     <text class="sv-title">設計系統</text>
@@ -109,11 +110,15 @@
   <view class="pv-group-title">底部彈層（抓手 + 安全區）</view>
   <pv-button class="sv-gap__item" type="plain" block bind:tap="openSheet">開啟彈層</pv-button>
 
-  <pv-sheet show="{{sheetShow}}" title="選擇分類" bind:close="closeSheet">
+  
+
+  <view class="sv-foot">開發期檢視頁，不進正式導覽</view>
+
+    </view>
+  </scroll-view>
+<pv-sheet show="{{sheetShow}}" title="選擇分類" bind:close="closeSheet">
     <view class="pv-sheet-item">卡證／學生證</view>
     <view class="pv-sheet-item">電子產品</view>
     <view class="pv-sheet-item">書本／文具</view>
   </pv-sheet>
-
-  <view class="sv-foot">開發期檢視頁，不進正式導覽</view>
 </view>

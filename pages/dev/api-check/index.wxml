@@ -1,4 +1,6 @@
 <view class="pv-page">
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="check-inner">
   <view class="pv-large-title">資料層自我檢查</view>
   <view class="pv-footnote" id="mode-line">模式：{{modeText}}｜通過 {{passed}}／{{total}}</view>
 
@@ -16,4 +18,7 @@
     <pv-button type="tinted" block bind:tap="resetDemo">重置示範資料</pv-button>
   </pv-card>
   <view class="pv-caption" id="result-line">{{resultLine}}</view>
+
+    </view>
+  </scroll-view>
 </view>
