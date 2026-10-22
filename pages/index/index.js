@@ -7,7 +7,7 @@ const MODULE_ROUTES = {
   items: { path: '/pages/items/list/index', ready: true, name: '失物招領' },
   events: { path: '/pages/events/list/index', ready: true, name: '活動與社團' },
   menu: { path: '/pages/menu/index/index', ready: true, name: '午餐與小賣部' },
-  notices: { path: '/pages/notices/list/index', ready: false, name: '公告與提示' },
+  notices: { path: '/pages/notices/list/index', ready: true, name: '公告與提示' },
 };
 
 Page({
@@ -81,7 +81,7 @@ Page({
         { key: 'items', icon: '🔍', label: '失物招領', sub: items.total + ' 筆', tone: 'tint' },
         { key: 'events', icon: '🎪', label: '活動與社團', sub: (events.items || []).length + ' 個', tone: 'brand' },
         { key: 'menu', icon: '🍚', label: '午餐與小賣部', sub: todayMenu ? (todayMenu.lunch || []).length + ' 款' : '—', tone: 'warning' },
-        { key: 'notices', icon: '📢', label: '公告與提示', sub: (notices.items || []).length + ' 則', tone: 'success' },
+        { key: 'notices', icon: '📢', label: '公告與提示', sub: (notices.unread ? notices.unread + ' 則未讀' : (notices.items || []).length + ' 則'), tone: 'success' },
       ];
 
       this.setData({
@@ -129,7 +129,8 @@ Page({
   },
 
   onTapUrgent() {
-    wx.showToast({ title: '公告模組即將推出', icon: 'none' });
+    if (!this.data.urgent) return;
+    wx.navigateTo({ url: '/pages/notices/detail/index?id=' + this.data.urgent.id });
   },
 
   onRetry() {

@@ -1,0 +1,19 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.detail-inner { padding: var(--pv-sp-3) var(--pv-sp-3) var(--pv-sp-6); }
+.head { padding-bottom: var(--pv-sp-2); }
+.head--urgent { border-left: 8rpx solid var(--pv-brand); padding-left: var(--pv-sp-3); }
+.head__tags { margin-bottom: var(--pv-sp-1); }
+.head__tag { margin-right: var(--pv-sp-1); }
+.head__title { display: block; font-size: var(--pv-fs-title-2); font-weight: 700; letter-spacing: var(--pv-ls-title); line-height: 1.25; }
+.head__time { display: block; margin-top: 6rpx; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+.content { font-size: var(--pv-fs-body); line-height: 1.7; letter-spacing: var(--pv-ls-body); color: var(--pv-label); }
+.urgent-note {
+  margin-top: var(--pv-sp-3);
+  background: var(--pv-brand-soft);
+  color: var(--pv-brand);
+  border-radius: var(--pv-r);
+  padding: var(--pv-sp-2) var(--pv-sp-3);
+  font-size: var(--pv-fs-subhead);
+}

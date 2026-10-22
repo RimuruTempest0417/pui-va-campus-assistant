@@ -62,4 +62,10 @@ module.exports = {
   listNotices(query) {
     return http.get('/notices', query);
   },
+  getNotice(id) {
+    return http.get('/notices/' + id);
+  },
+  markAllNoticesRead() {
+    return http.post('/notices/read-all', {});
+  },
 };

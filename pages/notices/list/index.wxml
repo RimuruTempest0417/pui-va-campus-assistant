@@ -1,0 +1,38 @@
+<view class="ui-page page-root">
+  <pv-navbar title="公告與提示" back="{{true}}" />
+
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}"
+              refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
+    <view class="list-inner">
+      <view wx:if="{{unread > 0}}" class="unread-bar">
+        <text class="unread-bar__text">{{unread}} 則未讀</text>
+        <text class="unread-bar__action" bindtap="markAllRead">全部標為已讀</text>
+      </view>
+
+      <block wx:if="{{loading}}">
+        <view class="ui-card"><pv-skeleton rows="2" /></view>
+        <view class="ui-card"><pv-skeleton rows="2" /></view>
+      </block>
+
+      <pv-empty wx:elif="{{!items.length}}" icon="📢" title="目前沒有公告" desc="重要通知會出現在這裡" />
+
+      <view wx:else class="ui-list">
+        <view wx:for="{{items}}" wx:key="id"
+              class="notice {{item.kind === 'URGENT' ? 'notice--urgent' : ''}} {{item.isRead ? '' : 'is-unread'}}"
+              data-id="{{item.id}}" bindtap="goDetail"
+              hover-class="notice--pressed" hover-start-time="0">
+          <view class="notice__head">
+            <view class="ui-row">
+              <pv-tag wx:if="{{item.isPinned}}" class="pin-tag" text="置頂" type="tint" />
+              <pv-tag class="pin-tag" text="{{item.kindLabel}}" type="{{item.kindTag}}" />
+              <text wx:if="{{!item.isRead}}" class="dot" />
+            </view>
+            <text class="notice__time">{{item.timeText}}</text>
+          </view>
+          <text class="notice__title">{{item.title}}</text>
+          <text class="notice__preview">{{item.preview}}…</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

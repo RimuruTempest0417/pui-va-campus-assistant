@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 4;
+const SEED_VERSION = 5;
 
 const weekUtil = require('../utils/week');
 
@@ -101,10 +101,23 @@ function seed() {
     // 菜單以「本週」為基準生成（offset -1 上週、0 本週、1 下週），永遠有資料可看
     menu: buildMenus(),
     notices: [
-      { id: 'n1', title: '颱風期間停課安排', kind: 'URGENT', isPinned: true, publishedAt: now - 3 * h, content: '八號風球生效時停課，詳見學校公告。' },
-      { id: 'n2', title: '期中考試時間表', kind: 'CALENDAR', isPinned: true, publishedAt: now - 30 * h, content: '11 月 3 日至 7 日。' },
-      { id: 'n3', title: '圖書館新增自習區', kind: 'NORMAL', isPinned: false, publishedAt: now - 60 * h, content: '三樓新增 40 個座位。' },
+      { id: 'n1', title: '颱風期間停課安排', kind: 'URGENT', isPinned: true,
+        publishedAt: now - 3 * h, expiresAt: now + 48 * h,
+        content: '八號風球生效期間停課。停課期間所有課堂與活動取消。住宿生留在宿舍，由舍監統一照顧。復課安排將於風球除下後兩小時內公布。' },
+      { id: 'n2', title: '期中考試時間表', kind: 'CALENDAR', isPinned: true,
+        publishedAt: now - 30 * h, expiresAt: null,
+        content: '11 月 3 日至 7 日為期中考試週。各科考試時間請見派發的時間表。考試期間圖書館延長開放至 19:00。' },
+      { id: 'n3', title: '圖書館新增自習區', kind: 'NORMAL', isPinned: false,
+        publishedAt: now - 60 * h, expiresAt: null,
+        content: '圖書館三樓新增 40 個自習座位，附電源插座。開放時間與圖書館相同。' },
+      { id: 'n4', title: '本週五校服日提醒', kind: 'NORMAL', isPinned: false,
+        publishedAt: now - 5 * h, expiresAt: null,
+        content: '本週五為校服日，請穿著整齊校服。' },
+      { id: 'n5', title: '上學期繳費通知（已過期）', kind: 'NORMAL', isPinned: false,
+        publishedAt: now - 30 * 24 * h, expiresAt: now - 10 * 24 * h,
+        content: '此公告已於十日前過期，列表不應再顯示。' },
     ],
+    noticeReads: [], // 已讀的公告 id
   };
 }
 
@@ -418,8 +431,112 @@ module.exports = {
   },
 
   // ── 公告 ──
-  listNotices() {
-    const items = db().notices.slice().sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
-    return Promise.resolve({ items: items });
+  listNotices(query) {
+    const q = query || {};
+    const data = db();
+    const now = Date.now();
+    const reads = data.noticeReads || [];
+
+    let items = (data.notices || []).filter((n) => !n.expiresAt || n.expiresAt > now);
+    if (q.kind) items = items.filter((n) => n.kind === q.kind);
+
+    // 置頂優先，其餘依發布時間新到舊
+    items.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0) || b.publishedAt - a.publishedAt);
+    items = items.map((n) => Object.assign({}, n, { isRead: reads.indexOf(n.id) !== -1 }));
+
+    return Promise.resolve({ items: items, unread: items.filter((n) => !n.isRead).length });
   },
+
+  getNotice(id) {
+    const data = db();
+    const n = (data.notices || []).filter((x) => x.id === id)[0];
+    if (!n) return Promise.reject({ code: 'NOT_FOUND' });
+
+    data.noticeReads = data.noticeReads || [];
+    if (data.noticeReads.indexOf(id) === -1) {
+      data.noticeReads.push(id);
+      save(data);
+    }
+    return Promise.resolve(Object.assign({}, n, { isRead: true }));
+  },
+
+  markAllNoticesRead() {
+    const data = db();
+    data.noticeReads = (data.notices || []).map((n) => n.id);
+    save(data);
+    return Promise.resolve({ ok: true });
+  },
+
+  // 示範模式專用：切換身分（用來驗證「第二個人報名 → 候補」）
+  switchDemoUser(nickname, id) {
+    const data = db();
+    data.user = Object.assign({}, data.user, { nickname: nickname, id: id || 'demo-' + nickname });
+    save(data);
+    return Promise.resolve(data.user);
+  },
+
+  // ── 菜單 ──
+  weekMenu(query) {
+    const q = query || {};
+    const offset = Number(q.offset) || 0;
+    const data = db();
+    const dates = weekUtil.weekDates(offset);
+    const days = dates.map((date) => {
+      const entry = (data.menu || []).filter((x) => x.date === date)[0];
+      const lunch = entry ? entry.lunch.map((d) => decorateDish(data, d)) : [];
+      const snack = entry ? entry.snack.map((d) => decorateDish(data, d)) : [];
+      return { date: date, lunch: lunch, snack: snack };
+    });
+    return Promise.resolve({ offset: offset, dates: dates, days: days });
+  },
+
+  getDish(id) {
+    const data = db();
+    const dish = DISH_LIBRARY.filter((x) => x.id === id)[0];
+    if (!dish) return Promise.reject({ code: 'NOT_FOUND' });
+    return Promise.resolve(decorateDish(data, dishById(id)));
+  },
+
+  rateDish(id, payload) {
+    const data = db();
+    const p = payload || {};
+    const score = Number(p.score);
+    if (!(score >= 1 && score <= 5)) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '評分必須是 1–5 星' });
+    }
+    data.dishScores = data.dishScores || seedScores();
+    data.myRatings = data.myRatings || {};
+
+    const agg = data.dishScores[id] || { sum: 0, count: 0, likes: 0 };
+    const prev = data.myRatings[id];
+
+    if (prev) {
+      // 一人一評：改分時先把舊分扣掉，不會重複計算
+      agg.sum = agg.sum - prev.score + score;
+      if (prev.liked && !p.liked) agg.likes = Math.max(0, agg.likes - 1);
+      if (!prev.liked && p.liked) agg.likes += 1;
+    } else {
+      agg.sum += score;
+      agg.count += 1;
+      if (p.liked) agg.likes += 1;
+    }
+    data.dishScores[id] = agg;
+    data.myRatings[id] = { score: score, liked: !!p.liked };
+    save(data);
+
+    return Promise.resolve(decorateDish(db(), dishById(id)));
+  },
+
+  topDishes(query) {
+    const q = query || {};
+    const limit = Number(q.limit) || 5;
+    const data = db();
+    data.dishScores = data.dishScores || seedScores();
+    const rows = DISH_LIBRARY.map((d) => decorateDish(data, dishById(d.id)))
+      .filter((d) => d.ratingCount > 0)
+      .sort((a, b) => b.avgScore - a.avgScore || b.ratingCount - a.ratingCount)
+      .slice(0, limit);
+    return Promise.resolve({ items: rows });
+  },
+
 };

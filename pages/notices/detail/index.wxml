@@ -1,0 +1,32 @@
+<view class="ui-page page-root">
+  <pv-navbar title="公告" back="{{true}}" />
+
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="detail-inner">
+      <block wx:if="{{loading}}">
+        <view class="ui-card"><pv-skeleton rows="4" /></view>
+      </block>
+
+      <pv-empty wx:elif="{{!notice}}" icon="🕳" title="找不到這則公告" desc="可能已下架或過期" />
+
+      <block wx:else>
+        <view class="head {{notice.kind === 'URGENT' ? 'head--urgent' : ''}}">
+          <view class="ui-row head__tags">
+            <pv-tag wx:if="{{notice.isPinned}}" class="head__tag" text="置頂" type="tint" />
+            <pv-tag class="head__tag" text="{{notice.kindLabel}}" type="{{notice.kindTag}}" />
+          </view>
+          <text class="head__title">{{notice.title}}</text>
+          <text class="head__time">{{notice.timeText}}發布{{notice.expiresAt ? ' · 有效期至 ' + notice.expiresText : ''}}</text>
+        </view>
+
+        <pv-card>
+          <text class="content">{{notice.content}}</text>
+        </pv-card>
+
+        <view wx:if="{{notice.kind === 'URGENT'}}" class="urgent-note">
+          緊急公告由校方發布，如有疑問請聯絡校務處。
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+</view>

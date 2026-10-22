@@ -11,7 +11,9 @@
     "pages/events/detail/index",
     "pages/events/mine/index",
     "pages/menu/index/index",
-    "pages/menu/dish/index"
+    "pages/menu/dish/index",
+    "pages/notices/list/index",
+    "pages/notices/detail/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",

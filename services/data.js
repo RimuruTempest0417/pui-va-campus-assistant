@@ -52,4 +52,6 @@ module.exports = {
   rateDish: (...a) => call('rateDish', a),
   topDishes: (...a) => call('topDishes', a),
   listNotices: (...a) => call('listNotices', a),
+  getNotice: (...a) => call('getNotice', a),
+  markAllNoticesRead: (...a) => call('markAllNoticesRead', a),
 };

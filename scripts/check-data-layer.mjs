@@ -149,6 +149,25 @@ try {
 }
 check('評分範圍被擋', badScore === 'VALIDATION_FAILED', badScore || '沒有擋下');
 
+
+// ── 公告（W-7）──
+const noticesAll = await data.listNotices({});
+const hasExpired = noticesAll.items.some((n) => n.id === 'n5');
+check('過期公告被隱藏', !hasExpired, `列表 ${noticesAll.items.length} 則`);
+const pinnedFirst = noticesAll.items.slice(0, 2).every((n) => n.isPinned);
+check('置頂永遠在前', pinnedFirst, noticesAll.items.map((n) => (n.isPinned ? '★' : '·') + n.title.slice(0, 4)).join(' '));
+check('緊急公告存在', noticesAll.items.some((n) => n.kind === 'URGENT'), `URGENT ${noticesAll.items.filter((n) => n.kind === 'URGENT').length} 則`);
+check('未讀數正確', noticesAll.unread === noticesAll.items.length, `${noticesAll.unread} / ${noticesAll.items.length}`);
+
+const detailNotice = await data.getNotice('n2');
+const afterOpen = await data.listNotices({});
+const n2 = afterOpen.items.filter((n) => n.id === 'n2')[0];
+check('打開公告即已讀', n2.isRead === true && afterOpen.unread < noticesAll.unread, `未讀 ${noticesAll.unread} → ${afterOpen.unread}`);
+
+await data.markAllNoticesRead();
+const afterAll = await data.listNotices({});
+check('全部標為已讀', afterAll.unread === 0, `未讀 ${afterAll.unread}`);
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {
