@@ -24,6 +24,8 @@ Page({
     lunch: null,
     snack: null,
     updatedAt: '',
+    pressedKey: '',
+    urgentPressed: false,
   },
 
   onLoad() {
@@ -93,6 +95,20 @@ Page({
     } finally {
       if (fromPull) wx.stopPullDownRefresh();
     }
+  },
+
+  // 按下即時回饋（Skyline 下 hover-class 不可靠，改用 touch 事件）
+  onCellTouchStart(e) {
+    this.setData({ pressedKey: e.currentTarget.dataset.key });
+  },
+  onCellTouchEnd() {
+    if (this.data.pressedKey) this.setData({ pressedKey: '' });
+  },
+  onUrgentTouchStart() {
+    this.setData({ urgentPressed: true });
+  },
+  onUrgentTouchEnd() {
+    if (this.data.urgentPressed) this.setData({ urgentPressed: false });
   },
 
   onTapModule(e) {

@@ -36,7 +36,14 @@
 
   <block wx:else>
     <!-- 緊急公告 -->
-    <view wx:if="{{urgent}}" class="urgent" bindtap="onTapUrgent" hover-class="urgent--pressed" hover-start-time="0">
+    <view
+      wx:if="{{urgent}}"
+      class="urgent {{urgentPressed ? 'urgent--pressed' : ''}}"
+      bindtouchstart="onUrgentTouchStart"
+      bindtouchend="onUrgentTouchEnd"
+      bindtouchcancel="onUrgentTouchEnd"
+      bindtap="onTapUrgent"
+    >
       <view class="urgent__left">
         <text class="urgent__badge">緊急</text>
         <text class="urgent__title">{{urgent.title}}</text>
@@ -49,12 +56,12 @@
       <view
         wx:for="{{modules}}"
         wx:key="key"
-        class="grid__cell"
+        class="grid__cell {{pressedKey === item.key ? 'grid__cell--pressed' : ''}}"
         data-key="{{item.key}}"
+        bindtouchstart="onCellTouchStart"
+        bindtouchend="onCellTouchEnd"
+        bindtouchcancel="onCellTouchEnd"
         bindtap="onTapModule"
-        hover-class="grid__cell--pressed"
-        hover-start-time="0"
-        hover-stay-time="80"
       >
         <view class="grid__icon grid__icon--{{item.tone}}"><text>{{item.icon}}</text></view>
         <text class="grid__label">{{item.label}}</text>

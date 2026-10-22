@@ -1,10 +1,10 @@
 <view
-  class="pv-btn pv-btn--{{type}} pv-btn--{{size}} {{block ? 'is-block' : ''}} {{disabled ? 'is-disabled' : ''}} {{loading ? 'is-loading' : ''}}"
+  class="pv-btn pv-btn--{{type}} pv-btn--{{size}} {{block ? 'is-block' : ''}} {{disabled ? 'is-disabled' : ''}} {{loading ? 'is-loading' : ''}} {{pressed ? 'is-pressed' : ''}}"
   style="{{customStyle}}"
+  bindtouchstart="onTouchStart"
+  bindtouchend="onTouchEnd"
+  bindtouchcancel="onTouchEnd"
   bindtap="onTap"
-  hover-class="is-pressed"
-  hover-start-time="0"
-  hover-stay-time="90"
 >
   <view wx:if="{{loading}}" class="pv-btn__spinner" />
   <slot />

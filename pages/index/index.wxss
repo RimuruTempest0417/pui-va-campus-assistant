@@ -41,9 +41,9 @@
   border-radius: var(--pv-r);
   padding: var(--pv-sp-2) var(--pv-sp-3);
   margin-bottom: var(--pv-sp-3);
-  transition: transform var(--pv-dur-fast) var(--pv-ease);
+  transition: transform var(--pv-dur-release) var(--pv-ease);
 }
-.urgent--pressed { transform: scale(0.985); opacity: 0.92; }
+.urgent--pressed { transform: scale(0.98); opacity: 0.9; transition-duration: var(--pv-dur-press); }
 .urgent__left { display: flex; flex-direction: row; align-items: center; flex: 1; }
 .urgent__badge {
   font-size: var(--pv-fs-caption-2);
@@ -73,9 +73,9 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  transition: transform var(--pv-dur-fast) var(--pv-ease);
+  transition: transform var(--pv-dur-release) var(--pv-ease);
 }
-.grid__cell--pressed { transform: scale(0.975); }
+.grid__cell--pressed { transform: scale(0.965); transition-duration: var(--pv-dur-press); }
 .grid__icon {
   width: 72rpx;
   height: 72rpx;
