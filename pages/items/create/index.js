@@ -27,10 +27,11 @@ Page({
     categories: [],
     categorySheet: false,
     submitting: false,
+    isDemo: false,
   },
 
   onLoad() {
-    this.setData({ 'form.date': dateKey() });
+    this.setData({ 'form.date': dateKey(), isDemo: data.isDemo() });
     this.loadCategories();
   },
 
@@ -112,6 +113,12 @@ Page({
       return;
     }
 
+    // 真 API 要的是 categoryId；示範資料用 categoryKey，兩個都送，各自取用
+    const cat = (this.data.categories || []).filter((c) => c.key === f.categoryKey)[0];
+    // 圖片目前只在示範模式可用：真 API 模式還沒有直傳 COS，送本機路徑會存成無效網址
+    const isDemo = data.isDemo();
+    const images = isDemo ? f.images : [];
+
     this.setData({ submitting: true });
     try {
       await data.createItem({
@@ -119,13 +126,17 @@ Page({
         title: f.title.trim(),
         description: f.description.trim(),
         categoryKey: f.categoryKey || undefined,
+        categoryId: cat ? cat.id : undefined,
         place: f.place.trim(),
         happenedAt: f.date === dateKey() ? Date.now() : new Date(f.date + 'T09:00:00').getTime(),
         contactType: f.contactType,
         contactValue: f.contactValue || undefined,
-        images: f.images,
+        images: images,
       });
-      wx.showToast({ title: '已發布', icon: 'success' });
+      wx.showToast({
+        title: !isDemo && f.images.length ? '已發布（圖片暫不支援）' : '已發布',
+        icon: 'success',
+      });
       setTimeout(() => wx.navigateBack(), 600);
     } catch (e) {
       wx.showToast({ title: data.messageOf(e), icon: 'none' });

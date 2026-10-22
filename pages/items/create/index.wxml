@@ -52,7 +52,7 @@
       </view>
       <view wx:if="{{form.images.length < 3}}" class="ui-thumb-add" bindtap="addImage">＋</view>
     </view>
-    <text class="ui-meta">示範模式下圖片只存在本機；接上後端後改為直傳 COS</text>
+    <text class="ui-meta">{{isDemo ? '示範模式下圖片只存在本機' : '圖片上傳尚未開通，目前只送出文字'}}</text>
   </pv-card>
 
   <view class="pv-group-title">聯絡方式</view>
