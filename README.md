@@ -3,6 +3,9 @@
 > 為澳門培華中學師生打造的校園服務小程序
 > 學校考試作品 ｜ 參加微信小程序開發大賽
 
+[![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
+
 校園裡每天發生四件高頻小事：**東西丟了找不到人、活動報名靠群裡接龍、今天午餐吃什麼、重要通知埋在群訊息裡**。
 本項目把這四類校內資訊流做成可互動、有狀態、能閉環的產品——不是把學校官網搬進小程序，而是讓每一條校園資訊都有狀態、有用戶、有數據回饋。
 
@@ -47,7 +50,10 @@
 │   ├── 01-藍圖與競賽對標.md
 │   ├── architecture.html
 │   ├── 02-資料模型與API.md
-│   └── openapi.yaml
+│   ├── openapi.yaml
+│   └── releases/                # 版本說明（每版一份）
+├── scripts/check-project.mjs       # 結構檢查（CI 用）
+├── .github/workflows/ci.yml        # CI：結構檢查 + JSON 解析
 ├── project.config.json             # 開發者工具專案設定（含 appid）
 └── README.md
 ```
@@ -59,6 +65,7 @@
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄
 2. 直接編譯預覽（appid：`wx9f104c034c07e15f`）
 3. `project.private.config.json` 為個人本機設定，已加入 `.gitignore`
+4. 提交前跑結構檢查：`node scripts/check-project.mjs`（CI 也會跑）
 
 ## 目前進度
 
