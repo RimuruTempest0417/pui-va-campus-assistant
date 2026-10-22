@@ -1,0 +1,48 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.menu-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+
+.week {
+  display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+  background: var(--pv-surface); border-radius: var(--pv-r); padding: var(--pv-sp-1) var(--pv-sp-2);
+  margin-bottom: var(--pv-sp-2);
+}
+.week__btn {
+  width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center;
+  font-size: 40rpx; color: var(--pv-tint); border-radius: var(--pv-r-pill);
+}
+.week__btn--pressed { background: var(--pv-fill); }
+.week__mid { display: flex; flex-direction: column; align-items: center; }
+.week__label { font-size: var(--pv-fs-headline); font-weight: 600; }
+.week__range { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+
+.day { margin-bottom: var(--pv-sp-3); }
+.day__head { display: flex; flex-direction: row; align-items: center; padding: 0 var(--pv-sp-1) var(--pv-sp-1); }
+.day__date { font-size: var(--pv-fs-callout); font-weight: 600; }
+.day__wd { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); margin-left: 8rpx; margin-right: var(--pv-sp-1); }
+.day.is-today .day__date { color: var(--pv-tint); }
+
+.sec-title { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); margin-bottom: 6rpx; }
+.snack-sec { margin-top: var(--pv-sp-2); }
+.dish-row {
+  display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+  padding: var(--pv-sp-2) 0; border-bottom: 1rpx solid var(--pv-sep);
+}
+.dish-row:last-child { border-bottom: none; }
+.dish-row--pressed { opacity: 0.6; }
+.dish-row__main { flex: 1; display: flex; flex-direction: column; }
+.dish-row__name { font-weight: 600; }
+.dish-row__score { display: flex; flex-direction: row; align-items: baseline; }
+.dish-row__num { font-size: var(--pv-fs-title-3); font-weight: 700; color: var(--pv-warning); }
+.dish-row__unit { font-size: var(--pv-fs-caption-2); color: var(--pv-label-3); margin-left: 2rpx; }
+
+.top-row { display: flex; flex-direction: row; align-items: center; padding: var(--pv-sp-2) 0; border-bottom: 1rpx solid var(--pv-sep); }
+.top-row:last-child { border-bottom: none; }
+.top-rank {
+  width: 40rpx; height: 40rpx; border-radius: 50%;
+  background: var(--pv-tint-soft); color: var(--pv-tint);
+  font-size: var(--pv-fs-caption-1); font-weight: 700;
+  display: flex; align-items: center; justify-content: center; margin-right: var(--pv-sp-2);
+}
+.top-name { flex: 1; }

@@ -9,7 +9,9 @@
     "pages/items/mine/index",
     "pages/events/list/index",
     "pages/events/detail/index",
-    "pages/events/mine/index"
+    "pages/events/mine/index",
+    "pages/menu/index/index",
+    "pages/menu/dish/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",

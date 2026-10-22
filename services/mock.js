@@ -4,13 +4,62 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 3;
+const SEED_VERSION = 4;
+
+const weekUtil = require('../utils/week');
+
+const DISH_LIBRARY = [
+  { id: 'd1', name: '葡式焗雞飯', price: null, tags: ['招牌'], desc: '薯仔鋪底，雞肉焗到金黃。', base: { sum: 148, count: 32, likes: 18 } },
+  { id: 'd2', name: '豉汁排骨飯', price: null, tags: ['經典'], desc: '排骨先炸後蒸，豉汁偏鹹香。', base: { sum: 105, count: 25, likes: 11 } },
+  { id: 'd3', name: '咖喱牛腩飯', price: null, tags: ['辣', '人氣'], desc: '咖喱不辣到嗆，牛腩燉得軟。', base: { sum: 197, count: 41, likes: 30 } },
+  { id: 'd4', name: '番茄蛋炒飯', price: null, tags: ['素'], desc: '偏清淡，適合不想吃太油的日子。', base: { sum: 47, count: 12, likes: 5 } },
+  { id: 'd5', name: '海南雞飯', price: null, tags: ['人氣'], desc: '附薑蓉與辣椒醬。', base: { sum: 94, count: 20, likes: 15 } },
+  { id: 'd6', name: '菠蘿包', price: 8, tags: ['小賣部'], desc: '出爐時間 10:30 與 15:00。', base: { sum: 62, count: 14, likes: 9 } },
+  { id: 'd7', name: '魚蛋（串）', price: 10, tags: ['小賣部'], desc: '咖喱汁另加。', base: { sum: 55, count: 12, likes: 7 } },
+  { id: 'd8', name: '奶茶', price: 12, tags: ['小賣部'], desc: '凍飲 +2。', base: { sum: 88, count: 19, likes: 14 } },
+  { id: 'd9', name: '蛋撻', price: 9, tags: ['小賣部'], desc: '每日限量 60 個。', base: { sum: 70, count: 15, likes: 11 } },
+];
+
+/** 依週次生成菜單：每天 1–2 道午餐 + 1 道小賣部 */
+function buildMenus() {
+  const out = [];
+  for (let offset = -1; offset <= 1; offset += 1) {
+    const dates = weekUtil.weekDates(offset);
+    dates.forEach((date, i) => {
+      const lunchA = DISH_LIBRARY[(i + offset + 9) % 5];
+      const lunchB = DISH_LIBRARY[(i + offset + 10) % 5];
+      const snack = DISH_LIBRARY[5 + ((i + offset + 9) % 4)];
+      out.push({
+        date: date,
+        weekOffset: offset,
+        lunch: [lunchA.id, lunchB.id].filter((v, idx, arr) => arr.indexOf(v) === idx).map((id) => dishById(id)),
+        snack: [dishById(snack.id)],
+      });
+    });
+  }
+  return out;
+}
+
+function dishById(id) {
+  const d = DISH_LIBRARY.filter((x) => x.id === id)[0];
+  return { id: d.id, name: d.name, price: d.price, tags: d.tags, description: d.desc };
+}
+
+function seedScores() {
+  const out = {};
+  DISH_LIBRARY.forEach((d) => {
+    out[d.id] = Object.assign({}, d.base);
+  });
+  return out;
+}
 
 function seed() {
   const now = Date.now();
   const h = 3600 * 1000;
   return {
     seedVersion: SEED_VERSION,
+    dishScores: seedScores(),
+    myRatings: {},
     user: { id: 'demo-user', nickname: '示範學生', role: 'STUDENT', grade: '高二', className: '仁' },
     categories: [
       { key: 'card', name: '卡證', icon: '🪪' },
@@ -49,19 +98,13 @@ function seed() {
         description: '已結束。' },
     ],
     signups: [], // { id, eventId, userId, status: CONFIRMED|WAITLIST, waitlistPos, createdAt }
-    menu: [
-      { date: '2026-10-20', lunch: [{ id: 'd1', name: '葡式焗雞飯', avgScore: 4.6, ratingCount: 32, liked: 18 }], snack: [{ id: 'd2', name: '菠蘿包', price: 8 }] },
-      { date: '2026-10-21', lunch: [{ id: 'd3', name: '豉汁排骨飯', avgScore: 4.2, ratingCount: 25, liked: 11 }], snack: [{ id: 'd4', name: '魚蛋', price: 10 }] },
-      { date: '2026-10-22', lunch: [{ id: 'd5', name: '咖喱牛腩飯', avgScore: 4.8, ratingCount: 41, liked: 30 }], snack: [{ id: 'd6', name: '奶茶', price: 12 }] },
-      { date: '2026-10-23', lunch: [{ id: 'd7', name: '番茄蛋炒飯', avgScore: 3.9, ratingCount: 12, liked: 5 }], snack: [{ id: 'd8', name: '蛋撻', price: 9 }] },
-      { date: '2026-10-24', lunch: [{ id: 'd9', name: '海南雞飯', avgScore: 4.7, ratingCount: 20, liked: 15 }], snack: [] },
-    ],
+    // 菜單以「本週」為基準生成（offset -1 上週、0 本週、1 下週），永遠有資料可看
+    menu: buildMenus(),
     notices: [
       { id: 'n1', title: '颱風期間停課安排', kind: 'URGENT', isPinned: true, publishedAt: now - 3 * h, content: '八號風球生效時停課，詳見學校公告。' },
       { id: 'n2', title: '期中考試時間表', kind: 'CALENDAR', isPinned: true, publishedAt: now - 30 * h, content: '11 月 3 日至 7 日。' },
       { id: 'n3', title: '圖書館新增自習區', kind: 'NORMAL', isPinned: false, publishedAt: now - 60 * h, content: '三樓新增 40 個座位。' },
     ],
-    ratings: {},
   };
 }
 
@@ -77,6 +120,18 @@ function db() {
 function save(data) {
   wx.setStorageSync(KEY, data);
   return data;
+}
+
+function decorateDish(data, dish) {
+  const agg = (data.dishScores || {})[dish.id] || { sum: 0, count: 0, likes: 0 };
+  const mine = (data.myRatings || {})[dish.id] || null;
+  return Object.assign({}, dish, {
+    avgScore: agg.count ? Math.round((agg.sum / agg.count) * 10) / 10 : 0,
+    ratingCount: agg.count,
+    likedCount: agg.likes,
+    myScore: mine ? mine.score : 0,
+    myLiked: mine ? !!mine.liked : false,
+  });
 }
 
 function mineFor(data, eventId) {
@@ -299,15 +354,67 @@ module.exports = {
   },
 
   // ── 菜單 ──
-  weekMenu() {
-    return Promise.resolve({ days: db().menu });
-  },
-  rateDish(dishId, score) {
+  weekMenu(query) {
+    const q = query || {};
+    const offset = Number(q.offset) || 0;
     const data = db();
-    const prev = data.ratings[dishId] || { score: score, count: 0 };
-    data.ratings[dishId] = { score: score, count: prev.count + 1 };
+    const dates = weekUtil.weekDates(offset);
+    const days = dates.map((date) => {
+      const entry = (data.menu || []).filter((x) => x.date === date)[0];
+      const lunch = entry ? entry.lunch.map((d) => decorateDish(data, d)) : [];
+      const snack = entry ? entry.snack.map((d) => decorateDish(data, d)) : [];
+      return { date: date, lunch: lunch, snack: snack };
+    });
+    return Promise.resolve({ offset: offset, dates: dates, days: days });
+  },
+
+  getDish(id) {
+    const data = db();
+    const dish = DISH_LIBRARY.filter((x) => x.id === id)[0];
+    if (!dish) return Promise.reject({ code: 'NOT_FOUND' });
+    return Promise.resolve(decorateDish(data, dishById(id)));
+  },
+
+  rateDish(id, payload) {
+    const data = db();
+    const p = payload || {};
+    const score = Number(p.score);
+    if (!(score >= 1 && score <= 5)) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '評分必須是 1–5 星' });
+    }
+    data.dishScores = data.dishScores || seedScores();
+    data.myRatings = data.myRatings || {};
+
+    const agg = data.dishScores[id] || { sum: 0, count: 0, likes: 0 };
+    const prev = data.myRatings[id];
+
+    if (prev) {
+      // 一人一評：改分時先把舊分扣掉，不會重複計算
+      agg.sum = agg.sum - prev.score + score;
+      if (prev.liked && !p.liked) agg.likes = Math.max(0, agg.likes - 1);
+      if (!prev.liked && p.liked) agg.likes += 1;
+    } else {
+      agg.sum += score;
+      agg.count += 1;
+      if (p.liked) agg.likes += 1;
+    }
+    data.dishScores[id] = agg;
+    data.myRatings[id] = { score: score, liked: !!p.liked };
     save(data);
-    return Promise.resolve({ dishId: dishId, myScore: score });
+
+    return Promise.resolve(decorateDish(db(), dishById(id)));
+  },
+
+  topDishes(query) {
+    const q = query || {};
+    const limit = Number(q.limit) || 5;
+    const data = db();
+    data.dishScores = data.dishScores || seedScores();
+    const rows = DISH_LIBRARY.map((d) => decorateDish(data, dishById(d.id)))
+      .filter((d) => d.ratingCount > 0)
+      .sort((a, b) => b.avgScore - a.avgScore || b.ratingCount - a.ratingCount)
+      .slice(0, limit);
+    return Promise.resolve({ items: rows });
   },
 
   // ── 公告 ──

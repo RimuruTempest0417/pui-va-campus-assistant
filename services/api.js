@@ -50,8 +50,14 @@ module.exports = {
   weekMenu(query) {
     return http.get('/menu', query);
   },
+  getDish(id) {
+    return http.get('/dishes/' + id);
+  },
   rateDish(dishId, score, liked) {
     return http.post('/dishes/' + dishId + '/ratings', { score: score, liked: !!liked });
+  },
+  topDishes(query) {
+    return http.get('/dishes/top', query);
   },
   listNotices(query) {
     return http.get('/notices', query);

@@ -1,0 +1,54 @@
+<view class="ui-page page-root">
+  <pv-navbar title="菜式" back="{{true}}" />
+
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="dish-inner">
+      <block wx:if="{{loading}}">
+        <view class="ui-card"><pv-skeleton rows="3" /></view>
+      </block>
+
+      <pv-empty wx:elif="{{!dish}}" icon="🍽" title="找不到這道菜" desc="可能已下架" />
+
+      <block wx:else>
+        <view class="hero">
+          <view class="hero__icon">🍽</view>
+          <text class="hero__name">{{dish.name}}</text>
+          <view class="ui-row hero__tags">
+            <pv-tag wx:for="{{dish.tags}}" wx:key="*this" class="hero__tag" text="{{item}}" plain />
+            <pv-tag wx:if="{{dish.price}}" class="hero__tag" text="MOP {{dish.price}}" type="tint" />
+          </view>
+          <text class="hero__desc">{{dish.description}}</text>
+        </view>
+
+        <pv-card>
+          <view class="score-row">
+            <view class="score-main">
+              <text class="score-num">{{dish.avgScore || '—'}}</text>
+              <text class="score-unit">平均分</text>
+            </view>
+            <view class="score-side">
+              <text class="ui-sub">{{dish.ratingCount}} 人評分</text>
+              <text class="ui-meta">{{dish.likedCount}} 人點讚</text>
+            </view>
+          </view>
+
+          <view class="divider" />
+
+          <view class="rate-block">
+            <text class="ui-field__label">我的評分</text>
+            <view class="stars">
+              <view wx:for="{{[1,2,3,4,5]}}" wx:key="*this" class="star {{dish.myScore >= item ? 'is-on' : ''}}"
+                    data-score="{{item}}" bindtap="onRate">{{item <= dish.myScore ? '★' : '☆'}}</view>
+            </view>
+            <view class="like-row" bindtap="onToggleLike">
+              <view class="like-chip {{dish.myLiked ? 'is-on' : ''}}">
+                <text>{{dish.myLiked ? '♥ 已讚' : '♡ 點讚'}}</text>
+              </view>
+              <text class="ui-meta">點讚會影響本週熱門排行</text>
+            </view>
+          </view>
+        </pv-card>
+      </block>
+    </view>
+  </scroll-view>
+</view>

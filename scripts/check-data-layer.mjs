@@ -121,6 +121,34 @@ try {
 }
 check('非法狀態被擋', bad === 'VALIDATION_FAILED', bad || '沒有擋下');
 
+
+// ── 菜單與評分（W-6）──
+const menuNow = await data.weekMenu({ offset: 0 });
+const menuNext = await data.weekMenu({ offset: 1 });
+check('週菜單 5 天', menuNow.days.length === 5, `${menuNow.days.length} 天`);
+check('切換週次換日期', menuNow.dates[0] !== menuNext.dates[0], `${menuNow.dates[0]} vs ${menuNext.dates[0]}`);
+check('每天有午餐', menuNow.days.every((d) => d.lunch.length >= 1), `午餐 ${menuNow.days[0].lunch.length} 道`);
+
+const dishBefore = await data.getDish('d3');
+const afterRate = await data.rateDish('d3', { score: 5, liked: true });
+check('評分計入平均', afterRate.ratingCount === dishBefore.ratingCount + 1 && afterRate.avgScore > 0,
+  `${dishBefore.ratingCount} → ${afterRate.ratingCount} 人，平均 ${afterRate.avgScore}`);
+
+const afterChange = await data.rateDish('d3', { score: 1, liked: false });
+check('一人一評（改分不重複計數）', afterChange.ratingCount === afterRate.ratingCount && afterChange.myScore === 1,
+  `人數仍 ${afterChange.ratingCount}，我的分數 ${afterChange.myScore}`);
+
+const top = await data.topDishes({ limit: 3 });
+check('熱門排行', top.items.length === 3 && top.items[0].avgScore >= top.items[1].avgScore, top.items.map((x) => x.name).join(' > '));
+
+let badScore = '';
+try {
+  await data.rateDish('d3', { score: 9 });
+} catch (e) {
+  badScore = e.code;
+}
+check('評分範圍被擋', badScore === 'VALIDATION_FAILED', badScore || '沒有擋下');
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

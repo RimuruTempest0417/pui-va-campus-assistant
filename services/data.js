@@ -48,6 +48,8 @@ module.exports = {
   getEvent: (...a) => call('getEvent', a),
   switchDemoUser: (...a) => call('switchDemoUser', a),
   weekMenu: (...a) => call('weekMenu', a),
+  getDish: (...a) => call('getDish', a),
   rateDish: (...a) => call('rateDish', a),
+  topDishes: (...a) => call('topDishes', a),
   listNotices: (...a) => call('listNotices', a),
 };
