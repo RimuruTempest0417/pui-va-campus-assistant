@@ -3,6 +3,7 @@
 const config = require('../config/config');
 const api = require('./api');
 const mock = require('./mock');
+const request = require('../utils/request');
 const { codeOf, isNetworkish, messageOf } = require('../utils/errors');
 
 let demoActive = false;
@@ -56,7 +57,8 @@ module.exports = {
   messageOf: messageOf,
   resetDemo: () => mock.reset(),
   login: (...a) => call('login', a),
-  me: (...a) => call('me', a),
+  // 沒有 token 就不可能登入成功，直接回 null（訪客），不要白打一條 401
+  me: (...a) => (isDemo() || request.getToken() ? call('me', a) : Promise.resolve(null)),
   listItems: (...a) => call('listItems', a),
   createItem: (...a) => call('createItem', a),
   getItem: (...a) => call('getItem', a),

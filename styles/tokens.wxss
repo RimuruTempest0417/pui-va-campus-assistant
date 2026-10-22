@@ -75,7 +75,6 @@ page {
   font-size: var(--pv-fs-body);
   letter-spacing: var(--pv-ls-body);
   line-height: 1.35;
-  -webkit-font-smoothing: antialiased;
 }
 
 /* ── 通用排版與容器 ─────────────────────── */
@@ -85,7 +84,6 @@ page {
 .pv-group-title {                     /* iOS 列表的分組標題 */
   font-size: var(--pv-fs-footnote);
   color: var(--pv-label-2);
-  text-transform: none;
   padding: var(--pv-sp-3) var(--pv-sp-2) var(--pv-sp-1);
   letter-spacing: var(--pv-ls-caption);
 }
