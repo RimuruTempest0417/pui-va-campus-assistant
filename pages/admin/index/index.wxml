@@ -230,6 +230,36 @@
         </view>
       </block>
 
+      <!-- 家長綁定（P2）-->
+      <block wx:elif="{{tab === 'parents'}}">
+        <pv-card>
+          <text class="field__label">新增綁定</text>
+          <input class="field__input" value="{{parentForm.parentAccount}}" data-field="parentAccount" bindinput="onParentField" placeholder="家長帳號（先到使用者分頁把角色設為家長）" />
+          <input class="field__input field__gap" value="{{parentForm.studentAccount}}" data-field="studentAccount" bindinput="onParentField" placeholder="學生學號，例如 3201201001" />
+          <view class="filter-row">
+            <view wx:for="{{relations}}" wx:key="key" class="chip {{parentForm.relation === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickRelation">{{item.label}}</view>
+          </view>
+          <view class="row-actions">
+            <pv-button type="filled" size="sm" loading="{{creatingParent}}" disabled="{{creatingParent}}" bind:tap="bindParent">綁定</pv-button>
+          </view>
+        </pv-card>
+
+        <pv-empty wx:if="{{!parents.length}}" icon="👨‍👩‍👧" title="還沒有任何綁定" desc="上方填家長帳號與學生學號即可建立" />
+
+        <view wx:for="{{parents}}" wx:key="id" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{item.parent.nickname || item.parent.account}}</text>
+            <pv-tag text="{{item.relationLabel}}" type="neutral" />
+          </view>
+          <text class="ui-meta">家長帳號 {{item.parent.account}}</text>
+          <text class="ui-meta">子女：{{item.student.nickname || item.student.account}}（{{item.student.grade || ''}}{{item.student.className || ''}} · {{item.student.account}}）</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-name="{{item.student.nickname || item.student.account}}" bind:tap="unbindParent">解除綁定</pv-button>
+          </view>
+        </view>
+      </block>
+
       <!-- 檢舉 -->
       <block wx:elif="{{tab === 'reports'}}">
         <pv-empty wx:if="{{!reports.length}}" icon="🛡" title="沒有待處理檢舉" desc="" />

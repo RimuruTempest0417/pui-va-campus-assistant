@@ -10,6 +10,7 @@ const TABS = [
   { key: 'events', label: '活動' },
   { key: 'notice', label: '公告' },
   { key: 'users', label: '使用者' },
+  { key: 'parents', label: '家長' },
   { key: 'reports', label: '檢舉' },
   { key: 'audit', label: '審計' },
   { key: 'export', label: '名單' },
@@ -18,11 +19,12 @@ const TABS = [
 
 const ROLE_TABS = {
   TEACHER: ['notice', 'events'],
-  ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'reports', 'export', 'menu'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'reports', 'audit', 'export', 'menu'],
+  ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'export', 'menu'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'audit', 'export', 'menu'],
 };
 
 const ROLES = [
+  { key: 'PARENT', label: '家長' },
   { key: 'STUDENT', label: '學生' },
   { key: 'TEACHER', label: '老師' },
   { key: 'ADMIN', label: '資訊管理員' },
@@ -63,6 +65,14 @@ Page({
     eventForm: { title: '', date: '', capacity: '20', location: '' },
     creatingEvent: false,
     users: [],
+    parents: [],
+    relations: [
+      { key: 'guardian', label: '監護人' },
+      { key: 'father', label: '父親' },
+      { key: 'mother', label: '母親' },
+    ],
+    parentForm: { parentAccount: '', studentAccount: '', relation: 'guardian' },
+    creatingParent: false,
     roles: ROLES,
     userQuery: { q: '', role: '' },
     meLevel: 0,
@@ -121,6 +131,7 @@ Page({
     if (t === 'export') return this.loadEventsForExport();
     if (t === 'events') return this.loadEventsAdmin();
     if (t === 'users') return this.loadUsers();
+    if (t === 'parents') return this.loadParents();
     if (t === 'reports') return this.loadReports();
     if (t === 'audit') return this.loadAudit();
     if (t === 'notice') return this.loadNoticeList();
@@ -374,6 +385,71 @@ Page({
     } catch (err) {
       wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
     }
+  },
+
+  // ───────── 家長綁定（P2）─────────
+  async loadParents() {
+    try {
+      const res = await admin.parents({});
+      this.setData({ parents: res.items || [], relations: res.relations || this.data.relations });
+    } catch (e) {
+      this.setData({ hint: '讀不到家長綁定：' + (e.message || e.code) });
+    }
+  },
+
+  onParentField(e) {
+    const patch = {};
+    patch['parentForm.' + e.currentTarget.dataset.field] = e.detail.value;
+    this.setData(patch);
+  },
+
+  pickRelation(e) {
+    this.setData({ 'parentForm.relation': e.currentTarget.dataset.key });
+  },
+
+  async bindParent() {
+    if (this.data.creatingParent) return;
+    const f = this.data.parentForm;
+    if (!f.parentAccount.trim() || !f.studentAccount.trim()) {
+      wx.showToast({ title: '家長帳號與學生學號都要填', icon: 'none' });
+      return;
+    }
+    this.setData({ creatingParent: true });
+    try {
+      const res = await admin.linkParent(f.parentAccount.trim(), f.studentAccount.trim(), f.relation);
+      this.setData({
+        'parentForm.parentAccount': '',
+        'parentForm.studentAccount': '',
+        hint: '已綁定：' + res.parent.account + ' → ' + res.student.account,
+      });
+      wx.showToast({ title: '已綁定', icon: 'success' });
+      this.loadParents();
+    } catch (e) {
+      wx.showToast({ title: e.message || '綁定失敗', icon: 'none' });
+    } finally {
+      this.setData({ creatingParent: false });
+    }
+  },
+
+  unbindParent(e) {
+    const id = e.currentTarget.dataset.id;
+    const name = e.currentTarget.dataset.name || '這位學生';
+    wx.showModal({
+      title: '解除綁定',
+      content: '確定要解除與 ' + name + ' 的綁定？解除後家長就看不到這個孩子的資料。',
+      confirmText: '解除',
+      confirmColor: '#C8102E',
+      success: async (r) => {
+        if (!r.confirm) return;
+        try {
+          await admin.unlinkParent(id);
+          wx.showToast({ title: '已解除', icon: 'success' });
+          this.loadParents();
+        } catch (err) {
+          wx.showToast({ title: err.message || '解除失敗', icon: 'none' });
+        }
+      },
+    });
   },
 
   // ───────── 使用者管理 ─────────

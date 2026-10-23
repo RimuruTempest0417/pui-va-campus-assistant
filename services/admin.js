@@ -98,4 +98,18 @@ module.exports = {
   deleteNotice(id) {
     return http.del('/admin/notices/' + id);
   },
+  // 家長綁定（P2）：建立／解除一律由後端驗身分與是否存在，前端只送帳號
+  parents(query) {
+    return http.get('/admin/parents', query || {});
+  },
+  linkParent(parentAccount, studentAccount, relation) {
+    return http.post('/admin/parents/link', {
+      parentAccount: parentAccount,
+      studentAccount: studentAccount,
+      relation: relation || 'guardian',
+    });
+  },
+  unlinkParent(id) {
+    return http.del('/admin/parents/link/' + id);
+  },
 };
