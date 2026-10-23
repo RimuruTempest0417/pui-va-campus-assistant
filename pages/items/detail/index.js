@@ -1,6 +1,7 @@
 const data = require('../../../services/data');
 const { decorate } = require('../../../utils/item');
 const { dateKey } = require('../../../utils/date');
+const subscribe = require('../../../utils/subscribe');
 
 Page({
   data: {
@@ -67,6 +68,7 @@ Page({
         await data.updateItemStatus(item.id, next);
         wx.showToast({ title: next === 'CLAIMED' ? '已標記認領中' : '已完成', icon: 'success' });
       } else {
+        await subscribe.request('claim'); // 模板 ID 未填就自動跳過
         await data.claimItem(item.id);
         wx.showToast({ title: '已送出認領申請', icon: 'success' });
       }

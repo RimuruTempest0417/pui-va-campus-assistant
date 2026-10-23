@@ -504,6 +504,38 @@ paths:
               schema: { $ref: '#/components/schemas/Notice' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /subscriptions:
+    post:
+      tags: [notices]
+      summary: 記錄訂閱消息同意（使用者按「允許」後才會有）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [templateIds]
+              properties:
+                templateIds: { type: array, items: { type: string }, minItems: 1, maxItems: 3 }
+                scene: { type: string, enum: [claim, event, notice], default: claim }
+      responses:
+        '200':
+          description: 已記錄
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  scene: { type: string }
+                  count: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    get:
+      tags: [notices]
+      summary: 我的訂閱同意記錄
+      responses:
+        '200': { description: OK }
+
   /uploads/signature:
     post:
       tags: [uploads]

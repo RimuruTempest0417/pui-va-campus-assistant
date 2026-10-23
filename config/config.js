@@ -10,6 +10,12 @@
 module.exports = {
   API_BASE_URL: 'http://127.0.0.1:3100/api/v1', // 上線後換成已備案域名的 https 位址
   DEMO_MODE: 'off',
+  // 訂閱消息模板 ID（在 mp 後台「訂閱消息」建立後填入；留空＝不彈出詢問）
+  SUBSCRIBE_TEMPLATES: {
+    claim: '', // 認領結果通知
+    event: '', // 候補補位／活動通知
+    notice: '', // 緊急公告
+  },
   TIMEOUT: 8000,
   RETRY: 1,
   STORAGE_KEYS: {

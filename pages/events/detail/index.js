@@ -1,5 +1,6 @@
 const data = require('../../../services/data');
 const { decorate } = require('../../../utils/event');
+const subscribe = require('../../../utils/subscribe');
 
 Page({
   data: {
@@ -49,6 +50,7 @@ Page({
         await data.cancelSignup(ev.id);
         wx.showToast({ title: '已取消', icon: 'success' });
       } else {
+        await subscribe.request('event'); // 模板 ID 未填就自動跳過
         const rec = await data.signupEvent(ev.id);
         if (rec.status === 'WAITLIST') {
           wx.showToast({ title: '已額滿，候補第 ' + rec.waitlistPos + ' 位', icon: 'none' });

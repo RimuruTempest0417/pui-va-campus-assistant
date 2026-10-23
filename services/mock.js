@@ -505,6 +505,24 @@ module.exports = {
     return Promise.resolve({ items: rows, minScore: 0.45 });
   },
 
+  // ── 訂閱消息（示範模式只記錄，不真的發送）──
+  subscribe(templateIds, scene) {
+    const data = db();
+    data.subscriptions = data.subscriptions || [];
+    (templateIds || []).forEach((id) => {
+      if (!data.subscriptions.some((x) => x.templateId === id && x.scene === scene)) {
+        data.subscriptions.push({ templateId: id, scene: scene, createdAt: Date.now() });
+      }
+    });
+    save(data);
+    return Promise.resolve({ ok: true, scene: scene, count: data.subscriptions.filter((x) => x.scene === scene).length });
+  },
+
+  mySubscriptions() {
+    const rows = db().subscriptions || [];
+    return Promise.resolve({ items: rows });
+  },
+
   // ── 公告 ──
   listNotices(query) {
     const q = query || {};

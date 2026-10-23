@@ -63,6 +63,12 @@ module.exports = {
   topDishes(query) {
     return http.get('/dishes/top', query);
   },
+  subscribe(templateIds, scene) {
+    return http.post('/subscriptions', { templateIds: templateIds, scene: scene });
+  },
+  mySubscriptions() {
+    return http.get('/subscriptions');
+  },
   listNotices(query) {
     return http.get('/notices', query);
   },

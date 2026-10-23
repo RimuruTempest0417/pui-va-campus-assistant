@@ -116,14 +116,3 @@
 .home__foot--pressed { opacity: 0.55; }
 .home__foot-link { color: var(--pv-tint); }
 
-.home__admin {
-  display: flex; flex-direction: column;
-  margin: var(--pv-sp-2) 0;
-  padding: var(--pv-sp-2) var(--pv-sp-3);
-  background: var(--pv-tint-soft);
-  border-radius: var(--pv-r);
-}
-.home__admin--pressed { opacity: 0.6; }
-.home__admin-title { font-size: var(--pv-fs-subhead); font-weight: 600; color: var(--pv-tint); }
-.home__admin-url { font-size: var(--pv-fs-caption-1); color: var(--pv-label-2); margin-top: 2rpx; }
-.home__admin-go { font-size: var(--pv-fs-caption-1); color: var(--pv-tint); margin-top: 4rpx; }

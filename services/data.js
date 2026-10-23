@@ -116,5 +116,7 @@ module.exports = {
   topDishes: (...a) => call('topDishes', a),
   listNotices: (...a) => call('listNotices', a),
   getNotice: (...a) => call('getNotice', a),
+  subscribe: (...a) => call('subscribe', a),
+  mySubscriptions: (...a) => call('mySubscriptions', a),
   markAllNoticesRead: (...a) => call('markAllNoticesRead', a),
 };
