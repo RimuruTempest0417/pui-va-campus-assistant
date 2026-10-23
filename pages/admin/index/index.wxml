@@ -130,19 +130,51 @@
 
       <!-- 使用者管理 -->
       <block wx:elif="{{tab === 'users'}}">
+        <pv-card>
+          <text class="field__label">新增帳號</text>
+          <input class="field__input" value="{{userForm.account}}" data-field="account" bindinput="onUserField" placeholder="帳號（登入用）" />
+          <input class="field__input field__gap" value="{{userForm.password}}" data-field="password" bindinput="onUserField" password placeholder="密碼（至少 8 位）" />
+          <input class="field__input field__gap" value="{{userForm.nickname}}" data-field="nickname" bindinput="onUserField" placeholder="顯示名稱（可空）" />
+          <view class="filter-row">
+            <view wx:for="{{roles}}" wx:key="key" class="chip {{userForm.role === item.key ? 'chip--on' : ''}}"
+                  data-role="{{item.key}}" bindtap="pickNewUserRole">{{item.label}}</view>
+          </view>
+          <view class="row-actions">
+            <pv-button type="filled" size="sm" loading="{{creatingUser}}" disabled="{{creatingUser}}" bind:tap="createUser">建立帳號</pv-button>
+          </view>
+        </pv-card>
+
+        <view class="filter-row">
+          <input class="field__input" style="flex:1" value="{{userQuery.q}}" bindinput="onUserQuery" placeholder="搜尋帳號或名稱" />
+          <pv-button size="sm" type="plain" bind:tap="applyUserQuery">搜尋</pv-button>
+        </view>
+        <view class="filter-row">
+          <view class="chip {{userQuery.role === '' ? 'chip--on' : ''}}" data-role="" bindtap="filterUsers">全部</view>
+          <view wx:for="{{roles}}" wx:key="key" class="chip {{userQuery.role === item.key ? 'chip--on' : ''}}"
+                data-role="{{item.key}}" bindtap="filterUsers">{{item.label}}</view>
+        </view>
+
         <view wx:for="{{users}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.nickname || item.openid}}</text>
-            <pv-tag text="{{item.role}}" type="{{item.bannedAt ? 'danger' : 'neutral'}}" />
+            <pv-tag text="{{item.role}} Lv{{item.level}}" type="{{item.bannedAt ? 'danger' : 'neutral'}}" />
           </view>
-          <text class="ui-meta">{{item.openid}}{{item.bannedAt ? ' · 已停用' : ''}}</text>
-          <view class="row-actions">
-            <pv-button wx:for="{{roles}}" wx:for-item="r" wx:key="key" size="sm" type="plain"
-                       data-id="{{item.id}}" data-role="{{r.key}}" bind:tap="setRole">{{r.label}}</pv-button>
+          <text class="ui-meta">{{item.openid}}{{item.bannedAt ? ' · 已停用' : ''}}{{item.lastLoginAt ? ' · 最後登入 ' + item.lastLoginAt : ''}}</text>
+
+          <view wx:if="{{item.canManage}}" class="row-actions">
+            <block wx:for="{{roles}}" wx:for-item="r" wx:key="key">
+              <pv-button wx:if="{{item.level > r.level}}" size="sm" type="plain"
+                         data-id="{{item.id}}" data-role="{{r.key}}" bind:tap="setRole">設為{{r.label}}</pv-button>
+            </block>
+          </view>
+          <view wx:if="{{item.canManage}}" class="row-actions">
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="resetPassword">重設密碼</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-banned="{{item.bannedAt ? '1' : '0'}}" bind:tap="toggleBan">
               {{item.bannedAt ? '恢復' : '停用'}}
             </pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-account="{{item.openid}}" bind:tap="deleteUser">刪除</pv-button>
           </view>
+          <text wx:else class="ui-meta">同等或更高權限，只能查看</text>
         </view>
       </block>
 

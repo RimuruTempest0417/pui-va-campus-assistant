@@ -56,6 +56,15 @@ module.exports = {
   setRole(id, role) {
     return http.patch('/admin/users/' + id + '/role', { role: role });
   },
+  createUser(payload) {
+    return http.post('/admin/users', payload);
+  },
+  resetPassword(id, password) {
+    return http.patch('/admin/users/' + id + '/password', { password: password });
+  },
+  deleteUser(id) {
+    return http.del('/admin/users/' + id);
+  },
   setBanned(id, banned) {
     return http.patch('/admin/users/' + id + '/ban', { banned: banned });
   },

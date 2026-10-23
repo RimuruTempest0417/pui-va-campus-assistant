@@ -64,6 +64,10 @@ Page({
     creatingEvent: false,
     users: [],
     roles: ROLES,
+    userQuery: { q: '', role: '' },
+    meLevel: 0,
+    userForm: { account: '', password: '', nickname: '', role: 'STUDENT' },
+    creatingUser: false,
     reports: [],
     audit: [],
     noticeList: [],
@@ -345,11 +349,105 @@ Page({
   // ───────── 使用者管理 ─────────
   async loadUsers() {
     try {
-      const res = await admin.users({});
-      this.setData({ users: res.items || [] });
+      const q = this.data.userQuery;
+      const res = await admin.users({ q: q.q || undefined, role: q.role || undefined });
+      this.setData({ users: res.items || [], meLevel: (res.me || {}).level || 0 });
     } catch (e) {
       this.setData({ hint: '讀不到使用者：' + (e.message || e.code) });
     }
+  },
+
+  onUserQuery(e) {
+    this.setData({ 'userQuery.q': e.detail.value });
+  },
+
+  applyUserQuery() {
+    this.loadUsers();
+  },
+
+  filterUsers(e) {
+    const role = e.currentTarget.dataset.role;
+    this.setData({ 'userQuery.role': this.data.userQuery.role === role ? '' : role });
+    this.loadUsers();
+  },
+
+  onUserField(e) {
+    const field = e.currentTarget.dataset.field;
+    const patch = {};
+    patch['userForm.' + field] = e.detail.value;
+    this.setData(patch);
+  },
+
+  pickNewUserRole(e) {
+    this.setData({ 'userForm.role': e.currentTarget.dataset.role });
+  },
+
+  async createUser() {
+    if (this.data.creatingUser) return;
+    const f = this.data.userForm;
+    if (!f.account.trim() || !f.password) {
+      wx.showToast({ title: '帳號與密碼必填', icon: 'none' });
+      return;
+    }
+    this.setData({ creatingUser: true });
+    try {
+      await admin.createUser({
+        account: f.account.trim(),
+        password: f.password,
+        nickname: f.nickname.trim() || undefined,
+        role: f.role,
+      });
+      this.setData({ 'userForm.account': '', 'userForm.password': '', 'userForm.nickname': '', hint: '帳號已建立' });
+      wx.showToast({ title: '已建立', icon: 'success' });
+      this.loadUsers();
+    } catch (e) {
+      wx.showToast({ title: e.message || '建立失敗', icon: 'none' });
+    } finally {
+      this.setData({ creatingUser: false });
+    }
+  },
+
+  async resetPassword(e) {
+    const id = e.currentTarget.dataset.id;
+    const self = this;
+    wx.showModal({
+      title: '重設密碼',
+      editable: true,
+      placeholderText: '輸入新密碼（至少 8 位）',
+      success(res) {
+        if (!res.confirm || !res.content) return;
+        if (res.content.length < 8) {
+          wx.showToast({ title: '密碼至少 8 位', icon: 'none' });
+          return;
+        }
+        admin
+          .resetPassword(id, res.content)
+          .then(() => wx.showToast({ title: '已重設', icon: 'success' }))
+          .catch((err) => wx.showToast({ title: err.message || '重設失敗', icon: 'none' }));
+        void self;
+      },
+    });
+  },
+
+  async deleteUser(e) {
+    const id = e.currentTarget.dataset.id;
+    const account = e.currentTarget.dataset.account;
+    const self = this;
+    wx.showModal({
+      title: '刪除帳號',
+      content: '刪除 ' + account + '？相關的認領／報名紀錄會一併清除。',
+      confirmColor: '#b3261e',
+      success(res) {
+        if (!res.confirm) return;
+        admin
+          .deleteUser(id)
+          .then(() => {
+            wx.showToast({ title: '已刪除', icon: 'success' });
+            self.loadUsers();
+          })
+          .catch((err) => wx.showToast({ title: err.message || '刪除失敗', icon: 'none' }));
+      },
+    });
   },
 
   async setRole(e) {
