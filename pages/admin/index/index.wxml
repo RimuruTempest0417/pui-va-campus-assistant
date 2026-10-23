@@ -1,7 +1,7 @@
 <view class="ui-page page-root">
   <pv-navbar title="管理" back="{{true}}" />
 
-  <scroll-view class="tabs-scroll" scroll-x show-scrollbar="{{false}}" enhanced="{{true}}">
+  <scroll-view class="tabs-scroll" scroll-x enable-flex show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="tabs">
       <view wx:for="{{tabs}}" wx:key="key" class="tab {{tab === item.key ? 'tab--on' : ''}}"
             data-key="{{item.key}}" bindtap="switchTab">{{item.label}}</view>

@@ -30,6 +30,7 @@ Page({
     pressedKey: '',
     urgentPressed: false,
     showAdmin: false,
+    showData: false,
     adminUrl: '',
     apiBaseText: '',
   },
@@ -128,6 +129,7 @@ Page({
 
       const role = (me && me.role) || '';
       const staff = ['TEACHER', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1;
+      const canSeeData = ['ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1;
       const base = data.apiBase() || '';
       const adminUrl = base.replace(/\/api\/v1\/?$/, '') + '/admin';
 
@@ -135,6 +137,7 @@ Page({
       this._lastRole = role;
       this.setData({
         showAdmin: staff,
+        showData: canSeeData,
         adminUrl: adminUrl,
         loading: false,
         failed: false,

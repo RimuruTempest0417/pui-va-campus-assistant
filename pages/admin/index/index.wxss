@@ -1,10 +1,11 @@
 @import "../../../styles/tokens.wxss";
 @import "../../../styles/ui.wxss";
 
-.tabs-scroll { white-space: nowrap; background: var(--pv-bg); }
-.tabs { display: flex; flex-direction: row; padding: var(--pv-sp-1) var(--pv-sp-2); }
+.tabs-scroll { height: 104rpx; flex-shrink: 0; background: var(--pv-bg); }
+.tabs { display: flex; flex-direction: row; align-items: center; height: 104rpx; padding: 0 var(--pv-sp-2); }
 .tab {
-  padding: 12rpx var(--pv-sp-3); margin-right: var(--pv-sp-1);
+  flex-shrink: 0;
+  padding: 14rpx var(--pv-sp-3); margin-right: var(--pv-sp-1);
   border-radius: var(--pv-r-pill); background: var(--pv-surface);
   font-size: var(--pv-fs-subhead); color: var(--pv-label-2);
 }
