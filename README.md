@@ -124,7 +124,9 @@ node scripts/check-data-layer.mjs  # ALL PASS 39/39（固定跑示範資料層�
 - [x] 後端 P0 端點（認領審批、報名行鎖＋候補、菜單評分、公告已讀、上傳簽名）
 - [x] **失物智能匹配**（pg_trgm 加權評分 + 詳情頁「可能是你的東西」）
 - [x] 後端 e2e（真實 Postgres，27 項，含 20 併發超賣壓測）
-- [ ] 老師端管理後台（W-10）｜訂閱消息（W-11）
+- [x] 老師端管理後台（W-10）：10 個分頁，含**使用者管理**（建立帳號／改名／改帳號／改密碼／改等級／停用／刪除／權限說明）
+- [x] 訂閱消息（W-11）
+- [x] 雲端部署（W-15）：Vercel + Neon，API `https://pui-va-campus-server.vercel.app/api/v1`
 - [x] 交付給老師的一鍵包與 5 步說明（W-12：`node scripts/package.mjs`）
 - [ ] 上線（ICP 備案 → 提審 → 灰度）
 
