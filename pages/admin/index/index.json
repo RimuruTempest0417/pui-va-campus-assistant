@@ -6,5 +6,6 @@
     "pv-tag": "/components/pv-tag/index",
     "pv-button": "/components/pv-button/index",
     "pv-empty": "/components/pv-empty/index"
-  }
+  },
+  "navigationBarTitleText": "管理"
 }

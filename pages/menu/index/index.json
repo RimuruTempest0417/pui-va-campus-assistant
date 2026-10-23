@@ -6,5 +6,6 @@
     "pv-tag": "/components/pv-tag/index",
     "pv-skeleton": "/components/pv-skeleton/index",
     "pv-empty": "/components/pv-empty/index"
-  }
+  },
+  "navigationBarTitleText": "本週菜單"
 }

@@ -4,5 +4,6 @@
     "pv-navbar": "/components/pv-navbar/index",
     "pv-card": "/components/pv-card/index",
     "pv-button": "/components/pv-button/index"
-  }
+  },
+  "navigationBarTitleText": "教職員登入"
 }

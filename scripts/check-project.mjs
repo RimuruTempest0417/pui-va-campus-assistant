@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // 小程序專案結構檢查：CI 與提交前都能跑，不需要微信開發者工具。
-// 檢查項目：JSON 可解析、app.json 頁面四件套齊全、usingComponents 目標存在。
+// 檢查項目：JSON 可解析、app.json 頁面四件套齊全、usingComponents 目標存在、
+// WXSS 風險選擇器、白屏守門、組件註冊一致、未登記頁面、tabBar/entryPagePath。
 
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -132,6 +133,72 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
     }
   };
   walkWxml(root);
+}
+
+
+// 8) W-13：頁面 JS 必須有 Page( / Component(、json 必須有標題、wxml 用到的自訂組件必須註冊
+{
+  const { readFileSync } = await import('node:fs');
+  for (const page of appJson.pages) {
+    const js = readFileSync(join(root, `${page}.js`), 'utf8');
+    if (!/\bPage\s*\(/.test(js) && !/\bComponent\s*\(/.test(js)) {
+      errors.push(`${page}.js 沒有 Page( 或 Component(，這個頁面不會被註冊`);
+    }
+
+    const pageJson = readJson(`${page}.json`) || {};
+    if (!pageJson.navigationBarTitleText) {
+      warnings.push(`${page}.json 缺少 navigationBarTitleText（導航列會沒有標題）`);
+    }
+
+    const using = Object.keys(pageJson.usingComponents || {});
+    const wxml = readFileSync(join(root, `${page}.wxml`), 'utf8');
+    const used = Array.from(new Set((wxml.match(/<(pv-[a-z0-9-]+)/g) || []).map((t) => t.slice(1))));
+
+    for (const tag of used) {
+      if (!using.includes(tag)) {
+        errors.push(`${page}.wxml 用了 <${tag}> 但 ${page}.json 沒有註冊這個組件`);
+      }
+    }
+    for (const name of using) {
+      if (name.startsWith('pv-') && !used.includes(name)) {
+        warnings.push(`${page}.json 註冊了 ${name} 但 ${page}.wxml 沒用到`);
+      }
+    }
+  }
+}
+
+// 9) W-13：pages/ 底下有檔案但沒被 app.json 收錄（漏註冊的頁面）
+{
+  const { readdirSync } = await import('node:fs');
+  const walkPages = (dir, acc = []) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name.startsWith('.')) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walkPages(full, acc);
+      else if (e.name.endsWith('.wxml')) acc.push(full.slice(root.length + 1).replace(/\.wxml$/, ''));
+    }
+    return acc;
+  };
+  if (existsSync(join(root, 'pages'))) {
+    for (const rel of walkPages(join(root, 'pages'))) {
+      if (!appJson.pages.includes(rel)) warnings.push(`${rel} 存在但沒有登記在 app.json 的 pages`);
+    }
+  }
+}
+
+// 10) W-13：tabBar 與 entryPagePath 指到的頁面必須存在
+{
+  const tb = appJson.tabBar;
+  if (tb && Array.isArray(tb.list)) {
+    for (const item of tb.list) {
+      if (item.pagePath && !appJson.pages.includes(item.pagePath)) {
+        errors.push(`tabBar 指到不存在的頁面：${item.pagePath}`);
+      }
+    }
+  }
+  if (appJson.entryPagePath && !appJson.pages.includes(appJson.entryPagePath)) {
+    errors.push(`entryPagePath 指到不存在的頁面：${appJson.entryPagePath}`);
+  }
 }
 
 for (const w of warnings) console.warn(`⚠️  ${w}`);

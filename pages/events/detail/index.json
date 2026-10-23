@@ -7,5 +7,6 @@
     "pv-button": "/components/pv-button/index",
     "pv-empty": "/components/pv-empty/index",
     "pv-skeleton": "/components/pv-skeleton/index"
-  }
+  },
+  "navigationBarTitleText": "活動詳情"
 }

@@ -6,5 +6,6 @@
     "pv-empty": "/components/pv-empty/index",
     "pv-skeleton": "/components/pv-skeleton/index",
     "pv-tabs": "/components/pv-tabs/index"
-  }
+  },
+  "navigationBarTitleText": "活動與社團"
 }

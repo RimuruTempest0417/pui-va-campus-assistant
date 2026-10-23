@@ -10,7 +10,7 @@
       <pv-card>
         <view class="field">
           <text class="field__label">帳號</text>
-          <input class="field__input" value="{{account}}" placeholder="例如 Rimuru" bindinput="onAccount" />
+          <input class="field__input" value="{{account}}" placeholder="例如 3201201001" bindinput="onAccount" />
         </view>
         <view class="field">
           <text class="field__label">密碼</text>

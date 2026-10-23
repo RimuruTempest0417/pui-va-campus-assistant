@@ -1,7 +1,6 @@
 {
   "navigationBarTitleText": "我的發布",
   "usingComponents": {
-    "pv-card": "/components/pv-card/index",
     "pv-tag": "/components/pv-tag/index",
     "pv-empty": "/components/pv-empty/index",
     "pv-button": "/components/pv-button/index",

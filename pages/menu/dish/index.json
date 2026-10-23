@@ -4,8 +4,8 @@
     "pv-navbar": "/components/pv-navbar/index",
     "pv-card": "/components/pv-card/index",
     "pv-tag": "/components/pv-tag/index",
-    "pv-button": "/components/pv-button/index",
     "pv-skeleton": "/components/pv-skeleton/index",
     "pv-empty": "/components/pv-empty/index"
-  }
+  },
+  "navigationBarTitleText": "菜式評分"
 }

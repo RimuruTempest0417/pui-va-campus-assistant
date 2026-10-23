@@ -9,5 +9,6 @@
     "pv-avatar": "/components/pv-avatar/index",
     "pv-empty": "/components/pv-empty/index",
     "pv-skeleton": "/components/pv-skeleton/index"
-  }
+  },
+  "navigationBarTitleText": "培華校園助手"
 }
