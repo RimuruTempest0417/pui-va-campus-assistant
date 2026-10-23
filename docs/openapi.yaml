@@ -1302,6 +1302,97 @@ paths:
               schema: { type: string }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /client-errors:
+    post:
+      tags: [admin]
+      summary: 用戶端錯誤上報（匿名可用；同一訊息＋頁面聚合成一列，只累加次數）
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, maxLength: 300 }
+                stack: { type: string, maxLength: 4000 }
+                route: { type: string, maxLength: 200, description: 出錯的頁面路徑，例如 pages/items/list/index }
+                platform: { type: string, maxLength: 32, description: ios / android / devtools }
+                sdkVersion: { type: string, maxLength: 32, description: 微信基礎庫版本 }
+                appVersion: { type: string, maxLength: 32 }
+      responses:
+        '202':
+          description: 已記錄。同一指紋只留一列並累加 count；超過每 IP 每分鐘 20 則回 throttled true（刻意不用 429，上報失敗不該造成第二個錯誤）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  id: { type: string }
+                  count: { type: integer }
+                  throttled: { type: boolean }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /admin/errors:
+    get:
+      tags: [admin]
+      summary: 錯誤日誌（預設按出現次數排序，需要 error:read = ADMIN 以上）
+      parameters:
+        - { in: query, name: status, schema: { type: string, enum: [OPEN, RESOLVED] } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ErrorLog' }
+                  summary:
+                    type: object
+                    properties:
+                      open: { type: integer }
+                      total: { type: integer, description: 所有錯誤的累計出現次數 }
+                      kinds: { type: integer, description: 錯誤種類數 }
+                      last24h: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/errors/{id}:
+    patch:
+      tags: [admin]
+      summary: 標記錯誤已解決／重新打開（再發生時後端會自動回到 OPEN）
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [RESOLVE, REOPEN] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  status: { type: string, enum: [OPEN, RESOLVED] }
+                  resolvedAt: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1337,6 +1428,23 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
 
   schemas:
+    ErrorLog:
+      type: object
+      properties:
+        id: { type: string }
+        message: { type: string, description: 錯誤訊息（截到 300 字） }
+        stack: { type: string, nullable: true }
+        route: { type: string, nullable: true, description: 出錯的頁面路徑 }
+        platform: { type: string, nullable: true }
+        sdkVersion: { type: string, nullable: true }
+        appVersion: { type: string, nullable: true }
+        userId: { type: string, nullable: true, description: 有 JWT 才有；匿名上報為 null }
+        count: { type: integer, description: 出現次數（列表排序依據） }
+        status: { type: string, enum: [OPEN, RESOLVED] }
+        firstSeenAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time }
+        resolvedAt: { type: string, format: date-time, nullable: true }
+
     EventCheckinState:
       type: object
       properties:

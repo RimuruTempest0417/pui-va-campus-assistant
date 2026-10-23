@@ -306,6 +306,37 @@
         </view>
       </block>
 
+      <!-- 錯誤日誌（用戶端上報）-->
+      <block wx:elif="{{tab === 'errors'}}">
+        <pv-card>
+          <view class="ui-row-between">
+            <text class="ui-title">待處理 {{errSummary.open || 0}} 種</text>
+            <text class="ui-meta">近 24 小時 {{errSummary.last24h || 0}} 次 · 累計 {{errSummary.total || 0}} 次</text>
+          </view>
+          <view class="filter-row">
+            <view wx:for="{{errFilters}}" wx:key="key" class="chip {{errStatus === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickErrStatus">{{item.label}}</view>
+          </view>
+        </pv-card>
+
+        <pv-empty wx:if="{{!errors.length}}" icon="🐞" title="{{errStatus === 'OPEN' ? '沒有待處理的錯誤' : '沒有已解決的紀錄'}}"
+                  desc="使用者手機上的白屏、閃退會自動出現在這裡" />
+
+        <view wx:for="{{errors}}" wx:key="id" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{item.message}}</text>
+            <pv-tag text="{{item.count}} 次" type="{{item.status === 'OPEN' ? 'warning' : 'neutral'}}" />
+          </view>
+          <text class="ui-meta">{{item.route || '（未記錄頁面）'}}{{item.platform ? ' · ' + item.platform : ''}}</text>
+          <text class="ui-meta">最近 {{item.seenText}} · 首次 {{item.firstSeenText}}</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-action="{{item.status === 'OPEN' ? 'RESOLVE' : 'REOPEN'}}" bind:tap="toggleErrStatus">
+              {{item.status === 'OPEN' ? '標記已解決' : '重新打開'}}
+            </pv-button>
+          </view>
+        </view>
+      </block>
+
       <!-- 審計 -->
       <block wx:elif="{{tab === 'audit'}}">
         <pv-card wx:if="{{audit.length}}">

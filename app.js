@@ -1,11 +1,27 @@
 // app.js
+const reporter = require('./utils/reporter');
+
 App({
   globalData: {
     nav: null,
+    reportError: reporter.reportError,
   },
 
   onLaunch() {
     this.globalData.nav = measureNav();
+  },
+
+  // 全域錯誤（白屏、閃退最常見的來源）→ 送到後端，後台「錯誤」分頁看得到。
+  // 不上報的話，這些錯誤只留在使用者手機上，誰都看不到。
+  onError(err) {
+    const msg = err && err.message ? err.message : err;
+    reporter.reportError(msg, err && err.stack);
+  },
+
+  onUnhandledRejection(res) {
+    const reason = res && res.reason;
+    const msg = (reason && (reason.message || reason.errMsg || reason.code)) || '未處理的 Promise 失敗';
+    reporter.reportError(msg, reason && reason.stack);
   },
 });
 

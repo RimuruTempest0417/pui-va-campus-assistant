@@ -1,7 +1,7 @@
 const admin = require('../../../services/admin');
 const request = require('../../../utils/request');
 const config = require('../../../config/config');
-const { dateKey } = require('../../../utils/date');
+const { dateKey, fromNow } = require('../../../utils/date');
 
 const TABS = [
   { key: 'stats', label: '概況' },
@@ -12,6 +12,7 @@ const TABS = [
   { key: 'users', label: '使用者' },
   { key: 'parents', label: '家長' },
   { key: 'reports', label: '檢舉' },
+  { key: 'errors', label: '錯誤' },
   { key: 'audit', label: '審計' },
   { key: 'export', label: '名單' },
   { key: 'menu', label: '菜單' },
@@ -19,8 +20,8 @@ const TABS = [
 
 const ROLE_TABS = {
   TEACHER: ['notice', 'events'],
-  ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'export', 'menu'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'audit', 'export', 'menu'],
+  ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'export', 'menu'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'audit', 'export', 'menu'],
 };
 
 const ROLES = [
@@ -84,6 +85,13 @@ Page({
     editingId: '',
     editForm: { nickname: '', account: '', password: '', role: 'STUDENT' },
     reports: [],
+    errors: [],
+    errStatus: 'OPEN',
+    errFilters: [
+      { key: 'OPEN', label: '待處理' },
+      { key: 'RESOLVED', label: '已解決' },
+    ],
+    errSummary: { open: 0, total: 0, kinds: 0, last24h: 0 },
     audit: [],
     noticeList: [],
     showPerms: false,
@@ -136,6 +144,7 @@ Page({
     if (t === 'users') return this.loadUsers();
     if (t === 'parents') return this.loadParents();
     if (t === 'reports') return this.loadReports();
+    if (t === 'errors') return this.loadErrors();
     if (t === 'audit') return this.loadAudit();
     if (t === 'notice') return this.loadNoticeList();
     if (t === 'menu') return this.loadMenuWeek();
@@ -706,6 +715,38 @@ Page({
       this.setData({ reports: res.items || [] });
     } catch (e) {
       this.setData({ hint: '讀不到檢舉：' + (e.message || e.code) });
+    }
+  },
+
+  // ───────── 錯誤日誌（用戶端上報）─────────
+  async loadErrors() {
+    try {
+      const res = await admin.errors(this.data.errStatus);
+      const summary = res.summary || {};
+      this.setData({
+        errors: (res.items || []).map((e) =>
+          Object.assign({}, e, { seenText: fromNow(e.lastSeenAt), firstSeenText: fromNow(e.firstSeenAt) }),
+        ),
+        errSummary: summary,
+      });
+    } catch (e) {
+      this.setData({ hint: '讀不到錯誤日誌：' + (e.message || e.code) });
+    }
+  },
+
+  pickErrStatus(e) {
+    this.setData({ errStatus: e.currentTarget.dataset.key });
+    this.loadErrors();
+  },
+
+  async toggleErrStatus(e) {
+    const { id, action } = e.currentTarget.dataset;
+    try {
+      await admin.setErrorStatus(id, action);
+      wx.showToast({ title: action === 'RESOLVE' ? '已標記解決' : '已重新打開', icon: 'none' });
+      this.loadErrors();
+    } catch (err) {
+      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
     }
   },
 

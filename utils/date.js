@@ -17,9 +17,16 @@ function greeting(d) {
   return '晚安';
 }
 
-/** 相對時間：剛剛 / 12 分鐘前 / 3 小時前 / 2 天前 */
+/**
+ * 相對時間：剛剛 / 12 分鐘前 / 3 小時前 / 2 天前
+ * 真 API 回的是 ISO 字串（2026-10-24T20:32:49.922Z），示範資料是毫秒數字 —— 兩種都要吃。
+ * 舊版一律 Number(ts)，ISO 字串會變 NaN，畫面出現「NaN 天前」（與 dateTimeText 同一個坑）。
+ */
 function fromNow(ts) {
-  const diff = Date.now() - Number(ts || 0);
+  if (ts === null || ts === undefined || ts === '') return ''; // 沒有時間就不要編一個「1970 年」出來
+  const numeric = typeof ts === 'number' || (typeof ts === 'string' && /^\d+$/.test(ts));
+  const at = numeric ? Number(ts) : new Date(ts || 0).getTime();
+  const diff = Date.now() - (Number.isFinite(at) ? at : Date.now());
   if (diff < 60 * 1000) return '剛剛';
   if (diff < 3600 * 1000) return Math.floor(diff / 60000) + ' 分鐘前';
   if (diff < 24 * 3600 * 1000) return Math.floor(diff / 3600000) + ' 小時前';
