@@ -44,3 +44,10 @@
 .hint { display: block; margin-top: var(--pv-sp-2); }
 
 .field__gap { margin-top: var(--pv-sp-1); }
+
+.edit-box {
+  margin-top: var(--pv-sp-2);
+  padding: var(--pv-sp-2);
+  background: var(--pv-fill);
+  border-radius: var(--pv-r-sm);
+}

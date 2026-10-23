@@ -167,7 +167,30 @@
                          data-id="{{item.id}}" data-role="{{r.key}}" bind:tap="setRole">設為{{r.label}}</pv-button>
             </block>
           </view>
+          <!-- 編輯表單（一次改名稱／帳號／密碼／等級）-->
+          <view wx:if="{{editingId === item.id}}" class="edit-box">
+            <text class="field__label">名稱</text>
+            <input class="field__input" value="{{editForm.nickname}}" data-field="nickname" bindinput="onEditField" />
+            <text class="field__label">登入帳號</text>
+            <input class="field__input" value="{{editForm.account}}" data-field="account" bindinput="onEditField" />
+            <text class="field__label">新密碼（不填就不改）</text>
+            <input class="field__input" value="{{editForm.password}}" data-field="password" bindinput="onEditField" password placeholder="留空＝維持原密碼" />
+            <text class="field__label">等級</text>
+            <view class="filter-row">
+              <block wx:for="{{roles}}" wx:for-item="r" wx:key="key">
+                <view wx:if="{{item.level > r.level || editForm.role === r.key}}"
+                      class="chip {{editForm.role === r.key ? 'chip--on' : ''}}"
+                      data-role="{{r.key}}" bindtap="pickEditRole">{{r.label}}</view>
+              </block>
+            </view>
+            <view class="row-actions">
+              <pv-button size="sm" type="filled" bind:tap="saveEdit">儲存</pv-button>
+              <pv-button size="sm" type="plain" bind:tap="cancelEdit">取消</pv-button>
+            </view>
+          </view>
+
           <view wx:if="{{item.canManage}}" class="row-actions">
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="startEdit">編輯</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="resetPassword">重設密碼</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-banned="{{item.bannedAt ? '1' : '0'}}" bind:tap="toggleBan">
               {{item.bannedAt ? '恢復' : '停用'}}

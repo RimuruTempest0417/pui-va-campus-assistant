@@ -59,6 +59,9 @@ module.exports = {
   createUser(payload) {
     return http.post('/admin/users', payload);
   },
+  updateUser(id, payload) {
+    return http.patch('/admin/users/' + id, payload);
+  },
   resetPassword(id, password) {
     return http.patch('/admin/users/' + id + '/password', { password: password });
   },

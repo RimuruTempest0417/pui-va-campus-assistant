@@ -68,6 +68,8 @@ Page({
     meLevel: 0,
     userForm: { account: '', password: '', nickname: '', role: 'STUDENT' },
     creatingUser: false,
+    editingId: '',
+    editForm: { nickname: '', account: '', password: '', role: 'STUDENT' },
     reports: [],
     audit: [],
     noticeList: [],
@@ -404,6 +406,55 @@ Page({
       wx.showToast({ title: e.message || '建立失敗', icon: 'none' });
     } finally {
       this.setData({ creatingUser: false });
+    }
+  },
+
+  startEdit(e) {
+    const { id } = e.currentTarget.dataset;
+    const row = (this.data.users || []).filter((u) => u.id === id)[0];
+    if (!row) return;
+    this.setData({
+      editingId: id,
+      editForm: { nickname: row.nickname || '', account: row.openid, password: '', role: row.role },
+    });
+  },
+
+  cancelEdit() {
+    this.setData({ editingId: '', editForm: { nickname: '', account: '', password: '', role: 'STUDENT' } });
+  },
+
+  onEditField(e) {
+    const field = e.currentTarget.dataset.field;
+    const patch = {};
+    patch['editForm.' + field] = e.detail.value;
+    this.setData(patch);
+  },
+
+  pickEditRole(e) {
+    this.setData({ 'editForm.role': e.currentTarget.dataset.role });
+  },
+
+  async saveEdit() {
+    const f = this.data.editForm;
+    if (!f.nickname.trim() || !f.account.trim()) {
+      wx.showToast({ title: '名稱與帳號都要填', icon: 'none' });
+      return;
+    }
+    const payload = { nickname: f.nickname.trim(), account: f.account.trim(), role: f.role };
+    if (f.password) {
+      if (f.password.length < 8) {
+        wx.showToast({ title: '密碼至少 8 位', icon: 'none' });
+        return;
+      }
+      payload.password = f.password;
+    }
+    try {
+      await admin.updateUser(this.data.editingId, payload);
+      wx.showToast({ title: '已更新', icon: 'success' });
+      this.cancelEdit();
+      this.loadUsers();
+    } catch (e) {
+      wx.showToast({ title: e.message || '更新失敗', icon: 'none' });
     }
   },
 
