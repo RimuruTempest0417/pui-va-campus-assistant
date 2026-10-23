@@ -10,7 +10,9 @@
     </view>
     <view class="home__right">
       <pv-tag wx:if="{{isDemo}}" text="示範資料" type="tint" plain />
-      <pv-avatar name="{{user.nickname || '訪客'}}" size="sm" />
+      <view class="home__avatar" bindtap="goAccount" hover-class="home__avatar--pressed" hover-start-time="0">
+        <pv-avatar name="{{user.nickname || '訪客'}}" size="sm" />
+      </view>
     </view>
   </view>
 
@@ -102,7 +104,7 @@
       <text>{{updatedAt}}</text>
       <text wx:if="{{isDemo}}"> · 示範資料（未連後端）</text>
       <text class="home__foot-link"> · 資料來源</text>
-      <text wx:if="{{showAdmin}}" class="home__foot-link" catchtap="openAdmin"> · 教職員登入</text>
+
     </view>
   </block>
 

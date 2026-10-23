@@ -1,0 +1,129 @@
+<view class="ui-page page-root">
+  <pv-navbar title="管理" back="{{true}}" />
+
+  <scroll-view class="tabs-scroll" scroll-x show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="tabs">
+      <view wx:for="{{tabs}}" wx:key="key" class="tab {{tab === item.key ? 'tab--on' : ''}}"
+            data-key="{{item.key}}" bindtap="switchTab">{{item.label}}</view>
+    </view>
+  </scroll-view>
+
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="admin-inner">
+
+      <!-- 概況 -->
+      <block wx:if="{{tab === 'stats'}}">
+        <view class="stat-grid">
+          <view class="stat"><text class="stat__num">{{stats.users}}</text><text class="stat__label">使用者</text></view>
+          <view class="stat"><text class="stat__num">{{stats.items.open}}</text><text class="stat__label">待認領</text></view>
+          <view class="stat"><text class="stat__num">{{stats.claimsPending}}</text><text class="stat__label">待審認領</text></view>
+          <view class="stat"><text class="stat__num">{{stats.signups.confirmed}}</text><text class="stat__label">正取報名</text></view>
+          <view class="stat"><text class="stat__num">{{stats.signups.waitlist}}</text><text class="stat__label">候補中</text></view>
+          <view class="stat"><text class="stat__num">{{stats.noticesActive}}</text><text class="stat__label">有效公告</text></view>
+        </view>
+        <pv-card>
+          <text class="ui-meta">近 7 天新增失物 {{stats.items.added7d}} 筆｜已認領 {{stats.items.claimed}} 筆｜評分 {{stats.ratings.count}} 則（平均 {{stats.ratings.avg}}）</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" bind:tap="logout">登出</pv-button>
+          </view>
+        </pv-card>
+      </block>
+
+      <!-- 待審認領 -->
+      <block wx:elif="{{tab === 'claims'}}">
+        <pv-empty wx:if="{{!claims.length}}" icon="✅" title="沒有待審申請" desc="學生提出認領後會出現在這裡" />
+        <view wx:for="{{claims}}" wx:key="id" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{item.item.title}}</text>
+            <pv-tag text="{{item.item.place}}" plain />
+          </view>
+          <text class="ui-meta">申請人：{{item.claimant.nickname}} {{item.claimant.className || ''}}</text>
+          <text wx:if="{{item.message}}" class="ui-meta">特徵：{{item.message}}</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="filled" data-id="{{item.id}}" data-ok="1" bind:tap="review">通過</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-ok="0" bind:tap="review">拒絕</pv-button>
+          </view>
+        </view>
+      </block>
+
+      <!-- 失物管理 -->
+      <block wx:elif="{{tab === 'items'}}">
+        <view class="filter-row">
+          <view wx:for="{{statusFilters}}" wx:key="key" class="chip {{itemStatus === item.key ? 'chip--on' : ''}}"
+                data-key="{{item.key}}" bindtap="filterItems">{{item.label}}</view>
+        </view>
+        <view wx:for="{{items}}" wx:key="id" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{item.title}}</text>
+            <pv-tag text="{{item.deletedAt ? '已下架' : item.status}}" type="{{item.deletedAt ? 'danger' : 'neutral'}}" />
+          </view>
+          <text class="ui-meta">{{item.type === 'FOUND' ? '拾獲' : '遺失'}} · {{item.place}} · {{item.author.nickname}} · 申請 {{item._count.claims}}</text>
+          <view class="row-actions">
+            <pv-button wx:if="{{item.deletedAt}}" size="sm" type="plain" data-id="{{item.id}}" data-act="RESTORE" bind:tap="moderate">恢復</pv-button>
+            <pv-button wx:else size="sm" type="plain" data-id="{{item.id}}" data-act="REMOVE" bind:tap="moderate">下架</pv-button>
+          </view>
+        </view>
+      </block>
+
+      <!-- 發公告 -->
+      <block wx:elif="{{tab === 'notice'}}">
+        <pv-card>
+          <text class="field__label">標題</text>
+          <input class="field__input" value="{{notice.title}}" bindinput="onNoticeTitle" maxlength="120" />
+          <text class="field__label">內容</text>
+          <textarea class="field__input field__textarea" value="{{notice.content}}" bindinput="onNoticeContent" maxlength="2000" />
+          <text class="field__label">類型</text>
+          <view class="filter-row">
+            <view wx:for="{{kinds}}" wx:key="key" class="chip {{notice.kind === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickKind">{{item.label}}</view>
+          </view>
+          <view class="switch-row">
+            <text class="ui-meta">置頂</text>
+            <switch checked="{{notice.isPinned}}" bindchange="onPinned" color="#17694a" />
+          </view>
+          <view class="row-actions">
+            <pv-button type="filled" loading="{{sending}}" disabled="{{sending}}" bind:tap="publish">發布公告</pv-button>
+          </view>
+        </pv-card>
+      </block>
+
+      <!-- 報名名單 -->
+      <block wx:elif="{{tab === 'export'}}">
+        <view class="filter-row">
+          <view wx:for="{{events}}" wx:key="id" class="chip {{eventId === item.id ? 'chip--on' : ''}}"
+                data-id="{{item.id}}" bindtap="pickEvent">{{item.title}}</view>
+        </view>
+        <pv-card wx:if="{{signups.length}}">
+          <view wx:for="{{signups}}" wx:key="index" class="signup-row">
+            <text class="signup-row__name">{{item.nickname || '（未設定）'}}</text>
+            <text class="ui-meta">{{item.status === 'CONFIRMED' ? '正取' : '候補 ' + item.waitlistPos}}</text>
+          </view>
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" bind:tap="copySignups">複製名單</pv-button>
+          </view>
+        </pv-card>
+        <pv-empty wx:elif="{{eventId}}" icon="🎟" title="這個活動還沒有人報名" desc="" />
+      </block>
+
+      <!-- 排菜單 -->
+      <block wx:elif="{{tab === 'menu'}}">
+        <pv-card>
+          <text class="field__label">日期</text>
+          <input class="field__input" value="{{menu.date}}" placeholder="YYYY-MM-DD" bindinput="onMenuDate" />
+          <text class="field__label">餐別</text>
+          <view class="filter-row">
+            <view wx:for="{{meals}}" wx:key="key" class="chip {{menu.mealType === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickMeal">{{item.label}}</view>
+          </view>
+          <text class="field__label">菜名（逗號分隔）</text>
+          <input class="field__input" value="{{menu.names}}" placeholder="例：葡式焗雞飯, 番茄蛋炒飯" bindinput="onMenuNames" />
+          <view class="row-actions">
+            <pv-button type="filled" loading="{{sending}}" disabled="{{sending}}" bind:tap="saveMenu">排入菜單</pv-button>
+          </view>
+        </pv-card>
+      </block>
+
+      <text wx:if="{{hint}}" class="ui-meta hint">{{hint}}</text>
+    </view>
+  </scroll-view>
+</view>

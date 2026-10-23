@@ -116,3 +116,6 @@
 .home__foot--pressed { opacity: 0.55; }
 .home__foot-link { color: var(--pv-tint); }
 
+
+.home__avatar { padding: 6rpx; border-radius: 50%; }
+.home__avatar--pressed { opacity: 0.55; }

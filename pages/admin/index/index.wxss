@@ -1,0 +1,43 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.tabs-scroll { white-space: nowrap; background: var(--pv-bg); }
+.tabs { display: flex; flex-direction: row; padding: var(--pv-sp-1) var(--pv-sp-2); }
+.tab {
+  padding: 12rpx var(--pv-sp-3); margin-right: var(--pv-sp-1);
+  border-radius: var(--pv-r-pill); background: var(--pv-surface);
+  font-size: var(--pv-fs-subhead); color: var(--pv-label-2);
+}
+.tab--on { background: var(--pv-brand); color: #fff; font-weight: 600; }
+
+.admin-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+.stat-grid { display: flex; flex-direction: row; flex-wrap: wrap; margin-bottom: var(--pv-sp-2); }
+.stat {
+  width: 31%; margin: 0 1% var(--pv-sp-2) 0;
+  background: var(--pv-brand-soft); border-radius: var(--pv-r-sm);
+  padding: var(--pv-sp-2); display: flex; flex-direction: column;
+}
+.stat__num { font-size: 40rpx; font-weight: 700; color: var(--pv-brand-strong); }
+.stat__label { font-size: var(--pv-fs-caption-2); color: var(--pv-label-2); }
+
+.row-actions { display: flex; flex-direction: row; margin-top: var(--pv-sp-2); }
+.row-actions pv-button { margin-right: var(--pv-sp-2); }
+
+.filter-row { display: flex; flex-direction: row; flex-wrap: wrap; margin: var(--pv-sp-1) 0; }
+.chip {
+  padding: 10rpx var(--pv-sp-2); margin: 0 var(--pv-sp-1) 8rpx 0;
+  border-radius: var(--pv-r-pill); background: var(--pv-fill);
+  font-size: var(--pv-fs-footnote); color: var(--pv-label-2);
+}
+.chip--on { background: var(--pv-tint-soft); color: var(--pv-tint); font-weight: 600; }
+
+.field__label { display: block; font-size: var(--pv-fs-footnote); color: var(--pv-label-2); margin: var(--pv-sp-2) 0 6rpx; }
+.field__input {
+  padding: 18rpx var(--pv-sp-2); background: var(--pv-fill);
+  border-radius: var(--pv-r-sm); font-size: var(--pv-fs-body);
+}
+.field__textarea { min-height: 200rpx; width: 100%; box-sizing: border-box; }
+.switch-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-top: var(--pv-sp-2); }
+.signup-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12rpx 0; border-bottom: 1rpx solid var(--pv-sep); }
+.signup-row__name { font-size: var(--pv-fs-body); }
+.hint { display: block; margin-top: var(--pv-sp-2); }

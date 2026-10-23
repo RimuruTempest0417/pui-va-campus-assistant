@@ -58,13 +58,10 @@ Page({
     if (!this.data.loading) this.setClockFields();
   },
 
-  // 管理後台是網頁（不在小程序內），所以只複製網址讓老師用電腦打開
-  openAdmin() {
-    if (!this.data.adminUrl) return;
-    wx.setClipboardData({
-      data: this.data.adminUrl,
-      success: () => wx.showToast({ title: '後台網址已複製，請用電腦瀏覽器打開', icon: 'none' }),
-    });
+  // 右上角頭像：有權限直接進管理，其他人（含未登入）去登入頁
+  goAccount() {
+    const url = this.data.showAdmin ? '/pages/admin/index/index' : '/pages/admin/login/index';
+    wx.navigateTo({ url: url });
   },
 
   goDev() {

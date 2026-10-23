@@ -1,0 +1,34 @@
+<view class="ui-page page-root">
+  <pv-navbar title="登入" back="{{true}}" />
+
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="login-inner">
+      <view class="login-head">
+        <text class="login-title">培華校園助手</text>
+        <text class="ui-meta">教職員用同一組帳號登入；有權限就會看到管理入口</text>
+      </view>
+
+      <pv-card>
+        <view class="field">
+          <text class="field__label">帳號</text>
+          <input class="field__input" value="{{account}}" placeholder="例如 Rimuru" bindinput="onAccount" />
+        </view>
+        <view class="field">
+          <text class="field__label">密碼</text>
+          <input class="field__input" value="{{password}}" password placeholder="••••••••" bindinput="onPassword" />
+        </view>
+
+        <view class="login-actions">
+          <pv-button type="filled" block loading="{{submitting}}" disabled="{{submitting}}" bind:tap="submit">登入</pv-button>
+        </view>
+
+        <text wx:if="{{error}}" class="login-error">{{error}}</text>
+      </pv-card>
+
+      <view wx:if="{{currentRole}}" class="login-current">
+        <text class="ui-meta">目前身分：{{currentName}}（{{currentRole}}）</text>
+        <pv-button type="plain" size="sm" bind:tap="logout">登出</pv-button>
+      </view>
+    </view>
+  </scroll-view>
+</view>

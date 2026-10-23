@@ -13,7 +13,9 @@
     "pages/menu/index/index",
     "pages/menu/dish/index",
     "pages/notices/list/index",
-    "pages/notices/detail/index"
+    "pages/notices/detail/index",
+    "pages/admin/login/index",
+    "pages/admin/index/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",

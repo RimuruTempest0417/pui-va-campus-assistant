@@ -643,6 +643,32 @@ paths:
       tags: [admin]
       summary: 活動清單（匯出 CSV 用，需 event:export）
 
+  /admin/events/{id}/signups:
+    get:
+      tags: [admin]
+      summary: 報名名單 JSON（小程序內後台用，需 event:export）
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 名單（最多 200 筆）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        nickname: { type: string, nullable: true }
+                        grade: { type: string, nullable: true }
+                        className: { type: string, nullable: true }
+                        status: { type: string, enum: [CONFIRMED, WAITLIST] }
+                        waitlistPos: { type: integer, nullable: true }
+                        createdAt: { type: string, format: date-time }
+
   /admin/events/{id}/signups.csv:
     get:
       tags: [admin]
@@ -848,6 +874,32 @@ paths:
                 properties:
                   upserted: { type: integer }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/events/{id}/signups:
+    get:
+      tags: [admin]
+      summary: 報名名單 JSON（小程序內後台用，需 event:export）
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 名單（最多 200 筆）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        nickname: { type: string, nullable: true }
+                        grade: { type: string, nullable: true }
+                        className: { type: string, nullable: true }
+                        status: { type: string, enum: [CONFIRMED, WAITLIST] }
+                        waitlistPos: { type: integer, nullable: true }
+                        createdAt: { type: string, format: date-time }
 
   /admin/events/{id}/signups.csv:
     parameters:
