@@ -48,6 +48,19 @@ Page({
   onShow() {
     // 從「資料來源」頁切換離線示範回來時，模式變了必須整頁重抓，
     // 否則會出現「設定已改、首頁數字還是舊的」的假畫面。
+    let cachedRole = '';
+    try {
+      cachedRole = (wx.getStorageSync('pv_user') || {}).role || '';
+    } catch (e) {
+      cachedRole = '';
+    }
+    if (this._lastRole !== undefined && this._lastRole !== cachedRole) {
+      this._lastRole = cachedRole;
+      this.refresh();
+      return;
+    }
+    this._lastRole = cachedRole;
+
     const modeNow = data.isDemo();
     if (this._lastDemo !== undefined && this._lastDemo !== modeNow) {
       this._lastDemo = modeNow;
@@ -59,10 +72,13 @@ Page({
     if (!this.data.loading) this.setClockFields();
   },
 
-  // 右上角頭像：有權限直接進管理，其他人（含未登入）去登入頁
+  // 頭像＝登入／帳號；管理要另外按「管理後台」那顆
   goAccount() {
-    const url = this.data.showAdmin ? '/pages/admin/index/index' : '/pages/admin/login/index';
-    wx.navigateTo({ url: url });
+    wx.navigateTo({ url: '/pages/admin/login/index' });
+  },
+
+  goAdmin() {
+    wx.navigateTo({ url: '/pages/admin/index/index' });
   },
 
   goDev() {
@@ -116,6 +132,7 @@ Page({
       const adminUrl = base.replace(/\/api\/v1\/?$/, '') + '/admin';
 
       this._lastDemo = data.isDemo();
+      this._lastRole = role;
       this.setData({
         showAdmin: staff,
         adminUrl: adminUrl,

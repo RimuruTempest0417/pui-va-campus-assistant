@@ -5,7 +5,6 @@
     <view class="login-inner">
       <view class="login-head">
         <text class="login-title">培華校園助手</text>
-        <text class="ui-meta">教職員用同一組帳號登入；有權限就會看到管理入口</text>
       </view>
 
       <pv-card>

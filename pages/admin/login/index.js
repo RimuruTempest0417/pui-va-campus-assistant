@@ -50,12 +50,8 @@ Page({
       wx.setStorageSync(config.STORAGE_KEYS.user, { nickname: res.nickname, role: res.role });
       wx.showToast({ title: '已登入', icon: 'success' });
       this.refreshCurrent();
-      // 有權限就直接進後台，不要讓使用者再點一次
-      if (['TEACHER', 'ADMIN', 'SUPER_ADMIN'].indexOf(res.role) !== -1) {
-        setTimeout(() => wx.redirectTo({ url: '/pages/admin/index/index' }), 400);
-      } else {
-        setTimeout(() => wx.navigateBack(), 400);
-      }
+      // 登入只負責「登入」；後台入口由首頁那顆按鈕負責
+      setTimeout(() => wx.navigateBack(), 400);
     } catch (e) {
       this.setData({ error: e.message || '登入失敗' });
     } finally {

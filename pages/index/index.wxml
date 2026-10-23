@@ -101,6 +101,15 @@
       </view>
     </pv-card>
 
+    <view wx:if="{{showAdmin}}" class="home__entry" bindtap="goAdmin"
+          hover-class="home__entry--pressed" hover-start-time="0">
+      <view class="home__entry-main">
+        <text class="home__entry-title">管理後台</text>
+        <text class="home__entry-sub">審核認領 · 發公告 · 排菜單 · 報名名單</text>
+      </view>
+      <text class="home__entry-go">›</text>
+    </view>
+
     <view class="home__foot" bindtap="goDev" hover-class="home__foot--pressed" hover-start-time="0">
       <text>{{updatedAt}}</text>
       <text wx:if="{{isDemo}}"> · 示範資料（未連後端）</text>
