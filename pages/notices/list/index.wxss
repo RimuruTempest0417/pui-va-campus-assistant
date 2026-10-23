@@ -27,3 +27,11 @@
 .notice__title { display: block; margin-top: var(--pv-sp-1); font-size: var(--pv-fs-callout); font-weight: 600; }
 .notice.is-unread .notice__title { color: var(--pv-label); }
 .notice__preview { display: block; margin-top: 4rpx; font-size: var(--pv-fs-subhead); color: var(--pv-label-2); line-height: 1.45; }
+
+.seg-row { display: flex; flex-direction: row; gap: var(--pv-sp-2); margin-bottom: var(--pv-sp-2); }
+.seg-chip {
+  padding: var(--pv-sp-1) var(--pv-sp-3); border-radius: 999rpx;
+  background: var(--pv-surface); color: var(--pv-label-2);
+  font-size: var(--pv-fs-subhead); line-height: 56rpx;
+}
+.seg-chip--on { background: var(--pv-tint); color: #fff; font-weight: 600; }

@@ -119,4 +119,5 @@ module.exports = {
   subscribe: (...a) => call('subscribe', a),
   mySubscriptions: (...a) => call('mySubscriptions', a),
   markAllNoticesRead: (...a) => call('markAllNoticesRead', a),
+  calendar: (...a) => call('calendar', a),
 };

@@ -37,6 +37,10 @@ Page({
     this.load();
   },
 
+  goCalendar() {
+    wx.navigateTo({ url: '/pages/calendar/index' });
+  },
+
   goDetail(e) {
     wx.navigateTo({ url: '/pages/notices/detail/index?id=' + e.currentTarget.dataset.id });
   },

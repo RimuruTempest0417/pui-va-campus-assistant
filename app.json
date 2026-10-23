@@ -14,6 +14,7 @@
     "pages/menu/dish/index",
     "pages/notices/list/index",
     "pages/notices/detail/index",
+    "pages/calendar/index",
     "pages/admin/login/index",
     "pages/admin/index/index"
   ],

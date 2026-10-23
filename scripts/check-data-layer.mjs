@@ -178,6 +178,29 @@ const afterAll = await data.listNotices({});
 check('全部標為已讀', afterAll.unread === 0, `未讀 ${afterAll.unread}`);
 
 
+// ── 校曆工具（utils/calendar.js）──
+{
+  const cal = await import('../utils/calendar.js').catch(() => null);
+  const c = cal && (cal.default || cal);
+  if (!c) {
+    check('校曆工具可載入', false, 'utils/calendar.js 載入失敗');
+  } else {
+    const cells = c.monthGrid(2026, 10);
+    const todayKey = c.dateKey(new Date());
+    const grouped = c.groupByDate(
+      [{ id: 'n1', title: '颱風停課', kind: 'URGENT', publishedAt: Date.now() }],
+      [{ id: 'e1', title: '校運會', startAt: Date.now() + 3600000 }],
+    );
+    const summary = c.monthSummary(cells, grouped);
+    const dayKey = c.dateKey(new Date());
+    check('校曆：月視圖固定 42 格', cells.length === 42, `實際 ${cells.length}`);
+    check('校曆：本月 1 號在格子裡', cells.some((x) => x.key === c.dateKey(new Date(2026, 9, 1)) && x.inMonth), '找不到 2026-10-01');
+    check('校曆：今天被標記', summary.some((x) => x.key === todayKey && x.isToday), '今天不在格子裡');
+    check('校曆：同日公告與活動被收在一起', (grouped[dayKey] || []).length >= 0 && summary.some((x) => x.key === dayKey && x.count >= 1), '當天沒有項目');
+    check('校曆：緊急公告優先', (grouped[dayKey] || [])[0]?.kind === 'URGENT' || (grouped[dayKey] || []).length === 0, JSON.stringify(grouped[dayKey] || []));
+  }
+}
+
 // ── 資料入口／真實 API／示範資料三方方法必須對齊 ──
 const dataKeys = Object.keys(data).filter((k) => typeof data[k] === 'function' && !['isDemo', 'setForceDemo', 'forceDemoOn', 'setApiBase', 'apiBase', 'ensureLogin', 'messageOf', 'resetDemo'].includes(k));
 const api = require(join(here, '..', 'services', 'api.js'));

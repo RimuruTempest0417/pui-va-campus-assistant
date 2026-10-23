@@ -78,4 +78,13 @@ module.exports = {
   markAllNoticesRead() {
     return http.post('/notices/read-all', {});
   },
+  /** 校曆：公告（含校曆類）＋ 活動，兩支既有端點組合，不新增 API */
+  calendar() {
+    return Promise.all([
+      http.get('/notices', { pageSize: 50 }).catch(() => ({ items: [] })),
+      http.get('/events', { scope: 'all', pageSize: 50 }).catch(() => ({ items: [] })),
+    ]).then(function (res) {
+      return { notices: (res[0] && res[0].items) || [], events: (res[1] && res[1].items) || [] };
+    });
+  },
 };

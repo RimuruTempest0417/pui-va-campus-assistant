@@ -540,6 +540,13 @@ module.exports = {
     return Promise.resolve({ items: items, unread: items.filter((n) => !n.isRead).length });
   },
 
+  /** 校曆：由既有示範資料組合（公告＋活動） */
+  calendar() {
+    const notices = (db().notices || []).filter((n) => !n.expiresAt || n.expiresAt > Date.now());
+    const events = (db().events || []).filter((e) => e.status !== 'CANCELLED');
+    return Promise.resolve({ notices: notices, events: events });
+  },
+
   getNotice(id) {
     const data = db();
     const n = (data.notices || []).filter((x) => x.id === id)[0];
