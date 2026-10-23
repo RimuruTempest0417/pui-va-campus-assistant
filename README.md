@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.22.0-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.23.0-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -26,6 +26,7 @@
 | 活動與社團 | 列表（即將開始／已結束）、詳情、線上報名、名額行鎖防超賣、候補隊列與自動補位、我的報名 | ✅ 3 頁 | ✅ 20 併發壓測通過 |
 | 午餐與小賣部 | 週菜單（可切上／下週）、午餐與小賣部分區、1–5 星評分、點讚、每週熱門排行 | ✅ 2 頁 | ✅ 一人一評 upsert |
 | 公告與溫馨提示 | 置頂／緊急／校曆分類、詳情、已讀狀態、過期自動隱藏 | ✅ 2 頁 | ✅ 每人各自已讀 |
+| 家長端（綁定子女） | 首頁「我的子女」切換、代報名／取消、子女的報名／認領／未讀公告 | ✅ 1 頁 ＋ 首頁卡 | ✅ 兩道門（role PARENT ＋ parent_links）＋ 與學生共用 `lib/signup.ts` |
 | 校內管理（小程序內建） | 概況、認領、失物、活動、公告、使用者、家長、檢舉、審計、名單、菜單 | ✅ 11 個分頁 | ✅ 依能力矩陣分權 |
 
 > 不含地圖／導覽功能；不使用微信雲開發（後端另行自建）。
@@ -63,13 +64,15 @@
 
 ```
 .
-├── app.js / app.json / app.wxss          # 全局入口（14 個頁面註冊）
+├── app.js / app.json / app.wxss          # 全局入口（18 個頁面註冊）
 ├── pages/
 │   ├── index/                            # 首頁：四模組入口、緊急公告、今日午餐
 │   ├── items/{list,detail,create,mine}/  # 失物招領
 │   ├── events/{list,detail,mine}/        # 活動與社團
 │   ├── menu/{index,dish}/                # 午餐與小賣部
 │   ├── notices/{list,detail}/            # 公告與提示
+│   ├── calendar/                         # 校曆：月視圖（公告＋活動同框）
+│   ├── parent/                           # 家長端：切換子女、代報名／取消
 │   ├── style-guide/                      # 設計系統展示頁
 │   └── dev/api-check/                    # 開發自檢頁（9 項互動檢查）
 ├── components/                           # pv-navbar / pv-button / pv-card / pv-tag
@@ -107,8 +110,8 @@ node scripts/package.mjs     # → dist/pui-va-campus-assistant-vX.Y.Z.zip
 
 ```bash
 # 結構與資料層自檢（CI 也會跑）
-node scripts/check-project.mjs     # 14 頁面 / 0 警告
-node scripts/check-data-layer.mjs  # ALL PASS 39/39（固定跑示範資料層，含 data↔api↔mock 方法對齊）
+node scripts/check-project.mjs     # 18 頁面 / 0 警告
+node scripts/check-data-layer.mjs  # ALL PASS 51/51（固定跑示範資料層，含 data↔api↔mock 方法對齊）
 ```
 
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄
@@ -129,6 +132,7 @@ node scripts/check-data-layer.mjs  # ALL PASS 39/39（固定跑示範資料層�
 - [x] 後端 e2e（真實 Postgres，27 項，含 20 併發超賣壓測）
 - [x] 老師端管理後台（W-10）：10 個分頁，含**使用者管理**（建立帳號／改名／改帳號／改密碼／改等級／停用／刪除／權限說明）
 - [x] **家長綁定（P2）＋資料隔離（P4）**：`parent_links` 表＋後台「家長」分頁；家長端四支查詢一律經 `parent-scope` 閘門（`parentId` 取自 JWT、未綁定 403 且訊息與「不存在的人」相同），子女概況／失物／認領都只能看自己的孩子
+- [x] **家長端（P3，v0.23.0）**：首頁「我的子女」切換＋`pages/parent` 代報名／取消（後端 `event:signup:child`，名額與學生共用 `lib/signup.ts`）
 - [x] 訂閱消息（W-11）
 - [x] 雲端部署（W-15）：Vercel + Neon，API `https://pui-va-campus-server.vercel.app/api/v1`
 - [x] 交付給老師的一鍵包與 5 步說明（W-12：`node scripts/package.mjs`）

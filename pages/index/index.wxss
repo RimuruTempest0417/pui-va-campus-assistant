@@ -135,3 +135,36 @@
 .home__entry-title { font-size: var(--pv-fs-callout); font-weight: 600; }
 .home__entry-sub { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); margin-top: 2rpx; }
 .home__entry-go { font-size: 36rpx; color: var(--pv-label-3); }
+
+/* 家長卡：子女切換 chips ＋ 概況（44pt 最小可點區域） */
+.kids { display: flex; flex-direction: row; flex-wrap: wrap; }
+.kids__chip {
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--pv-sp-3);
+  margin: 0 var(--pv-sp-2) var(--pv-sp-2) 0;
+  border-radius: var(--pv-r-pill);
+  background: var(--pv-fill);
+  font-size: var(--pv-fs-subhead);
+  color: var(--pv-label-2);
+}
+.kids__chip.is-active {
+  background: var(--pv-tint);
+  color: #ffffff;
+  font-weight: 600;
+}
+.kids__sum {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 88rpx;
+  margin-top: var(--pv-sp-1);
+  padding-top: var(--pv-sp-2);
+  border-top: 1rpx solid var(--pv-sep);
+}
+.kids__sum-main { display: flex; flex-direction: column; }
+.kids__sum-line { font-size: var(--pv-fs-callout); font-weight: 600; }
+.kids__sum-meta { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); margin-top: 4rpx; }
+.kids__go { font-size: var(--pv-fs-subhead); color: var(--pv-tint); }

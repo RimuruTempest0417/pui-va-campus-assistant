@@ -664,6 +664,49 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /parents/me/children/{studentId}/events/{eventId}/signup:
+    parameters:
+      - { in: path, name: studentId, required: true, schema: { type: string } }
+      - { in: path, name: eventId, required: true, schema: { type: string } }
+    post:
+      tags: [parents]
+      summary: 代已綁定子女報名（滿額回 WAITLIST＋候補順位；與學生自己報名共用 lib/signup.ts）
+      responses:
+        '201':
+          description: 已報名或已進候補
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  signupId: { type: string }
+                  status: { type: string, enum: [CONFIRMED, WAITLIST] }
+                  waitlistPos: { type: integer, nullable: true }
+                  signedCount: { type: integer }
+                  capacity: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: 這位子女已經報名過了（ALREADY_SIGNED_UP，名額不會再扣） }
+        '422': { description: 活動未開放報名 }
+    delete:
+      tags: [parents]
+      summary: 代已綁定子女取消報名（有人候補就自動補位並重排順位）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cancelled: { type: boolean }
+                  promoted: { type: boolean }
+                  promotedUserId: { type: string, nullable: true }
+                  waitlistRemaining: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { description: 這位子女沒有報名這個活動（VALIDATION_FAILED） }
+
   /admin/parents:
     get:
       tags: [parents]

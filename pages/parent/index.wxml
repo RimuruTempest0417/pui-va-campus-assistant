@@ -1,0 +1,89 @@
+<view class="ui-page page-root">
+  <pv-navbar title="我的子女" back="{{true}}" />
+
+  <scroll-view
+    class="page-scroll"
+    scroll-y
+    bounces
+    show-scrollbar="{{false}}"
+    enhanced="{{true}}"
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+  >
+    <view class="parent-inner">
+      <block wx:if="{{loading}}">
+        <view class="ui-card"><pv-skeleton rows="2" /></view>
+        <view class="ui-card"><pv-skeleton rows="3" /></view>
+      </block>
+
+      <pv-empty
+        wx:elif="{{failed}}"
+        icon="👪"
+        title="無法讀取子女資料"
+        desc="{{errorText || '請確認這個帳號是家長身分，且已由學校綁定子女'}}"
+      />
+
+      <pv-empty wx:elif="{{!children.length}}" icon="👪" title="還沒有綁定的子女" desc="請聯絡學校把家長帳號綁到學生的學號" />
+
+      <block wx:else>
+        <view wx:if="{{tabs.length > 1}}" class="tabs-wrap">
+          <pv-tabs tabs="{{tabs}}" current="{{activeId}}" bind:change="onSwitchChild" />
+        </view>
+
+        <view wx:if="{{child}}" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{child.student.nickname}}</text>
+            <pv-tag text="{{child.relationLabel}}" type="tint" plain />
+          </view>
+          <text class="ui-meta kid-meta">{{child.student.grade ? child.student.grade : '—'}}{{child.student.className ? ' · ' + child.student.className + '班' : ''}}</text>
+          <view class="stats">
+            <view class="stat">
+              <text class="stat__num">{{signups.length}}</text>
+              <text class="stat__label">報名中</text>
+            </view>
+            <view class="stat">
+              <text class="stat__num">{{child.claimCount}}</text>
+              <text class="stat__label">認領申請</text>
+            </view>
+            <view class="stat">
+              <text class="stat__num">{{child.unreadNotices}}</text>
+              <text class="stat__label">未讀公告</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="pv-group-title">報名中的活動</view>
+        <view wx:if="{{signups.length}}" class="ui-list">
+          <view wx:for="{{signups}}" wx:key="id" class="ui-card">
+            <view class="ui-row-between" data-id="{{item.event.id}}" bindtap="goEvent" hover-class="ui-card--pressed" hover-start-time="0">
+              <text class="ui-title row-title">{{item.event.title}}</text>
+              <pv-tag text="{{item.statusLabel}}" type="{{item.tagType}}" />
+            </view>
+            <text class="ui-meta row-meta">{{item.timeText}}{{item.event.location ? ' · ' + item.event.location : ''}}</text>
+            <view class="row-actions">
+              <pv-button class="row-btn" type="plain" size="sm" data-id="{{item.event.id}}" bind:tap="onCancel">取消報名</pv-button>
+            </view>
+          </view>
+        </view>
+        <view wx:else class="ui-card"><pv-empty icon="🎟" title="還沒有報名" desc="由下方清單替孩子報名" /></view>
+
+        <view class="pv-group-title">可代為報名</view>
+        <view wx:if="{{openEvents.length}}" class="ui-list">
+          <view wx:for="{{openEvents}}" wx:key="id" class="ui-card">
+            <view class="ui-row-between" data-id="{{item.id}}" bindtap="goEvent" hover-class="ui-card--pressed" hover-start-time="0">
+              <text class="ui-title row-title">{{item.title}}</text>
+              <pv-tag wx:if="{{item.full}}" text="已滿" type="danger" />
+              <pv-tag wx:else text="{{item.capText}}" type="tint" plain />
+            </view>
+            <text class="ui-meta row-meta">{{item.timeText}}{{item.location ? ' · ' + item.location : ''}}</text>
+            <view class="row-actions">
+              <pv-button class="row-btn" type="{{item.full ? 'plain' : 'tinted'}}" size="sm" data-id="{{item.id}}" bind:tap="onSignup">{{item.full ? '排候補' : '代為報名'}}</pv-button>
+            </view>
+          </view>
+        </view>
+        <view wx:else class="ui-card"><pv-empty icon="✅" title="近期活動都報過了" desc="有新活動時會出現在這裡" /></view>
+      </block>
+    </view>
+  </scroll-view>
+</view>

@@ -1,0 +1,22 @@
+@import "../../styles/tokens.wxss";
+@import "../../styles/ui.wxss";
+
+.parent-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+.tabs-wrap { margin-bottom: var(--pv-sp-2); }
+
+.kid-meta { display: block; margin-top: 6rpx; }
+
+.stats { display: flex; flex-direction: row; margin-top: var(--pv-sp-3); }
+.stat { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.stat__num {
+  font-size: var(--pv-fs-title-3);
+  font-weight: 600;
+  color: var(--pv-label);
+  letter-spacing: var(--pv-ls-title);
+}
+.stat__label { font-size: var(--pv-fs-caption-2); color: var(--pv-label-3); margin-top: 4rpx; }
+
+.row-title { flex: 1; margin-right: var(--pv-sp-2); }
+.row-meta { display: block; margin-top: 6rpx; }
+.row-actions { display: flex; flex-direction: row; justify-content: flex-end; margin-top: var(--pv-sp-2); }
+.row-btn { margin-left: var(--pv-sp-2); }

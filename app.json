@@ -10,6 +10,7 @@
     "pages/events/list/index",
     "pages/events/detail/index",
     "pages/events/mine/index",
+    "pages/parent/index",
     "pages/menu/index/index",
     "pages/menu/dish/index",
     "pages/notices/list/index",

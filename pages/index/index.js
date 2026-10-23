@@ -33,6 +33,10 @@ Page({
     showData: false,
     adminUrl: '',
     apiBaseText: '',
+    // 家長：只在家長身分時才有值（切換子女就在首頁做，不必先點進別的頁）
+    parentChildren: [],
+    parentActiveId: '',
+    parentSummary: null,
   },
 
   onLoad() {
@@ -82,6 +86,39 @@ Page({
     wx.navigateTo({ url: '/pages/admin/index/index' });
   },
 
+  /** 家長卡片用：子女概況（報名數／認領數／未讀公告） */
+  async loadKidSummary(studentId) {
+    const d = await data.parentChild(studentId);
+    const s = d.student || {};
+    return {
+      studentId: studentId,
+      nickname: s.nickname || '同學',
+      grade: s.grade || '',
+      className: s.className || '',
+      signupCount: (d.signups || []).length,
+      claimCount: d.claimCount || 0,
+      unreadNotices: d.unreadNotices || 0,
+    };
+  },
+
+  /** 首頁切換子女：只換這張卡的數字，不整頁重抓 */
+  async onSwitchKid(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id || id === this.data.parentActiveId) return;
+    this.setData({ parentActiveId: id });
+    try {
+      const summary = await this.loadKidSummary(id);
+      this.setData({ parentSummary: summary });
+    } catch (err) {
+      this.setData({ parentSummary: null });
+    }
+  },
+
+  goParent() {
+    const id = this.data.parentActiveId;
+    wx.navigateTo({ url: '/pages/parent/index' + (id ? '?studentId=' + id : '') });
+  },
+
   goDev() {
     wx.navigateTo({ url: '/pages/dev/api-check/index' });
   },
@@ -128,6 +165,24 @@ Page({
       ];
 
       const role = (me && me.role) || '';
+
+      // 家長端：載入綁定的子女與目前這位的概況（訪客／學生／老師都不會打到這兩支）
+      let parentChildren = [];
+      let parentActiveId = '';
+      let parentSummary = null;
+      if (role === 'PARENT') {
+        try {
+          const kids = await data.parentChildren();
+          parentChildren = kids.items || [];
+          const keep = parentChildren.filter((c) => c.studentId === this.data.parentActiveId)[0];
+          parentActiveId = keep ? keep.studentId : parentChildren[0] ? parentChildren[0].studentId : '';
+          if (parentActiveId) parentSummary = await this.loadKidSummary(parentActiveId);
+        } catch (e) {
+          parentChildren = [];
+          parentActiveId = '';
+          parentSummary = null;
+        }
+      }
       const staff = ['TEACHER', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1;
       const canSeeData = ['ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1;
       const base = data.apiBase() || '';
@@ -143,6 +198,9 @@ Page({
         failed: false,
         isDemo: data.isDemo(),
         user: me || {},
+        parentChildren: parentChildren,
+        parentActiveId: parentActiveId,
+        parentSummary: parentSummary,
         urgent: urgent,
         modules: modules,
         lunch: todayMenu ? todayMenu.lunch : null,

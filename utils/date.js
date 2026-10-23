@@ -31,8 +31,13 @@ function clock(d) {
   return pad(dt.getHours()) + ':' + pad(dt.getMinutes());
 }
 
+/**
+ * 後端回的是 ISO 字串（2026-10-24T20:32:49.922Z），示範資料是毫秒數字 ——
+ * 兩種都吃。之前一律 Number(ts)，ISO 字串會變成 NaN，畫面就出現「NaN/NaN（undefined）」。
+ */
 function dateTimeText(ts) {
-  const dt = new Date(Number(ts));
+  const numeric = typeof ts === 'number' || (typeof ts === 'string' && /^\d+$/.test(ts));
+  const dt = new Date(numeric ? Number(ts) : ts);
   const W = ['日', '一', '二', '三', '四', '五', '六'];
   return (dt.getMonth() + 1) + '/' + dt.getDate() + '（' + W[dt.getDay()] + '）' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
 }

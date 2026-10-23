@@ -216,6 +216,50 @@ check('匹配命中相近物品', m1.items.some((x) => x.id === 'i7'), m1.items.
 const m2 = await data.matches('i2'); // 學生證（FOUND，操場）
 check('不相近就不推薦', m2.items.length === 0, `${m2.items.length} 筆`);
 
+// ── 日期工具：真 API 的 ISO 字串也要能顯示（原本 Number() 會變 NaN）──
+{
+  const dateUtil = require(join(here, '..', 'utils', 'date.js'));
+  const iso = dateUtil.dateTimeText('2026-10-24T20:32:49.922Z');
+  const num = dateUtil.dateTimeText(Date.UTC(2026, 9, 24, 20, 32));
+  const isoDt = new Date('2026-10-24T20:32:49.922Z');
+  const expectText = (isoDt.getMonth() + 1) + '/' + isoDt.getDate();
+  check('日期工具：ISO 字串可顯示', iso.indexOf('NaN') === -1 && iso.indexOf(expectText) === 0, iso);
+  check('日期工具：毫秒數字仍可顯示', num.indexOf('NaN') === -1, num);
+}
+
+// ── 家長（P3）：切換兩位子女、代報名只扣一次、代取消名額歸還 ──
+const kids = await data.parentChildren();
+check('家長：子女清單', kids.items.length === 2, kids.items.map((c) => c.nickname).join(' / '));
+
+const kid1 = kids.items[0].studentId;
+const kid2 = kids.items[1].studentId;
+const evBefore = await data.getEvent('e1');
+
+const rec = await data.parentSignupEvent(kid1, 'e1');
+const afterSignup = await data.getEvent('e1');
+check('家長：代報名名額只扣一次', rec.status === 'CONFIRMED' && afterSignup.signedCount === evBefore.signedCount + 1,
+  `名額 ${evBefore.signedCount} → ${afterSignup.signedCount}`);
+
+let dupCode = '';
+try {
+  await data.parentSignupEvent(kid1, 'e1');
+} catch (e) {
+  dupCode = e.code;
+}
+const afterDup = await data.getEvent('e1');
+check('家長：重複代報被擋且名額不變', dupCode === 'ALREADY_SIGNED_UP' && afterDup.signedCount === afterSignup.signedCount,
+  dupCode || '沒有擋下');
+
+const k1 = await data.parentChild(kid1);
+const k2 = await data.parentChild(kid2);
+check('家長：切換子女資料互不干擾', k1.signups.length === 1 && k2.signups.length === 0,
+  `子女1 ${k1.signups.length} 筆 / 子女2 ${k2.signups.length} 筆`);
+
+await data.parentCancelSignup(kid1, 'e1');
+const afterCancel = await data.getEvent('e1');
+check('家長：代取消後名額歸還', afterCancel.signedCount === evBefore.signedCount,
+  `名額 ${afterSignup.signedCount} → ${afterCancel.signedCount}`);
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

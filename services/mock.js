@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 6;
+const SEED_VERSION = 7;
 
 const weekUtil = require('../utils/week');
 
@@ -99,6 +99,14 @@ function seed() {
         description: '已結束。' },
     ],
     signups: [], // { id, eventId, userId, status: CONFIRMED|WAITLIST, waitlistPos, createdAt }
+    // 家長示範資料：後端是 parent_links，這裡只放兩筆「已綁定的子女」，
+    // 用來驗證「切換兩位子女 → 各自的報名互不干擾」。
+    parent: {
+      children: [
+        { linkId: 'pl1', relation: 'mother', relationLabel: '母親', studentId: 'demo-child-1', nickname: '培華同學甲', grade: '初二', className: '忠' },
+        { linkId: 'pl2', relation: 'father', relationLabel: '父親', studentId: 'demo-child-2', nickname: '培華同學乙', grade: '初三', className: '仁' },
+      ],
+    },
     // 菜單以「本週」為基準生成（offset -1 上週、0 本週、1 下週），永遠有資料可看
     menu: buildMenus(),
     notices: [
@@ -181,6 +189,78 @@ function mineFor(data, eventId) {
 
 function waitlistCount(data, eventId) {
   return data.signups.filter((x) => x.eventId === eventId && x.status === 'WAITLIST').length;
+}
+
+/** 這位 studentId 是不是示範家長的子女（後端對應 parent_links 的一次查詢） */
+function childOf(data, studentId) {
+  const list = (data.parent && data.parent.children) || [];
+  return list.filter((x) => x.studentId === studentId)[0] || null;
+}
+
+/**
+ * 報名核心：userId 為 null 代表「自己」，否則代表「代這位子女」。
+ * 自己報名與家長代報名共用同一份名額判斷，示範層才不會出現兩套結果。
+ */
+function signupCore(id, userId) {
+  const data = db();
+  const who = userId || data.user.id;
+  const e = data.events.filter((x) => x.id === id)[0];
+  if (!e) return Promise.reject({ code: 'NOT_FOUND' });
+  if (e.status !== 'PUBLISHED') return Promise.reject({ code: 'VALIDATION_FAILED', message: '這個活動目前沒有開放報名' });
+
+  const me = data.signups.filter((x) => x.eventId === id && x.userId === who && x.status !== 'CANCELLED')[0];
+  if (me) return Promise.reject({ code: 'ALREADY_SIGNED_UP' });
+
+  const full = e.capacity > 0 && e.signedCount >= e.capacity;
+  const rec = {
+    id: 's' + Date.now() + Math.random().toString(16).slice(2, 6),
+    eventId: id,
+    userId: who,
+    status: full ? 'WAITLIST' : 'CONFIRMED',
+    waitlistPos: full ? waitlistCount(data, id) + 1 : null,
+    createdAt: Date.now(),
+  };
+  if (!full) e.signedCount += 1;
+  data.signups.push(rec);
+  save(data);
+
+  // 滿額不是「錯誤」而是「進候補」—— 用結果表達，不讓呼叫端把它當失敗吞掉
+  return Promise.resolve(Object.assign({}, rec));
+}
+
+/** 取消核心：一樣用 userId 區分自己／代子女；有人補位時總數不變 */
+function cancelCore(id, userId) {
+  const data = db();
+  const who = userId || data.user.id;
+  const rec = data.signups.filter((x) => x.eventId === id && x.userId === who && x.status !== 'CANCELLED')[0];
+  if (!rec) return Promise.reject({ code: 'VALIDATION_FAILED', message: '你沒有報名這個活動' });
+
+  const wasConfirmed = rec.status === 'CONFIRMED';
+  const e = data.events.filter((x) => x.id === id)[0];
+  rec.status = 'CANCELLED';
+  rec.waitlistPos = null;
+
+  let promoted = null;
+  if (wasConfirmed && e) {
+    e.signedCount = Math.max(0, e.signedCount - 1);
+    // 有人取消 → 最早排隊的人補位（補位後總數不變）
+    const waiting = data.signups
+      .filter((x) => x.eventId === id && x.status === 'WAITLIST')
+      .sort((a, b) => a.createdAt - b.createdAt);
+    if (waiting.length) {
+      promoted = waiting[0];
+      promoted.status = 'CONFIRMED';
+      promoted.waitlistPos = null;
+      e.signedCount += 1;
+    }
+  }
+  // 重排候補序號，不留空號
+  data.signups
+    .filter((x) => x.eventId === id && x.status === 'WAITLIST')
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .forEach((x, i) => { x.waitlistPos = i + 1; });
+  save(data);
+  return Promise.resolve({ cancelled: true, promoted: promoted ? promoted.id : null });
 }
 
 module.exports = {
@@ -311,59 +391,61 @@ module.exports = {
   },
 
   signupEvent(id) {
-    const data = db();
-    const e = data.events.filter((x) => x.id === id)[0];
-    if (!e) return Promise.reject({ code: 'NOT_FOUND' });
-
-    const me = mineFor(data, id);
-    if (me) return Promise.reject({ code: 'ALREADY_SIGNED_UP' });
-
-    const full = e.capacity > 0 && e.signedCount >= e.capacity;
-    const rec = {
-      id: 's' + Date.now() + Math.random().toString(16).slice(2, 6),
-      eventId: id,
-      userId: data.user.id,
-      status: full ? 'WAITLIST' : 'CONFIRMED',
-      waitlistPos: full ? waitlistCount(data, id) + 1 : null,
-      createdAt: Date.now(),
-    };
-    if (!full) e.signedCount += 1;
-    data.signups.push(rec);
-    save(data);
-
-    // 滿額不是「錯誤」而是「進候補」—— 用結果表達，不讓呼叫端把它當失敗吞掉
-    return Promise.resolve(Object.assign({}, rec));
+    return signupCore(id, null);
   },
 
   cancelSignup(id) {
+    return cancelCore(id, null);
+  },
+
+  // ── 家長（示範層）──
+  // 與後端同一原則：先確認「這是我的孩子」，再走同一支報名核心（名額只算一次）。
+  parentChildren() {
     const data = db();
-    const rec = mineFor(data, id);
-    if (!rec) return Promise.reject({ code: 'NOT_FOUND' });
+    return Promise.resolve({ items: (data.parent && data.parent.children) || [] });
+  },
 
-    const e = data.events.filter((x) => x.id === id)[0];
-    data.signups = data.signups.filter((x) => x.id !== rec.id);
+  parentChild(studentId) {
+    const data = db();
+    const c = childOf(data, studentId);
+    if (!c) return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
 
-    let promoted = null;
-    if (rec.status === 'CONFIRMED' && e) {
-      e.signedCount = Math.max(0, e.signedCount - 1);
-      // 有人取消 → 最早排隊的人補位
-      const waiting = data.signups
-        .filter((x) => x.eventId === id && x.status === 'WAITLIST')
-        .sort((a, b) => a.createdAt - b.createdAt);
-      if (waiting.length) {
-        promoted = waiting[0];
-        promoted.status = 'CONFIRMED';
-        promoted.waitlistPos = null;
-        e.signedCount += 1;
-      }
-      // 重排候補序號
-      data.signups
-        .filter((x) => x.eventId === id && x.status === 'WAITLIST')
-        .sort((a, b) => a.createdAt - b.createdAt)
-        .forEach((x, i) => { x.waitlistPos = i + 1; });
+    const signups = data.signups
+      .filter((x) => x.userId === studentId && x.status !== 'CANCELLED')
+      .map((rec) => {
+        const e = data.events.filter((x) => x.id === rec.eventId)[0] || {};
+        return {
+          id: rec.id,
+          status: rec.status,
+          waitlistPos: rec.waitlistPos,
+          event: { id: rec.eventId, title: e.title, startAt: e.startAt, location: e.location },
+        };
+      });
+
+    return Promise.resolve({
+      student: { id: studentId, nickname: c.nickname, grade: c.grade, className: c.className },
+      relation: c.relation,
+      relationLabel: c.relationLabel,
+      signups: signups,
+      claimCount: data.items.filter((i) => i.isMine).length,
+      unreadNotices: Math.max(0, data.notices.length - (data.noticeReads || []).length),
+    });
+  },
+
+  parentSignupEvent(studentId, eventId) {
+    const data = db();
+    if (!childOf(data, studentId)) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
     }
-    save(data);
-    return Promise.resolve({ cancelled: true, promoted: promoted ? promoted.id : null });
+    return signupCore(eventId, studentId);
+  },
+
+  parentCancelSignup(studentId, eventId) {
+    const data = db();
+    if (!childOf(data, studentId)) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
+    }
+    return cancelCore(eventId, studentId);
   },
 
   mySignups() {

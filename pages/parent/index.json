@@ -1,0 +1,12 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "pv-navbar": "/components/pv-navbar/index",
+    "pv-tabs": "/components/pv-tabs/index",
+    "pv-tag": "/components/pv-tag/index",
+    "pv-button": "/components/pv-button/index",
+    "pv-empty": "/components/pv-empty/index",
+    "pv-skeleton": "/components/pv-skeleton/index"
+  },
+  "navigationBarTitleText": "我的子女"
+}

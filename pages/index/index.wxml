@@ -101,6 +101,29 @@
       </view>
     </pv-card>
 
+    <!-- 家長：我的子女（首頁直接切換，代報名在下一頁）-->
+    <block wx:if="{{parentChildren.length}}">
+      <view class="pv-group-title">我的子女</view>
+      <pv-card>
+        <view class="kids">
+          <view
+            wx:for="{{parentChildren}}"
+            wx:key="studentId"
+            class="kids__chip {{parentActiveId === item.studentId ? 'is-active' : ''}}"
+            data-id="{{item.studentId}}"
+            bindtap="onSwitchKid"
+          >{{item.nickname}}</view>
+        </view>
+        <view class="kids__sum" bindtap="goParent" hover-class="home__entry--pressed" hover-start-time="0">
+          <view class="kids__sum-main">
+            <text class="kids__sum-line">{{parentSummary.grade}}{{parentSummary.className ? ' · ' + parentSummary.className + '班' : ''}}{{parentSummary ? '' : '正在讀取…'}}</text>
+            <text class="kids__sum-meta" wx:if="{{parentSummary}}">{{parentSummary.signupCount}} 個報名 · {{parentSummary.claimCount}} 件認領 · {{parentSummary.unreadNotices}} 則未讀</text>
+          </view>
+          <text class="kids__go">代報名 ›</text>
+        </view>
+      </pv-card>
+    </block>
+
     <view wx:if="{{showAdmin}}" class="home__entry" bindtap="goAdmin"
           hover-class="home__entry--pressed" hover-start-time="0">
       <view class="home__entry-main">

@@ -47,6 +47,19 @@ module.exports = {
   mySignups() {
     return http.get('/events/mine');
   },
+  // 家長端：只能碰「已綁定」的子女（後端 parent-scope 閘門，未綁定一律 403）
+  parentChildren() {
+    return http.get('/parents/me/children');
+  },
+  parentChild(studentId) {
+    return http.get('/parents/me/children/' + studentId);
+  },
+  parentSignupEvent(studentId, eventId) {
+    return http.post('/parents/me/children/' + studentId + '/events/' + eventId + '/signup', {});
+  },
+  parentCancelSignup(studentId, eventId) {
+    return http.del('/parents/me/children/' + studentId + '/events/' + eventId + '/signup');
+  },
   switchDemoUser() {
     return Promise.reject({ code: 'FORBIDDEN', message: '示範模式專用' });
   },
