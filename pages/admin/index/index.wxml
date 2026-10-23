@@ -114,6 +114,24 @@
           </view>
         </pv-card>
 
+        <pv-card wx:if="{{evStats}}">
+          <view class="ui-row-between">
+            <text class="ui-title">{{evStats.title}}</text>
+            <pv-tag text="{{evStats.full ? '已滿' : (evStats.unlimited ? '不限名額' : '有名額')}}" type="{{evStats.full ? 'warning' : 'success'}}" />
+          </view>
+          <view class="stat-row">
+            <view class="stat-cell"><text class="stat-cell__num">{{evStats.signed}}</text><text class="stat-cell__label">正取</text></view>
+            <view class="stat-cell"><text class="stat-cell__num">{{evStats.waitlisted}}</text><text class="stat-cell__label">候補</text></view>
+            <view class="stat-cell"><text class="stat-cell__num">{{evStats.unlimited ? '∞' : evStats.remaining}}</text><text class="stat-cell__label">剩餘</text></view>
+            <view class="stat-cell"><text class="stat-cell__num">{{evStats.cancelled}}</text><text class="stat-cell__label">取消</text></view>
+          </view>
+          <text class="ui-meta">近 7 天報名：{{evStats.timeline[0].count}}／{{evStats.timeline[1].count}}／{{evStats.timeline[2].count}}／{{evStats.timeline[3].count}}／{{evStats.timeline[4].count}}／{{evStats.timeline[5].count}}／{{evStats.timeline[6].count}}</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="filled" bind:tap="promoteAll" disabled="{{evStats.waitlisted === 0}}">候補全部轉正</pv-button>
+            <pv-button size="sm" type="plain" bind:tap="closeEventStats">收起</pv-button>
+          </view>
+        </pv-card>
+
         <view wx:for="{{events}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.title}}</text>
@@ -121,6 +139,7 @@
           </view>
           <text class="ui-meta">{{item.signedCount}}/{{item.capacity || '不限'}} 人</text>
           <view class="row-actions">
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventStats">統計</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-status="{{item.status}}" bind:tap="toggleEventStatus">
               {{item.status === 'CANCELLED' ? '恢復' : '取消活動'}}
             </pv-button>

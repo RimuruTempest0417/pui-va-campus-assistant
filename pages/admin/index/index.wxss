@@ -51,3 +51,28 @@
   background: var(--pv-fill);
   border-radius: var(--pv-r-sm);
 }
+
+.stat-row {
+  display: flex;
+  gap: var(--pv-sp-2);
+  margin: var(--pv-sp-2) 0;
+}
+.stat-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--pv-sp-2) 0;
+  background: var(--pv-fill);
+  border-radius: var(--pv-r-sm);
+}
+.stat-cell__num {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--pv-tint);
+}
+.stat-cell__label {
+  font-size: 22rpx;
+  color: var(--pv-ink-3);
+  margin-top: 4rpx;
+}

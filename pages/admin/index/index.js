@@ -44,6 +44,7 @@ Page({
       { key: '', label: '全部' },
     ],
     events: [],
+    evStats: null,
     eventId: '',
     signups: [],
     notice: { title: '', content: '', kind: 'NORMAL', isPinned: false },
@@ -59,7 +60,6 @@ Page({
     menu: { date: '', mealType: 'LUNCH', names: '' },
     menuWeekStart: '',
     menuEntries: [],
-    events: [],
     eventForm: { title: '', date: '', capacity: '20', location: '' },
     creatingEvent: false,
     users: [],
@@ -296,6 +296,32 @@ Page({
   },
 
   // ───────── 活動管理 ─────────
+  async loadEventStats(e) {
+    const id = e.currentTarget.dataset.id;
+    try {
+      const s = await admin.eventStats(id);
+      this.setData({ evStats: s, eventId: id });
+    } catch (err) {
+      wx.showToast({ title: err.message || '讀不到統計', icon: 'none' });
+    }
+  },
+
+  closeEventStats() {
+    this.setData({ evStats: null, eventId: '' });
+  },
+
+  async promoteAll() {
+    const id = this.data.eventId;
+    if (!id) return;
+    try {
+      const res = await admin.batchSignups(id, 'PROMOTE_ALL');
+      wx.showToast({ title: '已轉正 ' + res.affected + ' 人', icon: 'none' });
+      this.loadEventStats({ currentTarget: { dataset: { id: id } } });
+    } catch (err) {
+      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+    }
+  },
+
   async loadEventsAdmin() {
     try {
       const res = await admin.events();

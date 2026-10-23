@@ -29,6 +29,12 @@ module.exports = {
   signups(eventId) {
     return http.get('/admin/events/' + eventId + '/signups');
   },
+  eventStats(eventId) {
+    return http.get('/events/' + eventId + '/stats');
+  },
+  batchSignups(eventId, action, ids) {
+    return http.patch('/admin/events/' + eventId + '/signups/batch', { action: action, ids: ids });
+  },
   createDish(name, mealType) {
     return http.post('/admin/dishes/ensure', { name: name, mealType: mealType || 'LUNCH' });
   },

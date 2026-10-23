@@ -1,11 +1,14 @@
 # 培華校園助手 · Pui Va Campus Assistant
 
 > 為澳門培華中學師生打造的校園服務小程序
-> 學校考試作品 ｜ 參加微信小程序開發大賽
+> 校內考試與學年專題評核作品（**不參加比賽**）
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.11.0-17694a.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.20.0-6D3FC4.svg)](docs/releases)
+
+> **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
+> 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
 
 校園裡每天發生四件高頻小事：**東西丟了找不到人、活動報名靠群裡接龍、今天午餐吃什麼、重要通知埋在群訊息裡**。
 本項目把這四類校內資訊流做成可互動、有狀態、能閉環的產品——不是把學校官網搬進小程序，而是讓每一條校園資訊都有狀態、有用戶、有數據回饋。
@@ -79,7 +82,7 @@
 │   ├── check-project.mjs                 # 結構／WXSS／白屏守門
 │   └── check-data-layer.mjs              # 資料層自檢（Node 跑，36 項）
 ├── docs/
-│   ├── 01-藍圖與競賽對標.md
+│   ├── 01-藍圖與評分對標.md
 │   ├── 02-資料模型與API.md
 │   ├── openapi.yaml                      # API 契約（與後端實作對齊）
 │   ├── architecture.html                 # 系統架構圖
@@ -116,7 +119,7 @@ node scripts/check-data-layer.mjs  # ALL PASS 39/39（固定跑示範資料層�
 ## 目前進度
 
 - [x] 產品定位、痛點分析、功能地圖（P0/P1/P2）
-- [x] 競賽評分對標與系統架構設計
+- [x] 評分對標與系統架構設計
 - [x] 設計系統（品牌色、6 級字級、9 個組件、展示頁）
 - [x] 資料模型與 RESTful API 契約（14 張表；`docs/openapi.yaml`）
 - [x] 請求層與示範模式（JWT 注入、8s 逾時、重試、錯誤正規化）
@@ -134,4 +137,4 @@ node scripts/check-data-layer.mjs  # ALL PASS 39/39（固定跑示範資料層�
 
 ## 授權
 
-校內教學與競賽用途。程式碼與設計文件版權歸作者所有。
+校內教學與專題評核用途。程式碼與設計文件版權歸作者所有。
