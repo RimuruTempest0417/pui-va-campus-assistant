@@ -33,8 +33,9 @@
 
   <!-- 失敗 -->
   <pv-card wx:elif="{{failed}}">
-    <pv-empty icon="⚠️" title="載入失敗" desc="可能是網路或後端暫時不可用">
+    <pv-empty icon="⚠️" title="載入失敗" desc="連不到後端：{{apiBaseText}}">
       <view class="home__retry" bindtap="onRetry">重新載入</view>
+      <view class="home__retry home__retry--plain" bindtap="goDev">設定後端位址</view>
     </pv-empty>
   </pv-card>
 

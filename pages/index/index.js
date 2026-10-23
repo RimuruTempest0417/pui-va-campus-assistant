@@ -31,6 +31,7 @@ Page({
     urgentPressed: false,
     showAdmin: false,
     adminUrl: '',
+    apiBaseText: '',
   },
 
   onLoad() {
@@ -130,7 +131,12 @@ Page({
       });
     } catch (e) {
       console.error('[home] 載入失敗', e);
-      this.setData({ loading: false, failed: true, updatedAt: '' });
+      this.setData({
+        loading: false,
+        failed: true,
+        updatedAt: '',
+        apiBaseText: (data.apiBase && data.apiBase()) || '未設定',
+      });
     } finally {
       if (fromPull) wx.stopPullDownRefresh();
     }
