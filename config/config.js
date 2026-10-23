@@ -10,6 +10,13 @@
 module.exports = {
   API_BASE_URL: 'https://pui-va-campus-server.vercel.app/api/v1', // 雲端 API（Vercel + Neon）；本機開發改成 http://127.0.0.1:3100/api/v1
   DEMO_MODE: 'off',
+
+  // 傳輸方式：
+  //   'https' → 直接打 API_BASE_URL（開發版／真機調試可用；正式版要求域名已 ICP 備案）
+  //   'cloud' → 走微信雲開發雲函數 apiProxy（不需要備案，需要正式或教育版 appid）
+  TRANSPORT: 'https',
+  CLOUD_FUNCTION: 'apiProxy',
+  CLOUD_ENV: '', // 留空＝用默認環境
   // 訂閱消息模板 ID（在 mp 後台「訂閱消息」建立後填入；留空＝不彈出詢問）
   SUBSCRIBE_TEMPLATES: {
     claim: '', // 認領結果通知

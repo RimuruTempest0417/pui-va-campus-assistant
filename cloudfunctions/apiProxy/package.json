@@ -1,0 +1,7 @@
+{
+  "name": "apiProxy",
+  "version": "1.0.0",
+  "description": "把小程序請求轉發到後端 API（繞過合法域名／備案限制）",
+  "main": "index.js",
+  "dependencies": {}
+}

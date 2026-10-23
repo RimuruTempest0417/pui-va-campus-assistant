@@ -34,6 +34,49 @@ function cleanParams(data) {
   return out;
 }
 
+/** 雲開發通道：wx.cloud.callFunction → 雲函數 apiProxy → 後端 HTTPS */
+let cloudReady = false;
+function ensureCloud() {
+  if (cloudReady) return;
+  if (!wx.cloud) throw { code: 'NO_CLOUD', message: '這個基礎庫不支援雲開發' };
+  wx.cloud.init(config.CLOUD_ENV ? { env: config.CLOUD_ENV, traceUser: true } : { traceUser: true });
+  cloudReady = true;
+}
+
+function onceCloud(method, url, data, withAuth) {
+  return new Promise((resolve, reject) => {
+    try {
+      ensureCloud();
+    } catch (e) {
+      return reject(e);
+    }
+    wx.cloud.callFunction({
+      name: config.CLOUD_FUNCTION || 'apiProxy',
+      data: {
+        path: url,
+        method: method,
+        data: data || {},
+        auth: withAuth ? getToken() : '',
+      },
+      success(res) {
+        const out = (res && res.result) || {};
+        const body = out.body || {};
+        if (out.statusCode >= 200 && out.statusCode < 300) return resolve(body);
+        const err = body.error || {};
+        reject({
+          code: err.code || (out.statusCode === 401 ? 'UNAUTHORIZED' : 'INTERNAL'),
+          message: err.message || out.message || '',
+          statusCode: out.statusCode,
+          details: err.details,
+        });
+      },
+      fail(e) {
+        reject({ code: 'NETWORK', message: (e && e.errMsg) || 'cloud:fail' });
+      },
+    });
+  });
+}
+
 function once(method, url, data, withAuth) {
   return new Promise((resolve, reject) => {
     const header = { 'content-type': 'application/json' };
@@ -76,10 +119,11 @@ function request(method, url, data, options) {
   }
   const withAuth = opts.auth !== false;
   if (method === 'GET') data = cleanParams(data);
+  const transport = opts.transport || config.TRANSPORT || 'https';
   const attempts = 1 + Math.max(0, config.RETRY || 0);
 
   const run = (left) =>
-    once(method, url, data, withAuth).catch((err) => {
+    (transport === 'cloud' ? onceCloud(method, url, data, withAuth) : once(method, url, data, withAuth)).catch((err) => {
       const retryable = ['NETWORK', 'TIMEOUT', 'INTERNAL'].indexOf(codeOf(err)) !== -1;
       if (left > 1 && retryable) return run(left - 1);
       throw err;

@@ -1,0 +1,13 @@
+{
+  "_comment": "appid 對照表；project.config.json 只會被 scripts/use-appid.mjs 改寫",
+  "appids": {
+    "test": {
+      "appid": "wx9f104c034c07e15f",
+      "label": "測試號（不能使用雲開發）"
+    },
+    "edu": {
+      "appid": "",
+      "label": "教育版／正式主體（填入後才能發佈與開雲開發）"
+    }
+  }
+}
