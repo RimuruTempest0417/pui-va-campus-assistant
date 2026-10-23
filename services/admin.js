@@ -35,6 +35,19 @@ module.exports = {
   batchSignups(eventId, action, ids) {
     return http.patch('/admin/events/' + eventId + '/signups/batch', { action: action, ids: ids });
   },
+  // 現場簽到（老師端）：開／關簽到、出席名單、代簽
+  eventCheckin(eventId) {
+    return http.get('/events/' + eventId + '/checkin');
+  },
+  openEventCheckin(eventId) {
+    return http.post('/events/' + eventId + '/checkin/open', {});
+  },
+  closeEventCheckin(eventId) {
+    return http.post('/events/' + eventId + '/checkin/close', {});
+  },
+  attendance(eventId) {
+    return http.get('/events/' + eventId + '/attendance');
+  },
   createDish(name, mealType) {
     return http.post('/admin/dishes/ensure', { name: name, mealType: mealType || 'LUNCH' });
   },

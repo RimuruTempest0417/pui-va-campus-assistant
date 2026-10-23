@@ -5,5 +5,6 @@
 .mine-title { flex: 1; margin-right: var(--pv-sp-2); }
 .mine-meta { display: block; margin-top: 6rpx; }
 .mine-wait { color: var(--pv-warning); }
+.mine-checked { color: var(--pv-tint); }
 .mine-actions { display: flex; flex-direction: row; margin-top: var(--pv-sp-2); }
 .mine-btn { margin-right: var(--pv-sp-2); }

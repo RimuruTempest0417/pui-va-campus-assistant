@@ -108,6 +108,7 @@ module.exports = {
   signupEvent: (...a) => call('signupEvent', a),
   cancelSignup: (...a) => call('cancelSignup', a),
   mySignups: (...a) => call('mySignups', a),
+  checkin: (...a) => call('checkin', a),
   parentChildren: (...a) => call('parentChildren', a),
   parentChild: (...a) => call('parentChild', a),
   parentSignupEvent: (...a) => call('parentSignupEvent', a),

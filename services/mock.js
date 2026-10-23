@@ -98,7 +98,9 @@ function seed() {
         capacity: 0, signedCount: 64, status: 'FINISHED',
         description: '已結束。' },
     ],
-    signups: [], // { id, eventId, userId, status: CONFIRMED|WAITLIST, waitlistPos, createdAt }
+    signups: [], // { id, eventId, userId, status: CONFIRMED|WAITLIST, waitlistPos, createdAt, checkedInAt }
+    // 示範用的「老師已開簽到」狀態：e1 的碼固定在 246810，方便自檢腳本與手動演示
+    checkin: { eventId: 'e1', code: '246810', active: true },
     // 家長示範資料：後端是 parent_links，這裡只放兩筆「已綁定的子女」，
     // 用來驗證「切換兩位子女 → 各自的報名互不干擾」。
     parent: {
@@ -448,6 +450,33 @@ module.exports = {
     return cancelCore(eventId, studentId);
   },
 
+  /**
+   * 示範層的簽到：與後端同一組規則（碼要有效、只有正取、重複掃不重複計）。
+   * 示範模式沒有老師端，所以碼寫在種子資料裡（e1 = 246810）。
+   */
+  checkin(rawCode) {
+    const data = db();
+    const code = String(rawCode || '').replace(/\D/g, '');
+    const st = data.checkin || {};
+    if (!st.active || st.code !== code) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '簽到碼無效或已結束，請向老師確認' });
+    }
+    const rec = data.signups.filter(
+      (x) => x.eventId === st.eventId && x.userId === data.user.id && x.status !== 'CANCELLED',
+    )[0];
+    if (!rec) return Promise.reject({ code: 'VALIDATION_FAILED', message: '你沒有報名這個活動，無法簽到' });
+    if (rec.status === 'WAITLIST') {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '你在候補名單，轉為正取後才能簽到' });
+    }
+    const e = data.events.filter((x) => x.id === st.eventId)[0] || {};
+    if (rec.checkedInAt) {
+      return Promise.resolve({ ok: true, already: true, eventId: st.eventId, title: e.title, checkedInAt: rec.checkedInAt });
+    }
+    rec.checkedInAt = Date.now();
+    save(data);
+    return Promise.resolve({ ok: true, already: false, eventId: st.eventId, title: e.title, checkedInAt: rec.checkedInAt });
+  },
+
   mySignups() {
     const data = db();
     const mine = data.signups.filter((x) => x.userId === data.user.id);
@@ -458,6 +487,7 @@ module.exports = {
         eventId: rec.eventId,
         status: rec.status,
         waitlistPos: rec.waitlistPos,
+        checkedInAt: rec.checkedInAt || null,
         title: e.title,
         location: e.location,
         startAt: e.startAt,

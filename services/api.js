@@ -47,6 +47,10 @@ module.exports = {
   mySignups() {
     return http.get('/events/mine');
   },
+  /** 現場簽到：只送碼，後端自己認活動（不信任前端傳來的 eventId） */
+  checkin(code) {
+    return http.post('/events/checkin', { code: code });
+  },
   // 家長端：只能碰「已綁定」的子女（後端 parent-scope 閘門，未綁定一律 403）
   parentChildren() {
     return http.get('/parents/me/children');

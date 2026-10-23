@@ -132,6 +132,35 @@
           </view>
         </pv-card>
 
+        <pv-card wx:if="{{ci}}">
+          <view class="ui-row-between">
+            <text class="ui-title">現場簽到 · {{ci.title}}</text>
+            <pv-tag text="{{ci.active ? '開放中' : '未開放'}}" type="{{ci.active ? 'success' : 'neutral'}}" />
+          </view>
+          <view wx:if="{{ci.active}}" class="ci-box">
+            <image class="ci-qr" src="{{ci.qrDataUrl}}" mode="aspectFit" />
+            <view class="ci-side">
+              <text class="ci-code">{{ci.code}}</text>
+              <text class="ui-meta">已簽到 {{ci.checkedIn}} / 正取 {{ci.signed}}{{ci.rate === null ? '' : '（' + ci.rate + '%）'}}</text>
+            </view>
+          </view>
+          <text wx:else class="ui-meta ci-off">按「開始簽到」產生 6 位碼與 QR；學生在小程序掃碼就完成簽到。</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="filled" loading="{{ciSending}}" disabled="{{ciSending}}" bind:tap="openCheckin">{{ci.active ? '換一張新碼' : '開始簽到'}}</pv-button>
+            <pv-button size="sm" type="plain" disabled="{{ciSending || !ci.active}}" bind:tap="closeCheckin">結束簽到</pv-button>
+            <pv-button size="sm" type="plain" bind:tap="closeCheckinPanel">收起</pv-button>
+          </view>
+          <view wx:if="{{attendance}}" class="ci-list">
+            <view wx:for="{{attendance.items}}" wx:key="signupId" class="ci-row">
+              <text class="ci-row__name">{{item.nickname || '（未設定）'}}　<text class="ui-meta">{{item.grade || ''}}{{item.className || ''}}</text></text>
+              <view class="ci-row__right">
+                <pv-tag text="{{item.checkedInAt ? '已簽到' : (item.status === 'CONFIRMED' ? '未簽到' : '候補')}}" type="{{item.checkedInAt ? 'success' : 'neutral'}}" />
+                <pv-button wx:if="{{item.status === 'CONFIRMED'}}" size="sm" type="plain" data-id="{{item.signupId}}" data-on="{{item.checkedInAt ? '0' : '1'}}" bind:tap="toggleAttendance">{{item.checkedInAt ? '撤銷' : '代簽'}}</pv-button>
+              </view>
+            </view>
+          </view>
+        </pv-card>
+
         <view wx:for="{{events}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.title}}</text>
@@ -140,6 +169,7 @@
           <text class="ui-meta">{{item.signedCount}}/{{item.capacity || '不限'}} 人</text>
           <view class="row-actions">
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventStats">統計</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventCheckin">簽到</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-status="{{item.status}}" bind:tap="toggleEventStatus">
               {{item.status === 'CANCELLED' ? '恢復' : '取消活動'}}
             </pv-button>

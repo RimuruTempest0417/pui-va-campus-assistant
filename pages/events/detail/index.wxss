@@ -1,6 +1,9 @@
 @import "../../../styles/tokens.wxss";
 @import "../../../styles/ui.wxss";
 
+.checkin-info { display: flex; flex-direction: column; }
+.checkin-info__title { font-size: var(--pv-fs-callout); font-weight: 600; }
+
 .detail-inner { padding: var(--pv-sp-3) var(--pv-sp-3) var(--pv-sp-6); }
 .ev-head { padding-bottom: var(--pv-sp-2); }
 .ev-head__title { font-size: var(--pv-fs-title-1); font-weight: 700; letter-spacing: var(--pv-ls-large-title); line-height: 1.2; }

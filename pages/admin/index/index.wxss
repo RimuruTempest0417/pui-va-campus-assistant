@@ -39,6 +39,15 @@
 }
 .field__textarea { min-height: 200rpx; width: 100%; box-sizing: border-box; }
 .switch-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-top: var(--pv-sp-2); }
+.ci-box { display: flex; flex-direction: row; align-items: center; margin-top: var(--pv-sp-2); }
+.ci-qr { width: 240rpx; height: 240rpx; border-radius: var(--pv-r-sm); background: #ffffff; }
+.ci-side { display: flex; flex-direction: column; margin-left: var(--pv-sp-3); }
+.ci-code { font-size: 56rpx; font-weight: 700; letter-spacing: 8rpx; color: var(--pv-label); }
+.ci-off { display: block; margin-top: var(--pv-sp-2); line-height: 1.45; }
+.ci-list { margin-top: var(--pv-sp-2); }
+.ci-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12rpx 0; border-bottom: 1rpx solid var(--pv-sep); }
+.ci-row__name { font-size: var(--pv-fs-body); }
+.ci-row__right { display: flex; flex-direction: row; align-items: center; }
 .signup-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12rpx 0; border-bottom: 1rpx solid var(--pv-sep); }
 .signup-row__name { font-size: var(--pv-fs-body); }
 .hint { display: block; margin-top: var(--pv-sp-2); }

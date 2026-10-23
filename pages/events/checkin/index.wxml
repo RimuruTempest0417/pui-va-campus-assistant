@@ -1,0 +1,41 @@
+<view class="ui-page page-root">
+  <pv-navbar title="現場簽到" back="{{true}}" />
+
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="ci-inner">
+      <block wx:if="{{result}}">
+        <pv-card>
+          <view class="ci-done">
+            <text class="ci-done__mark">✓</text>
+            <text class="ci-done__title">{{result.already ? '你已經簽到過' : '簽到成功'}}</text>
+            <text class="ci-done__ev">{{result.title}}</text>
+            <text class="ui-meta">{{result.whenText}}</text>
+          </view>
+        </pv-card>
+        <view class="ci-actions">
+          <pv-button type="tinted" bind:tap="again">再簽一個</pv-button>
+          <pv-button type="plain" bind:tap="goDetail">查看活動</pv-button>
+        </view>
+      </block>
+
+      <block wx:else>
+        <pv-card>
+          <text class="ci-title">掃描老師的簽到碼</text>
+          <text class="ui-meta ci-hint">對準現場大屏或白板上的 QR，掃到就自動簽到。</text>
+          <view class="ci-scan">
+            <pv-button type="filled" block="{{true}}" loading="{{scanning}}" disabled="{{scanning}}" bind:tap="scan">掃描簽到碼</pv-button>
+          </view>
+        </pv-card>
+
+        <view class="pv-group-title">或手動輸入</view>
+        <pv-card>
+          <input class="ci-input" type="number" maxlength="6" value="{{code}}" placeholder="6 位簽到碼" placeholder-class="ui-placeholder" bindinput="onInput" />
+          <pv-button type="tinted" block="{{true}}" loading="{{submitting}}" disabled="{{submitting || code.length < 4}}" bind:tap="submit">簽到</pv-button>
+        </pv-card>
+
+        <text wx:if="{{error}}" class="ci-error">{{error}}</text>
+        <text class="ui-meta ci-note">只有「正取」可以簽到；候補請等轉正後再試。</text>
+      </block>
+    </view>
+  </scroll-view>
+</view>

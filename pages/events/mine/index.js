@@ -20,6 +20,8 @@ Page({
         timeText: x.startAt ? dateTimeText(x.startAt) : '',
         statusLabel: x.status === 'CONFIRMED' ? '已報名' : '候補中',
         tagType: x.status === 'CONFIRMED' ? 'success' : 'warning',
+        checkedIn: !!x.checkedInAt,
+        canCheckIn: x.status === 'CONFIRMED' && !x.checkedInAt,
       }));
       this.setData({ loading: false, items: items });
     } catch (e) {
@@ -36,6 +38,10 @@ Page({
     } catch (err) {
       wx.showToast({ title: data.messageOf(err), icon: 'none' });
     }
+  },
+
+  goCheckin() {
+    wx.navigateTo({ url: '/pages/events/checkin/index' });
   },
 
   goDetail(e) {

@@ -46,6 +46,9 @@ Page({
       { key: '', label: '全部' },
     ],
     events: [],
+    ci: null, // 現場簽到面板（老師／管理員）
+    attendance: null,
+    ciSending: false,
     evStats: null,
     eventId: '',
     signups: [],
@@ -331,6 +334,75 @@ Page({
     } catch (err) {
       wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
     }
+  },
+
+  // ───────── 現場簽到（QR） ─────────
+  async loadEventCheckin(e) {
+    const id = e.currentTarget.dataset.id;
+    try {
+      this.setData({ ci: await admin.eventCheckin(id), attendance: null });
+      this.loadAttendance();
+    } catch (err) {
+      wx.showToast({ title: err.message || '讀不到簽到狀態', icon: 'none' });
+    }
+  },
+
+  async loadAttendance() {
+    const ci = this.data.ci;
+    if (!ci) return;
+    try {
+      this.setData({ attendance: await admin.attendance(ci.eventId) });
+    } catch (err) {
+      wx.showToast({ title: err.message || '讀不到出席名單', icon: 'none' });
+    }
+  },
+
+  async openCheckin() {
+    const ci = this.data.ci;
+    if (!ci || this.data.ciSending) return;
+    this.setData({ ciSending: true });
+    try {
+      this.setData({ ci: await admin.openEventCheckin(ci.eventId) });
+      wx.showToast({ title: '已開放簽到', icon: 'success' });
+      this.loadAttendance();
+    } catch (err) {
+      wx.showToast({ title: err.message || '開不到簽到', icon: 'none' });
+    } finally {
+      this.setData({ ciSending: false });
+    }
+  },
+
+  async closeCheckin() {
+    const ci = this.data.ci;
+    if (!ci || this.data.ciSending) return;
+    this.setData({ ciSending: true });
+    try {
+      this.setData({ ci: await admin.closeEventCheckin(ci.eventId) });
+      wx.showToast({ title: '已結束簽到', icon: 'none' });
+    } catch (err) {
+      wx.showToast({ title: err.message || '關不到簽到', icon: 'none' });
+    } finally {
+      this.setData({ ciSending: false });
+    }
+  },
+
+  async toggleAttendance(e) {
+    const { id, on } = e.currentTarget.dataset;
+    const ci = this.data.ci;
+    if (!ci) return;
+    try {
+      const res = await admin.batchSignups(ci.eventId, on === '1' ? 'CHECK_IN' : 'CHECK_OUT', [id]);
+      const rate = res.signed ? Math.round((res.checkedIn / res.signed) * 1000) / 10 : null;
+      this.setData({ 'ci.checkedIn': res.checkedIn, 'ci.signed': res.signed, 'ci.rate': rate });
+      wx.showToast({ title: on === '1' ? '已代簽' : '已撤銷代簽', icon: 'none' });
+      this.loadAttendance();
+    } catch (err) {
+      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+    }
+  },
+
+  closeCheckinPanel() {
+    this.setData({ ci: null, attendance: null });
   },
 
   async loadEventsAdmin() {

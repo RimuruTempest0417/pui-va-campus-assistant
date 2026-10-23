@@ -1,0 +1,9 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "pv-navbar": "/components/pv-navbar/index",
+    "pv-card": "/components/pv-card/index",
+    "pv-button": "/components/pv-button/index"
+  },
+  "navigationBarTitleText": "現場簽到"
+}

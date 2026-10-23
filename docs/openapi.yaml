@@ -347,12 +347,9 @@ paths:
                   - $ref: '#/components/schemas/Event'
                   - type: object
                     properties:
-                      mySignup:
-                        type: object
-                        nullable: true
-                        properties:
-                          status: { type: string, enum: [CONFIRMED, WAITLIST, CANCELLED] }
-                          waitlistPos: { type: integer, nullable: true }
+                      myStatus: { type: string, nullable: true, enum: [CONFIRMED, WAITLIST, CANCELLED, null] }
+                      waitlistPos: { type: integer, nullable: true }
+                      myCheckedIn: { type: string, format: date-time, nullable: true, description: 我自己的現場簽到時間（未簽到為 null） }
         '404': { $ref: '#/components/responses/NotFound' }
 
   /events/{id}/signup:
@@ -393,6 +390,166 @@ paths:
                   items:
                     type: array
                     items: { $ref: '#/components/schemas/EventSignup' }
+
+  /events/checkin:
+    post:
+      tags: [events]
+      summary: 學生現場簽到（掃碼／手打 6 位碼）
+      description: |
+        只認簽到碼，**不接受前端傳來的 eventId**（否則改一個參數就能替別人簽到）。
+        規則：簽到必須開放中、活動碼存在、本人是該活動的「正取」；
+        候補與沒報名者一律 422。重複掃視為成功並回 `already: true`（不重複計數）。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, description: '6 位碼，或 QR 內容 PVCHECKIN:123456' }
+      responses:
+        '200':
+          description: 簽到成功（或 already=true 表示之前已簽）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  already: { type: boolean }
+                  eventId: { type: string }
+                  title: { type: string }
+                  checkedInAt: { type: string, format: date-time }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /events/{id}/checkin:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      tags: [events]
+      summary: 老師端簽到看板（需 event:checkin；老師只能看自己的活動）
+      responses:
+        '200':
+          description: OK（未開放時 code 與 qrDataUrl 為 null）
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventCheckinState' }
+
+  /events/{id}/checkin/open:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    post:
+      tags: [events]
+      summary: 開始簽到（每次開啟都換新碼，舊碼立刻失效）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventCheckinState' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /events/{id}/checkin/close:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    post:
+      tags: [events]
+      summary: 結束簽到（碼留作紀錄但掃了就失效）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventCheckinState' }
+
+  /events/{id}/attendance:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      tags: [events]
+      summary: 出席名單（正取在前；含候補供核對）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eventId: { type: string }
+                  title: { type: string }
+                  active: { type: boolean }
+                  signed: { type: integer, description: 正取人數 }
+                  checkedIn: { type: integer }
+                  rate: { type: number, nullable: true, description: 出席率（%），沒有人報名時為 null }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        signupId: { type: string }
+                        status: { type: string, enum: [CONFIRMED, WAITLIST] }
+                        waitlistPos: { type: integer, nullable: true }
+                        nickname: { type: string, nullable: true }
+                        grade: { type: string, nullable: true }
+                        className: { type: string, nullable: true }
+                        checkedInAt: { type: string, format: date-time, nullable: true }
+
+  /events/{id}/stats:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      tags: [events]
+      summary: 活動報名統計（需 event:create；老師只能看自己的活動）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eventId: { type: string }
+                  title: { type: string }
+                  capacity: { type: integer }
+                  unlimited: { type: boolean }
+                  signed: { type: integer }
+                  waitlisted: { type: integer }
+                  cancelled: { type: integer }
+                  checkedIn: { type: integer, description: 正取且已簽到的人數 }
+                  attendanceRate: { type: number, nullable: true }
+                  remaining: { type: integer, nullable: true }
+                  full: { type: boolean }
+                  timeline:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        count: { type: integer }
+
+  /admin/events/{id}/signups/batch:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    patch:
+      tags: [events]
+      summary: 批次操作報名（候補全轉正／取消／代簽／撤銷代簽）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [PROMOTE_ALL, CANCEL, CHECK_IN, CHECK_OUT] }
+                ids: { type: array, items: { type: string }, description: CANCEL／CHECK_IN／CHECK_OUT 必填 }
+      responses:
+        '200':
+          description: OK（CHECK_IN／CHECK_OUT 只動正取，候補不會被算成出席）
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /menu/week:
     get:
@@ -1180,6 +1337,20 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
 
   schemas:
+    EventCheckinState:
+      type: object
+      properties:
+        eventId: { type: string }
+        title: { type: string }
+        status: { type: string, enum: [DRAFT, PUBLISHED, CANCELLED, FINISHED] }
+        active: { type: boolean }
+        code: { type: string, nullable: true, description: 6 位簽到碼（未開放時為 null） }
+        openedAt: { type: string, format: date-time, nullable: true }
+        qrDataUrl: { type: string, nullable: true, description: 'PNG data URL（小程序 image 直接顯示）' }
+        signed: { type: integer }
+        checkedIn: { type: integer }
+        rate: { type: number, nullable: true }
+
     Error:
       type: object
       required: [error]

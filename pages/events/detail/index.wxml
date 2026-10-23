@@ -31,10 +31,20 @@
           <text class="ui-body">{{ev.description || '主辦方沒有填寫說明'}}</text>
         </pv-card>
 
-        <view wx:if="{{ev.mySignup}}" class="my-state">
+        <view wx:if="{{ev.myStatus}}" class="my-state">
           <text wx:if="{{ev.myStatus === 'CONFIRMED'}}">你已報名成功，記得準時出席。</text>
           <text wx:else>你在候補第 {{ev.waitlistPos}} 位，有名額釋出時會自動補上。</text>
         </view>
+
+        <pv-card wx:if="{{ev.myStatus === 'CONFIRMED'}}">
+          <view class="ui-row-between">
+            <view class="checkin-info">
+              <text class="checkin-info__title">{{ev.myCheckedIn ? '已簽到' : '未簽到'}}</text>
+              <text class="ui-meta">{{ev.myCheckedIn ? '出席紀錄已送出' : '到現場掃老師的簽到碼'}}</text>
+            </view>
+            <pv-button wx:if="{{!ev.myCheckedIn}}" type="tinted" size="sm" bind:tap="goCheckin">去簽到</pv-button>
+          </view>
+        </pv-card>
       </block>
     </view>
   </scroll-view>

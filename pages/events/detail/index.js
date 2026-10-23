@@ -40,6 +40,10 @@ Page({
     return { barText: '立即報名', barType: 'filled', barHint: '', barDisabled: false };
   },
 
+  goCheckin() {
+    wx.navigateTo({ url: '/pages/events/checkin/index' });
+  },
+
   async onPrimary() {
     if (this.data.submitting) return;
     const ev = this.data.ev;

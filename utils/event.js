@@ -2,6 +2,12 @@ const { dateTimeText } = require('./date');
 
 const SIGNUP_LABEL = { CONFIRMED: '已報名', WAITLIST: '候補中' };
 
+function myStatusOf(ev) {
+  if (!ev) return '';
+  if (ev.mySignup && ev.mySignup.status) return ev.mySignup.status;
+  return ev.myStatus || '';
+}
+
 function decorate(ev) {
   if (!ev) return ev;
   const capacity = Number(ev.capacity) || 0;
@@ -19,9 +25,11 @@ function decorate(ev) {
     full: full,
     ended: ended,
     ratio: ratio,
-    myLabel: ev.mySignup ? SIGNUP_LABEL[ev.mySignup.status] || '' : '',
-    myStatus: ev.mySignup ? ev.mySignup.status : '',
-    waitlistPos: ev.mySignup ? ev.mySignup.waitlistPos : null,
+    // 示範資料帶 mySignup、真 API 直接帶 myStatus —— 只讀其中一種，
+    // 另一種模式下就會顯示成「沒有報名」（真 API 曾因此一直顯示「立即報名」）。
+    myLabel: SIGNUP_LABEL[myStatusOf(ev)] || '',
+    myStatus: myStatusOf(ev),
+    waitlistPos: ev.mySignup ? ev.mySignup.waitlistPos : (ev.waitlistPos === undefined ? null : ev.waitlistPos),
   });
 }
 

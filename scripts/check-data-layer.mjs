@@ -260,6 +260,37 @@ const afterCancel = await data.getEvent('e1');
 check('家長：代取消後名額歸還', afterCancel.signedCount === evBefore.signedCount,
   `名額 ${afterSignup.signedCount} → ${afterCancel.signedCount}`);
 
+// ── 現場簽到（QR）──
+const ci1 = await data.checkin('246810');
+check('簽到：示範碼可簽到', ci1.ok === true && ci1.eventId === 'e1', `${ci1.title}（${ci1.already ? '已簽過' : '首次'}）`);
+
+const ci2 = await data.checkin('246810');
+check('簽到：重複掃不重複計', ci2.already === true, `already=${ci2.already}`);
+
+let ciBad = '';
+try {
+  await data.checkin('000000');
+} catch (e) {
+  ciBad = e.code;
+}
+check('簽到：無效碼被擋', ciBad === 'VALIDATION_FAILED', ciBad || '沒有擋下');
+
+const myAfterCheckin = await data.mySignups();
+check('簽到：我的報名帶簽到時間',
+  myAfterCheckin.items.some((x) => x.eventId === 'e1' && x.checkedInAt),
+  `已簽到 ${myAfterCheckin.items.filter((x) => x.checkedInAt).length} 筆`);
+
+// ── 活動資料轉換：真 API 的 myStatus 不能被清空（曾因此在真機一直顯示「立即報名」）──
+{
+  const { decorate } = require(join(here, '..', 'utils', 'event.js'));
+  const apiShape = decorate({
+    id: 'x', capacity: 10, signedCount: 4,
+    myStatus: 'CONFIRMED', waitlistPos: null, myCheckedIn: '2026-10-24T12:00:00.000Z',
+  });
+  check('活動：myStatus 兩種來源都認', apiShape.myStatus === 'CONFIRMED' && apiShape.myCheckedIn,
+    `myStatus=${apiShape.myStatus || '空'} / 簽到=${apiShape.myCheckedIn ? '有' : '無'}`);
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

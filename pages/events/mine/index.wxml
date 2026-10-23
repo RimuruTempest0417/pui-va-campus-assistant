@@ -15,7 +15,9 @@
           </view>
           <text class="ui-meta mine-meta">{{item.timeText}} · {{item.location}}</text>
           <text wx:if="{{item.status === 'WAITLIST'}}" class="ui-meta mine-wait">候補第 {{item.waitlistPos}} 位</text>
+          <text wx:if="{{item.checkedIn}}" class="ui-meta mine-checked">已簽到</text>
           <view class="mine-actions">
+            <pv-button wx:if="{{item.canCheckIn}}" class="mine-btn" type="tinted" size="sm" bind:tap="goCheckin">現場簽到</pv-button>
             <pv-button class="mine-btn" type="plain" size="sm" data-id="{{item.eventId}}" bind:tap="goDetail">查看</pv-button>
             <pv-button class="mine-btn" type="plain" size="sm" data-id="{{item.eventId}}" bind:tap="cancel">取消報名</pv-button>
           </view>

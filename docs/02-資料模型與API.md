@@ -46,6 +46,10 @@ OPEN ──(系統匹配到對方)──► MATCHED ──(認領獲批)──�
 取消 ──► CANCELLED（若原為 CONFIRMED 且有人候補 → 自動補位並發訂閱消息）
 ```
 
+簽到（v0.24.0）不另開表：`event_signups.checkedInAt` ＋ `checkedInBy`（誰簽的：自己或代簽老師），
+活動上只有一組 `checkInCode`／`checkInActive`／`checkInOpenedAt` —— 一次只會開一個簽到時段，
+多開一張 `checkin_sessions` 表只是為了歷史時段，代價大於收益。出席率 = 已簽到 ÷ 正取，沒有人報名時回 `null`（不是 0%）。
+
 ---
 
 ## 3. 併發正確性：名額樂觀鎖（技術亮點）
@@ -123,7 +127,13 @@ UPDATE events
 | GET | `/events/:id` | 詳情＋我是否已報名 |
 | POST | `/events/:id/signup` | 報名（樂觀鎖） |
 | DELETE | `/events/:id/signup` | 取消（觸發候補補位） |
-| GET | `/events/mine` | 我的報名（含候補位置） |
+| GET | `/events/mine` | 我的報名（含候補位置與簽到時間 `checkedInAt`） |
+| POST | `/events/checkin` | 現場簽到（只認 6 位碼，**不接受前端傳 eventId**；非正取 422，重複掃回 `already: true`） |
+| GET | `/events/:id/checkin` | 老師簽到看板（`event:checkin`）：碼、QR data URL、已簽到／正取、出席率 |
+| POST | `/events/:id/checkin/open` | 開始簽到（每次換新碼，舊碼立即失效） |
+| POST | `/events/:id/checkin/close` | 結束簽到（碼留紀錄但掃了失效） |
+| GET | `/events/:id/attendance` | 出席名單（正取在前，含候補供核對） |
+| PATCH | `/admin/events/:id/signups/batch` | 批次：`PROMOTE_ALL`／`CANCEL`／`CHECK_IN`／`CHECK_OUT`（代簽只動正取） |
 
 ### 菜單 `/dishes` `/menu`
 | 方法 | 路徑 | 說明 |
