@@ -38,4 +38,43 @@ module.exports = {
   dishes() {
     return http.get('/admin/dishes');
   },
+  menuWeek(weekStart) {
+    return http.get('/admin/menu', weekStart ? { weekStart: weekStart } : {});
+  },
+  deleteMenuEntry(id) {
+    return http.del('/admin/menu/' + id);
+  },
+  createEvent(payload) {
+    return http.post('/admin/events', payload);
+  },
+  updateEvent(id, payload) {
+    return http.patch('/admin/events/' + id, payload);
+  },
+  users(query) {
+    return http.get('/admin/users', query || {});
+  },
+  setRole(id, role) {
+    return http.patch('/admin/users/' + id + '/role', { role: role });
+  },
+  setBanned(id, banned) {
+    return http.patch('/admin/users/' + id + '/ban', { banned: banned });
+  },
+  reports(status) {
+    return http.get('/admin/reports', { status: status || 'PENDING' });
+  },
+  handleReport(id, action, removeContent) {
+    return http.patch('/admin/reports/' + id, { action: action, removeContent: !!removeContent });
+  },
+  audit(limit) {
+    return http.get('/admin/audit', { limit: limit || 50 });
+  },
+  notices() {
+    return http.get('/admin/notices');
+  },
+  updateNotice(id, payload) {
+    return http.patch('/admin/notices/' + id, payload);
+  },
+  deleteNotice(id) {
+    return http.del('/admin/notices/' + id);
+  },
 };

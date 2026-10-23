@@ -41,3 +41,5 @@
 .signup-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12rpx 0; border-bottom: 1rpx solid var(--pv-sep); }
 .signup-row__name { font-size: var(--pv-fs-body); }
 .hint { display: block; margin-top: var(--pv-sp-2); }
+
+.field__gap { margin-top: var(--pv-sp-1); }

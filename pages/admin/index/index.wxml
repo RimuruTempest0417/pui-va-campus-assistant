@@ -85,6 +85,92 @@
             <pv-button type="filled" loading="{{sending}}" disabled="{{sending}}" bind:tap="publish">發布公告</pv-button>
           </view>
         </pv-card>
+
+        <text class="field__label">既有公告（{{noticeList.length}}）</text>
+        <view wx:for="{{noticeList}}" wx:key="id" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{item.title}}</text>
+            <pv-tag text="{{item.kind === 'URGENT' ? '緊急' : item.kind === 'CALENDAR' ? '校曆' : '一般'}}" type="{{item.kind === 'URGENT' ? 'danger' : 'neutral'}}" />
+          </view>
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-pinned="{{item.isPinned ? '1' : '0'}}" bind:tap="togglePin">
+              {{item.isPinned ? '取消置頂' : '置頂'}}
+            </pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteNotice">刪除</pv-button>
+          </view>
+        </view>
+      </block>
+
+      <!-- 活動管理 -->
+      <block wx:elif="{{tab === 'events'}}">
+        <pv-card>
+          <text class="field__label">新增活動</text>
+          <input class="field__input" value="{{eventForm.title}}" data-field="title" bindinput="onEventField" placeholder="活動名稱" />
+          <input class="field__input field__gap" value="{{eventForm.location}}" data-field="location" bindinput="onEventField" placeholder="地點（可空）" />
+          <input class="field__input field__gap" value="{{eventForm.date}}" data-field="date" bindinput="onEventField" placeholder="日期 YYYY-MM-DD" />
+          <input class="field__input field__gap" value="{{eventForm.capacity}}" data-field="capacity" bindinput="onEventField" placeholder="名額（0 = 不限）" />
+          <view class="row-actions">
+            <pv-button type="filled" size="sm" loading="{{creatingEvent}}" disabled="{{creatingEvent}}" bind:tap="createEvent">建立活動</pv-button>
+          </view>
+        </pv-card>
+
+        <view wx:for="{{events}}" wx:key="id" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{item.title}}</text>
+            <pv-tag text="{{item.status === 'CANCELLED' ? '已取消' : item.status === 'PUBLISHED' ? '報名中' : item.status}}" type="{{item.status === 'CANCELLED' ? 'danger' : 'success'}}" />
+          </view>
+          <text class="ui-meta">{{item.signedCount}}/{{item.capacity || '不限'}} 人</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-status="{{item.status}}" bind:tap="toggleEventStatus">
+              {{item.status === 'CANCELLED' ? '恢復' : '取消活動'}}
+            </pv-button>
+          </view>
+        </view>
+      </block>
+
+      <!-- 使用者管理 -->
+      <block wx:elif="{{tab === 'users'}}">
+        <view wx:for="{{users}}" wx:key="id" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{item.nickname || item.openid}}</text>
+            <pv-tag text="{{item.role}}" type="{{item.bannedAt ? 'danger' : 'neutral'}}" />
+          </view>
+          <text class="ui-meta">{{item.openid}}{{item.bannedAt ? ' · 已停用' : ''}}</text>
+          <view class="row-actions">
+            <pv-button wx:for="{{roles}}" wx:for-item="r" wx:key="key" size="sm" type="plain"
+                       data-id="{{item.id}}" data-role="{{r.key}}" bind:tap="setRole">{{r.label}}</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-banned="{{item.bannedAt ? '1' : '0'}}" bind:tap="toggleBan">
+              {{item.bannedAt ? '恢復' : '停用'}}
+            </pv-button>
+          </view>
+        </view>
+      </block>
+
+      <!-- 檢舉 -->
+      <block wx:elif="{{tab === 'reports'}}">
+        <pv-empty wx:if="{{!reports.length}}" icon="🛡" title="沒有待處理檢舉" desc="" />
+        <view wx:for="{{reports}}" wx:key="id" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{item.targetType}} · {{item.reason}}</text>
+            <pv-tag text="待處理" type="warning" />
+          </view>
+          <text class="ui-meta">檢舉人：{{item.reporter.nickname || '匿名'}}</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="filled" data-id="{{item.id}}" data-action="RESOLVE" bind:tap="handleReport">成立並下架</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-action="DISMISS" bind:tap="handleReport">駁回</pv-button>
+          </view>
+        </view>
+      </block>
+
+      <!-- 審計 -->
+      <block wx:elif="{{tab === 'audit'}}">
+        <pv-card wx:if="{{audit.length}}">
+          <view wx:for="{{audit}}" wx:key="id" class="signup-row">
+            <text class="signup-row__name">{{item.action}}</text>
+            <text class="ui-meta">{{item.target || ''}}</text>
+          </view>
+        </pv-card>
+        <pv-empty wx:else icon="📜" title="沒有紀錄" desc="" />
       </block>
 
       <!-- 報名名單 -->
@@ -121,6 +207,13 @@
             <pv-button type="filled" loading="{{sending}}" disabled="{{sending}}" bind:tap="saveMenu">排入菜單</pv-button>
           </view>
         </pv-card>
+
+        <text class="field__label">本週已排（{{menuWeekStart}} 起）</text>
+        <view wx:for="{{menuEntries}}" wx:key="id" class="signup-row">
+          <text class="signup-row__name">{{item.date}} · {{item.mealType === 'LUNCH' ? '午餐' : '小賣部'}} · {{item.dishName}}</text>
+          <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteMenuEntry">移除</pv-button>
+        </view>
+        <pv-empty wx:if="{{!menuEntries.length}}" icon="🍽" title="這週還沒排菜" desc="" />
       </block>
 
       <text wx:if="{{hint}}" class="ui-meta hint">{{hint}}</text>

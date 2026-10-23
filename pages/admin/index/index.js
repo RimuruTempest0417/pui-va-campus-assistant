@@ -7,9 +7,25 @@ const TABS = [
   { key: 'stats', label: '概況' },
   { key: 'claims', label: '認領' },
   { key: 'items', label: '失物' },
+  { key: 'events', label: '活動' },
   { key: 'notice', label: '公告' },
+  { key: 'users', label: '使用者' },
+  { key: 'reports', label: '檢舉' },
+  { key: 'audit', label: '審計' },
   { key: 'export', label: '名單' },
   { key: 'menu', label: '菜單' },
+];
+
+const ROLE_TABS = {
+  TEACHER: ['notice', 'events'],
+  ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'reports', 'export', 'menu'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'reports', 'audit', 'export', 'menu'],
+};
+
+const ROLES = [
+  { key: 'STUDENT', label: '學生' },
+  { key: 'TEACHER', label: '老師' },
+  { key: 'ADMIN', label: '資訊管理員' },
 ];
 
 Page({
@@ -41,6 +57,16 @@ Page({
       { key: 'SNACK', label: '小賣部' },
     ],
     menu: { date: '', mealType: 'LUNCH', names: '' },
+    menuWeekStart: '',
+    menuEntries: [],
+    events: [],
+    eventForm: { title: '', date: '', capacity: '20', location: '' },
+    creatingEvent: false,
+    users: [],
+    roles: ROLES,
+    reports: [],
+    audit: [],
+    noticeList: [],
     sending: false,
     hint: '',
   },
@@ -60,7 +86,7 @@ Page({
     this.setData({ role: role, 'menu.date': dateKey() });
 
     // 依能力決定看得到哪些分頁（真正的權限仍在後端）
-    const allowed = role === 'TEACHER' ? ['notice'] : ['stats', 'claims', 'items', 'notice', 'export', 'menu'];
+    const allowed = ROLE_TABS[role] || ['notice'];
     const tabs = TABS.filter((t) => allowed.indexOf(t.key) !== -1);
     this.setData({ tabs: tabs, tab: tabs[0].key });
     this.loadTab();
@@ -84,8 +110,13 @@ Page({
     if (t === 'stats') return this.loadStats();
     if (t === 'claims') return this.loadClaims();
     if (t === 'items') return this.loadItems();
-    if (t === 'export') return this.loadEvents();
-    if (t === 'menu') return null;
+    if (t === 'export') return this.loadEventsForExport();
+    if (t === 'events') return this.loadEventsAdmin();
+    if (t === 'users') return this.loadUsers();
+    if (t === 'reports') return this.loadReports();
+    if (t === 'audit') return this.loadAudit();
+    if (t === 'notice') return this.loadNoticeList();
+    if (t === 'menu') return this.loadMenuWeek();
     return null;
   },
 
@@ -116,7 +147,7 @@ Page({
     }
   },
 
-  async loadEvents() {
+  async loadEventsForExport() {
     try {
       const res = await admin.events();
       const events = res.items || [];
@@ -253,6 +284,185 @@ Page({
       wx.showToast({ title: e.message || '排菜單失敗', icon: 'none' });
     } finally {
       this.setData({ sending: false });
+    }
+  },
+
+  // ───────── 活動管理 ─────────
+  async loadEventsAdmin() {
+    try {
+      const res = await admin.events();
+      this.setData({ events: res.items || [] });
+    } catch (e) {
+      this.setData({ hint: '讀不到活動：' + (e.message || e.code) });
+    }
+  },
+
+  onEventField(e) {
+    const field = e.currentTarget.dataset.field;
+    const patch = {};
+    patch['eventForm.' + field] = e.detail.value;
+    this.setData(patch);
+  },
+
+  async createEvent() {
+    if (this.data.creatingEvent) return;
+    const f = this.data.eventForm;
+    if (!f.title.trim() || !f.date) {
+      wx.showToast({ title: '標題與日期必填', icon: 'none' });
+      return;
+    }
+    this.setData({ creatingEvent: true });
+    try {
+      await admin.createEvent({
+        title: f.title.trim(),
+        location: f.location.trim() || undefined,
+        startAt: new Date(f.date + 'T09:00:00').toISOString(),
+        capacity: Number(f.capacity) || 0,
+        status: 'PUBLISHED',
+      });
+      this.setData({ 'eventForm.title': '', 'eventForm.location': '', hint: '活動已建立' });
+      wx.showToast({ title: '已建立', icon: 'success' });
+      this.loadEventsAdmin();
+    } catch (e) {
+      wx.showToast({ title: e.message || '建立失敗', icon: 'none' });
+    } finally {
+      this.setData({ creatingEvent: false });
+    }
+  },
+
+  async toggleEventStatus(e) {
+    const { id, status } = e.currentTarget.dataset;
+    const next = status === 'CANCELLED' ? 'PUBLISHED' : 'CANCELLED';
+    try {
+      await admin.updateEvent(id, { status: next });
+      wx.showToast({ title: next === 'CANCELLED' ? '已取消' : '已恢復', icon: 'success' });
+      this.loadEventsAdmin();
+    } catch (err) {
+      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+    }
+  },
+
+  // ───────── 使用者管理 ─────────
+  async loadUsers() {
+    try {
+      const res = await admin.users({});
+      this.setData({ users: res.items || [] });
+    } catch (e) {
+      this.setData({ hint: '讀不到使用者：' + (e.message || e.code) });
+    }
+  },
+
+  async setRole(e) {
+    const { id, role } = e.currentTarget.dataset;
+    try {
+      await admin.setRole(id, role);
+      wx.showToast({ title: '已設為 ' + role, icon: 'success' });
+      this.loadUsers();
+    } catch (err) {
+      wx.showToast({ title: err.message || '權限不足', icon: 'none' });
+    }
+  },
+
+  async toggleBan(e) {
+    const { id, banned } = e.currentTarget.dataset;
+    try {
+      await admin.setBanned(id, banned !== '1');
+      wx.showToast({ title: banned === '1' ? '已恢復' : '已停用', icon: 'success' });
+      this.loadUsers();
+    } catch (err) {
+      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+    }
+  },
+
+  // ───────── 檢舉 ─────────
+  async loadReports() {
+    try {
+      const res = await admin.reports('PENDING');
+      this.setData({ reports: res.items || [] });
+    } catch (e) {
+      this.setData({ hint: '讀不到檢舉：' + (e.message || e.code) });
+    }
+  },
+
+  async handleReport(e) {
+    const { id, action } = e.currentTarget.dataset;
+    try {
+      const remove = action === 'RESOLVE';
+      const res = await admin.handleReport(id, action, remove);
+      wx.showToast({ title: action === 'RESOLVE' ? (res.removed ? '已成立並下架' : '已成立') : '已駁回', icon: 'none' });
+      this.loadReports();
+    } catch (err) {
+      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+    }
+  },
+
+  // ───────── 審計 ─────────
+  async loadAudit() {
+    try {
+      const res = await admin.audit(50);
+      this.setData({ audit: res.items || [] });
+    } catch (e) {
+      this.setData({ hint: '讀不到審計紀錄：' + (e.message || e.code) });
+    }
+  },
+
+  // ───────── 公告列表／刪除 ─────────
+  async loadNoticeList() {
+    try {
+      const res = await admin.notices();
+      this.setData({ noticeList: res.items || [] });
+    } catch (e) {
+      this.setData({ hint: '讀不到公告：' + (e.message || e.code) });
+    }
+  },
+
+  async deleteNotice(e) {
+    const id = e.currentTarget.dataset.id;
+    const self = this;
+    wx.showModal({
+      title: '刪除公告',
+      content: '刪除後無法復原，確定嗎？',
+      success(res) {
+        if (!res.confirm) return;
+        admin
+          .deleteNotice(id)
+          .then(() => {
+            wx.showToast({ title: '已刪除', icon: 'success' });
+            self.loadNoticeList();
+          })
+          .catch((err) => wx.showToast({ title: err.message || '刪除失敗', icon: 'none' }));
+      },
+    });
+  },
+
+  async togglePin(e) {
+    const { id, pinned } = e.currentTarget.dataset;
+    try {
+      await admin.updateNotice(id, { isPinned: pinned !== '1' });
+      this.loadNoticeList();
+    } catch (err) {
+      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+    }
+  },
+
+  // ───────── 菜單整週 ─────────
+  async loadMenuWeek() {
+    try {
+      const res = await admin.menuWeek(this.data.menuWeekStart || undefined);
+      this.setData({ menuWeekStart: res.weekStart, menuEntries: res.items || [] });
+    } catch (e) {
+      this.setData({ hint: '讀不到菜單：' + (e.message || e.code) });
+    }
+  },
+
+  async deleteMenuEntry(e) {
+    const id = e.currentTarget.dataset.id;
+    try {
+      await admin.deleteMenuEntry(id);
+      wx.showToast({ title: '已移除', icon: 'success' });
+      this.loadMenuWeek();
+    } catch (err) {
+      wx.showToast({ title: err.message || '移除失敗', icon: 'none' });
     }
   },
 });
