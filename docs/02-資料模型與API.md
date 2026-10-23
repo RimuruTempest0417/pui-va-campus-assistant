@@ -94,7 +94,7 @@ UPDATE events
 
 ---
 
-## 5. 端點一覽（32 個操作 / 27 條路徑，全部已在 `docs/openapi.yaml` 定義並驗證）
+## 5. 端點一覽（47 個操作 / 42 條路徑，全部已在 `docs/openapi.yaml` 定義並驗證）
 
 ### 認證 `/auth`
 | 方法 | 路徑 | 說明 |
@@ -145,6 +145,19 @@ UPDATE events
 |---|---|---|
 | POST | `/uploads/policy` | 回 COS 直傳簽名（`key`, `url`, `headers`, `expiresAt`） |
 | POST | `/subscriptions` | 記錄使用者同意的模板（`itemClaimed` / `eventOpen` / `urgentNotice`） |
+
+### 家長 `/parents`（需角色 PARENT；`parentId` 一律取自 JWT）
+| 方法 | 路徑 | 說明 |
+|---|---|---|
+| GET | `/parents/me/children` | 我的子女（`linkId`／關係／暱稱／班級） |
+| GET | `/parents/me/children/:studentId` | 子女概況：報名、認領件數、未讀公告；**沒有綁定一律 403** |
+| GET | `/parents/me/children/:studentId/items` | 子女發布的失物／拾獲（唯讀） |
+| GET | `/parents/me/children/:studentId/claims` | 子女提出的認領申請（唯讀） |
+| GET | `/admin/parents` | 綁定列表＋關鍵字（`parent:manage`） |
+| POST | `/admin/parents/link` | 建立綁定（`parentAccount`／`studentAccount`／`relation`） |
+| DELETE | `/admin/parents/link/:id` | 解除綁定 |
+
+> 隔離規則：`studentId` 只是查詢鍵，必須存在於 `parent_links` 才算數；未綁定回 **403 且訊息固定**（不區分「不存在」與「不是你的孩子」），避免學號探測。
 
 ### 管理 `/admin`（需 TEACHER / ADMIN）
 | 方法 | 路徑 | 說明 |

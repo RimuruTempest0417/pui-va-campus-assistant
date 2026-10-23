@@ -128,7 +128,7 @@ node scripts/check-data-layer.mjs  # ALL PASS 39/39（固定跑示範資料層�
 - [x] **失物智能匹配**（pg_trgm 加權評分 + 詳情頁「可能是你的東西」）
 - [x] 後端 e2e（真實 Postgres，27 項，含 20 併發超賣壓測）
 - [x] 老師端管理後台（W-10）：10 個分頁，含**使用者管理**（建立帳號／改名／改帳號／改密碼／改等級／停用／刪除／權限說明）
-- [x] **家長綁定（P2）**：`parent_links` 表＋後台「家長」分頁（建立／解除），家長端一律以綁定關係反查、未綁定 403
+- [x] **家長綁定（P2）＋資料隔離（P4）**：`parent_links` 表＋後台「家長」分頁；家長端四支查詢一律經 `parent-scope` 閘門（`parentId` 取自 JWT、未綁定 403 且訊息與「不存在的人」相同），子女概況／失物／認領都只能看自己的孩子
 - [x] 訂閱消息（W-11）
 - [x] 雲端部署（W-15）：Vercel + Neon，API `https://pui-va-campus-server.vercel.app/api/v1`
 - [x] 交付給老師的一鍵包與 5 步說明（W-12：`node scripts/package.mjs`）

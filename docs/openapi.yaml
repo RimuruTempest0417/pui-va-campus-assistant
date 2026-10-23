@@ -18,6 +18,7 @@ tags:
   - name: menu
   - name: notices
   - name: uploads
+  - name: parents
   - name: admin
 
 security:
@@ -535,6 +536,192 @@ paths:
       summary: 我的訂閱同意記錄
       responses:
         '200': { description: OK }
+
+  /parents/me/children:
+    get:
+      tags: [parents]
+      summary: 我的子女（家長端；parentId 一律取自 JWT）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        linkId: { type: string }
+                        relation: { type: string, enum: [father, mother, guardian] }
+                        relationLabel: { type: string }
+                        studentId: { type: string }
+                        nickname: { type: string, nullable: true }
+                        grade: { type: string, nullable: true }
+                        className: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /parents/me/children/{studentId}:
+    parameters:
+      - { in: path, name: studentId, required: true, schema: { type: string } }
+    get:
+      tags: [parents]
+      summary: 子女概況（報名、認領件數、未讀公告）
+      description: |
+        studentId 只是查詢鍵，必須存在於 parent_links 才算數。
+        沒有綁定關係一律 403 且訊息固定（不區分「不存在」與「不是你的孩子」），避免學號探測。
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  student:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      nickname: { type: string, nullable: true }
+                      grade: { type: string, nullable: true }
+                      className: { type: string, nullable: true }
+                  relation: { type: string }
+                  relationLabel: { type: string }
+                  signups:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        status: { type: string, enum: [CONFIRMED, WAITLIST, CANCELLED] }
+                        waitlistPos: { type: integer, nullable: true }
+                        event:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            title: { type: string }
+                            startAt: { type: string, format: date-time }
+                            location: { type: string, nullable: true }
+                  claimCount: { type: integer }
+                  unreadNotices: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /parents/me/children/{studentId}/items:
+    parameters:
+      - { in: path, name: studentId, required: true, schema: { type: string } }
+    get:
+      tags: [parents]
+      summary: 子女發布的失物／拾獲（唯讀，最多 20 筆）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/LostItem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /parents/me/children/{studentId}/claims:
+    parameters:
+      - { in: path, name: studentId, required: true, schema: { type: string } }
+    get:
+      tags: [parents]
+      summary: 子女提出的認領申請（唯讀，最多 20 筆）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+                        message: { type: string, nullable: true }
+                        createdAt: { type: string, format: date-time }
+                        handledAt: { type: string, format: date-time, nullable: true }
+                        item:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            title: { type: string }
+                            type: { type: string, enum: [LOST, FOUND] }
+                            status: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/parents:
+    get:
+      tags: [parents]
+      summary: 家長綁定列表（需 parent:manage）
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                  relations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key: { type: string }
+                        label: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/parents/link:
+    post:
+      tags: [parents]
+      summary: 建立家長—學生綁定（需 parent:manage）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [parentAccount, studentAccount]
+              properties:
+                parentAccount: { type: string, description: 家長帳號（User.openid） }
+                studentAccount: { type: string, description: 學生帳號（User.openid） }
+                relation: { type: string, enum: [father, mother, guardian], default: guardian }
+                note: { type: string, maxLength: 120 }
+      responses:
+        '201': { description: 已建立 }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/parents/link/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    delete:
+      tags: [parents]
+      summary: 解除綁定（需 parent:manage）
+      responses:
+        '200': { description: 已解除 }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /uploads/signature:
     post:
