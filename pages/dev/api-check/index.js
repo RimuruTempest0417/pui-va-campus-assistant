@@ -9,11 +9,30 @@ Page({
     total: 0,
     resultLine: '執行中',
     forceDemo: false,
+    apiBase: '',
   },
 
   onLoad() {
-    this.setData({ forceDemo: data.forceDemoOn() });
+    this.setData({ forceDemo: data.forceDemoOn(), apiBase: data.apiBase() });
     this.run();
+  },
+
+  onApiBaseInput(e) {
+    this.setData({ apiBase: e.detail.value });
+  },
+
+  saveApiBase() {
+    const url = data.setApiBase(this.data.apiBase.trim());
+    this.setData({ apiBase: url });
+    wx.showToast({ title: '已套用：' + url, icon: 'none' });
+    this.rerun();
+  },
+
+  resetApiBase() {
+    const url = data.setApiBase('');
+    this.setData({ apiBase: url });
+    wx.showToast({ title: '已回到預設', icon: 'none' });
+    this.rerun();
   },
 
   // 離線示範開關：不改程式碼就能切回本地資料，關掉立刻回到真 API

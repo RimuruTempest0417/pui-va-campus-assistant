@@ -17,5 +17,6 @@ module.exports = {
     user: 'pv_user',
     demo: 'pv_demo_seed',
     forceDemo: 'pv_force_demo',
+    apiBase: 'pv_api_base',
   },
 };

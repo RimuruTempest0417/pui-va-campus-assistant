@@ -17,6 +17,17 @@ function forceDemoOn() {
   }
 }
 
+function setApiBase(url) {
+  try {
+    if (url) wx.setStorageSync(config.STORAGE_KEYS.apiBase, String(url).replace(/\/$/, ''));
+    else wx.removeStorageSync(config.STORAGE_KEYS.apiBase);
+  } catch (e) {
+    // storage 失敗不影響主流程
+  }
+  demoActive = false;
+  return request.apiBase();
+}
+
 function isDemo() {
   if (config.DEMO_MODE === 'on') return true;
   if (forceDemoOn()) return true; // 開發自檢頁的臨時開關
@@ -53,6 +64,8 @@ async function call(name, args) {
 module.exports = {
   isDemo: isDemo,
   setForceDemo: setForceDemo,
+  setApiBase: setApiBase,
+  apiBase: () => request.apiBase(),
   forceDemoOn: forceDemoOn,
   messageOf: messageOf,
   resetDemo: () => mock.reset(),

@@ -1,6 +1,17 @@
 const config = require('../config/config');
 const { codeOf } = require('./errors');
 
+/** 後端位址：預設吃 config.API_BASE_URL，可在自檢頁臨時覆蓋（pv_api_base） */
+function apiBase() {
+  try {
+    const custom = wx.getStorageSync(config.STORAGE_KEYS.apiBase);
+    if (custom) return String(custom).replace(/\/$/, '');
+  } catch (e) {
+    // storage 讀不到就用預設
+  }
+  return config.API_BASE_URL;
+}
+
 function getToken() {
   return wx.getStorageSync(config.STORAGE_KEYS.token) || '';
 }
@@ -18,7 +29,7 @@ function once(method, url, data, withAuth) {
       if (token) header.Authorization = 'Bearer ' + token;
     }
     wx.request({
-      url: config.API_BASE_URL + url,
+      url: apiBase() + url,
       method: method,
       data: data,
       header: header,
@@ -71,4 +82,5 @@ module.exports = {
   del: (url, data, opts) => request('DELETE', url, data, opts),
   getToken,
   setToken,
+  apiBase,
 };

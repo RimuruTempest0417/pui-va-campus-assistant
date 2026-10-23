@@ -16,6 +16,17 @@
     <pv-button type="filled" block bind:tap="rerun">重新檢查</pv-button>
   </pv-card>
   <pv-card>
+    <view class="api-row">
+      <text class="demo-row__title">後端位址</text>
+      <text class="demo-row__desc">換成 LAN IP 或正式域名（例如 https://api.你的域名.com/api/v1）</text>
+      <input class="api-input" value="{{apiBase}}" bindinput="onApiBaseInput" placeholder="http://127.0.0.1:3100/api/v1" />
+      <view class="api-actions">
+        <pv-button type="filled" size="sm" bind:tap="saveApiBase">套用</pv-button>
+        <pv-button type="plain" size="sm" bind:tap="resetApiBase">回到預設</pv-button>
+      </view>
+    </view>
+  </pv-card>
+  <pv-card>
     <view class="demo-row">
       <view class="demo-row__text">
         <text class="demo-row__title">離線示範模式</text>
