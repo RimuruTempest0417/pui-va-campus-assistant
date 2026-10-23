@@ -537,6 +537,115 @@ paths:
                   maxBytes: { type: integer, example: 4194304 }
                   cdnBase: { type: string, nullable: true }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /admin/login:
+    post:
+      tags: [admin]
+      summary: 教職員後台登入（帳號密碼）
+      description: |
+        帳號 = 使用者的 openid（由 SUPER_ADMIN 指派並設定密碼）；學生沒有密碼，走 wx.login。
+        回傳 JWT（12 小時），角色需為 TEACHER／ADMIN／SUPER_ADMIN。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account, password]
+              properties:
+                account: { type: string }
+                password: { type: string, minLength: 6 }
+      responses:
+        '200':
+          description: 登入成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  role: { type: string }
+                  nickname: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/stats:
+    get:
+      tags: [admin]
+      summary: 營運數據（需 stats:read）
+      responses:
+        '200':
+          description: 統計
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/items:
+    get:
+      tags: [admin]
+      summary: 失物清單（含已下架，需 item:moderate）
+      parameters:
+        - { in: query, name: status, schema: { type: string, enum: [OPEN, MATCHED, CLAIMED, CLOSED] } }
+
+  /admin/items/{id}:
+    patch:
+      tags: [admin]
+      summary: 下架／恢復失物（軟刪除，寫審計）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [REMOVE, RESTORE] }
+                reason: { type: string, maxLength: 200 }
+
+  /admin/claims:
+    get:
+      tags: [admin]
+      summary: 認領申請清單（需 item:review）
+      parameters:
+        - { in: query, name: status, schema: { type: string, enum: [PENDING, APPROVED, REJECTED], default: PENDING } }
+
+  /admin/events:
+    get:
+      tags: [admin]
+      summary: 活動清單（匯出 CSV 用，需 event:export）
+
+  /admin/events/{id}/signups.csv:
+    get:
+      tags: [admin]
+      summary: 報名名單 CSV（UTF-8 BOM）
+      description: 需 event:export；含正取／候補、候補順位、年級班別、報名時間。
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: text/csv
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /admin/dishes/ensure:
+    post:
+      tags: [admin]
+      summary: 依菜名取得或建立菜色（排菜單用，需 menu:manage）
+
+  /admin/menu:
+    post:
+      tags: [admin]
+      summary: 排菜單（同日同餐別覆蓋，需 menu:manage）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date, mealType, dishIds]
+              properties:
+                date: { type: string, format: date }
+                mealType: { type: string, enum: [LUNCH, SNACK] }
+                dishIds: { type: array, items: { type: string }, maxItems: 6 }
+
   /admin/notices:
     post:
       tags: [admin]
