@@ -179,7 +179,7 @@ check('全部標為已讀', afterAll.unread === 0, `未讀 ${afterAll.unread}`);
 
 
 // ── 資料入口／真實 API／示範資料三方方法必須對齊 ──
-const dataKeys = Object.keys(data).filter((k) => typeof data[k] === 'function' && !['isDemo', 'setForceDemo', 'forceDemoOn', 'setApiBase', 'apiBase', 'messageOf', 'resetDemo'].includes(k));
+const dataKeys = Object.keys(data).filter((k) => typeof data[k] === 'function' && !['isDemo', 'setForceDemo', 'forceDemoOn', 'setApiBase', 'apiBase', 'ensureLogin', 'messageOf', 'resetDemo'].includes(k));
 const api = require(join(here, '..', 'services', 'api.js'));
 const mock = require(join(here, '..', 'services', 'mock.js'));
 const missingApi = dataKeys.filter((k) => typeof api[k] !== 'function');

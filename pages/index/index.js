@@ -29,6 +29,8 @@ Page({
     updatedAt: '',
     pressedKey: '',
     urgentPressed: false,
+    showAdmin: false,
+    adminUrl: '',
   },
 
   onLoad() {
@@ -56,6 +58,15 @@ Page({
     if (!this.data.loading) this.setClockFields();
   },
 
+  // 管理後台是網頁（不在小程序內），所以只複製網址讓老師用電腦打開
+  openAdmin() {
+    if (!this.data.adminUrl) return;
+    wx.setClipboardData({
+      data: this.data.adminUrl,
+      success: () => wx.showToast({ title: '後台網址已複製，請用電腦瀏覽器打開', icon: 'none' }),
+    });
+  },
+
   goDev() {
     wx.navigateTo({ url: '/pages/dev/api-check/index' });
   },
@@ -74,6 +85,9 @@ Page({
     this.setClockFields();
 
     try {
+      // 首次進入先嘗試登入（沒有後端就當訪客，不阻塞畫面）
+      await data.ensureLogin();
+
       const [me, items, events, menu, notices] = await Promise.all([
         // 未登入時 me() 會 401；首頁是公開頁，訪客照樣要能看到四個模組
         data.me().catch(() => null),
@@ -98,8 +112,15 @@ Page({
         { key: 'notices', icon: '📢', label: '公告與提示', sub: (notices.unread ? notices.unread + ' 則未讀' : (notices.items || []).length + ' 則'), tone: 'success' },
       ];
 
+      const role = (me && me.role) || '';
+      const staff = ['TEACHER', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1;
+      const base = data.apiBase() || '';
+      const adminUrl = base.replace(/\/api\/v1\/?$/, '') + '/admin';
+
       this._lastDemo = data.isDemo();
       this.setData({
+        showAdmin: staff,
+        adminUrl: adminUrl,
         loading: false,
         failed: false,
         isDemo: data.isDemo(),

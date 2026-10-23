@@ -98,6 +98,13 @@
       </view>
     </pv-card>
 
+    <view wx:if="{{showAdmin}}" class="home__admin" bindtap="openAdmin"
+          hover-class="home__admin--pressed" hover-start-time="0">
+      <text class="home__admin-title">教職員後台</text>
+      <text class="home__admin-url">{{adminUrl}}</text>
+      <text class="home__admin-go">複製網址 ›</text>
+    </view>
+
     <view class="home__foot" bindtap="goDev" hover-class="home__foot--pressed" hover-start-time="0">
       <text>{{updatedAt}}</text>
       <text wx:if="{{isDemo}}"> · 示範資料（未連後端）</text>

@@ -21,6 +21,19 @@ function setToken(token) {
   else wx.removeStorageSync(config.STORAGE_KEYS.token);
 }
 
+/** GET 參數清洗：把 undefined／null／空字串／字面 "undefined" 全部拿掉 */
+function cleanParams(data) {
+  if (!data || typeof data !== 'object') return data;
+  const out = {};
+  Object.keys(data).forEach((k) => {
+    const v = data[k];
+    if (v === undefined || v === null) return;
+    if (typeof v === 'string' && (v === '' || v === 'undefined' || v === 'null')) return;
+    out[k] = v;
+  });
+  return out;
+}
+
 function once(method, url, data, withAuth) {
   return new Promise((resolve, reject) => {
     const header = { 'content-type': 'application/json' };
@@ -62,6 +75,7 @@ function request(method, url, data, options) {
     return Promise.reject({ code: 'NO_BACKEND', message: 'API_BASE_URL 未設定' });
   }
   const withAuth = opts.auth !== false;
+  if (method === 'GET') data = cleanParams(data);
   const attempts = 1 + Math.max(0, config.RETRY || 0);
 
   const run = (left) =>

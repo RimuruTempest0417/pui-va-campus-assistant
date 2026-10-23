@@ -47,6 +47,29 @@ function setForceDemo(on) {
   return isDemo();
 }
 
+/**
+ * 首次進入時用 wx.login 換 JWT。失敗（沒後端、AppSecret 未設定）就當訪客，
+ * 讀取類頁面照常運作，只是不能發布／報名。
+ */
+async function ensureLogin() {
+  if (isDemo()) return null;
+  if (request.getToken()) return null;
+  try {
+    const code = await new Promise((resolve, reject) => {
+      wx.login({ success: (r) => resolve(r.code), fail: reject });
+    });
+    if (!code) return null;
+    const res = await api.login(code);
+    if (res && res.token) {
+      request.setToken(res.token);
+      return res.user || null;
+    }
+  } catch (e) {
+    // 訪客模式：不打擾使用者
+  }
+  return null;
+}
+
 async function call(name, args) {
   if (isDemo()) return mock[name].apply(null, args || []);
   try {
@@ -63,6 +86,7 @@ async function call(name, args) {
 
 module.exports = {
   isDemo: isDemo,
+  ensureLogin: ensureLogin,
   setForceDemo: setForceDemo,
   setApiBase: setApiBase,
   apiBase: () => request.apiBase(),
