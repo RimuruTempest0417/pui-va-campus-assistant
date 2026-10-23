@@ -130,6 +130,16 @@
 
       <!-- 使用者管理 -->
       <block wx:elif="{{tab === 'users'}}">
+        <view class="filter-row">
+          <view class="chip {{showPerms ? 'chip--on' : ''}}" bindtap="togglePerms">權限說明</view>
+        </view>
+        <pv-card wx:if="{{showPerms}}">
+          <view wx:for="{{abilities}}" wx:key="key" class="signup-row">
+            <text class="signup-row__name">{{item.label}}</text>
+            <text class="ui-meta">{{item.allowedText}}</text>
+          </view>
+        </pv-card>
+
         <pv-card>
           <text class="field__label">新增帳號</text>
           <input class="field__input" value="{{userForm.account}}" data-field="account" bindinput="onUserField" placeholder="帳號（登入用）" />

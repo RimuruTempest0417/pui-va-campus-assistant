@@ -77,6 +77,9 @@ module.exports = {
   handleReport(id, action, removeContent) {
     return http.patch('/admin/reports/' + id, { action: action, removeContent: !!removeContent });
   },
+  permissions() {
+    return http.get('/admin/permissions');
+  },
   audit(limit) {
     return http.get('/admin/audit', { limit: limit || 50 });
   },

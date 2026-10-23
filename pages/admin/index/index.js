@@ -73,6 +73,8 @@ Page({
     reports: [],
     audit: [],
     noticeList: [],
+    showPerms: false,
+    abilities: [],
     sending: false,
     hint: '',
   },
@@ -546,6 +548,20 @@ Page({
   },
 
   // ───────── 審計 ─────────
+  async togglePerms() {
+    const next = !this.data.showPerms;
+    this.setData({ showPerms: next });
+    if (next && !this.data.abilities.length) {
+      try {
+        const res = await admin.permissions();
+        const labels = { STUDENT: '學生', TEACHER: '老師', ADMIN: '資訊管理員', SUPER_ADMIN: '最高權限' };
+        this.setData({ abilities: (res.abilities || []).map((a) => Object.assign({}, a, { allowedText: a.allowed.map((r) => labels[r] || r).join('、') })) });
+      } catch (e) {
+        this.setData({ hint: '讀不到權限表：' + (e.message || e.code) });
+      }
+    }
+  },
+
   async loadAudit() {
     try {
       const res = await admin.audit(50);
