@@ -10,6 +10,7 @@ const TABS = [
   { key: 'stats', label: i18n.pick('概況') },
   { key: 'claims', label: i18n.pick('認領') },
   { key: 'items', label: i18n.pick('失物') },
+  { key: 'trash', label: i18n.pick('垃圾桶') },
   { key: 'events', label: i18n.pick('活動') },
   { key: 'notice', label: i18n.pick('公告') },
   { key: 'users', label: i18n.pick('使用者') },
@@ -26,8 +27,8 @@ const ROLE_TABS = {
   // 校內職員：排菜單＋匯出報名名單。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
   STAFF: ['notice', 'claims', 'menu', 'export'],
   TEACHER: ['notice', 'events'],
-  ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu'],
+  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -88,6 +89,19 @@ Page({
       k141: i18n.pick('發一則公告，或有人報名活動之後，這裡會出現每一筆發送的結果'),
       k142: i18n.pick('（無標題）'),
       k143: i18n.pick('原因：'),
+      // W-40 資源回收桶（新增區塊一律用固定號碼，不要重跑遷移腳本重新編號）
+      k145: i18n.pick('垃圾桶'),
+      k146: i18n.pick('刪掉的公告與下架的失物會先放在這裡，按還原就回到原本的分頁；這裡不做永久刪除。'),
+      k147: i18n.pick('公告'),
+      k148: i18n.pick('失物'),
+      k149: i18n.pick('合計'),
+      k150: i18n.pick('筆'),
+      k151: i18n.pick('刪除時間'),
+      k152: i18n.pick('誰刪的'),
+      k153: i18n.pick('還原'),
+      k154: i18n.pick('垃圾桶是空的'),
+      k155: i18n.pick('刪掉或下架的內容會出現在這裡'),
+      k156: i18n.pick('（未記錄）'),
       k85: i18n.pick("已下架"),
       k86: i18n.pick("拾獲"),
       k87: i18n.pick("遺失"),
@@ -214,6 +228,15 @@ Page({
       { key: 'CLAIMED', label: i18n.pick('已認領') },
       { key: '', label: i18n.pick('全部') },
     ],
+    // W-40 資源回收桶：公告與失物都是軟刪除，這裡看得到、可以還原
+    trashType: 'all',
+    trashFilters: [
+      { key: 'all', label: i18n.pick('全部') },
+      { key: 'notice', label: i18n.pick('公告') },
+      { key: 'item', label: i18n.pick('失物') },
+    ],
+    trashRows: [],
+    trashCounts: { notice: 0, item: 0, all: 0 },
     events: [],
     ci: null, // 現場簽到面板（老師／管理員）
     attendance: null,
@@ -333,6 +356,7 @@ Page({
     if (t === 'stats') p = this.loadStats();
     else if (t === 'claims') p = this.loadClaims();
     else if (t === 'items') p = this.loadItems();
+    else if (t === 'trash') p = this.loadTrash();
     else if (t === 'export') p = this.loadEventsForExport();
     else if (t === 'events') p = this.loadEventsAdmin();
     else if (t === 'users') p = this.loadUsers();
@@ -1125,6 +1149,68 @@ Page({
   pickPushChannel(e) {
     this.setData({ pushChannel: e.currentTarget.dataset.key });
     this.loadPushLogs();
+  },
+
+  // ── W-40 資源回收桶 ──
+  /** 讀取被刪的公告／失物清單。deletedByName 後端已算好（公告讀 deletedBy、失物回推審計） */
+  async loadTrash() {
+    try {
+      const res = await admin.trash(this.data.trashType);
+      const TYPE = { notice: i18n.pick('公告'), item: i18n.pick('失物') };
+      const KIND = {
+        NORMAL: i18n.pick('一般公告'),
+        URGENT: i18n.pick('緊急公告'),
+        CALENDAR: i18n.pick('校曆'),
+      };
+      const ITEM_KIND = { LOST: i18n.pick('遺失'), FOUND: i18n.pick('拾獲') };
+      this.setData({
+        trashRows: (res.items || []).map((x) => {
+          const sub =
+            x.type === 'notice'
+              ? KIND[x.subtitle] || ''
+              : (ITEM_KIND[x.itemType] || '') + (x.subtitle ? ' · ' + x.subtitle : '');
+          return {
+            id: x.id,
+            type: x.type,
+            title: x.title,
+            typeText: TYPE[x.type] || x.type,
+            subText: sub,
+            timeText: fromNow(x.deletedAt),
+            deleterText: x.deletedByName || i18n.pick('（未記錄）'),
+          };
+        }),
+        trashCounts: res.counts || { notice: 0, item: 0, all: 0 },
+      });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到垃圾桶：') + (e.message || e.code) });
+    }
+  },
+
+  pickTrashType(e) {
+    this.setData({ trashType: e.currentTarget.dataset.key });
+    this.loadTab();
+  },
+
+  /** 還原：二次確認後才送出 —— 還原公告等於把它重新公開給全校 */
+  restoreTrash(e) {
+    const id = e.currentTarget.dataset.id;
+    const type = e.currentTarget.dataset.type;
+    const title = e.currentTarget.dataset.title || '';
+    const self = this;
+    wx.showModal({
+      title: i18n.pick('還原這筆內容'),
+      content: title ? i18n.pick('「') + title + i18n.pick('」會立刻恢復顯示，確定嗎？') : i18n.pick('還原後會立刻恢復顯示，確定嗎？'),
+      success(res) {
+        if (!res.confirm) return;
+        admin
+          .restoreTrash(type, id)
+          .then(() => {
+            wx.showToast({ title: i18n.pick('已還原'), icon: 'none' });
+            self.loadTab();
+          })
+          .catch((err) => wx.showToast({ title: (err && err.message) || i18n.pick('還原失敗'), icon: 'none' }));
+      },
+    });
   },
 
   // 同類一次解決：把同一句話在「所有頁面」的錯誤一起標成已解決
