@@ -5,18 +5,18 @@ const { getNav } = require('../../utils/nav');
 
 // 尚未實作的模組先用提示卡，實作後只要改這裡的路徑
 const MODULE_ROUTES = {
-  items: { path: '/pages/items/list/index', ready: true, name: '失物招領' },
-  events: { path: '/pages/events/list/index', ready: true, name: '活動與社團' },
-  menu: { path: '/pages/menu/index/index', ready: true, name: '午餐與小賣部' },
-  notices: { path: '/pages/notices/list/index', ready: true, name: '公告與提示' },
+  items: { path: '/pages/items/list/index', ready: true, name: i18n.pick('失物招領') },
+  events: { path: '/pages/events/list/index', ready: true, name: i18n.pick('活動與社團') },
+  menu: { path: '/pages/menu/index/index', ready: true, name: i18n.pick('午餐與小賣部') },
+  notices: { path: '/pages/notices/list/index', ready: true, name: i18n.pick('公告與提示') },
 };
 
 // 管理後台入口卡的副標：依角色寫出他進去真的做得到的事，避免 STAFF 看到「審核認領」這種他打不開的功能
 const ADMIN_SUB = {
-  TEACHER: '發公告 · 建立活動 · 報名名單',
-  STAFF: '排菜單 · 報名名單',
-  ADMIN: '審核認領 · 發公告 · 排菜單 · 名單',
-  SUPER_ADMIN: '審核認領 · 發公告 · 排菜單 · 名單 · 審計',
+  TEACHER: i18n.pick('發公告 · 建立活動 · 報名名單'),
+  STAFF: i18n.pick('排菜單 · 報名名單'),
+  ADMIN: i18n.pick('審核認領 · 發公告 · 排菜單 · 名單'),
+  SUPER_ADMIN: i18n.pick('審核認領 · 發公告 · 排菜單 · 名單 · 審計'),
 };
 
 const appearance = require('../../utils/appearance');
@@ -108,6 +108,15 @@ Page({
     }
     this._lastRole = cachedRole;
 
+    // 語言在設定頁／自檢頁被改過 → 模組名稱、摘要句都是 refresh() 才算的，必須重抓
+    const localeNow = i18n.locale();
+    if (this._lastLocale !== undefined && this._lastLocale !== localeNow) {
+      this._lastLocale = localeNow;
+      this.refresh();
+      return;
+    }
+    this._lastLocale = localeNow;
+
     const modeNow = data.isDemo();
     if (this._lastDemo !== undefined && this._lastDemo !== modeNow) {
       this._lastDemo = modeNow;
@@ -135,7 +144,7 @@ Page({
     const s = d.student || {};
     return {
       studentId: studentId,
-      nickname: s.nickname || '同學',
+      nickname: s.nickname || i18n.pick('同學'),
       grade: s.grade || '',
       className: s.className || '',
       signupCount: (d.signups || []).length,
@@ -169,7 +178,7 @@ Page({
   setClockFields() {
     this.setData({
       greeting: i18n.greetingByHour(),
-      today: dateKey().slice(5).replace('-', ' 月 ') + ' 日',
+      today: dateKey().slice(5).replace('-', i18n.pick(' 月 ')) + i18n.pick(' 日'),
       weekday: weekday(),
       clock: require('../../utils/date').clock(),
     });
@@ -259,7 +268,7 @@ Page({
         loading: false,
         failed: true,
         updatedAt: '',
-        apiBaseText: (data.apiBase && data.apiBase()) || '未設定',
+        apiBaseText: (data.apiBase && data.apiBase()) || i18n.pick('未設定'),
       });
     } finally {
       if (fromPull) wx.stopPullDownRefresh();
@@ -285,7 +294,7 @@ Page({
     const mod = MODULE_ROUTES[key];
     if (!mod) return;
     if (!mod.ready) {
-      wx.showToast({ title: mod.name + ' 即將推出', icon: 'none' });
+      wx.showToast({ title: mod.name + i18n.pick(' 即將推出'), icon: 'none' });
       return;
     }
     wx.navigateTo({ url: mod.path });

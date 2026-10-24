@@ -1,4 +1,5 @@
 // 後端錯誤碼 → 使用者看得懂的一句話（不要在頁面上顯示 raw code）
+const i18n = require('./i18n');
 const TEXT = {
   UNAUTHORIZED: '請先登入',
   FORBIDDEN: '你沒有這個操作的權限',
@@ -17,8 +18,8 @@ const TEXT = {
 function messageOf(err) {
   if (!err) return TEXT.INTERNAL;
   const code = err.code || (err.error && err.error.code);
-  if (code && TEXT[code]) return TEXT[code];
-  return (err.message || TEXT.INTERNAL).toString().slice(0, 80);
+  if (code && TEXT[code]) return i18n.pick(TEXT[code]);
+  return (err.message || i18n.pick(TEXT.INTERNAL)).toString().slice(0, 80);
 }
 
 function codeOf(err) {

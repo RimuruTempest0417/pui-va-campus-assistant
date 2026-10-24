@@ -111,7 +111,7 @@ Page({
 
       this.setData({
         children: children,
-        tabs: children.map((c) => ({ key: c.studentId, label: c.nickname || '同學' })),
+        tabs: children.map((c) => ({ key: c.studentId, label: c.nickname || i18n.pick('同學') })),
         activeId: activeId,
         loading: false,
         failed: false,
@@ -159,7 +159,7 @@ Page({
 
       const signups = (detail.signups || []).map((s) => Object.assign({}, s, {
         timeText: s.event && s.event.startAt ? dateTimeText(s.event.startAt) : '',
-        statusLabel: s.status === 'CONFIRMED' ? '已報名' : '候補第 ' + (s.waitlistPos || 0) + ' 位',
+        statusLabel: s.status === 'CONFIRMED' ? i18n.pick('已報名') : i18n.pick('候補第 ') + (s.waitlistPos || 0) + i18n.pick(' 位'),
         tagType: s.status === 'CONFIRMED' ? 'success' : 'warning',
       }));
 
@@ -174,7 +174,7 @@ Page({
         .slice(0, 5)
         .map((e) => Object.assign({}, e, {
           timeText: e.startAt ? dateTimeText(e.startAt) : '',
-          capText: e.capacity > 0 ? '剩 ' + (e.remaining == null ? 0 : e.remaining) + ' 位' : '不限名額',
+          capText: e.capacity > 0 ? i18n.pick('剩 ') + (e.remaining == null ? 0 : e.remaining) + i18n.pick(' 位') : i18n.pick('不限名額'),
           full: e.capacity > 0 && e.remaining === 0,
         }));
 
@@ -200,7 +200,7 @@ Page({
     try {
       const rec = await data.parentSignupEvent(this.data.activeId, eventId);
       wx.showToast({
-        title: rec.status === 'WAITLIST' ? '已額滿，代為候補第 ' + rec.waitlistPos + ' 位' : '已代為報名',
+        title: rec.status === 'WAITLIST' ? i18n.pick('已額滿，代為候補第 ') + rec.waitlistPos + i18n.pick(' 位') : i18n.pick('已代為報名'),
         icon: 'none',
       });
       await this.loadChild(this.data.activeId);
@@ -216,7 +216,7 @@ Page({
     this.setData({ submitting: true });
     try {
       const res = await data.parentCancelSignup(this.data.activeId, eventId);
-      wx.showToast({ title: res.promoted ? '已取消，已為候補者補位' : '已取消', icon: 'none' });
+      wx.showToast({ title: res.promoted ? i18n.pick('已取消，已為候補者補位') : i18n.pick('已取消'), icon: 'none' });
       await this.loadChild(this.data.activeId);
     } catch (err) {
       this.setData({ submitting: false });

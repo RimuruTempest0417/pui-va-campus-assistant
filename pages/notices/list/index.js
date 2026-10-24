@@ -13,6 +13,10 @@ Page({
       k04: i18n.pick("目前沒有公告"),
       k05: i18n.pick("重要通知會出現在這裡"),
       k06: i18n.pick("置頂"),
+      // DICT 共用鍵：onShow 會整個覆蓋 L，漏在這裡就會變空字串（v0.37.0 修）
+      list: i18n.t('common.list'),
+      calendar: i18n.t('common.calendar'),
+      allRead: i18n.t('common.allRead'),
     };
   },
 
@@ -20,7 +24,6 @@ Page({
     themeClass: appearance.themeClass(), loading: true, refreshing: false, failed: false, errorText: '', items: [], unread: 0 },
 
   onLoad() {
-    this.setData({ L: { list: i18n.t('common.list'), calendar: i18n.t('common.calendar'), allRead: i18n.t('common.allRead') } });
     this.load();
   },
 

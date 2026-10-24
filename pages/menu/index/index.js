@@ -30,7 +30,7 @@ Page({
     errorText: '',
     refreshing: false,
     offset: 0,
-    weekLabelText: '本週',
+    weekLabelText: i18n.pick('本週'),
     rangeText: '',
     days: [],
     top: [],

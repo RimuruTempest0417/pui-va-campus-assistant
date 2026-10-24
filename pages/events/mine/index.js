@@ -39,7 +39,7 @@ Page({
       const res = await data.mySignups();
       const items = (res.items || []).map((x) => Object.assign({}, x, {
         timeText: x.startAt ? dateTimeText(x.startAt) : '',
-        statusLabel: x.status === 'CONFIRMED' ? '已報名' : '候補中',
+        statusLabel: x.status === 'CONFIRMED' ? i18n.pick('已報名') : i18n.pick('候補中'),
         tagType: x.status === 'CONFIRMED' ? 'success' : 'warning',
         checkedIn: !!x.checkedInAt,
         canCheckIn: x.status === 'CONFIRMED' && !x.checkedInAt,
@@ -59,7 +59,7 @@ Page({
     const id = e.currentTarget.dataset.id;
     try {
       const res = await data.cancelSignup(id);
-      wx.showToast({ title: res.promoted ? '已取消，已為候補者補位' : '已取消', icon: 'none' });
+      wx.showToast({ title: res.promoted ? i18n.pick('已取消，已為候補者補位') : i18n.pick('已取消'), icon: 'none' });
       this.load();
     } catch (err) {
       wx.showToast({ title: data.messageOf(err), icon: 'none' });

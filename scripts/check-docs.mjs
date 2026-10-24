@@ -38,6 +38,13 @@ const publishVer = (publish.match(/\| 微信上傳（教育版） \| \*\*(\d+\.\
 
 if (badge !== latest) errors.push(`README 版本徽章 ${badge || '(無)'} ≠ 最新 release ${latest}`);
 if (publishVer !== latest) errors.push(`發佈與上傳的版本 ${publishVer || '(無)'} ≠ 最新 release ${latest}`);
+// 1b. 小程序執行期顯示的版號（config.VERSION，設定頁「關於」）也要跟得上，否則使用者看到的版本是舊的
+{
+  const cfg = read('config/config.js');
+  const appVer = (cfg.match(/VERSION:\s*'(\d+\.\d+\.\d+)'/) || [])[1];
+  if (!appVer) errors.push('config/config.js 找不到 VERSION（設定頁的版本號來源）');
+  else if (appVer !== latest) errors.push(`config.VERSION ${appVer} ≠ 最新 release ${latest}（使用者在小程序「關於」看到的是這個）`);
+}
 
 // ── 2) 規劃書現況版本 ──
 const plan = read('docs/規劃書-待完成.md');

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// 一鍵驗收：把五支守門腳本串起來跑完並彙總（夜間隊列 #10）。
+// 一鍵驗收：把六支守門腳本串起來跑完並彙總（夜間隊列 #10）。
 //
 // 用法：
-//   node scripts/verify-all.mjs                # 五項全跑（console 需要開發者工具開著本專案）
-//   node scripts/verify-all.mjs --no-console   # 只跑不需要 DevTools 的四項（改文件／CI 用）
+//   node scripts/verify-all.mjs                # 全跑（console 需要開發者工具開著本專案）
+//   node scripts/verify-all.mjs --no-console   # 只跑不需要 DevTools 的五項（改文件／CI 用）
 //   node scripts/verify-all.mjs --strict       # 略過也算不通過（交付前、要簽名的驗收用這個）
 //   node scripts/verify-all.mjs --only project,data
 //   node scripts/verify-all.mjs --verbose      # 每一步都印完整輸出（預設只在失敗時印）
@@ -32,6 +32,7 @@ const STEPS = [
   { key: 'states', label: '三態一致', script: 'check-states.mjs', args: [], highlight: /空／載入／失敗狀態：[^\n]*/ },
   { key: 'data', label: '資料層', script: 'check-data-layer.mjs', args: [], highlight: /\b(?:ALL PASS|FAIL) \d+\/\d+\b/ },
   { key: 'docs', label: '文件一致性', script: 'check-docs.mjs', args: [], highlight: /✅ 文件一致性通過[^\n]*/ },
+  { key: 'i18n', label: '繁簡介面', script: 'check-i18n.mjs', args: [], highlight: /✅ 繁簡介面檢查通過[^\n]*/ },
   // console 走查要對齊「0 error／0 warn」的驗收標準，所以預設把 warn 也算不通過
   { key: 'console', label: 'console 走查', script: 'check-console.mjs', args: ['--warn'], needsIde: true, highlight: /console 走查：[^\n]*/ },
 ];
