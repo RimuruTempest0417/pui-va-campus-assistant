@@ -1898,9 +1898,20 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object }
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                content: { type: string }
+                kind: { type: string, enum: [NORMAL, URGENT, CALENDAR] }
+                isPinned: { type: boolean }
+                expiresAt: { type: string, format: date-time, nullable: true }
+                version:
+                  type: integer
+                  description: 'W-42 樂觀鎖：帶回讀到的版本；不符回 409，不帶＝舊客戶端（相容，照樣成功並遞增）'
       responses:
         '200': { description: 已更新 }
+        '409': { description: '版本衝突（別人先改過），請重新載入後再存' }
     delete:
       tags: [admin]
       summary: 刪除公告
@@ -2117,8 +2128,27 @@ paths:
       tags: [admin]
       summary: 修改活動（含取消／延期 postpone）
       security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                location: { type: string }
+                startAt: { type: string, format: date-time }
+                capacity: { type: integer, description: '0 = 不限' }
+                status: { type: string, enum: [DRAFT, PUBLISHED, CANCELLED, FINISHED] }
+                postpone: { type: boolean, description: '延期：改 startAt 時一起帶，會記下原定時間' }
+                teamsEnabled: { type: boolean }
+                version:
+                  type: integer
+                  description: 'W-42 樂觀鎖：帶回讀到的版本；不符回 409，不帶＝舊客戶端（相容，照樣成功並遞增）'
       responses:
         '200': { description: OK }
+        '409': { description: '版本衝突（別人先改過），請重新載入後再存' }
 
   /admin/users:
     post:
@@ -2395,6 +2425,9 @@ components:
         capacity: { type: integer, description: '0 = 不限' }
         signedCount: { type: integer }
         status: { type: string, enum: [DRAFT, PUBLISHED, CANCELLED, FINISHED] }
+        version:
+          type: integer
+          description: 'W-42 編輯衝突保護：每次成功修改 +1，PATCH 時帶回讀到的值'
 
     EventSignup:
       type: object
@@ -2434,3 +2467,6 @@ components:
         coverImage: { type: string, nullable: true }
         publishedAt: { type: string, format: date-time }
         expiresAt: { type: string, format: date-time, nullable: true }
+        version:
+          type: integer
+          description: 'W-42 編輯衝突保護：每次成功修改 +1，PATCH 時帶回讀到的值'
