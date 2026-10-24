@@ -25,8 +25,8 @@
       <!-- 概況 -->
       <block wx:elif="{{tab === 'stats'}}">
         <view class="ov-head">
-          <text class="ov-head__title">{{L.k100}}</text>
-          <text class="ov-head__hint">{{L.k102}}</text>
+          <text class="ov-head__title">{{L.k157}}</text>
+          <text class="ov-head__hint">{{L.k159}}</text>
         </view>
         <view class="ov-grid">
           <view wx:for="{{ovCards}}" wx:key="key"
@@ -41,7 +41,7 @@
           </view>
         </view>
 
-        <text class="ov-section">{{L.k101}}</text>
+        <text class="ov-section">{{L.k158}}</text>
         <view class="stat-grid">
           <view class="stat"><text class="stat__num">{{stats.users}}</text><text class="stat__label">{{L.k04}}</text></view>
           <view class="stat"><text class="stat__num">{{stats.items.open}}</text><text class="stat__label">{{L.k05}}</text></view>
@@ -292,9 +292,9 @@
         <view wx:for="{{users}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.nickname || item.openid}}</text>
-            <pv-tag text="{{item.role}} Lv{{item.level}}" type="{{item.bannedAt ? 'danger' : 'neutral'}}" />
+            <pv-tag text="{{item.role}} Lv{{item.level}}" type="{{(item.bannedAt || item.locked) ? 'danger' : 'neutral'}}" />
           </view>
-          <text class="ui-meta">{{item.openid}}{{item.bannedAt ? L.k111 : ''}}{{item.lastLoginAt ? L.k112 + item.lastLoginAt : ''}}</text>
+          <text class="ui-meta">{{item.openid}}{{item.bannedAt ? L.k111 : ''}}{{item.locked ? L.k160 : ''}}{{item.lastLoginText ? L.k112 + item.lastLoginText : ''}}</text>
 
           <view wx:if="{{item.canManage}}" class="row-actions">
             <block wx:for="{{roles}}" wx:for-item="r" wx:key="key">
@@ -327,6 +327,7 @@
           <view wx:if="{{item.canManage}}" class="row-actions">
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="startEdit">{{L.k56}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="resetPassword">{{L.k57}}</pv-button>
+            <pv-button wx:if="{{item.locked}}" size="sm" type="plain" data-id="{{item.id}}" bind:tap="unlockUser">{{L.k161}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-banned="{{item.bannedAt ? '1' : '0'}}" bind:tap="toggleBan">
               {{item.bannedAt ? L.k109 : L.k113}}
             </pv-button>

@@ -101,6 +101,10 @@ module.exports = {
   setBanned(id, banned) {
     return http.patch('/admin/users/' + id + '/ban', { banned: banned });
   },
+  // W-41：解除登入失敗鎖定
+  unlockUser(id) {
+    return http.post('/admin/users/' + id + '/unlock', {});
+  },
   reports(status) {
     return http.get('/admin/reports', { status: status || 'PENDING' });
   },
