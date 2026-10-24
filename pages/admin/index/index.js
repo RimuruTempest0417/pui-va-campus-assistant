@@ -44,6 +44,34 @@ const ROLES = [
 
 const appearance = require('../../../utils/appearance');
 
+/**
+ * W-42：編輯衝突保護的共用收尾。
+ *
+ * `CONFLICT` 代表「別人先存過了」—— 提示後**重抓清單**，但**不把這次的修改偷偷重送**：
+ * 偷偷重送就等於讓後存的人蓋掉前一位，正是這道鎖要擋掉的事。
+ */
+function onWriteError(err, reload) {
+  if (err && err.code === 'CONFLICT') {
+    wx.showModal({
+      title: i18n.pick('這筆剛被別人改過'),
+      content: i18n.pick('你看到的不是最新版本，已重新載入，請確認後再操作一次。'),
+      showCancel: false,
+    });
+    if (typeof reload === 'function') reload();
+    return;
+  }
+  wx.showToast({ title: (err && err.message) || i18n.pick('操作失敗'), icon: 'none' });
+}
+
+/**
+ * W-42：WXML 的 `data-version` 一律是字串（甚至可能是 undefined），
+ * 只有真的是數字才放進 payload；沒有就不帶欄位＝後端維持舊行為（相容）。
+ */
+function versionPatch(dataset) {
+  const v = Number((dataset || {}).version);
+  return Number.isFinite(v) ? { version: v } : {};
+}
+
 Page({
   labels() {
     return {
@@ -826,11 +854,12 @@ Page({
     const { id, status } = e.currentTarget.dataset;
     const next = status === 'CANCELLED' ? 'PUBLISHED' : 'CANCELLED';
     try {
-      await admin.updateEvent(id, { status: next });
+      // W-42：帶上清單讀到的 version（取消會通知報名者，更不能蓋掉別人的改動）
+      await admin.updateEvent(id, { status: next, ...versionPatch(e.currentTarget.dataset) });
       wx.showToast({ title: next === 'CANCELLED' ? i18n.pick('已取消') : i18n.pick('已恢復'), icon: 'success' });
       this.loadEventsAdmin();
     } catch (err) {
-      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
+      onWriteError(err, () => this.loadEventsAdmin());
     }
   },
 
@@ -1370,10 +1399,11 @@ Page({
   async togglePin(e) {
     const { id, pinned } = e.currentTarget.dataset;
     try {
-      await admin.updateNotice(id, { isPinned: pinned !== '1' });
+      // W-42：帶上清單讀到的 version；別人先改過就回 409（不再靜默覆蓋）
+      await admin.updateNotice(id, { isPinned: pinned !== '1', ...versionPatch(e.currentTarget.dataset) });
       this.loadNoticeList();
     } catch (err) {
-      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
+      onWriteError(err, () => this.loadNoticeList());
     }
   },
 

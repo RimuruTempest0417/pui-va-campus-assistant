@@ -154,7 +154,7 @@
             <pv-tag text="{{item.kind === 'URGENT' ? L.k88 : item.kind === 'CALENDAR' ? L.k89 : L.k90}}" type="{{item.kind === 'URGENT' ? 'danger' : 'neutral'}}" />
           </view>
           <view class="row-actions">
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-pinned="{{item.isPinned ? '1' : '0'}}" bind:tap="togglePin">
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-pinned="{{item.isPinned ? '1' : '0'}}" data-version="{{item.version}}" bind:tap="togglePin">
               {{item.isPinned ? L.k91 : L.k92}}
             </pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteNotice">{{L.k22}}</pv-button>
@@ -246,7 +246,7 @@
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventStats">{{L.k39}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventCheckin">{{L.k40}}</pv-button>
             <pv-button size="sm" type="plain" data-kind="event" data-id="{{item.id}}" bind:tap="openPrint">{{L.k127}}</pv-button>
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-status="{{item.status}}" bind:tap="toggleEventStatus">
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-status="{{item.status}}" data-version="{{item.version}}" bind:tap="toggleEventStatus">
               {{item.status === 'CANCELLED' ? L.k109 : L.k110}}
             </pv-button>
           </view>

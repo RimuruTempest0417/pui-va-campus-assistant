@@ -594,6 +594,32 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   }
 }
 
+// 18) W-42：每個「改公告／改活動」的呼叫都要帶 version
+//     帶了才會做樂觀鎖比對；漏一個呼叫端，那條路徑就會繼續靜默覆蓋別人的修改，
+//     而畫面、console、測試都不會有意見（後端把「不帶 version」視為舊客戶端而放行）。
+//     用文字掃描而不是型別檢查：payload 是物件字面值，型別上 version 是選填，抓不到。
+{
+  const walkJs = (dir, out) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walkJs(full, out);
+      else if (e.name.endsWith('.js')) out.push(full);
+    }
+    return out;
+  };
+  const files = existsSync(join(root, 'pages')) ? walkJs(join(root, 'pages'), []) : [];
+  const CALL = /\badmin\.(updateNotice|updateEvent)\(([\s\S]{0,240}?)\)\s*;/g;
+  for (const file of files) {
+    const src = readFileSync(file, 'utf8');
+    for (const m of src.matchAll(CALL)) {
+      if (!/\bversion(Patch)?\b/.test(m[2])) {
+        const line = src.slice(0, m.index).split('\n').length;
+        errors.push(`${file.slice(root.length + 1)}:${line} 呼叫 admin.${m[1]}() 沒帶 version（編輯衝突保護會失效，別人先改過的內容會被靜默蓋掉）`);
+      }
+    }
+  }
+}
+
 for (const w of warnings) console.warn(`⚠️  ${w}`);
 if (errors.length) {
   for (const e of errors) console.error(`❌ ${e}`);
