@@ -4,7 +4,6 @@ const http = require('../utils/request');
 module.exports = {
   login(account, password, code) {
     return http.post('/admin/login', { account: account, password: password, code: code || undefined }, { auth: false });
-  }, { auth: false });
   },
   stats() {
     return http.get('/admin/stats');

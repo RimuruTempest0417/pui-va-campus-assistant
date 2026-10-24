@@ -1,3 +1,4 @@
+const i18n = require('../../../utils/i18n');
 const admin = require('../../../services/admin');
 const request = require('../../../utils/request');
 const config = require('../../../config/config');
@@ -37,7 +38,6 @@ const ROLES = [
   { key: 'ADMIN', level: 3, label: i18n.pick('資訊管理員') },
 ];
 
-const i18n = require('../../../utils/i18n');
 
 const appearance = require('../../../utils/appearance');
 
