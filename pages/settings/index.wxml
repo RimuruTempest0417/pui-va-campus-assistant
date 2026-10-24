@@ -56,6 +56,17 @@
             </view>
           </block>
 
+          <block wx:if="{{tfaBackupCodes.length}}">
+            <text class="set-hint">{{L.k44}}</text>
+            <view class="codes">
+              <text wx:for="{{tfaBackupCodes}}" wx:key="*this" class="codes__item">{{item}}</text>
+            </view>
+            <view class="set-actions">
+              <text class="set-link" catchtap="copyBackupCodes">{{L.k45}}</text>
+              <text class="set-link" catchtap="hideBackupCodes">{{L.k46}}</text>
+            </view>
+          </block>
+
           <block wx:if="{{tfaEnabled}}">
             <input class="set-input" value="{{tfaPassword}}" password
                    placeholder="{{L.k41}}" bindinput="onTfaPassword" />

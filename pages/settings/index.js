@@ -49,6 +49,9 @@ Page({
       k41: i18n.pick("輸入登入密碼以關閉"),
       k42: i18n.pick("處理中…"),
       k43: i18n.pick("關閉兩步驗證"),
+      k44: i18n.pick("備用碼（只顯示這一次，請抄下來或複製收好；每組只能用一次）"),
+      k45: i18n.pick("複製全部"),
+      k46: i18n.pick("我已保存"),
 
     };
   },
@@ -72,6 +75,7 @@ Page({
     tfaEnabled: false,
     tfaCodesLeft: 0,
     tfaSetup: null,        // { secret, otpauth, backupCodes }
+    tfaBackupCodes: [],    // 啟用成功後要「只顯示一次」的備用碼
     tfaCode: '',
     tfaPassword: '',
     tfaBusy: false,
@@ -166,8 +170,10 @@ Page({
     if (this.data.tfaBusy) return;
     this.setData({ tfaBusy: true });
     try {
+      const pending = (this.data.tfaSetup && this.data.tfaSetup.backupCodes) || [];
       await adminApi.twoFactorEnable(String(this.data.tfaCode || '').trim());
-      this.setData({ tfaSetup: null, tfaCode: '' });
+      // 備用碼只會出現這一次：留在畫面上給使用者抄／複製，並提示收好
+      this.setData({ tfaSetup: null, tfaCode: '', tfaBackupCodes: pending });
       await this.loadTwoFactor();
       wx.showToast({ title: i18n.pick('已開啟兩步驗證'), icon: 'success' });
     } catch (e) {
@@ -194,6 +200,16 @@ Page({
     } finally {
       this.setData({ tfaBusy: false });
     }
+  },
+
+  copyBackupCodes() {
+    const codes = this.data.tfaBackupCodes || [];
+    if (!codes.length) return;
+    wx.setClipboardData({ data: codes.join('\n') });
+  },
+
+  hideBackupCodes() {
+    this.setData({ tfaBackupCodes: [] });
   },
 
   copySecret() {
