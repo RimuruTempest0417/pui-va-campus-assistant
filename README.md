@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.40.0-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.41.0-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -94,8 +94,8 @@
 │   ├── check-i18n.mjs                    # 繁簡介面守門（pick 抽樣／對照表殘留／L.* 供應）
 │   ├── i18n-js-scan.mjs／i18n-wrap-js.mjs # 掃出／包裝頁面 JS 的中文字面值（W-20b 工具）
 │   ├── build-i18n-phrases.py             # 用 opencc tw2sp 重建繁→簡對照表
-│   ├── check-states.mjs                  # 21 頁三態（載入／空／失敗）對照表守門
-│   ├── check-console.mjs                 # 21 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
+│   ├── check-states.mjs                  # 22 頁三態（載入／空／失敗）對照表守門
+│   ├── check-console.mjs                 # 22 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
 │   └── verify-all.mjs                    # 一鍵驗收：上面四支串起來跑完並彙總（失敗貼完整輸出）
 ├── docs/
 │   ├── 01-藍圖與評分對標.md
@@ -126,11 +126,11 @@ node scripts/package.mjs     # → dist/pui-va-campus-assistant-vX.Y.Z.zip
 node scripts/verify-all.mjs        # 4 通過／0 失敗；--no-console 跳過走查、--strict 讓略過也算失敗
 
 # 也可以單獨跑（CI 也會跑）
-node scripts/check-project.mjs     # 21 頁面 / 0 警告
+node scripts/check-project.mjs     # 22 頁面 / 0 警告
 node scripts/check-openapi.mjs     # 52 條路徑／59 個操作、0 重複鍵（--parity 印出與後端路由表的差）
 node scripts/check-data-layer.mjs  # ALL PASS 65/65（固定跑示範資料層，含 data↔api↔mock 方法對齊）
-node scripts/check-states.mjs      # 21 頁三態全部符合（--table 印出對照表）
-node scripts/check-console.mjs     # 21 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
+node scripts/check-states.mjs      # 22 頁三態全部符合（--table 印出對照表）
+node scripts/check-console.mjs     # 22 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
 ```
 
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄
@@ -171,7 +171,7 @@ node scripts/check-console.mjs     # 21 頁 console 走查：0 error／0 warn（
 - [x] **失物智能匹配**（pg_trgm 加權評分 + 詳情頁「可能是你的東西」）
 - [x] 後端 e2e（真實 Postgres，27 項，含 20 併發超賣壓測）
 - [x] **載入／空／失敗三態一致（v0.26.2）**：21 頁對照表（`scripts/check-states.mjs` 守門）；我的發布／我的報名補載入骨架；21 頁補「載入失敗＋重試」；詳情頁把 404 與斷網分開（不再把後端掛掉說成「資料已被刪除」）；後台分頁載入骨架＋讀取失敗卡片
-- [x] **21 頁 console 走查（v0.26.3）**：`utils/diagnostics.js` 把 `console.error`／`warn` 收進 storage `pv_diag`，`scripts/check-console.mjs` 逐頁「清空→開頁→輪詢到載入完→讀回」；21 頁 **0 error／0 warn**，每頁另印「內容筆數」防空綠（`get_simulator_console` 實測回不到執行期輸出，用它會變成假綠）
+- [x] **22 頁 console 走查（v0.26.3）**：`utils/diagnostics.js` 把 `console.error`／`warn` 收進 storage `pv_diag`，`scripts/check-console.mjs` 逐頁「清空→開頁→輪詢到載入完→讀回」；21 頁 **0 error／0 warn**，每頁另印「內容筆數」防空綠（`get_simulator_console` 實測回不到執行期輸出，用它會變成假綠）
 - [x] **家長頁的「進不來」分成三態（v0.26.4）**：學生／老師／職員打開「我的子女」時後端回 403，原本畫成「載入失敗＋重試」（重試永遠是 403）；現在 403 給說明型空狀態（回首頁／切換帳號、不給重試）、401 給「去登入」、只有真的斷網才給重試
 - [x] **顏色只剩一個來源（v0.26.5／後端 v0.12.5）**：12 個 wxss 的 `#fff`／`rgba()` 全換成 token（新增 `--pv-on-tint`／`--pv-scrim`／`--pv-shadow` 等 12 個）；WXML 屬性用的字面色改由 `utils/theme.js` 提供並與 tokens 比對；`switch` 從上版殘留的綠 `#17694a` 改回培華紫；網頁後台整套由綠 `#17694a` 換成 `#6D3FC4`。守門加三條：寫死色值／用了未定義的 `--pv-*`／theme.js 與 tokens 不一致 → 一加就抓到 4 個靜默失效的變數（星評永遠灰、後台統計數字變黑等）
 - [x] **線上環境漂移修復（後端 v0.12.4）**：Neon 正式庫補 4 支 migration（`event_signups.checkedInAt` 等），帶 token 的 `GET /events/mine`／`GET /events/:id` 由 **500 修回 200**；後端 repo 加 `npm run check:drift`，把「本機 migration↔Neon／health／端點行為／部署 commit」四邊對一次，漂移不再只能等使用者回報
