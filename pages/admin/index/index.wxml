@@ -24,6 +24,24 @@
 
       <!-- 概況 -->
       <block wx:elif="{{tab === 'stats'}}">
+        <view class="ov-head">
+          <text class="ov-head__title">{{L.k100}}</text>
+          <text class="ov-head__hint">{{L.k102}}</text>
+        </view>
+        <view class="ov-grid">
+          <view wx:for="{{ovCards}}" wx:key="key"
+                class="ov-card {{ovPressed === index ? 'ov-card--pressed' : ''}}"
+                data-key="{{item.target}}" data-i="{{index}}"
+                bindtap="switchTab" bindtouchstart="ovDown" bindtouchend="ovUp" bindtouchcancel="ovUp">
+            <view class="ov-card__top">
+              <text class="ov-card__num">{{item.value}}</text>
+              <text class="ov-card__go">›</text>
+            </view>
+            <text class="ov-card__label">{{item.label}}</text>
+          </view>
+        </view>
+
+        <text class="ov-section">{{L.k101}}</text>
         <view class="stat-grid">
           <view class="stat"><text class="stat__num">{{stats.users}}</text><text class="stat__label">{{L.k04}}</text></view>
           <view class="stat"><text class="stat__num">{{stats.items.open}}</text><text class="stat__label">{{L.k05}}</text></view>

@@ -1209,6 +1209,33 @@ paths:
                       avg: { type: number, format: float }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /admin/stats/overview:
+    get:
+      tags: [admin]
+      summary: 後台統計首頁五張數字卡（需 stats:read）
+      description: >-
+        本週＝滾動近 7 天。回傳五個即時 count：本週新使用者、本週報名（正取＋候補，不含已取消）、
+        待審認領、未解決錯誤、未認領失物（已下架不計）。
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  week:
+                    type: object
+                    properties:
+                      from: { type: string, format: date-time }
+                      to: { type: string, format: date-time }
+                  usersNew7d: { type: integer }
+                  signups7d: { type: integer }
+                  claimsPending: { type: integer }
+                  errorsOpen: { type: integer }
+                  itemsOpen: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /dishes/{id}:
     parameters:
       - { in: path, name: id, required: true, schema: { type: string } }

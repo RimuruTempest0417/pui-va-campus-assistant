@@ -8,6 +8,10 @@ module.exports = {
   stats() {
     return http.get('/admin/stats');
   },
+  // 後台第一屏五張卡（本週新使用者／本週報名／待審認領／未解決錯誤／未認領失物）
+  statsOverview() {
+    return http.get('/admin/stats/overview');
+  },
   items(status) {
     return http.get('/admin/items', status ? { status: status } : {});
   },
