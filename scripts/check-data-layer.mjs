@@ -367,6 +367,15 @@ check('簽到：我的報名帶簽到時間',
   check('回饋：平均分有算', typeof after.avg === 'number' && after.avg > 0, String(after.avg));
 }
 
+
+// ── W-30 組隊報名（示範模式） ──
+{
+  const team = await data.createTeam('e7', '測試隊');
+  check('組隊：建隊拿到邀請碼', !!(team && team.code && team.code.length === 6), team && team.code);
+  const list = await data.eventTeams('e7');
+  check('組隊：隊伍列表看得到自己', list.teams.some((t) => t.name === '測試隊' && t.mine), `${list.teams.length} 隊`);
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

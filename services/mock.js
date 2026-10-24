@@ -108,7 +108,8 @@ function seed() {
         signedCount: 0,
         status: 'PUBLISHED',
         groups: ['甲組', '乙組'],
-        description: '按班別分甲乙兩組，報名時請選組別。',
+        teamsEnabled: true,
+        description: '按班別分甲乙兩組，報名時請選組別；也可以組隊報名。',
       },
     ],
     signups: [], // { id, eventId, userId, status: CONFIRMED|WAITLIST, waitlistPos, createdAt, checkedInAt }
@@ -827,5 +828,17 @@ module.exports = {
     this.__feedback = (this.__feedback || []).filter((x) => !(x.eventId === eventId && x.mine));
     this.__feedback.push({ eventId, rating, comment, mine: true, nickname: '我', createdAt: new Date().toISOString() });
     return Promise.resolve({ ok: true });
+  },
+
+  // ── W-30 示範組隊 ──
+  eventTeams(eventId) {
+    const rows = (this.__teams || []).filter((t) => t.eventId === eventId);
+    return Promise.resolve({ teams: rows.map((t) => ({ id: t.id, name: t.name, members: t.members || 1, mine: !!t.mine, code: t.mine ? t.code : null })) });
+  },
+  createTeam(eventId, name) {
+    const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+    this.__teams = this.__teams || [];
+    this.__teams.push({ id: 't' + this.__teams.length, eventId, name, code, mine: true, members: 1 });
+    return Promise.resolve({ id: 't', name, code });
   },
 };

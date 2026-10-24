@@ -57,3 +57,12 @@
 .share-card { margin-top: var(--pv-sp-3); padding: var(--pv-sp-3); border-radius: var(--pv-r-lg); background: var(--pv-tint); text-align: center; }
 .share-card__text { color: var(--pv-on-tint); font-size: var(--pv-fs-callout); font-weight: 600; }
 .share-canvas { position: fixed; left: -9999rpx; top: 0; width: 600px; height: 800px; }
+
+/* W-30 組隊 */
+.team-card { margin-top: var(--pv-sp-3); background: var(--pv-surface); border-radius: var(--pv-r-lg); padding: var(--pv-sp-3); }
+.team-title { display: block; font-size: var(--pv-fs-callout); font-weight: 600; color: var(--pv-label); }
+.team-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: var(--pv-sp-2) 0; border-bottom: 1rpx solid var(--pv-sep); }
+.team-row__name { font-size: var(--pv-fs-subhead); color: var(--pv-label); font-weight: 600; }
+.team-row__meta { font-size: var(--pv-fs-footnote); color: var(--pv-label-3); }
+.team-empty { display: block; margin-top: var(--pv-sp-2); font-size: var(--pv-fs-footnote); color: var(--pv-label-3); }
+.team-picked { display: block; margin-top: var(--pv-sp-2); font-size: var(--pv-fs-footnote); color: var(--pv-tint); }

@@ -23,6 +23,11 @@ Page({
       k24: i18n.pick("未簽到"),
       k25: i18n.pick("出席紀錄已送出"),
       k26: i18n.pick("到現場掃老師的簽到碼"),
+      k61: i18n.pick('組隊報名'),
+      k62: i18n.pick('還沒有人建隊，你可以當第一個'),
+      k63: i18n.pick('建立隊伍'),
+      k64: i18n.pick('用邀請碼加入'),
+      k65: i18n.pick('已選隊伍，邀請碼：'),
       k56: i18n.pick('活動回饋'),
       k57: i18n.pick('目前還沒有人評分，你可以當第一個'),
       k58: i18n.pick('想跟主辦說的話（可不填）'),
@@ -61,6 +66,8 @@ Page({
     fbDraft: 5,
     fbComment: '',
     canFeedback: false,
+    teams: [],
+    pickedTeamCode: '',
     failed: false,
     errorText: '',
     barText: '',
@@ -96,6 +103,7 @@ Page({
         ),
       );
       if (ev.ended) this.loadFeedback();
+      if (ev.teamsEnabled) this.loadTeams();
     } catch (e) {
       this.setData({
         loading: false,
@@ -104,6 +112,8 @@ Page({
     fbDraft: 5,
     fbComment: '',
     canFeedback: false,
+    teams: [],
+    pickedTeamCode: '',
         pickedGroup: '',
         failed: codeOf(e) !== 'NOT_FOUND',
         errorText: data.messageOf(e),
@@ -153,7 +163,7 @@ Page({
         wx.showToast({ title: i18n.pick('已取消'), icon: 'success' });
       } else {
         await subscribe.request('event'); // 模板 ID 未填就自動跳過
-        const rec = await data.signupEvent(ev.id, this.data.pickedGroup || null);
+        const rec = await data.signupEvent(ev.id, this.data.pickedGroup || null, this.data.pickedTeamCode || null);
         if (rec.status === 'WAITLIST') {
           wx.showToast({ title: i18n.pick('已額滿，候補第 ') + rec.waitlistPos + i18n.pick(' 位'), icon: 'none' });
         } else {
@@ -248,5 +258,50 @@ Page({
           fail: () => wx.showToast({ title: i18n.pick('產生失敗'), icon: 'none' }),
         });
       });
+  },
+
+  loadTeams() {
+    data
+      .eventTeams(this.id)
+      .then((r) => this.setData({ teams: (r && r.teams) || [] }))
+      .catch(() => {});
+  },
+
+  /** 點自己隊伍的邀請碼 → 直接用這組碼報名 */
+  useTeamCode(e) {
+    const code = e.currentTarget.dataset.code;
+    if (code) this.setData({ pickedTeamCode: code });
+  },
+
+  createTeam() {
+    wx.showModal({
+      title: i18n.pick('建立隊伍'),
+      editable: true,
+      placeholderText: i18n.pick('隊名，例如：3A 火箭隊'),
+      success: async (r) => {
+        if (!r.confirm || !r.content) return;
+        try {
+          const team = await data.createTeam(this.id, r.content.trim());
+          this.setData({ pickedTeamCode: team.code });
+          wx.showModal({ title: i18n.pick('隊伍已建立'), content: i18n.pick('邀請碼：') + team.code + i18n.pick('，可以按下方按鈕報名'), showCancel: false });
+          this.loadTeams();
+        } catch (err) {
+          wx.showToast({ title: data.messageOf(err), icon: 'none' });
+        }
+      },
+    });
+  },
+
+  joinByCode() {
+    wx.showModal({
+      title: i18n.pick('輸入邀請碼'),
+      editable: true,
+      placeholderText: 'ABC123',
+      success: (r) => {
+        if (!r.confirm || !r.content) return;
+        this.setData({ pickedTeamCode: r.content.trim().toUpperCase() });
+        wx.showToast({ title: i18n.pick('已選隊伍，接著按報名'), icon: 'none' });
+      },
+    });
   },
 });

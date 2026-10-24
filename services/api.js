@@ -38,7 +38,7 @@ module.exports = {
   getEvent(id) {
     return http.get('/events/' + id);
   },
-  signupEvent(eventId, groupKey) {
+  signupEvent(eventId, groupKey, teamCode) {
     return http.post('/events/' + eventId + '/signup', groupKey ? { groupKey: groupKey } : {});
   },
   cancelSignup(eventId) {
@@ -130,5 +130,13 @@ module.exports = {
   },
   submitFeedback(eventId, rating, comment) {
     return request.post('/events/' + eventId + '/feedback', { rating, comment });
+  },
+
+  // ── W-30 組隊 ──
+  eventTeams(eventId) {
+    return request.get('/events/' + eventId + '/teams');
+  },
+  createTeam(eventId, name) {
+    return request.post('/events/' + eventId + '/teams', { name });
   },
 };

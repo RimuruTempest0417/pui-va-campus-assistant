@@ -112,6 +112,7 @@ Page({
       k25: i18n.pick("地點（可空）"),
       k26: i18n.pick("日期 YYYY-MM-DD"),
       k27: i18n.pick("名額（0 = 不限）"),
+      k66: i18n.pick("開放組隊報名（隊長建隊拿 6 碼邀請碼）"),
       k28: i18n.pick("分組（可空，例：A組,B組）"),
       k29: i18n.pick("建立活動"),
       k30: i18n.pick("匯入 CSV"),
@@ -209,6 +210,7 @@ Page({
     menuWeekStart: '',
     menuEntries: [],
     eventForm: { title: '', date: '', capacity: '20', location: '', groups: '' },
+    teamsEnabled: false,
     creatingEvent: false,
     users: [],
     parents: [],
@@ -670,6 +672,10 @@ Page({
     }
   },
 
+  toggleEvTeams() {
+    this.setData({ teamsEnabled: !this.data.teamsEnabled });
+  },
+
   onEventField(e) {
     const field = e.currentTarget.dataset.field;
     const patch = {};
@@ -697,6 +703,7 @@ Page({
         capacity: Number(f.capacity) || 0,
         status: 'PUBLISHED',
         groups: groups.length ? groups : undefined,
+        teamsEnabled: this.data.teamsEnabled || undefined,
       });
       this.setData({ 'eventForm.title': '', 'eventForm.location': '', 'eventForm.groups': '', hint: i18n.pick('活動已建立') });
       wx.showToast({ title: i18n.pick('已建立'), icon: 'success' });

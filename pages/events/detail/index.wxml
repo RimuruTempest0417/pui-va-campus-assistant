@@ -63,6 +63,23 @@
             <pv-button wx:if="{{!ev.myCheckedIn}}" type="tinted" size="sm" bind:tap="goCheckin">{{L.k13}}</pv-button>
           </view>
         </pv-card>
+        <!-- W-30 組隊報名 -->
+        <view wx:if="{{ev.teamsEnabled}}" class="team-card">
+          <text class="team-title">{{L.k61}}</text>
+          <block wx:for="{{teams}}" wx:key="id" wx:for-item="tm">
+            <view class="team-row" data-code="{{tm.code}}" bindtap="useTeamCode">
+              <text class="team-row__name">{{tm.name}}</text>
+              <text class="team-row__meta">{{tm.members}} 人{{tm.code ? ' · 邀請碼 ' + tm.code : ''}}</text>
+            </view>
+          </block>
+          <text wx:if="{{!teams.length}}" class="team-empty">{{L.k62}}</text>
+          <view class="ui-row" style="margin-top:16rpx">
+            <pv-button size="sm" type="tinted" bind:tap="createTeam">{{L.k63}}</pv-button>
+            <pv-button size="sm" bind:tap="joinByCode">{{L.k64}}</pv-button>
+          </view>
+          <text wx:if="{{pickedTeamCode}}" class="team-picked">{{L.k65}}{{pickedTeamCode}}</text>
+        </view>
+
         <!-- W-31 活動回饋（活動結束後才出現） -->
         <view wx:if="{{ev.ended}}" class="fb-card">
           <text class="fb-title">{{L.k56}}</text>

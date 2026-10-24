@@ -142,4 +142,8 @@ module.exports = {
   // ── W-31 活動回饋 ──
   eventFeedback: (...a) => call('eventFeedback', a),
   submitFeedback: (...a) => call('submitFeedback', a),
+
+  // ── W-30 組隊 ──
+  eventTeams: (...a) => call('eventTeams', a),
+  createTeam: (...a) => call('createTeam', a),
 };
