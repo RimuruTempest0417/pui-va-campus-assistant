@@ -92,6 +92,9 @@ module.exports = {
   getNotice(id) {
     return http.get('/notices/' + id);
   },
+  createReport(targetType, targetId, reason) {
+    return http.post('/reports', { targetType: targetType, targetId: targetId, reason: reason });
+  },
   markAllNoticesRead() {
     return http.post('/notices/read-all', {});
   },

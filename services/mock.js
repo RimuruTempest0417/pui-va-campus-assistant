@@ -680,6 +680,22 @@ module.exports = {
     return Promise.resolve({ configured: false, source: 'ics', updatedAt: null, items: [] });
   },
 
+  createReport(targetType, targetId, reason) {
+    const data = db();
+    data.reports = data.reports || [];
+    const rec = {
+      id: 'r' + Date.now(),
+      targetType: targetType,
+      targetId: targetId,
+      reason: reason,
+      status: 'PENDING',
+      createdAt: Date.now(),
+    };
+    data.reports.push(rec);
+    save(data);
+    return Promise.resolve(rec);
+  },
+
   /** 校曆：由既有示範資料組合（公告＋活動） */
   calendar() {
     const notices = (db().notices || []).filter((n) => !n.expiresAt || n.expiresAt > Date.now());

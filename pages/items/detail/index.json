@@ -7,7 +7,8 @@
     "pv-button": "/components/pv-button/index",
     "pv-empty": "/components/pv-empty/index",
     "pv-skeleton": "/components/pv-skeleton/index",
-    "pv-navbar": "/components/pv-navbar/index"
+    "pv-navbar": "/components/pv-navbar/index",
+    "pv-sheet": "/components/pv-sheet/index"
   },
   "navigationStyle": "custom"
 }

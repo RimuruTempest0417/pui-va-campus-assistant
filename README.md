@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.27.2-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.29.0-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -28,7 +28,7 @@
 | 公告與溫馨提示 | 置頂／緊急／校曆分類、詳情、已讀狀態、過期自動隱藏 | ✅ 2 頁 | ✅ 每人各自已讀 |
 | 家長端（綁定子女） | 首頁「我的子女」切換、代報名／取消、子女的報名／認領／未讀公告 | ✅ 1 頁 ＋ 首頁卡 | ✅ 兩道門（role PARENT ＋ parent_links）＋ 與學生共用 `lib/signup.ts` |
 | 校內管理（小程序內建） | 概況、認領、失物、活動、公告、使用者、家長、檢舉、**錯誤**、審計、名單、菜單；**校內職員（STAFF）登入只看到「菜單」「名單」**，不能開活動、不能發公告 | ✅ 12 個分頁 | ✅ 依能力矩陣分權 |
-| 資料備份（維運） | 全庫匯出成一份 JSON（18 張表）、終端一支指令還原、還原後逐表對帳 | ✅ 網頁後台「下載備份」（只有最高權限看得到） | ✅ `GET /admin/export.json`（`backup:export`）＋`scripts/restore.mjs` |
+| 資料備份（維運） | 全庫匯出成一份 JSON（18 張表）、終端一支指令還原、還原後逐表對帳 | ✅ 網頁後台「下載備份」（只有最高權限看得到） | ✅ `GET /admin/export.json`（`backup:export`）＋後端 repo 的 `restore.mjs` |
 | 錯誤日誌（觀測） | 手機端的白屏／閃退／未處理 Promise 自動送上報，後台按出現次數排序、可標記已解決 | ✅ 自動上報（不影響使用者） | ✅ `error_logs` ＋ 3 支端點（`error:read`） |
 
 > 不含地圖／導覽功能；不使用微信雲開發（後端另行自建）。
@@ -131,6 +131,27 @@ node scripts/check-console.mjs     # 19 頁 console 走查：0 error／0 warn（
 3. 後端：`npm run dev`（`127.0.0.1:3100`），`config/config.js` 預設就指向它；開發者工具要勾「不校驗合法域名」
 4. `project.private.config.json` 為個人本機設定，已加入 `.gitignore`
 
+
+## 文件索引
+
+| 文件 | 內容 |
+|---|---|
+| [`docs/01-藍圖與評分對標.md`](docs/01-藍圖與評分對標.md) | 定位、痛點、P0/P1/P2、評分對標 |
+| [`docs/02-資料模型與API.md`](docs/02-資料模型與API.md) | 資料模型與 API 契約說明 |
+| [`docs/04-設計規範.md`](docs/04-設計規範.md) | 設計 tokens、字階、間距、組件規範 |
+| [`docs/05-活動報名-對照與設計.md`](docs/05-活動報名-對照與設計.md) | W-17 舊項目對照（統計／簽到／分組） |
+| [`docs/06-跨項目功能盤點.md`](docs/06-跨項目功能盤點.md) | 其他三個項目可移植功能盤點 |
+| [`docs/07-四種使用者-角色規劃.md`](docs/07-四種使用者-角色規劃.md) | 學生／家長／老師／校方其他 的角色與權限 |
+| [`docs/驗收清單.md`](docs/驗收清單.md) | 自動檢查與手動驗收清單 |
+| [`docs/發佈與上傳.md`](docs/發佈與上傳.md) | 每次發版的版本號、項目備注、GitHub 對照 |
+| [`docs/教育版-導入步驟.md`](docs/教育版-導入步驟.md) | 教育版 appid、資料夾同步、導入步驟 |
+| [`docs/雲開發-代理方案.md`](docs/雲開發-代理方案.md) | 後備：雲函數代理（免備案路線） |
+| [`docs/註冊與備案-回鄉證路線.md`](docs/註冊與備案-回鄉證路線.md) | 主體與備案的實測結論（後備） |
+| [`docs/夜間進度.md`](docs/夜間進度.md) | 排程任務的隊列與已完成紀錄 |
+| [`docs/規劃書-待完成.md`](docs/規劃書-待完成.md) | **還沒做的事**（完成就刪） |
+| [`docs/openapi.yaml`](docs/openapi.yaml) ／ [`docs/architecture.html`](docs/architecture.html) | API 契約／架構圖 |
+| `docs/releases/` | 每版一份版本說明 |
+
 ## 目前進度
 
 - [x] 產品定位、痛點分析、功能地圖（P0/P1/P2）
@@ -142,7 +163,7 @@ node scripts/check-console.mjs     # 19 頁 console 走查：0 error／0 warn（
 - [x] 後端 P0 端點（認領審批、報名行鎖＋候補、菜單評分、公告已讀、上傳簽名）
 - [x] **失物智能匹配**（pg_trgm 加權評分 + 詳情頁「可能是你的東西」）
 - [x] 後端 e2e（真實 Postgres，27 項，含 20 併發超賣壓測）
-- [x] **載入／空／失敗三態一致（v0.26.2）**：19 頁對照表（`scripts/check-states.mjs` 守門）；我的發布／我的報名補載入骨架；11 頁補「載入失敗＋重試」；詳情頁把 404 與斷網分開（不再把後端掛掉說成「資料已被刪除」）；後台分頁載入骨架＋讀取失敗卡片
+- [x] **載入／空／失敗三態一致（v0.26.2）**：19 頁對照表（`scripts/check-states.mjs` 守門）；我的發布／我的報名補載入骨架；19 頁補「載入失敗＋重試」；詳情頁把 404 與斷網分開（不再把後端掛掉說成「資料已被刪除」）；後台分頁載入骨架＋讀取失敗卡片
 - [x] **19 頁 console 走查（v0.26.3）**：`utils/diagnostics.js` 把 `console.error`／`warn` 收進 storage `pv_diag`，`scripts/check-console.mjs` 逐頁「清空→開頁→輪詢到載入完→讀回」；19 頁 **0 error／0 warn**，每頁另印「內容筆數」防空綠（`get_simulator_console` 實測回不到執行期輸出，用它會變成假綠）
 - [x] **家長頁的「進不來」分成三態（v0.26.4）**：學生／老師／職員打開「我的子女」時後端回 403，原本畫成「載入失敗＋重試」（重試永遠是 403）；現在 403 給說明型空狀態（回首頁／切換帳號、不給重試）、401 給「去登入」、只有真的斷網才給重試
 - [x] **顏色只剩一個來源（v0.26.5／後端 v0.12.5）**：12 個 wxss 的 `#fff`／`rgba()` 全換成 token（新增 `--pv-on-tint`／`--pv-scrim`／`--pv-shadow` 等 12 個）；WXML 屬性用的字面色改由 `utils/theme.js` 提供並與 tokens 比對；`switch` 從上版殘留的綠 `#17694a` 改回培華紫；網頁後台整套由綠 `#17694a` 換成 `#6D3FC4`。守門加三條：寫死色值／用了未定義的 `--pv-*`／theme.js 與 tokens 不一致 → 一加就抓到 4 個靜默失效的變數（星評永遠灰、後台統計數字變黑等）

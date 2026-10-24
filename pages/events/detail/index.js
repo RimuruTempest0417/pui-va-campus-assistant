@@ -57,7 +57,10 @@ Page({
   },
 
   chooseGroup(e) {
-    this.setData({ pickedGroup: e.currentTarget.dataset.group });
+    const picked = e.currentTarget.dataset.group;
+    this.setData({ pickedGroup: picked });
+    // 選了組別就要立刻重算底部按鈕（否則會一直是「選擇組別」且不可按）
+    if (this.data.ev) this.setData(this.barFor(this.data.ev));
   },
 
   barFor(ev) {

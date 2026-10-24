@@ -125,5 +125,6 @@ module.exports = {
   mySubscriptions: (...a) => call('mySubscriptions', a),
   markAllNoticesRead: (...a) => call('markAllNoticesRead', a),
   calendar: (...a) => call('calendar', a),
+  createReport: (...a) => call('createReport', a),
   externalCalendar: (...a) => call('externalCalendar', a),
 };

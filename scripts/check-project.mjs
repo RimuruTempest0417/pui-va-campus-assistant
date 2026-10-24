@@ -136,6 +136,28 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
 }
 
 
+// 7b) WXML 表達式守門：wx:if / wx:elif 內不得出現陣列或物件字面值（真的會編譯失敗）
+{
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (e.name.endsWith('.wxml')) {
+        const rel = full.slice(root.length + 1);
+        for (const [i, line] of readFileSync(full, 'utf8').split('\n').entries()) {
+          const m = line.match(/wx:(?:if|elif)="\{\{([^}]*)\}\}"/);
+          if (m && /\[\s*\]|\{\s*\}/.test(m[1])) {
+            errors.push(`${rel}:${i + 1} wx:if 內含陣列／物件字面值（WXML 不支援，會編譯失敗）：${m[1].slice(0, 60)}`);
+          }
+        }
+      }
+    }
+  };
+  walk(root);
+}
+
 // 8) W-13：頁面 JS 必須有 Page( / Component(、json 必須有標題、wxml 用到的自訂組件必須註冊
 {
   const { readFileSync } = await import('node:fs');

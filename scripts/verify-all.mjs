@@ -31,6 +31,7 @@ const STEPS = [
   { key: 'openapi', label: 'API 契約', script: 'check-openapi.mjs', args: [], highlight: /✅ OpenAPI 契約檢查通過[^\n]*/ },
   { key: 'states', label: '三態一致', script: 'check-states.mjs', args: [], highlight: /空／載入／失敗狀態：[^\n]*/ },
   { key: 'data', label: '資料層', script: 'check-data-layer.mjs', args: [], highlight: /\b(?:ALL PASS|FAIL) \d+\/\d+\b/ },
+  { key: 'docs', label: '文件一致性', script: 'check-docs.mjs', args: [], highlight: /✅ 文件一致性通過[^\n]*/ },
   // console 走查要對齊「0 error／0 warn」的驗收標準，所以預設把 warn 也算不通過
   { key: 'console', label: 'console 走查', script: 'check-console.mjs', args: ['--warn'], needsIde: true, highlight: /console 走查：[^\n]*/ },
 ];

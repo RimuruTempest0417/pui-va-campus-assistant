@@ -33,3 +33,14 @@
 .match-row__reasons { margin-top: 6rpx; flex-wrap: wrap; }
 .match-reason { margin-right: 8rpx; margin-bottom: 4rpx; }
 .match-row__go { font-size: 36rpx; color: var(--pv-label-3); margin-left: var(--pv-sp-1); }
+
+.ui-bar__left { flex: 1; display: flex; flex-direction: column; }
+.ui-bar__report {
+  margin-top: 4rpx; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3);
+  text-decoration: underline;
+}
+.report-row {
+  padding: var(--pv-sp-3) 0;
+  font-size: var(--pv-fs-callout);
+  border-bottom: 1rpx solid var(--pv-sep);
+}

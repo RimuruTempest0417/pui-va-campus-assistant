@@ -35,10 +35,10 @@
           <text class="ui-body">{{ev.description || '主辦方沒有填寫說明'}}</text>
         </pv-card>
 
-        <pv-card wx:if="{{(ev.groups || []).length}}">
+        <pv-card wx:if="{{groups.length}}">
           <text class="group-title">組別</text>
           <view class="group-chips">
-            <view wx:for="{{ev.groups}}" wx:key="*this"
+            <view wx:for="{{groups}}" wx:key="*this"
                   class="group-chip {{(pickedGroup === item || ev.myGroupKey === item) ? 'group-chip--on' : ''}}"
                   data-group="{{item}}" bindtap="chooseGroup">{{item}}</view>
           </view>

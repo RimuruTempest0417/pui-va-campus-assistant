@@ -86,7 +86,15 @@
     </view>
   </scroll-view>
 <view wx:if="{{item}}" class="ui-bar">
-    <text class="ui-bar__hint">{{barHint}}</text>
+    <view class="ui-bar__left">
+      <text class="ui-bar__hint">{{barHint}}</text>
+      <text class="ui-bar__report" catchtap="openReport">檢舉</text>
+    </view>
     <pv-button type="filled" size="md" disabled="{{barDisabled}}" bind:tap="onPrimaryAction">{{barText}}</pv-button>
   </view>
+
+  <pv-sheet show="{{reportOpen}}" title="檢舉這則內容" bind:close="closeReport">
+    <view wx:for="{{reportReasons}}" wx:key="*this" class="report-row"
+          data-reason="{{item}}" catchtap="pickReason">{{item}}</view>
+  </pv-sheet>
 </view>

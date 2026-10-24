@@ -11,6 +11,9 @@ Page({
     theme,
     loading: true,
     item: null,
+    reportOpen: false,
+    reporting: false,
+    reportReasons: ['內容不實', '廣告或推銷', '不當或冒犯內容', '與校園無關'],
     failed: false,
     errorText: '',
     matches: [],
@@ -47,6 +50,9 @@ Page({
       this.setData({
         loading: false,
         item: null,
+    reportOpen: false,
+    reporting: false,
+    reportReasons: ['內容不實', '廣告或推銷', '不當或冒犯內容', '與校園無關'],
         failed: codeOf(e) !== 'NOT_FOUND',
         errorText: data.messageOf(e),
       });
@@ -73,6 +79,34 @@ Page({
   goMatch(e) {
     const id = e.currentTarget.dataset.id;
     wx.navigateTo({ url: '/pages/items/detail/index?id=' + id });
+  },
+
+  openReport() {
+    if (!data.isDemo() && !require('../../../utils/request').getToken()) {
+      wx.showToast({ title: '請先登入再檢舉', icon: 'none' });
+      return;
+    }
+    this.setData({ reportOpen: true });
+  },
+
+  closeReport() {
+    this.setData({ reportOpen: false });
+  },
+
+  async pickReason(e) {
+    const reason = e.currentTarget.dataset.reason;
+    const item = this.data.item;
+    if (!item || this.data.reporting) return;
+    this.setData({ reporting: true });
+    try {
+      await data.createReport('ITEM', item.id, reason);
+      this.setData({ reportOpen: false });
+      wx.showToast({ title: '已收到檢舉，謝謝', icon: 'success' });
+    } catch (err) {
+      wx.showToast({ title: data.messageOf(err), icon: 'none' });
+    } finally {
+      this.setData({ reporting: false });
+    }
   },
 
   async onPrimaryAction() {
