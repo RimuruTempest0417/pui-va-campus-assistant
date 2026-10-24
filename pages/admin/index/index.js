@@ -3,6 +3,7 @@ const admin = require('../../../services/admin');
 const request = require('../../../utils/request');
 const config = require('../../../config/config');
 const { dateKey, fromNow } = require('../../../utils/date');
+const role = require('../../../utils/role');
 const theme = require('../../../utils/theme');
 
 const TABS = [
@@ -15,6 +16,7 @@ const TABS = [
   { key: 'parents', label: i18n.pick('家長') },
   { key: 'reports', label: i18n.pick('檢舉') },
   { key: 'errors', label: i18n.pick('錯誤') },
+  { key: 'push', label: i18n.pick('推送') },
   { key: 'audit', label: i18n.pick('審計') },
   { key: 'export', label: i18n.pick('名單') },
   { key: 'menu', label: i18n.pick('菜單') },
@@ -24,8 +26,8 @@ const ROLE_TABS = {
   // 校內職員：排菜單＋匯出報名名單。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
   STAFF: ['notice', 'claims', 'menu', 'export'],
   TEACHER: ['notice', 'events'],
-  ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'export', 'menu'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'audit', 'export', 'menu'],
+  ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -74,6 +76,18 @@ Page({
       k127: i18n.pick('列印名單'),
       k128: i18n.pick('同類一次解決'),
       k131: i18n.pick('清理舊紀錄'),
+      k132: i18n.pick('推送紀錄'),
+      k133: i18n.pick('總計'),
+      k134: i18n.pick('成功'),
+      k135: i18n.pick('失敗紀錄'),
+      k136: i18n.pick('近 24 小時'),
+      k137: i18n.pick('全部通路'),
+      k138: i18n.pick('站內通知'),
+      k139: i18n.pick('微信消息'),
+      k140: i18n.pick('沒有推送紀錄'),
+      k141: i18n.pick('發一則公告，或有人報名活動之後，這裡會出現每一筆發送的結果'),
+      k142: i18n.pick('（無標題）'),
+      k143: i18n.pick('原因：'),
       k85: i18n.pick("已下架"),
       k86: i18n.pick("拾獲"),
       k87: i18n.pick("遺失"),
@@ -116,7 +130,7 @@ Page({
       k25: i18n.pick("地點（可空）"),
       k26: i18n.pick("日期 YYYY-MM-DD"),
       k27: i18n.pick("名額（0 = 不限）"),
-      k66: i18n.pick("開放組隊報名（隊長建隊拿 6 碼邀請碼）"),
+      k144: i18n.pick("開放組隊報名（隊長建隊拿 6 碼邀請碼）"),
       k28: i18n.pick("分組（可空，例：A組,B組）"),
       k29: i18n.pick("建立活動"),
       k30: i18n.pick("匯入 CSV"),
@@ -240,6 +254,16 @@ Page({
       { key: 'RESOLVED', label: i18n.pick('已解決') },
     ],
     errSummary: { open: 0, total: 0, kinds: 0, last24h: 0 },
+    // 推送紀錄（W-37）
+    pushLogs: [],
+    pushOk: 'all',
+    pushChannel: '',
+    pushFilters: [
+      { key: 'all', label: i18n.pick('全部') },
+      { key: 'failed', label: i18n.pick('只看失敗') },
+    ],
+    pushSummary: { total: 0, ok: 0, failed: 0, last24h: 0 },
+    pushTplHint: '',
     audit: [],
     noticeList: [],
     showPerms: false,
@@ -308,6 +332,7 @@ Page({
     else if (t === 'parents') p = this.loadParents();
     else if (t === 'reports') p = this.loadReports();
     else if (t === 'errors') p = this.loadErrors();
+    else if (t === 'push') p = this.loadPushLogs();
     else if (t === 'audit') p = this.loadAudit();
     else if (t === 'notice') p = this.loadNoticeList();
     else if (t === 'menu') p = this.loadMenuWeek();
@@ -1015,6 +1040,57 @@ Page({
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到錯誤日誌：') + (e.message || e.code) });
     }
+  },
+
+  // ───────── 推送紀錄（W-37）─────────
+  // 家長說「沒收到通知」時，這裡看得到是沒有同意過、沒有帳號，還是微信回了錯誤碼。
+  async loadPushLogs() {
+    try {
+      const res = await admin.pushLogs(this.data.pushOk, this.data.pushChannel, 50);
+      const t = res.templates || {};
+      // 模板未設定＝這個場景根本不會發微信消息（不是發了失敗），要明講，不然會被誤判成 bug
+      const missing = ['claim', 'event', 'notice'].filter((k) => !t[k]);
+      const NAMES = { claim: i18n.pick('認領通過'), event: i18n.pick('活動提醒'), notice: i18n.pick('緊急公告') };
+      const SCENES = {
+        EVENT: i18n.pick('活動'),
+        CLAIM: i18n.pick('認領'),
+        NOTICE: i18n.pick('公告'),
+        SYSTEM: i18n.pick('系統'),
+        claim: i18n.pick('認領通過'),
+        event: i18n.pick('活動提醒'),
+        notice: i18n.pick('緊急公告'),
+      };
+      this.setData({
+        pushLogs: (res.items || []).map((x) =>
+          Object.assign({}, x, {
+            timeText: fromNow(x.createdAt),
+            nameText: x.nickname || i18n.pick('（已刪除的使用者）'),
+            roleText: x.role ? role.label(x.role) : '',
+            titleText: x.title || i18n.pick('（無標題）'),
+            sceneText: SCENES[x.scene] || '',
+            channelText: x.channel === 'WX' ? i18n.pick('微信') : i18n.pick('站內'),
+            resultText: x.ok ? i18n.pick('已送出') : i18n.pick('失敗'),
+            errorText: x.error || i18n.pick('未知原因'),
+          }),
+        ),
+        pushSummary: res.summary || { total: 0, ok: 0, failed: 0, last24h: 0 },
+        pushTplHint: missing.length
+          ? i18n.pick('微信模板未設定：') + missing.map((k) => NAMES[k]).join(i18n.pick('、')) + i18n.pick('（這幾個場景不會發微信消息）')
+          : i18n.pick('微信模板三個場景都已設定'),
+      });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到推送紀錄：') + (e.message || e.code) });
+    }
+  },
+
+  pickPushOk(e) {
+    this.setData({ pushOk: e.currentTarget.dataset.key });
+    this.loadPushLogs();
+  },
+
+  pickPushChannel(e) {
+    this.setData({ pushChannel: e.currentTarget.dataset.key });
+    this.loadPushLogs();
   },
 
   // 同類一次解決：把同一句話在「所有頁面」的錯誤一起標成已解決

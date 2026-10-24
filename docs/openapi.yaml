@@ -1696,6 +1696,55 @@ paths:
       responses:
         '200': { description: 能力矩陣 }
 
+  /admin/push-logs:
+    get:
+      tags: [admin]
+      summary: 推送紀錄（誰收到、誰沒收到、為什麼；需要 push:read = ADMIN 以上）
+      parameters:
+        - { in: query, name: ok, schema: { type: string, enum: [all, ok, failed], default: all } }
+        - { in: query, name: channel, schema: { type: string, enum: [INAPP, WX] } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        userId: { type: string }
+                        nickname: { type: string, nullable: true, description: 使用者已被刪除時為 null }
+                        role: { type: string, nullable: true }
+                        channel: { type: string, enum: [INAPP, WX] }
+                        scene: { type: string, nullable: true }
+                        title: { type: string, nullable: true }
+                        templateId: { type: string, nullable: true }
+                        ok: { type: boolean }
+                        error: { type: string, nullable: true, description: '失敗原因：no-consent／no-user／errcode N' }
+                        createdAt: { type: string, format: date-time }
+                  summary:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      ok: { type: integer }
+                      failed: { type: integer }
+                      last24h: { type: integer }
+                  templates:
+                    type: object
+                    description: 微信模板是否已設定（false＝該場景根本不會發微信消息）
+                    properties:
+                      claim: { type: boolean }
+                      event: { type: boolean }
+                      notice: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /admin/audit:
     get:
       tags: [admin]

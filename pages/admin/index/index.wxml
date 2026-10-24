@@ -374,6 +374,42 @@
         </view>
       </block>
 
+      <!-- 推送紀錄（W-37） -->
+      <block wx:elif="{{tab === 'push'}}">
+        <pv-card>
+          <view class="ui-row-between">
+            <text class="ui-title">{{L.k132}}</text>
+            <text class="ui-meta">{{L.k133}} {{pushSummary.total || 0}}</text>
+          </view>
+          <view class="ui-row-between">
+            <text class="ui-meta">{{L.k134}} {{pushSummary.ok || 0}} · {{L.k135}} {{pushSummary.failed || 0}}</text>
+            <text class="ui-meta">{{L.k136}} {{pushSummary.last24h || 0}}</text>
+          </view>
+          <text class="ui-meta">{{pushTplHint}}</text>
+          <view class="filter-row">
+            <view wx:for="{{pushFilters}}" wx:key="key" class="chip {{pushOk === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickPushOk">{{item.label}}</view>
+          </view>
+          <view class="filter-row">
+            <view class="chip {{pushChannel === '' ? 'chip--on' : ''}}" data-key="" bindtap="pickPushChannel">{{L.k137}}</view>
+            <view class="chip {{pushChannel === 'INAPP' ? 'chip--on' : ''}}" data-key="INAPP" bindtap="pickPushChannel">{{L.k138}}</view>
+            <view class="chip {{pushChannel === 'WX' ? 'chip--on' : ''}}" data-key="WX" bindtap="pickPushChannel">{{L.k139}}</view>
+          </view>
+        </pv-card>
+
+        <pv-empty wx:if="{{!pushLogs.length}}" icon="📨" title="{{L.k140}}" desc="{{L.k141}}" />
+
+        <view wx:for="{{pushLogs}}" wx:key="id" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{item.titleText}}</text>
+            <pv-tag text="{{item.resultText}}" type="{{item.ok ? 'neutral' : 'warning'}}" />
+          </view>
+          <text class="ui-meta">{{item.nameText}}{{item.roleText ? ' · ' + item.roleText : ''}}</text>
+          <text class="ui-meta">{{item.channelText}}{{item.sceneText ? ' · ' + item.sceneText : ''}} · {{item.timeText}}</text>
+          <text wx:if="{{!item.ok}}" class="ui-meta">{{L.k143}}{{item.errorText}}</text>
+        </view>
+      </block>
+
       <!-- 審計 -->
       <block wx:elif="{{tab === 'audit'}}">
         <pv-card wx:if="{{audit.length}}">

@@ -121,6 +121,10 @@ module.exports = {
   cleanupErrors(days, includeOpen) {
     return http.post('/admin/error-logs/cleanup', { olderThanDays: days, includeOpen: !!includeOpen });
   },
+  // 推送紀錄（W-37）：每一次發送的成敗與原因，回答「為什麼我沒收到」
+  pushLogs(ok, channel, limit) {
+    return http.get('/admin/push-logs', { ok: ok || 'all', channel: channel || '', limit: limit || 50 });
+  },
   audit(limit) {
     return http.get('/admin/audit', { limit: limit || 50 });
   },
