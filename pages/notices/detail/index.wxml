@@ -20,7 +20,7 @@
             <pv-tag class="head__tag" text="{{notice.kindLabel}}" type="{{notice.kindTag}}" />
           </view>
           <text class="head__title">{{notice.title}}</text>
-          <text class="head__time">{{notice.timeText}}發布{{notice.expiresAt ? ' · 有效期至 ' + notice.expiresText : ''}}</text>
+          <text class="head__time">{{notice.timeText}}發布{{notice.expiresAt ? L.k09 + notice.expiresText : ''}}</text>
         </view>
 
         <pv-card>

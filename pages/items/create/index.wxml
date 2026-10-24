@@ -1,5 +1,5 @@
 <view class="{{themeClass}} ui-page ui-page--withbar page-root">
-  <pv-navbar title="{{type === 'LOST' ? '我丟了東西' : '我撿到東西'}}" back="{{true}}" />
+  <pv-navbar title="{{type === 'LOST' ? L.k17 : L.k18}}" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="create-inner">
   <view class="ui-mt-2">
@@ -26,7 +26,7 @@
     <view class="ui-field" bindtap="openCategory">
       <text class="ui-field__label">{{L.k07}}</text>
       <view class="ui-row-between">
-        <text class="ui-input {{form.categoryKey ? '' : 'ui-placeholder'}}">{{categoryName || '請選擇'}}</text>
+        <text class="ui-input {{form.categoryKey ? '' : 'ui-placeholder'}}">{{categoryName || L.k19}}</text>
         <text class="chev">›</text>
       </view>
     </view>
@@ -52,7 +52,7 @@
       </view>
       <view wx:if="{{form.images.length < 3}}" class="ui-thumb-add" bindtap="addImage">＋</view>
     </view>
-    <text class="ui-meta">{{isDemo ? '示範模式下圖片只存在本機' : '圖片上傳尚未開通，目前只送出文字'}}</text>
+    <text class="ui-meta">{{isDemo ? L.k20 : L.k21}}</text>
   </pv-card>
 
   <view class="pv-group-title">{{L.k12}}</view>
@@ -66,7 +66,7 @@
       </view>
     </view>
     <view wx:if="{{form.contactType !== 'inApp'}}" class="ui-field">
-      <text class="ui-field__label">{{form.contactType === 'phone' ? '電話' : '微信號'}}</text>
+      <text class="ui-field__label">{{form.contactType === 'phone' ? L.k22 : L.k23}}</text>
       <input class="ui-input" placeholder="{{L.k14}}" placeholder-class="ui-placeholder"
              value="{{form.contactValue}}" data-key="contactValue" bindinput="onInput" maxlength="64" />
     </view>

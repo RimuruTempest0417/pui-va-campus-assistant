@@ -48,7 +48,7 @@
         wx:elif="{{failed}}"
         icon="⚠️"
         title="{{L.k09}}"
-        desc="{{errorText || '請稍後再試'}}"
+        desc="{{errorText || L.k24}}"
       >
         <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k10}}</pv-button>
       </pv-empty>
@@ -65,7 +65,7 @@
             <text class="ui-title">{{child.student.nickname}}</text>
             <pv-tag text="{{child.relationLabel}}" type="tint" plain />
           </view>
-          <text class="ui-meta kid-meta">{{child.student.grade ? child.student.grade : '—'}}{{child.student.className ? ' · ' + child.student.className + '班' : ''}}</text>
+          <text class="ui-meta kid-meta">{{child.student.grade ? child.student.grade : '—'}}{{child.student.className ? ' · ' + child.student.className + L.k25 : ''}}</text>
           <view class="stats">
             <view class="stat">
               <text class="stat__num">{{signups.length}}</text>
@@ -107,7 +107,7 @@
             </view>
             <text class="ui-meta row-meta">{{item.timeText}}{{item.location ? ' · ' + item.location : ''}}</text>
             <view class="row-actions">
-              <pv-button class="row-btn" type="{{item.full ? 'plain' : 'tinted'}}" size="sm" data-id="{{item.id}}" bind:tap="onSignup">{{item.full ? '排候補' : '代為報名'}}</pv-button>
+              <pv-button class="row-btn" type="{{item.full ? 'plain' : 'tinted'}}" size="sm" data-id="{{item.id}}" bind:tap="onSignup">{{item.full ? L.k26 : L.k27}}</pv-button>
             </view>
           </view>
         </view>

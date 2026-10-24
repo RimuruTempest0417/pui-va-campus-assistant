@@ -8,6 +8,7 @@ const appearance = require('../../../utils/appearance');
 Page({
   labels() {
     return {
+      k10: i18n.pick("其他"),
       k01: i18n.pick("我的發布"),
       k02: i18n.pick("載入失敗"),
       k03: i18n.pick("重試"),

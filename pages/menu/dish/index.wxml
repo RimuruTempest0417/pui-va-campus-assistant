@@ -46,7 +46,7 @@
             </view>
             <view class="like-row" bindtap="onToggleLike">
               <view class="like-chip {{dish.myLiked ? 'is-on' : ''}}">
-                <text>{{dish.myLiked ? '♥ 已讚' : '♡ 點讚'}}</text>
+                <text>{{dish.myLiked ? L.k09 : L.k10}}</text>
               </view>
               <text class="ui-meta">{{L.k08}}</text>
             </view>

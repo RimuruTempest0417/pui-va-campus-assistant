@@ -8,6 +8,8 @@ const appearance = require('../../../utils/appearance');
 Page({
   labels() {
     return {
+      k11: i18n.pick("你已經簽到過"),
+      k12: i18n.pick("簽到成功"),
       k01: i18n.pick("現場簽到"),
       k02: i18n.pick("再簽一個"),
       k03: i18n.pick("查看活動"),

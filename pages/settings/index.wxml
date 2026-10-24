@@ -10,8 +10,8 @@
         <block wx:if="{{loggedIn}}">
           <view class="set-row">
             <view class="set-row__main">
-              <text class="set-row__title">{{user.nickname || '已登入'}}</text>
-              <text class="set-row__sub">{{roleText}}{{isDemo ? ' · 示範模式' : ''}}</text>
+              <text class="set-row__title">{{user.nickname || L.k17}}</text>
+              <text class="set-row__sub">{{roleText}}{{isDemo ? L.k18 : ''}}</text>
             </view>
           </view>
           <view class="set-actions">
@@ -57,7 +57,7 @@
         <pv-card>
           <view class="set-row" bindtap="goDev">
             <view class="set-row__main">
-              <text class="set-row__title">{{isDemo ? '離線示範資料' : '校內後端'}}</text>
+              <text class="set-row__title">{{isDemo ? L.k19 : L.k20}}</text>
               <text class="set-row__sub">{{apiBase}}</text>
             </view>
             <text class="set-row__chev">›</text>
