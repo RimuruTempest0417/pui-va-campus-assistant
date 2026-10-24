@@ -32,7 +32,7 @@
       </view>
       <view class="ui-row head__tags">
         <pv-tag class="head__tag" text="{{item.typeLabel}}" type="tint" plain />
-        <pv-tag class="head__tag" text="{{item.categoryName || '其他'}}" plain />
+        <pv-tag class="head__tag" text="{{item.categoryName || L.k16}}" plain />
       </view>
     </view>
 
@@ -45,7 +45,7 @@
 
     <view class="pv-group-title">{{L.k11}}</view>
     <pv-card>
-      <text class="ui-body">{{item.description || '作者沒有填寫說明'}}</text>
+      <text class="ui-body">{{item.description || L.k17}}</text>
     </pv-card>
 
     <block wx:if="{{matches.length}}">

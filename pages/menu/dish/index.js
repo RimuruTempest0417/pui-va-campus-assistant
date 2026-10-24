@@ -8,6 +8,8 @@ const appearance = require('../../../utils/appearance');
 Page({
   labels() {
     return {
+      k09: i18n.pick("♥ 已讚"),
+      k10: i18n.pick("♡ 點讚"),
       k01: i18n.pick("菜式"),
       k02: i18n.pick("載入失敗"),
       k03: i18n.pick("重試"),

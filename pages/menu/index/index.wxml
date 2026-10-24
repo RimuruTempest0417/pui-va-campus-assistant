@@ -37,7 +37,7 @@
                     data-id="{{dish.id}}" bindtap="goDish" hover-class="dish-row--pressed" hover-start-time="0">
                 <view class="dish-row__main">
                   <text class="ui-body dish-row__name">{{dish.name}}</text>
-                  <text class="ui-meta">{{dish.ratingCount}} 人評分 · 讚 {{dish.likedCount}}{{dish.myScore ? ' · 我給 ' + dish.myScore + '★' : ''}}</text>
+                  <text class="ui-meta">{{dish.ratingCount}} 人評分 · 讚 {{dish.likedCount}}{{dish.myScore ? L.k13 + dish.myScore + '★' : ''}}</text>
                 </view>
                 <view class="dish-row__score">
                   <text class="dish-row__num">{{dish.avgScore || '—'}}</text>

@@ -12,6 +12,17 @@ const appearance = require('../../../utils/appearance');
 Page({
   labels() {
     return {
+      k16: i18n.pick("已結束"),
+      k17: i18n.pick("已滿"),
+      k18: i18n.pick("報名中"),
+      k19: i18n.pick("剩 "),
+      k20: i18n.pick(" 個名額"),
+      k21: i18n.pick("已額滿，報名將自動排入候補"),
+      k22: i18n.pick("主辦方沒有填寫說明"),
+      k23: i18n.pick("已簽到"),
+      k24: i18n.pick("未簽到"),
+      k25: i18n.pick("出席紀錄已送出"),
+      k26: i18n.pick("到現場掃老師的簽到碼"),
       k01: i18n.pick("活動詳情"),
       k02: i18n.pick("載入失敗"),
       k03: i18n.pick("重試"),

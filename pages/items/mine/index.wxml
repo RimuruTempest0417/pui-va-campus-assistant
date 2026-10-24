@@ -22,7 +22,7 @@
         <text class="ui-title">{{item.title}}</text>
         <pv-tag text="{{item.statusLabel}}" type="{{item.statusTag}}" />
       </view>
-      <text class="ui-meta mine-meta">{{item.typeLabel}} · {{item.categoryName || '其他'}} · {{item.place}} · {{item.timeText}}</text>
+      <text class="ui-meta mine-meta">{{item.typeLabel}} · {{item.categoryName || L.k10}} · {{item.place}} · {{item.timeText}}</text>
       <view class="mine-actions">
         <pv-button class="mine-btn" wx:if="{{item.status === 'OPEN'}}" type="tinted" size="sm" data-id="{{item.id}}" data-next="CLAIMED" bind:tap="advance">{{L.k07}}</pv-button>
         <pv-button class="mine-btn" wx:if="{{item.status === 'CLAIMED'}}" type="filled" size="sm" data-id="{{item.id}}" data-next="CLOSED" bind:tap="advance">{{L.k08}}</pv-button>

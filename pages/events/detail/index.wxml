@@ -18,7 +18,7 @@
           <text class="ev-head__title">{{ev.title}}</text>
           <view class="ui-row ev-head__tags">
             <pv-tag class="ev-tag" text="{{ev.club}}" type="tint" plain />
-            <pv-tag class="ev-tag" text="{{ev.ended ? '已結束' : (ev.full ? '已滿' : '報名中')}}" type="{{ev.ended ? 'neutral' : (ev.full ? 'danger' : 'success')}}" />
+            <pv-tag class="ev-tag" text="{{ev.ended ? L.k16 : (ev.full ? L.k17 : L.k18)}}" type="{{ev.ended ? 'neutral' : (ev.full ? 'danger' : 'success')}}" />
           </view>
         </view>
 
@@ -27,12 +27,12 @@
           <view class="meta-row"><text class="meta-k">{{L.k07}}</text><text class="meta-v">{{ev.location}}</text></view>
           <view class="meta-row"><text class="meta-k">{{L.k08}}</text><text class="meta-v">{{ev.capacityText}}</text></view>
           <view class="cap"><view class="cap__bar"><view class="cap__fill" style="width: {{ev.ratio}}%" /></view></view>
-          <text wx:if="{{ev.remaining !== null}}" class="ui-meta">{{ev.remaining > 0 ? '剩 ' + ev.remaining + ' 個名額' : '已額滿，報名將自動排入候補'}}</text>
+          <text wx:if="{{ev.remaining !== null}}" class="ui-meta">{{ev.remaining > 0 ? L.k19 + ev.remaining + L.k20 : L.k21}}</text>
         </pv-card>
 
         <view class="pv-group-title">{{L.k09}}</view>
         <pv-card>
-          <text class="ui-body">{{ev.description || '主辦方沒有填寫說明'}}</text>
+          <text class="ui-body">{{ev.description || L.k22}}</text>
         </pv-card>
 
         <pv-card wx:if="{{groups.length}}">
@@ -54,8 +54,8 @@
         <pv-card wx:if="{{ev.myStatus === 'CONFIRMED'}}">
           <view class="ui-row-between">
             <view class="checkin-info">
-              <text class="checkin-info__title">{{ev.myCheckedIn ? '已簽到' : '未簽到'}}</text>
-              <text class="ui-meta">{{ev.myCheckedIn ? '出席紀錄已送出' : '到現場掃老師的簽到碼'}}</text>
+              <text class="checkin-info__title">{{ev.myCheckedIn ? L.k23 : L.k24}}</text>
+              <text class="ui-meta">{{ev.myCheckedIn ? L.k25 : L.k26}}</text>
             </view>
             <pv-button wx:if="{{!ev.myCheckedIn}}" type="tinted" size="sm" bind:tap="goCheckin">{{L.k13}}</pv-button>
           </view>

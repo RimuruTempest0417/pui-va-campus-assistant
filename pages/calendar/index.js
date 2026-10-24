@@ -79,6 +79,8 @@ Page({
 
   labels() {
     return {
+      k03: i18n.pick("校曆"),
+      k04: i18n.pick(" 項安排"),
       k01: i18n.pick("載入失敗"),
       k02: i18n.pick("重試"),
       title: i18n.t('cal.title'),

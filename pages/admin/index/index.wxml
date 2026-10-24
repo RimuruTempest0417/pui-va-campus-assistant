@@ -66,9 +66,9 @@
         <view wx:for="{{items}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.title}}</text>
-            <pv-tag text="{{item.deletedAt ? '已下架' : item.status}}" type="{{item.deletedAt ? 'danger' : 'neutral'}}" />
+            <pv-tag text="{{item.deletedAt ? L.k85 : item.status}}" type="{{item.deletedAt ? 'danger' : 'neutral'}}" />
           </view>
-          <text class="ui-meta">{{item.type === 'FOUND' ? '拾獲' : '遺失'}} · {{item.place}} · {{item.author.nickname}} · 申請 {{item._count.claims}}</text>
+          <text class="ui-meta">{{item.type === 'FOUND' ? L.k86 : L.k87}} · {{item.place}} · {{item.author.nickname}} · 申請 {{item._count.claims}}</text>
           <view class="row-actions">
             <pv-button wx:if="{{item.deletedAt}}" size="sm" type="plain" data-id="{{item.id}}" data-act="RESTORE" bind:tap="moderate">{{L.k15}}</pv-button>
             <pv-button wx:else size="sm" type="plain" data-id="{{item.id}}" data-act="REMOVE" bind:tap="moderate">{{L.k16}}</pv-button>
@@ -101,11 +101,11 @@
         <view wx:for="{{noticeList}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.title}}</text>
-            <pv-tag text="{{item.kind === 'URGENT' ? '緊急' : item.kind === 'CALENDAR' ? '校曆' : '一般'}}" type="{{item.kind === 'URGENT' ? 'danger' : 'neutral'}}" />
+            <pv-tag text="{{item.kind === 'URGENT' ? L.k88 : item.kind === 'CALENDAR' ? L.k89 : L.k90}}" type="{{item.kind === 'URGENT' ? 'danger' : 'neutral'}}" />
           </view>
           <view class="row-actions">
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-pinned="{{item.isPinned ? '1' : '0'}}" bind:tap="togglePin">
-              {{item.isPinned ? '取消置頂' : '置頂'}}
+              {{item.isPinned ? L.k91 : L.k92}}
             </pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteNotice">{{L.k22}}</pv-button>
           </view>
@@ -130,7 +130,7 @@
         <pv-card wx:if="{{evStats}}">
           <view class="ui-row-between">
             <text class="ui-title">{{evStats.title}}</text>
-            <pv-tag text="{{evStats.full ? '已滿' : (evStats.unlimited ? '不限名額' : '有名額')}}" type="{{evStats.full ? 'warning' : 'success'}}" />
+            <pv-tag text="{{evStats.full ? L.k93 : (evStats.unlimited ? L.k94 : L.k95)}}" type="{{evStats.full ? 'warning' : 'success'}}" />
           </view>
           <view class="stat-row">
             <view class="stat-cell"><text class="stat-cell__num">{{evStats.signed}}</text><text class="stat-cell__label">{{L.k31}}</text></view>
@@ -156,7 +156,7 @@
         <pv-card wx:if="{{ci}}">
           <view class="ui-row-between">
             <text class="ui-title">現場簽到 · {{ci.title}}</text>
-            <pv-tag text="{{ci.active ? '開放中' : '未開放'}}" type="{{ci.active ? 'success' : 'neutral'}}" />
+            <pv-tag text="{{ci.active ? L.k96 : L.k97}}" type="{{ci.active ? 'success' : 'neutral'}}" />
           </view>
           <view wx:if="{{ci.active}}" class="ci-box">
             <image class="ci-qr" src="{{ci.qrDataUrl}}" mode="aspectFit" />
@@ -167,16 +167,16 @@
           </view>
           <text wx:else class="ui-meta ci-off">{{L.k37}}</text>
           <view class="row-actions">
-            <pv-button size="sm" type="filled" loading="{{ciSending}}" disabled="{{ciSending}}" bind:tap="openCheckin">{{ci.active ? '換一張新碼' : '開始簽到'}}</pv-button>
+            <pv-button size="sm" type="filled" loading="{{ciSending}}" disabled="{{ciSending}}" bind:tap="openCheckin">{{ci.active ? L.k98 : L.k99}}</pv-button>
             <pv-button size="sm" type="plain" disabled="{{ciSending || !ci.active}}" bind:tap="closeCheckin">{{L.k38}}</pv-button>
             <pv-button size="sm" type="plain" bind:tap="closeCheckinPanel">{{L.k36}}</pv-button>
           </view>
           <view wx:if="{{attendance}}" class="ci-list">
             <view wx:for="{{attendance.items}}" wx:key="signupId" class="ci-row">
-              <text class="ci-row__name">{{item.nickname || '（未設定）'}}　<text class="ui-meta">{{item.grade || ''}}{{item.className || ''}}</text></text>
+              <text class="ci-row__name">{{item.nickname || L.k100}}　<text class="ui-meta">{{item.grade || ''}}{{item.className || ''}}</text></text>
               <view class="ci-row__right">
-                <pv-tag text="{{item.checkedInAt ? '已簽到' : (item.status === 'CONFIRMED' ? '未簽到' : '候補')}}" type="{{item.checkedInAt ? 'success' : 'neutral'}}" />
-                <pv-button wx:if="{{item.status === 'CONFIRMED'}}" size="sm" type="plain" data-id="{{item.signupId}}" data-on="{{item.checkedInAt ? '0' : '1'}}" bind:tap="toggleAttendance">{{item.checkedInAt ? '撤銷' : '代簽'}}</pv-button>
+                <pv-tag text="{{item.checkedInAt ? L.k101 : (item.status === 'CONFIRMED' ? L.k102 : L.k103)}}" type="{{item.checkedInAt ? 'success' : 'neutral'}}" />
+                <pv-button wx:if="{{item.status === 'CONFIRMED'}}" size="sm" type="plain" data-id="{{item.signupId}}" data-on="{{item.checkedInAt ? '0' : '1'}}" bind:tap="toggleAttendance">{{item.checkedInAt ? L.k104 : L.k105}}</pv-button>
               </view>
             </view>
           </view>
@@ -185,14 +185,14 @@
         <view wx:for="{{events}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.title}}</text>
-            <pv-tag text="{{item.status === 'CANCELLED' ? '已取消' : item.status === 'PUBLISHED' ? '報名中' : item.status}}" type="{{item.status === 'CANCELLED' ? 'danger' : 'success'}}" />
+            <pv-tag text="{{item.status === 'CANCELLED' ? L.k106 : item.status === 'PUBLISHED' ? L.k107 : item.status}}" type="{{item.status === 'CANCELLED' ? 'danger' : 'success'}}" />
           </view>
-          <text class="ui-meta">{{item.signedCount}}/{{item.capacity || '不限'}} 人</text>
+          <text class="ui-meta">{{item.signedCount}}/{{item.capacity || L.k108}} 人</text>
           <view class="row-actions">
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventStats">{{L.k39}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventCheckin">{{L.k40}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-status="{{item.status}}" bind:tap="toggleEventStatus">
-              {{item.status === 'CANCELLED' ? '恢復' : '取消活動'}}
+              {{item.status === 'CANCELLED' ? L.k109 : L.k110}}
             </pv-button>
           </view>
         </view>
@@ -239,7 +239,7 @@
             <text class="ui-title">{{item.nickname || item.openid}}</text>
             <pv-tag text="{{item.role}} Lv{{item.level}}" type="{{item.bannedAt ? 'danger' : 'neutral'}}" />
           </view>
-          <text class="ui-meta">{{item.openid}}{{item.bannedAt ? ' · 已停用' : ''}}{{item.lastLoginAt ? ' · 最後登入 ' + item.lastLoginAt : ''}}</text>
+          <text class="ui-meta">{{item.openid}}{{item.bannedAt ? L.k111 : ''}}{{item.lastLoginAt ? L.k112 + item.lastLoginAt : ''}}</text>
 
           <view wx:if="{{item.canManage}}" class="row-actions">
             <block wx:for="{{roles}}" wx:for-item="r" wx:key="key">
@@ -273,7 +273,7 @@
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="startEdit">{{L.k56}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="resetPassword">{{L.k57}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-banned="{{item.bannedAt ? '1' : '0'}}" bind:tap="toggleBan">
-              {{item.bannedAt ? '恢復' : '停用'}}
+              {{item.bannedAt ? L.k109 : L.k113}}
             </pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-account="{{item.openid}}" bind:tap="deleteUser">{{L.k22}}</pv-button>
           </view>
@@ -319,7 +319,7 @@
             <text class="ui-title">{{item.targetType}} · {{item.reason}}</text>
             <pv-tag text="{{L.k67}}" type="warning" />
           </view>
-          <text class="ui-meta">檢舉人：{{item.reporter.nickname || '匿名'}}</text>
+          <text class="ui-meta">檢舉人：{{item.reporter.nickname || L.k114}}</text>
           <view class="row-actions">
             <pv-button size="sm" type="filled" data-id="{{item.id}}" data-action="RESOLVE" bind:tap="handleReport">{{L.k68}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-action="DISMISS" bind:tap="handleReport">{{L.k69}}</pv-button>
@@ -340,7 +340,7 @@
           </view>
         </pv-card>
 
-        <pv-empty wx:if="{{!errors.length}}" icon="🐞" title="{{errStatus === 'OPEN' ? '沒有待處理的錯誤' : '沒有已解決的紀錄'}}"
+        <pv-empty wx:if="{{!errors.length}}" icon="🐞" title="{{errStatus === 'OPEN' ? L.k115 : L.k116}}"
                   desc="{{L.k70}}" />
 
         <view wx:for="{{errors}}" wx:key="id" class="ui-card">
@@ -348,11 +348,11 @@
             <text class="ui-title">{{item.message}}</text>
             <pv-tag text="{{item.count}} 次" type="{{item.status === 'OPEN' ? 'warning' : 'neutral'}}" />
           </view>
-          <text class="ui-meta">{{item.route || '（未記錄頁面）'}}{{item.platform ? ' · ' + item.platform : ''}}</text>
+          <text class="ui-meta">{{item.route || L.k117}}{{item.platform ? ' · ' + item.platform : ''}}</text>
           <text class="ui-meta">最近 {{item.seenText}} · 首次 {{item.firstSeenText}}</text>
           <view class="row-actions">
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-action="{{item.status === 'OPEN' ? 'RESOLVE' : 'REOPEN'}}" bind:tap="toggleErrStatus">
-              {{item.status === 'OPEN' ? '標記已解決' : '重新打開'}}
+              {{item.status === 'OPEN' ? L.k118 : L.k119}}
             </pv-button>
           </view>
         </view>
@@ -377,8 +377,8 @@
         </view>
         <pv-card wx:if="{{signups.length}}">
           <view wx:for="{{signups}}" wx:key="index" class="signup-row">
-            <text class="signup-row__name">{{item.nickname || '（未設定）'}}</text>
-            <text class="ui-meta">{{item.status === 'CONFIRMED' ? '正取' : '候補 ' + item.waitlistPos}}</text>
+            <text class="signup-row__name">{{item.nickname || L.k100}}</text>
+            <text class="ui-meta">{{item.status === 'CONFIRMED' ? L.k120 : L.k121 + item.waitlistPos}}</text>
           </view>
           <view class="row-actions">
             <pv-button size="sm" type="plain" bind:tap="copySignups">{{L.k72}}</pv-button>
@@ -407,7 +407,7 @@
 
         <text class="field__label">本週已排（{{menuWeekStart}} 起）</text>
         <view wx:for="{{menuEntries}}" wx:key="id" class="signup-row">
-          <text class="signup-row__name">{{item.date}} · {{item.mealType === 'LUNCH' ? '午餐' : '小賣部'}} · {{item.dishName}}</text>
+          <text class="signup-row__name">{{item.date}} · {{item.mealType === 'LUNCH' ? L.k122 : L.k123}} · {{item.dishName}}</text>
           <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteMenuEntry">{{L.k79}}</pv-button>
         </view>
         <pv-empty wx:if="{{!menuEntries.length}}" icon="🍽" title="{{L.k80}}" desc="" />
@@ -416,7 +416,7 @@
       <!-- 批次匯入（活動／菜單共用同一塊面板） -->
       <pv-card wx:if="{{importType}}">
         <view class="ui-row-between">
-          <text class="ui-title">批次匯入{{importType === 'menu' ? '菜單' : '活動'}}</text>
+          <text class="ui-title">批次匯入{{importType === 'menu' ? L.k124 : L.k125}}</text>
           <pv-button size="sm" type="plain" bind:tap="closeImport">{{L.k36}}</pv-button>
         </view>
         <text class="ui-meta imp-hint">{{importHint}}</text>
