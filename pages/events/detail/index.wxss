@@ -23,3 +23,12 @@
   padding: var(--pv-sp-2) var(--pv-sp-3);
   font-size: var(--pv-fs-subhead);
 }
+
+.group-title { display: block; font-size: var(--pv-fs-subhead); color: var(--pv-label-2); margin-bottom: var(--pv-sp-1); }
+.group-chips { display: flex; flex-direction: row; flex-wrap: wrap; }
+.group-chip {
+  padding: 0 var(--pv-sp-3); line-height: 64rpx; margin: 0 var(--pv-sp-1) var(--pv-sp-1) 0;
+  border-radius: 999rpx; background: var(--pv-fill); color: var(--pv-label-2); font-size: var(--pv-fs-subhead);
+}
+.group-chip--on { background: var(--pv-tint); color: var(--pv-on-tint); font-weight: 600; }
+.group-hint { display: block; margin-top: var(--pv-sp-1); font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }

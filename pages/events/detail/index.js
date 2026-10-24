@@ -14,6 +14,8 @@ Page({
     barType: 'filled',
     barHint: '',
     barDisabled: false,
+    groups: [],
+    pickedGroup: '',
   },
 
   onLoad(query) {
@@ -25,11 +27,24 @@ Page({
     try {
       const raw = await data.getEvent(this.id);
       const ev = decorate(raw);
-      this.setData(Object.assign({ loading: false, failed: false, errorText: '', ev: ev }, this.barFor(ev)));
+      this.setData(
+        Object.assign(
+          {
+            loading: false,
+            failed: false,
+            errorText: '',
+            ev: ev,
+            groups: ev.groups || [],
+            pickedGroup: ev.myGroupKey || '',
+          },
+          this.barFor(ev),
+        ),
+      );
     } catch (e) {
       this.setData({
         loading: false,
         ev: null,
+        pickedGroup: '',
         failed: codeOf(e) !== 'NOT_FOUND',
         errorText: data.messageOf(e),
       });
@@ -41,7 +56,14 @@ Page({
     return this.load();
   },
 
+  chooseGroup(e) {
+    this.setData({ pickedGroup: e.currentTarget.dataset.group });
+  },
+
   barFor(ev) {
+    if (!ev.mySignup && (ev.groups || []).length && !this.data.pickedGroup) {
+      return { barText: '選擇組別', barType: 'tinted', barHint: '這個活動需要先選組別', barDisabled: true };
+    }
     if (ev.myStatus === 'CONFIRMED') {
       return { barText: '取消報名', barType: 'plain', barHint: '你已報名', barDisabled: false };
     }
@@ -68,7 +90,7 @@ Page({
         wx.showToast({ title: '已取消', icon: 'success' });
       } else {
         await subscribe.request('event'); // 模板 ID 未填就自動跳過
-        const rec = await data.signupEvent(ev.id);
+        const rec = await data.signupEvent(ev.id, this.data.pickedGroup || null);
         if (rec.status === 'WAITLIST') {
           wx.showToast({ title: '已額滿，候補第 ' + rec.waitlistPos + ' 位', icon: 'none' });
         } else {

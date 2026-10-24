@@ -35,6 +35,17 @@
           <text class="ui-body">{{ev.description || '主辦方沒有填寫說明'}}</text>
         </pv-card>
 
+        <pv-card wx:if="{{(ev.groups || []).length}}">
+          <text class="group-title">組別</text>
+          <view class="group-chips">
+            <view wx:for="{{ev.groups}}" wx:key="*this"
+                  class="group-chip {{(pickedGroup === item || ev.myGroupKey === item) ? 'group-chip--on' : ''}}"
+                  data-group="{{item}}" bindtap="chooseGroup">{{item}}</view>
+          </view>
+          <text wx:if="{{ev.myGroupKey}}" class="group-hint">你已報名 {{ev.myGroupKey}}</text>
+          <text wx:elif="{{!pickedGroup}}" class="group-hint">報名前請先選一個組別</text>
+        </pv-card>
+
         <view wx:if="{{ev.myStatus}}" class="my-state">
           <text wx:if="{{ev.myStatus === 'CONFIRMED'}}">你已報名成功，記得準時出席。</text>
           <text wx:else>你在候補第 {{ev.waitlistPos}} 位，有名額釋出時會自動補上。</text>

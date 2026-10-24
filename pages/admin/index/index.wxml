@@ -120,6 +120,7 @@
           <input class="field__input field__gap" value="{{eventForm.location}}" data-field="location" bindinput="onEventField" placeholder="地點（可空）" />
           <input class="field__input field__gap" value="{{eventForm.date}}" data-field="date" bindinput="onEventField" placeholder="日期 YYYY-MM-DD" />
           <input class="field__input field__gap" value="{{eventForm.capacity}}" data-field="capacity" bindinput="onEventField" placeholder="名額（0 = 不限）" />
+          <input class="field__input field__gap" value="{{eventForm.groups}}" data-field="groups" bindinput="onEventField" placeholder="分組（可空，例：A組,B組）" />
           <view class="row-actions">
             <pv-button type="filled" size="sm" loading="{{creatingEvent}}" disabled="{{creatingEvent}}" bind:tap="createEvent">建立活動</pv-button>
           </view>
@@ -137,6 +138,14 @@
             <view class="stat-cell"><text class="stat-cell__num">{{evStats.cancelled}}</text><text class="stat-cell__label">取消</text></view>
           </view>
           <text class="ui-meta">近 7 天報名：{{evStats.timeline[0].count}}／{{evStats.timeline[1].count}}／{{evStats.timeline[2].count}}／{{evStats.timeline[3].count}}／{{evStats.timeline[4].count}}／{{evStats.timeline[5].count}}／{{evStats.timeline[6].count}}</text>
+          <view wx:if="{{evStats.byGroup.length}}" class="group-stat">
+            <view wx:for="{{evStats.byGroup}}" wx:key="groupKey" class="group-stat__row">
+              <text class="group-stat__name">{{item.groupKey}}</text>
+              <text class="ui-meta">正取 {{item.signed}}｜候補 {{item.waitlisted}}｜出席 {{item.checkedIn}}</text>
+            </view>
+          </view>
+          <text class="ui-meta">出席率 {{evStats.attendanceRate}}%（已簽到 {{evStats.checkedIn}}／正取 {{evStats.signed}}）</text>
+
           <view class="row-actions">
             <pv-button size="sm" type="filled" bind:tap="promoteAll" disabled="{{evStats.waitlisted === 0}}">候補全部轉正</pv-button>
             <pv-button size="sm" type="plain" bind:tap="closeEventStats">收起</pv-button>

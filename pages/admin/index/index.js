@@ -73,7 +73,7 @@ Page({
     menu: { date: '', mealType: 'LUNCH', names: '' },
     menuWeekStart: '',
     menuEntries: [],
-    eventForm: { title: '', date: '', capacity: '20', location: '' },
+    eventForm: { title: '', date: '', capacity: '20', location: '', groups: '' },
     creatingEvent: false,
     users: [],
     parents: [],
@@ -468,14 +468,19 @@ Page({
     }
     this.setData({ creatingEvent: true });
     try {
+      const groups = (f.groups || '')
+        .split(/[,，、]/)
+        .map((x) => x.trim())
+        .filter(Boolean);
       await admin.createEvent({
         title: f.title.trim(),
         location: f.location.trim() || undefined,
         startAt: new Date(f.date + 'T09:00:00').toISOString(),
         capacity: Number(f.capacity) || 0,
         status: 'PUBLISHED',
+        groups: groups.length ? groups : undefined,
       });
-      this.setData({ 'eventForm.title': '', 'eventForm.location': '', hint: '活動已建立' });
+      this.setData({ 'eventForm.title': '', 'eventForm.location': '', 'eventForm.groups': '', hint: '活動已建立' });
       wx.showToast({ title: '已建立', icon: 'success' });
       this.loadEventsAdmin();
     } catch (e) {

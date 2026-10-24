@@ -38,8 +38,8 @@ module.exports = {
   getEvent(id) {
     return http.get('/events/' + id);
   },
-  signupEvent(eventId) {
-    return http.post('/events/' + eventId + '/signup', {});
+  signupEvent(eventId, groupKey) {
+    return http.post('/events/' + eventId + '/signup', groupKey ? { groupKey: groupKey } : {});
   },
   cancelSignup(eventId) {
     return http.del('/events/' + eventId + '/signup');

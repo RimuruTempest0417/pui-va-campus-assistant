@@ -318,6 +318,27 @@ check('簽到：我的報名帶簽到時間',
     `myStatus=${apiShape.myStatus || '空'} / 簽到=${apiShape.myCheckedIn ? '有' : '無'}`);
 }
 
+// ── 活動分組（示範層與後端同一規則：有設組別就必須選）──
+{
+  const evs = await data.listEvents({ scope: 'upcoming' });
+  const grouped = (evs.items || []).filter((e) => (e.groups || []).length)[0];
+  check('活動分組：示範資料有分組活動', Boolean(grouped), grouped ? grouped.title : '找不到 groups 非空的活動');
+  if (grouped) {
+    let blocked = '';
+    await data.signupEvent(grouped.id).catch((err) => {
+      blocked = (err && err.code) || 'UNKNOWN';
+    });
+    check('活動分組：未選組被擋', blocked === 'VALIDATION_FAILED', blocked || '沒有擋下');
+
+    const rec = await data.signupEvent(grouped.id, grouped.groups[1]).catch((err) => ({ error: err }));
+    check(
+      '活動分組：選組後記下組別',
+      rec && rec.groupKey === grouped.groups[1],
+      JSON.stringify(rec && (rec.groupKey || rec.error || rec)),
+    );
+  }
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

@@ -97,6 +97,19 @@ function seed() {
       { id: 'e6', title: '上學期成果回顧展', club: '視藝科', location: '一樓展覽廳', startAt: now - 72 * h, endAt: now - 60 * h,
         capacity: 0, signedCount: 64, status: 'FINISHED',
         description: '已結束。' },
+      {
+        id: 'e7',
+        title: '班際籃球賽（分甲乙組）',
+        club: '體育組',
+        location: '一號球場',
+        startAt: now + 120 * h,
+        endAt: now + 123 * h,
+        capacity: 24,
+        signedCount: 0,
+        status: 'PUBLISHED',
+        groups: ['甲組', '乙組'],
+        description: '按班別分甲乙兩組，報名時請選組別。',
+      },
     ],
     signups: [], // { id, eventId, userId, status: CONFIRMED|WAITLIST, waitlistPos, createdAt, checkedInAt }
     // 示範用的「老師已開簽到」狀態：e1 的碼固定在 246810，方便自檢腳本與手動演示
@@ -203,12 +216,21 @@ function childOf(data, studentId) {
  * 報名核心：userId 為 null 代表「自己」，否則代表「代這位子女」。
  * 自己報名與家長代報名共用同一份名額判斷，示範層才不會出現兩套結果。
  */
-function signupCore(id, userId) {
+function signupCore(id, userId, groupKey) {
   const data = db();
   const who = userId || data.user.id;
   const e = data.events.filter((x) => x.id === id)[0];
   if (!e) return Promise.reject({ code: 'NOT_FOUND' });
   if (e.status !== 'PUBLISHED') return Promise.reject({ code: 'VALIDATION_FAILED', message: '這個活動目前沒有開放報名' });
+
+  // 分組：有設組別就一定要選，且必須在名單內（與後端同一規則）
+  const groups = e.groups || [];
+  let picked = null;
+  if (groups.length) {
+    if (!groupKey) return Promise.reject({ code: 'VALIDATION_FAILED', message: '這個活動需要先選組別' });
+    if (groups.indexOf(groupKey) === -1) return Promise.reject({ code: 'VALIDATION_FAILED', message: '組別不存在' });
+    picked = groupKey;
+  }
 
   const me = data.signups.filter((x) => x.eventId === id && x.userId === who && x.status !== 'CANCELLED')[0];
   if (me) return Promise.reject({ code: 'ALREADY_SIGNED_UP' });
@@ -220,6 +242,7 @@ function signupCore(id, userId) {
     userId: who,
     status: full ? 'WAITLIST' : 'CONFIRMED',
     waitlistPos: full ? waitlistCount(data, id) + 1 : null,
+    groupKey: picked,
     createdAt: Date.now(),
   };
   if (!full) e.signedCount += 1;
@@ -392,8 +415,8 @@ module.exports = {
     return Promise.resolve(Object.assign({}, e, { mySignup: mineFor(data, id) }));
   },
 
-  signupEvent(id) {
-    return signupCore(id, null);
+  signupEvent(id, groupKey) {
+    return signupCore(id, null, groupKey || null);
   },
 
   cancelSignup(id) {

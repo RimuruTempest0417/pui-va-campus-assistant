@@ -85,3 +85,10 @@
   color: var(--pv-label-3);
   margin-top: 4rpx;
 }
+
+.group-stat { margin: var(--pv-sp-2) 0; }
+.group-stat__row {
+  display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+  padding: var(--pv-sp-1) 0; border-bottom: 1rpx solid var(--pv-sep);
+}
+.group-stat__name { font-size: var(--pv-fs-subhead); font-weight: 600; color: var(--pv-label); }
