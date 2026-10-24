@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// 一鍵驗收：把四支守門腳本串起來跑完並彙總（夜間隊列 #10）。
+// 一鍵驗收：把五支守門腳本串起來跑完並彙總（夜間隊列 #10）。
 //
 // 用法：
-//   node scripts/verify-all.mjs                # 四項全跑（console 需要開發者工具開著本專案）
-//   node scripts/verify-all.mjs --no-console   # 只跑不需要 DevTools 的三項（改文件／CI 用）
+//   node scripts/verify-all.mjs                # 五項全跑（console 需要開發者工具開著本專案）
+//   node scripts/verify-all.mjs --no-console   # 只跑不需要 DevTools 的四項（改文件／CI 用）
 //   node scripts/verify-all.mjs --strict       # 略過也算不通過（交付前、要簽名的驗收用這個）
 //   node scripts/verify-all.mjs --only project,data
 //   node scripts/verify-all.mjs --verbose      # 每一步都印完整輸出（預設只在失敗時印）
 //
-// 為什麼要有這支：四支腳本各自的 exit code 有意義，但每晚要人工記「哪幾支跑過、哪支紅」。
-// 這支把順序固定（結構 → 三態 → 資料層 → console），失敗時直接把該步完整輸出貼出來，
+// 為什麼要有這支：五支腳本各自的 exit code 有意義，但每晚要人工記「哪幾支跑過、哪支紅」。
+// 這支把順序固定（結構 → API 契約 → 三態 → 資料層 → console），失敗時直接把該步完整輸出貼出來，
 // 不必再回頭重跑一次才知道錯在哪；console 在 DevTools 沒開時標成「略過（未驗）」而不是假綠。
 
 import { spawnSync } from 'node:child_process';
@@ -28,6 +28,7 @@ const STEP_TIMEOUT = 600000; // console 走查 19 頁實測約 2–4 分鐘，�
 
 const STEPS = [
   { key: 'project', label: '專案結構', script: 'check-project.mjs', args: [], highlight: /✅ 專案結構檢查通過[^\n]*/ },
+  { key: 'openapi', label: 'API 契約', script: 'check-openapi.mjs', args: [], highlight: /✅ OpenAPI 契約檢查通過[^\n]*/ },
   { key: 'states', label: '三態一致', script: 'check-states.mjs', args: [], highlight: /空／載入／失敗狀態：[^\n]*/ },
   { key: 'data', label: '資料層', script: 'check-data-layer.mjs', args: [], highlight: /\b(?:ALL PASS|FAIL) \d+\/\d+\b/ },
   // console 走查要對齊「0 error／0 warn」的驗收標準，所以預設把 warn 也算不通過

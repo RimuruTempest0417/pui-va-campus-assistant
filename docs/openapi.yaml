@@ -197,31 +197,6 @@ paths:
                           items: { type: string, example: 同分類 }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  /items/matches:
-    get:
-      tags: [items]
-      summary: 智能匹配推薦
-      parameters:
-        - { in: query, name: itemId, required: true, schema: { type: string } }
-      responses:
-        '200':
-          description: 依分數降序，低於 0.45 不回傳
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  matches:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id: { type: string }
-                        title: { type: string }
-                        score: { type: number, format: float }
-                        reasons:
-                          type: array
-                          items: { type: string }
 
   /items/{id}:
     parameters:
@@ -238,23 +213,22 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
     patch:
       tags: [items]
-      summary: 修改（作者或 ADMIN）
+      summary: 改狀態（作者本人，或具 item:moderate 者可代改）
       requestBody:
+        required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/LostItemInput' }
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [OPEN, CLAIMED, CLOSED] }
       responses:
         '200':
           description: 修改後
           content:
             application/json:
               schema: { $ref: '#/components/schemas/LostItem' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-    delete:
-      tags: [items]
-      summary: 下架（soft delete）
-      responses:
-        '204': { description: 已刪除 }
         '403': { $ref: '#/components/responses/Forbidden' }
 
   /items/{id}/claims:
@@ -274,7 +248,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  items: { type: array, items: { : '#/components/schemas/ItemClaim' } }
+                  items: { type: array, items: { $ref: '#/components/schemas/ItemClaim' } }
         '403': { $ref: '#/components/responses/Forbidden' }
     post:
       tags: [items]
@@ -1003,22 +977,6 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
-  /admin/stats:
-    get:
-      tags: [admin]
-      summary: 營運數據（需 stats:read）
-      responses:
-        '200':
-          description: 統計
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /admin/items:
-    get:
-      tags: [admin]
-      summary: 失物清單（含已下架，需 item:moderate）
-      parameters:
-        - { in: query, name: status, schema: { type: string, enum: [OPEN, MATCHED, CLAIMED, CLOSED] } }
-
   /admin/items/{id}:
     patch:
       tags: [admin]
@@ -1046,46 +1004,6 @@ paths:
       tags: [admin]
       summary: 活動清單（匯出 CSV 用，需 event:export）
 
-  /admin/events/{id}/signups:
-    get:
-      tags: [admin]
-      summary: 報名名單 JSON（小程序內後台用，需 event:export）
-      parameters:
-        - { in: path, name: id, required: true, schema: { type: string } }
-      responses:
-        '200':
-          description: 名單（最多 200 筆）
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        nickname: { type: string, nullable: true }
-                        grade: { type: string, nullable: true }
-                        className: { type: string, nullable: true }
-                        status: { type: string, enum: [CONFIRMED, WAITLIST] }
-                        waitlistPos: { type: integer, nullable: true }
-                        createdAt: { type: string, format: date-time }
-
-  /admin/events/{id}/signups.csv:
-    get:
-      tags: [admin]
-      summary: 報名名單 CSV（UTF-8 BOM）
-      description: 需 event:export；含正取／候補、候補順位、年級班別、報名時間。
-      parameters:
-        - { in: path, name: id, required: true, schema: { type: string } }
-      responses:
-        '200':
-          description: text/csv
-          content:
-            text/csv:
-              schema: { type: string }
-
   /admin/dishes/ensure:
     post:
       tags: [admin]
@@ -1106,6 +1024,18 @@ paths:
                 date: { type: string, format: date }
                 mealType: { type: string, enum: [LUNCH, SNACK] }
                 dishIds: { type: array, items: { type: string }, maxItems: 6 }
+      responses:
+        '200':
+          description: 寫入後該日該餐別的菜色數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  date: { type: string, format: date }
+                  mealType: { type: string, enum: [LUNCH, SNACK] }
+                  count: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /admin/notices:
     post:
@@ -1135,7 +1065,7 @@ paths:
   /admin/stats:
     get:
       tags: [admin]
-      summary: 營運看板數據
+      summary: 營運看板數據（需 stats:read）
       responses:
         '200':
           description: OK
@@ -1144,10 +1074,31 @@ paths:
               schema:
                 type: object
                 properties:
-                  dau: { type: integer }
-                  itemCount7d: { type: integer }
-                  signupCount7d: { type: integer }
-                  claimSuccessRate: { type: number, format: float }
+                  users: { type: integer, description: 使用者總數 }
+                  byRole:
+                    type: object
+                    description: 各角色人數（鍵為 Role 列舉值）
+                    additionalProperties: { type: integer }
+                  items:
+                    type: object
+                    properties:
+                      open: { type: integer }
+                      claimed: { type: integer }
+                      added7d: { type: integer }
+                  claimsPending: { type: integer }
+                  events: { type: integer }
+                  signups:
+                    type: object
+                    properties:
+                      confirmed: { type: integer }
+                      waitlist: { type: integer }
+                  noticesActive: { type: integer }
+                  ratings:
+                    type: object
+                    properties:
+                      count: { type: integer }
+                      avg: { type: number, format: float }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /dishes/{id}:
     parameters:
@@ -1179,33 +1130,15 @@ paths:
                   ok: { type: boolean }
                   count: { type: integer }
         '401': { $ref: '#/components/responses/Unauthorized' }
-  /subscriptions:
-    post:
-      tags: [notices]
-      summary: 記錄使用者同意的訂閱模板
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [templates]
-              properties:
-                templates:
-                  type: array
-                  items:
-                    type: string
-                    enum: [itemClaimed, eventOpen, urgentNotice]
-      responses:
-        '204': { description: 已記錄 }
-
   /admin/items:
     get:
       tags: [admin]
-      summary: 待審核／全部失物
+      summary: 待審核／全部失物（需 item:moderate）
+      description: 回傳含已下架項目（deletedAt 非 null），供後台下架／恢復。
       parameters:
         - { in: query, name: status, schema: { type: string, enum: [OPEN, MATCHED, CLAIMED, CLOSED] } }
         - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: pageSize, schema: { type: integer, default: 20, maximum: 50 } }
       responses:
         '200':
           description: OK
@@ -1219,63 +1152,6 @@ paths:
                       items:
                         type: array
                         items: { $ref: '#/components/schemas/LostItem' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /admin/items/{id}/approve:
-    parameters:
-      - { in: path, name: id, required: true, schema: { type: string } }
-    post:
-      tags: [admin]
-      summary: 審核失物（通過／下架）
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [approve]
-              properties:
-                approve: { type: boolean }
-                reason: { type: string, maxLength: 200 }
-      responses:
-        '200':
-          description: 審核後狀態
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/LostItem' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /admin/menu:
-    post:
-      tags: [admin]
-      summary: 批次排菜單（upsert）
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [entries]
-              properties:
-                entries:
-                  type: array
-                  items:
-                    type: object
-                    required: [date, mealType, dishId]
-                    properties:
-                      date: { type: string, format: date }
-                      mealType: { type: string, enum: [LUNCH, SNACK] }
-                      dishId: { type: string }
-                      soldOut: { type: boolean }
-      responses:
-        '200':
-          description: 寫入結果
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  upserted: { type: integer }
         '403': { $ref: '#/components/responses/Forbidden' }
 
   /admin/events/{id}/signups:
@@ -1309,7 +1185,8 @@ paths:
       - { in: path, name: id, required: true, schema: { type: string } }
     get:
       tags: [admin]
-      summary: 匯出報名名單（CSV）
+      summary: 匯出報名名單（CSV，UTF-8 BOM）
+      description: 欄位＝狀態（正取／候補）、候補順位、姓名、年級、班別、openid、報名時間；不含已取消；寫審計。
       responses:
         '200':
           description: CSV 檔案

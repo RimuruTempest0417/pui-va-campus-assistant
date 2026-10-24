@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.27.1-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.27.2-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -85,6 +85,7 @@
 ├── config/config.js                      # API_BASE_URL、DEMO_MODE
 ├── scripts/
 │   ├── check-project.mjs                 # 結構／WXSS／白屏守門
+│   ├── check-openapi.mjs                 # API 契約守門（重複鍵／可解析／操作數；--parity 對後端路由）
 │   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，62 項）
 │   ├── check-states.mjs                  # 19 頁三態（載入／空／失敗）對照表守門
 │   ├── check-console.mjs                 # 19 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
@@ -119,6 +120,7 @@ node scripts/verify-all.mjs        # 4 通過／0 失敗；--no-console 跳過�
 
 # 也可以單獨跑（CI 也會跑）
 node scripts/check-project.mjs     # 19 頁面 / 0 警告
+node scripts/check-openapi.mjs     # 52 條路徑／59 個操作、0 重複鍵（--parity 印出與後端路由表的差）
 node scripts/check-data-layer.mjs  # ALL PASS 62/62（固定跑示範資料層，含 data↔api↔mock 方法對齊）
 node scripts/check-states.mjs      # 19 頁三態全部符合（--table 印出對照表）
 node scripts/check-console.mjs     # 19 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
@@ -151,10 +153,11 @@ node scripts/check-console.mjs     # 19 頁 console 走查：0 error／0 warn（
 - [x] **家長端（P3，v0.23.0）**：首頁「我的子女」切換＋`pages/parent` 代報名／取消（後端 `event:signup:child`，名額與學生共用 `lib/signup.ts`）
 - [x] **活動現場簽到（v0.24.0）**：老師在後台按「開始簽到」生成 6 位碼＋QR（每次換新碼），學生掃碼或手打碼簽到；只有正取能簽，重複掃不重複計；後台／網頁後台都看得到「已簽到 n / 正取 m（出席率）」並可代簽、撤銷代簽
 - [x] **錯誤日誌（v0.25.0）**：`App.onError`／`onUnhandledRejection` → `POST /client-errors` → 後台「錯誤」分頁按次數排序；順手修 `fromNow` 不吃 ISO 字串（真 API 模式「NaN 天前」）
+- [x] **API 契約守門（v0.27.2）**：`docs/openapi.yaml` 合併 6 組重複路徑（YAML 取後者、前面操作被靜默丟掉）＋修掉 `$ref` 被吃掉的壞行（整檔原本解析失敗）＋刪掉 2 條後端不存在的假操作；新增 `scripts/check-openapi.mjs`（重複鍵／可解析／操作數下限，`--parity` 對後端路由表對帳）並接進一鍵驗收。實測 52 路徑／59 操作／0 重複鍵、文件有而後端沒有 0 條
 - [x] 訂閱消息（W-11）
 - [x] 雲端部署（W-15）：Vercel + Neon，API `https://pui-va-campus-server.vercel.app/api/v1`
 - [x] 交付給老師的一鍵包與 5 步說明（W-12：`node scripts/package.mjs`）
-- [x] **一鍵驗收（v0.27.1）**：`scripts/verify-all.mjs` 把四支守門串起來（結構→三態→資料層→console）並印「通過／失敗／略過」彙總；失敗時直接貼該步完整輸出（含行號）；DevTools 沒開時 console 標「略過（未驗）」不假綠，`--strict` 讓略過也算失敗。實測 4 通過、175.3s，注入違規回 exit 1
+- [x] **一鍵驗收（v0.27.1）**：`scripts/verify-all.mjs` 把五支守門串起來（結構→**API 契約**→三態→資料層→console）並印「通過／失敗／略過」彙總；失敗時直接貼該步完整輸出（含行號）；DevTools 沒開時 console 標「略過（未驗）」不假綠，`--strict` 讓略過也算失敗。實測 4 通過、175.3s，注入違規回 exit 1
 - [x] **校曆接上外部 ICS（v0.27.0／後端 v0.13.0）**：`GET /calendar/external` 抓 iCloud 校曆並展開 `RRULE`，校曆頁把外部場次併進同一份分組，標「校曆表」＋琥珀色圓點；外部來源掛掉回空陣列，站內資料照常
 - [x] 職員後台分頁對齊（v0.26.6／後端 v0.12.6）：STAFF 由「菜單／名單」擴到「公告／認領／菜單／名單」，與後端能力一致
 - [ ] 上線（ICP 備案 → 提審 → 灰度）

@@ -172,12 +172,12 @@ UPDATE events
 ### 管理 `/admin`（需 TEACHER / ADMIN）
 | 方法 | 路徑 | 說明 |
 |---|---|---|
-| GET | `/admin/items?status=PENDING` | 待審核失物 |
-| POST | `/admin/items/:id/approve` | 通過／下架 |
+| GET | `/admin/items?status=OPEN&page=1&pageSize=20` | 失物清單（含已下架，需 item:moderate） |
+| PATCH | `/admin/items/:id` | 下架／恢復（body `{action: REMOVE／RESTORE}`，寫審計） |
 | POST | `/admin/notices` | 發公告（可推訂閱消息） |
-| POST | `/admin/menu` | 排菜單（批次 upsert） |
+| POST | `/admin/menu` | 排菜單（同日同餐別覆蓋為指定菜色，body `{date, mealType, dishIds}`） |
 | GET | `/admin/events/:id/signups.csv` | 匯出報名名單 |
-| GET | `/admin/stats` | DAU／發布數／報名數（看板用） |
+| GET | `/admin/stats` | 營運看板（使用者與角色分布／失物／待審認領／報名／平均評分，需 stats:read） |
 
 ---
 
