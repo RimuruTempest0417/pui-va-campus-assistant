@@ -21,7 +21,7 @@ const TABS = [
 
 const ROLE_TABS = {
   // 校內職員：排菜單＋匯出報名名單。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
-  STAFF: ['menu', 'export'],
+  STAFF: ['notice', 'claims', 'menu', 'export'],
   TEACHER: ['notice', 'events'],
   ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'export', 'menu'],
   SUPER_ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'audit', 'export', 'menu'],
