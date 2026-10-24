@@ -14,7 +14,7 @@
         </view>
         <view class="field">
           <text class="field__label">密碼</text>
-          <input class="field__input" value="{{password}}" password placeholder="••••••••" bindinput="onPassword" />
+          <input class="field__input" value="{{password}}" password placeholder="••••••••" bindinput="onPassword" bindconfirm="submit" confirm-type="done" />
         </view>
 
         <view class="login-actions">

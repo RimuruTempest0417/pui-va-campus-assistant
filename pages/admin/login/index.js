@@ -53,7 +53,17 @@ Page({
       // 登入只負責「登入」；後台入口由首頁那顆按鈕負責
       setTimeout(() => wx.navigateBack(), 400);
     } catch (e) {
-      this.setData({ error: e.message || '登入失敗' });
+      // 錯誤要看得懂：把代碼也顯示出來，否則「登入失敗」四個字無法判斷是網路、密碼還是權限
+      const code = (e && e.code) || 'UNKNOWN';
+      const msg = (e && e.message) || '登入失敗';
+      const hint =
+        code === 'NETWORK' || code === 'TIMEOUT'
+          ? msg + '（連不到後端：' + config.API_BASE_URL + '）'
+          : code === 'RATE_LIMITED'
+            ? '嘗試太多次，請等一分鐘再試'
+            : msg + '（' + code + '）';
+      this.setData({ error: hint });
+      console.error('[admin-login]', code, msg);
     } finally {
       this.setData({ submitting: false });
     }

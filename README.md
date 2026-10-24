@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.29.0-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.30.0-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -147,7 +147,7 @@ node scripts/check-console.mjs     # 19 頁 console 走查：0 error／0 warn（
 | [`docs/教育版-導入步驟.md`](docs/教育版-導入步驟.md) | 教育版 appid、資料夾同步、導入步驟 |
 | [`docs/雲開發-代理方案.md`](docs/雲開發-代理方案.md) | 後備：雲函數代理（免備案路線） |
 | [`docs/註冊與備案-回鄉證路線.md`](docs/註冊與備案-回鄉證路線.md) | 主體與備案的實測結論（後備） |
-| [`docs/夜間進度.md`](docs/夜間進度.md) | 排程任務的隊列與已完成紀錄 |
+| [`docs/進度.md`](docs/進度.md) | 排程任務的隊列與已完成紀錄 |
 | [`docs/規劃書-待完成.md`](docs/規劃書-待完成.md) | **還沒做的事**（完成就刪） |
 | [`docs/openapi.yaml`](docs/openapi.yaml) ／ [`docs/architecture.html`](docs/architecture.html) | API 契約／架構圖 |
 | `docs/releases/` | 每版一份版本說明 |
