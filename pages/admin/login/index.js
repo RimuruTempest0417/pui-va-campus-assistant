@@ -16,6 +16,32 @@ Page({
     this.refreshCurrent();
   },
 
+  onShow() {
+    // 從背景回來或換頁回來時，不要把上一次的「登入中…」帶進來
+    if (this.data.submitting) this.setData({ submitting: false });
+  },
+
+  onUnload() {
+    if (this._watchdog) clearTimeout(this._watchdog);
+  },
+
+  /// 看門狗：15 秒內沒有任何結果就自己收手（避免渲染層壞掉時永久卡在「登入中…」）
+  armWatchdog() {
+    this.disarmWatchdog();
+    this._watchdog = setTimeout(() => {
+      if (!this.data.submitting) return;
+      this.setData({ submitting: false, error: '連線逾時（15 秒沒有回應），請檢查網路或後端狀態' });
+      wx.showModal({ title: '登入逾時', content: '15 秒內沒有收到後端回應。\n請確認網路，或到「資料來源」頁看後端位址是否正確。', showCancel: false });
+    }, 15000);
+  },
+
+  disarmWatchdog() {
+    if (this._watchdog) {
+      clearTimeout(this._watchdog);
+      this._watchdog = null;
+    }
+  },
+
   refreshCurrent() {
     let user = {};
     try {
@@ -59,6 +85,7 @@ Page({
   async _login(account, password) {
     if (this.data.submitting) return;
     this.setData({ submitting: true, error: '' });
+    this.armWatchdog();
     try {
       const res = await admin.login(account, password);
       request.setToken(res.token);
@@ -79,7 +106,10 @@ Page({
             : msg + '（' + code + '）';
       this.setData({ error: hint });
       console.error('[admin-login]', code, msg);
+      // 原生彈窗：即使頁面渲染層異常，使用者仍能看到失敗原因
+      wx.showModal({ title: '登入未成功', content: hint, showCancel: false });
     } finally {
+      this.disarmWatchdog();
       this.setData({ submitting: false });
     }
   },

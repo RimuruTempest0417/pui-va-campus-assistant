@@ -11,7 +11,7 @@
  *
  * 不會覆蓋的東西：project.config.json / project.private.config.json（各自的 appid 與個人設定）
  */
-import { cpSync, existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { cpSync, rmSync, existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -52,3 +52,37 @@ console.log(`   appid：${eduAppid}（教育版）`);
 console.log(`   檔案：${count(dest)} 個`);
 console.log('   在教育版開發者工具導入這個資料夾即可；之後每次改完再跑一次這行。');
 if (existsSync(join(dest, 'minitest'))) console.log('   （minitest 未同步，屬個人設定）');
+
+
+// ── 清掉目標端「來源已經沒有」的檔案（改名／刪除才會真的同步）
+// 不同步：.git、node_modules、minitest、dist、各自的 project.config.json / project.private.config.json
+const KEEP_TARGET_ONLY = new Set(['project.config.json', 'project.private.config.json']);
+const IGNORE_DIR = new Set(['.git', 'node_modules', 'minitest', 'dist', '.DS_Store']);
+
+function pruneTarget(srcRoot, dstRoot) {
+  let removed = 0;
+  const walk = (rel) => {
+    const dstDir = join(dstRoot, rel);
+    if (!existsSync(dstDir)) return;
+    for (const name of readdirSync(dstDir)) {
+      if (IGNORE_DIR.has(name)) continue;
+      const relPath = rel ? join(rel, name) : name;
+      const dstPath = join(dstRoot, relPath);
+      const srcPath = join(srcRoot, relPath);
+      const isDir = statSync(dstPath).isDirectory();
+      if (rel === '' && KEEP_TARGET_ONLY.has(name)) continue;
+      if (!existsSync(srcPath)) {
+        rmSync(dstPath, { recursive: true, force: true });
+        removed += 1;
+        console.log(`   - 移除（來源已無）：${relPath}`);
+      } else if (isDir) {
+        walk(relPath);
+      }
+    }
+  };
+  walk('');
+  return removed;
+}
+
+const pruned = pruneTarget(root, dest);
+console.log(`🧹 清掉 ${pruned} 個來源已無的檔案`);
