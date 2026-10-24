@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.39.2-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.39.3-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -31,7 +31,11 @@
 | 資料備份（維運） | 全庫匯出成一份 JSON（18 張表）、終端一支指令還原、還原後逐表對帳 | ✅ 網頁後台「下載備份」（只有最高權限看得到） | ✅ `GET /admin/export.json`（`backup:export`）＋後端 repo 的 `restore.mjs` |
 | 錯誤日誌（觀測） | 手機端的白屏／閃退／未處理 Promise 自動送上報，後台按出現次數排序、可標記已解決 | ✅ 自動上報（不影響使用者） | ✅ `error_logs` ＋ 3 支端點（`error:read`） |
 
-> 不含地圖／導覽功能；不使用微信雲開發（後端另行自建）。
+| 設定與個人化 | 右上角頭像進入「設定」：帳號（登入／登出／切換）、**介面語言（跟隨系統／繁體／簡體）**、**外觀（跟隨系統／淺色／深色）**、資料來源（教職員以上）、關於 | ✅ 1 頁 | — |
+| 帳號安全 | **兩步驗證（TOTP）**：高權限帳號可自行開啟，登入要密碼＋6 位動態碼，附 8 組一次性備用碼；關閉要再輸密碼 | ✅ 設定頁「安全」區塊 | ✅ 4 支端點、RFC 6238、e2e 4 項 |
+| 校曆（含外部） | 月視圖、當日項目、**外部 ICS 校曆（可多達 3 個來源、可依來源篩選）** | ✅ 1 頁 ＋ 來源 chips | ✅ `/calendar/external`（多來源獨立快取） |
+
+> 不含地圖／導覽功能；不使用微信雲開發（後端另行自建，2026-10-24 老師確認雲開發沒有機會）。
 
 ## 技術棧
 
