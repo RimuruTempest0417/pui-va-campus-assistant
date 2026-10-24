@@ -129,6 +129,13 @@ module.exports = {
   pushLogs(ok, channel, limit) {
     return http.get('/admin/push-logs', { ok: ok || 'all', channel: channel || '', limit: limit || 50 });
   },
+  // 資源回收桶（W-40）：公告與失物都是軟刪除，這裡看得到、可以還原
+  trash(type) {
+    return http.get('/admin/trash', { type: type || 'all' });
+  },
+  restoreTrash(type, id) {
+    return http.post('/admin/trash/restore', { type: type, id: id });
+  },
   audit(limit) {
     return http.get('/admin/audit', { limit: limit || 50 });
   },

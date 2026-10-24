@@ -97,6 +97,35 @@
         </view>
       </block>
 
+      <!-- 資源回收桶（W-40） -->
+      <block wx:elif="{{tab === 'trash'}}">
+        <pv-card>
+          <view class="ui-row-between">
+            <text class="ui-title">{{L.k145}}</text>
+            <text class="ui-meta">{{L.k147}} {{trashCounts.notice}} {{L.k150}} · {{L.k148}} {{trashCounts.item}} {{L.k150}} · {{L.k149}} {{trashCounts.all}} {{L.k150}}</text>
+          </view>
+          <text class="ui-meta">{{L.k146}}</text>
+          <view class="filter-row">
+            <view wx:for="{{trashFilters}}" wx:key="key" class="chip {{trashType === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickTrashType">{{item.label}}</view>
+          </view>
+        </pv-card>
+
+        <pv-empty wx:if="{{!trashRows.length}}" icon="🗑️" title="{{L.k154}}" desc="{{L.k155}}" />
+
+        <view wx:for="{{trashRows}}" wx:key="id" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{item.title}}</text>
+            <pv-tag text="{{item.typeText}}" type="neutral" />
+          </view>
+          <text class="ui-meta">{{item.subText}} · {{L.k151}} {{item.timeText}}</text>
+          <text class="ui-meta">{{L.k152}} {{item.deleterText}}</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-type="{{item.type}}" data-title="{{item.title}}" bind:tap="restoreTrash">{{L.k153}}</pv-button>
+          </view>
+        </view>
+      </block>
+
       <!-- 發公告 -->
       <block wx:elif="{{tab === 'notice'}}">
         <pv-card>

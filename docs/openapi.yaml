@@ -1792,6 +1792,74 @@ paths:
             text/csv:
               schema: { type: string }
 
+  /admin/trash:
+    get:
+      tags: [admin]
+      summary: 資源回收桶（已刪的公告與下架的失物；需要 trash:manage = ADMIN 以上）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: type, schema: { type: string, enum: [all, notice, item], default: all } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 200, default: 100 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type: { type: string, enum: [notice, item] }
+                        id: { type: string }
+                        title: { type: string }
+                        subtitle: { type: string, description: '公告＝kind（NORMAL／URGENT／CALENDAR）；失物＝地點' }
+                        itemType: { type: string, enum: [LOST, FOUND], description: 只有失物才有 }
+                        deletedAt: { type: string, format: date-time }
+                        deletedByName: { type: string, nullable: true, description: 公告讀 deletedBy，失物由審計紀錄回推 }
+                  counts:
+                    type: object
+                    properties:
+                      notice: { type: integer }
+                      item: { type: integer }
+                      all: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/trash/restore:
+    post:
+      tags: [admin]
+      summary: 還原垃圾桶裡的一筆內容（需要 trash:manage = ADMIN 以上）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, id]
+              properties:
+                type: { type: string, enum: [notice, item] }
+                id: { type: string }
+      responses:
+        '200':
+          description: 已還原
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  type: { type: string }
+                  id: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound', description: '不存在，或本來就沒被刪除（兩者不區分）' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
   /admin/notices/{id}:
     patch:
       tags: [admin]
