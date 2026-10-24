@@ -188,6 +188,10 @@ Page({
       k82: i18n.pick("選擇 CSV 檔"),
       k83: i18n.pick("先檢查"),
       k84: i18n.pick("確認匯入"),
+      // v0.48.0 後台統計首頁（W-39）：第一屏五張數字卡
+      k100: i18n.pick("本週概況"),
+      k101: i18n.pick("累計"),
+      k102: i18n.pick("點卡片跳到對應分頁"),
     };
   },
 
@@ -198,6 +202,9 @@ Page({
     tab: 'stats',
     role: '',
     stats: { users: 0, items: { open: 0, claimed: 0, added7d: 0 }, claimsPending: 0, signups: { confirmed: 0, waitlist: 0 }, noticesActive: 0, ratings: { count: 0, avg: 0 } },
+    // 第一屏五張數字卡：值與標籤在 loadStats 一起備好（WXML 不做運算）
+    ovCards: [],
+    ovPressed: -1,
     claims: [],
     items: [],
     itemStatus: 'OPEN',
@@ -356,11 +363,38 @@ Page({
 
   async loadStats() {
     try {
-      const stats = await admin.stats();
-      this.setData({ stats: stats });
+      // 累計報表與「本週五張卡」一起打。第二支失敗不讓整頁變失敗畫面：
+      // 卡片是加值資訊，累計數字才是後台原本就有的內容。
+      const [stats, ov] = await Promise.all([admin.stats(), admin.statsOverview().catch(() => null)]);
+      this.setData({ stats: stats, ovCards: this.buildOvCards(ov) });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到數據：') + (e.message || e.code) });
     }
+  },
+
+  /**
+   * 五張卡的值、標籤與跳轉目標一起算好。
+   * 標籤不寫在 WXML 是因為它要跟著介面語言變；target 放這裡讓 WXML 只負責顯示，
+   * 之後要改「點卡片去哪一頁」只改這一處。
+   */
+  buildOvCards(ov) {
+    const o = ov || {};
+    const n = (v) => (typeof v === 'number' ? v : 0);
+    return [
+      { key: 'usersNew7d', label: i18n.pick('本週新使用者'), value: n(o.usersNew7d), target: 'users' },
+      { key: 'signups7d', label: i18n.pick('本週報名'), value: n(o.signups7d), target: 'export' },
+      { key: 'claimsPending', label: i18n.pick('待審認領'), value: n(o.claimsPending), target: 'claims' },
+      { key: 'errorsOpen', label: i18n.pick('未解決錯誤'), value: n(o.errorsOpen), target: 'errors' },
+      { key: 'itemsOpen', label: i18n.pick('未認領失物'), value: n(o.itemsOpen), target: 'items' },
+    ];
+  },
+
+  // 按壓回饋（Skyline 下 hover-class 不可靠）：按下 60ms、放開 180ms
+  ovDown(e) {
+    this.setData({ ovPressed: Number(e.currentTarget.dataset.i) });
+  },
+  ovUp() {
+    if (this.data.ovPressed !== -1) this.setData({ ovPressed: -1 });
   },
 
   async loadClaims() {
