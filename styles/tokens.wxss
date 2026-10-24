@@ -119,6 +119,12 @@ page {
    因為 Skyline 對 prefers-color-scheme 支援不穩定，用 class 最可靠。
    對比度：白字 on #1c1c1e ≈ 15.8:1；#9d7ce0 on #1c1c1e ≈ 4.9:1
    ============================================================ */
+.theme-light,
+.theme-dark {
+  /* 根節點同時給文字色：沒寫 color 的節點才不會在深色下繼承成黑色（實機發現） */
+  color: var(--pv-label);
+}
+
 .theme-dark {
   --pv-tint: #9d7ce0;
   --pv-tint-pressed: #b39aeb;
