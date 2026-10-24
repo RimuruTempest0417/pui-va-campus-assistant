@@ -1,4 +1,4 @@
-<view class="sv-page page-root">
+<view class="{{themeClass}} sv-page page-root">
   <pv-navbar title="{{L.k01}}" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="sv-inner">

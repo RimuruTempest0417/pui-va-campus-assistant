@@ -19,8 +19,11 @@ const ADMIN_SUB = {
   SUPER_ADMIN: '審核認領 · 發公告 · 排菜單 · 名單 · 審計',
 };
 
+const appearance = require('../utils/appearance');
+
 Page({
   data: {
+    themeClass: appearance.themeClass(),
     navTotal: 0,
     refreshing: false,
     loading: true,
@@ -89,7 +92,7 @@ Page({
 
   onShow() {
     // 語言可能在自檢頁被改過：回來先更新介面文字
-    this.setData({ greeting: i18n.greetingByHour(), L: this.labels() });
+    this.setData({ greeting: i18n.greetingByHour(), L: this.labels(), themeClass: appearance.themeClass() });
     // 從「資料來源」頁切換離線示範回來時，模式變了必須整頁重抓，
     // 否則會出現「設定已改、首頁數字還是舊的」的假畫面。
     let cachedRole = '';
@@ -248,7 +251,7 @@ Page({
         lunch: todayMenu ? todayMenu.lunch : null,
         snack: todayMenu ? todayMenu.snack : null,
         updatedAt: i18n.t('home.justNow'),
-        L: this.labels(),
+        L: this.labels(), themeClass: appearance.themeClass(),
       });
     } catch (e) {
       console.error('[home] 載入失敗', e);

@@ -1,4 +1,4 @@
-<view class="ui-page page-root">
+<view class="{{themeClass}} ui-page page-root">
   <pv-navbar title="{{L.k01}}" back="{{true}}" />
 
   <scroll-view

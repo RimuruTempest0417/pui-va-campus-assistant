@@ -16,6 +16,8 @@ const { codeOf } = require('../../utils/errors');
  */
 const i18n = require('../utils/i18n');
 
+const appearance = require('../utils/appearance');
+
 Page({
   labels() {
     return {
@@ -46,6 +48,7 @@ Page({
   },
 
   data: {
+    themeClass: appearance.themeClass(),
     loading: true,
     failed: false,
     denied: false,
@@ -67,7 +70,7 @@ Page({
   },
 
   onShow() {
-    this.setData({ L: this.labels() });
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     // 從活動詳情返回時重抓（首次跳過），否則狀態會停在舊的
     if (this._loadedOnce) this.load();
     this._loadedOnce = true;

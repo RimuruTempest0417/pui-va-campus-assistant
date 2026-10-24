@@ -2,6 +2,8 @@ const { getNav } = require('../../utils/nav');
 
 const i18n = require('../utils/i18n');
 
+const appearance = require('../utils/appearance');
+
 Page({
   labels() {
     return {
@@ -48,6 +50,7 @@ Page({
   },
 
   data: {
+    themeClass: appearance.themeClass(),
     navTotal: 0,
     colors: [
       { name: 'tint 培華紫', value: '#6D3FC4', varName: '--pv-tint' },
@@ -76,7 +79,7 @@ Page({
     loading: false,
   },
   onLoad() {
-    this.setData({ L: this.labels() });
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     this.setData({ navTotal: getNav().total });
   },
 

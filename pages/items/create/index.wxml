@@ -1,4 +1,4 @@
-<view class="ui-page ui-page--withbar page-root">
+<view class="{{themeClass}} ui-page ui-page--withbar page-root">
   <pv-navbar title="{{type === 'LOST' ? '我丟了東西' : '我撿到東西'}}" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="create-inner">

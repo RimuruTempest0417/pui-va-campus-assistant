@@ -90,7 +90,7 @@ Page({
   pickTheme(e) {
     const v = e.currentTarget.dataset.key;
     appearance.setTheme(v);
-    this.setData({ theme: appearance.getTheme() });
+    this.setData({ theme: appearance.getTheme(), themeClass: appearance.themeClass() });
     wx.showToast({ title: '外觀已更新', icon: 'none' });
   },
 

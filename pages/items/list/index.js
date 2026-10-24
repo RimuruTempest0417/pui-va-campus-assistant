@@ -3,6 +3,8 @@ const { decorate } = require('../../../utils/item');
 
 const i18n = require('../../utils/i18n');
 
+const appearance = require('../../utils/appearance');
+
 Page({
   labels() {
     return {
@@ -18,6 +20,7 @@ Page({
   },
 
   data: {
+    themeClass: appearance.themeClass(),
     refreshing: false,
     loading: true,
     loadingMore: false,
@@ -50,7 +53,7 @@ Page({
 
   // 從詳情／發布頁返回時要重新抓，否則認領後狀態還是舊的
   onShow() {
-    this.setData({ L: this.labels() });
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     if (this._loadedOnce) this.load(true);
     this._loadedOnce = true;
   },
