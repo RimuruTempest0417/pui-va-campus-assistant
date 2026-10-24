@@ -55,7 +55,7 @@ Page({
         const msg = String((err && err.errMsg) || '');
         // 使用者自己按取消不是錯誤，不要在他眼前報紅
         if (msg.indexOf('cancel') === -1) {
-          this.setData({ error: '開不到相機，請改用手動輸入 6 位簽到碼' });
+          this.setData({ error: i18n.pick('開不到相機，請改用手動輸入 6 位簽到碼') });
         }
       },
     });
@@ -75,13 +75,13 @@ Page({
         submitting: false,
         code: '',
         result: {
-          title: res.title || '活動',
+          title: res.title || i18n.pick('活動'),
           eventId: res.eventId,
           already: !!res.already,
           whenText: dateTimeText(res.checkedInAt || Date.now()),
         },
       });
-      wx.showToast({ title: res.already ? '已簽到過' : '簽到成功', icon: 'success' });
+      wx.showToast({ title: res.already ? i18n.pick('已簽到過') : i18n.pick('簽到成功'), icon: 'success' });
     } catch (e) {
       const msg = data.messageOf(e);
       this.setData({ submitting: false, error: msg });

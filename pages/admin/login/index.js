@@ -52,8 +52,8 @@ Page({
     this.disarmWatchdog();
     this._watchdog = setTimeout(() => {
       if (!this.data.submitting) return;
-      this.setData({ submitting: false, error: '連線逾時（15 秒沒有回應），請檢查網路或後端狀態' });
-      wx.showModal({ title: '登入逾時', content: '15 秒內沒有收到後端回應。\n請確認網路，或到「資料來源」頁看後端位址是否正確。', showCancel: false });
+      this.setData({ submitting: false, error: i18n.pick('連線逾時（15 秒沒有回應），請檢查網路或後端狀態') });
+      wx.showModal({ title: i18n.pick('登入逾時'), content: i18n.pick('15 秒內沒有收到後端回應。\n請確認網路，或到「資料來源」頁看後端位址是否正確。'), showCancel: false });
     }, 15000);
   },
 
@@ -104,7 +104,7 @@ Page({
     const account = String(accountRaw || '').trim();
     const password = String(passwordRaw || '');
     if (!account || !password) {
-      this.setData({ error: '請填帳號與密碼' });
+      this.setData({ error: i18n.pick('請填帳號與密碼') });
       return;
     }
     return this._login(account, password);
@@ -118,24 +118,24 @@ Page({
       const res = await admin.login(account, password);
       request.setToken(res.token);
       wx.setStorageSync(config.STORAGE_KEYS.user, { nickname: res.nickname, role: res.role });
-      wx.showToast({ title: '已登入', icon: 'success' });
+      wx.showToast({ title: i18n.pick('已登入'), icon: 'success' });
       this.refreshCurrent();
       // 登入只負責「登入」；後台入口由首頁那顆按鈕負責
       setTimeout(() => wx.navigateBack(), 400);
     } catch (e) {
       // 錯誤要看得懂：把代碼也顯示出來，否則「登入失敗」四個字無法判斷是網路、密碼還是權限
       const code = (e && e.code) || 'UNKNOWN';
-      const msg = (e && e.message) || '登入失敗';
+      const msg = (e && e.message) || i18n.pick('登入失敗');
       const hint =
         code === 'NETWORK' || code === 'TIMEOUT'
-          ? msg + '（連不到後端：' + config.API_BASE_URL + '）'
+          ? msg + i18n.pick('（連不到後端：') + config.API_BASE_URL + '）'
           : code === 'RATE_LIMITED'
-            ? '嘗試太多次，請等一分鐘再試'
+            ? i18n.pick('嘗試太多次，請等一分鐘再試')
             : msg + '（' + code + '）';
       this.setData({ error: hint });
       console.error('[admin-login]', code, msg);
       // 原生彈窗：即使頁面渲染層異常，使用者仍能看到失敗原因
-      wx.showModal({ title: '登入未成功', content: hint, showCancel: false });
+      wx.showModal({ title: i18n.pick('登入未成功'), content: hint, showCancel: false });
     } finally {
       this.disarmWatchdog();
       this.setData({ submitting: false });
@@ -155,6 +155,6 @@ Page({
     request.setToken('');
     wx.removeStorageSync(config.STORAGE_KEYS.user);
     this.setData({ currentRole: '', currentRoleText: '', currentName: '', loggedIn: false });
-    wx.showToast({ title: '已登出', icon: 'none' });
+    wx.showToast({ title: i18n.pick('已登出'), icon: 'none' });
   },
 });

@@ -43,7 +43,7 @@ Page({
     failed: false,
     errorText: '',
     matches: [],
-    matchHint: '分數越高越像',
+    matchHint: i18n.pick('分數越高越像'),
     isMine: false,
     barText: '',
     barHint: '',
@@ -69,7 +69,7 @@ Page({
       const matches = await data.matches(this.id).catch(() => ({ items: [] }));
       const rows = (matches.items || []).map((m) => Object.assign({}, m, {
         percent: Math.round((m.score || 0) * 100),
-        typeLabel: m.type === 'FOUND' ? '拾獲' : '遺失',
+        typeLabel: m.type === 'FOUND' ? i18n.pick('拾獲') : i18n.pick('遺失'),
       }));
       this.setData({ matches: rows });
     } catch (e) {
@@ -91,14 +91,14 @@ Page({
 
   barFor(item, isMine) {
     if (isMine) {
-      if (item.status === 'OPEN') return { barText: '標記已認領', barHint: '我是作者', barDisabled: false };
-      if (item.status === 'CLAIMED') return { barText: '標記已完成', barHint: '我是作者', barDisabled: false };
-      return { barText: '已完成', barHint: '', barDisabled: true };
+      if (item.status === 'OPEN') return { barText: i18n.pick('標記已認領'), barHint: i18n.pick('我是作者'), barDisabled: false };
+      if (item.status === 'CLAIMED') return { barText: i18n.pick('標記已完成'), barHint: i18n.pick('我是作者'), barDisabled: false };
+      return { barText: i18n.pick('已完成'), barHint: '', barDisabled: true };
     }
     if (item.status === 'OPEN') {
-      return { barText: item.type === 'FOUND' ? '這是我的，申請認領' : '我撿到了', barHint: '', barDisabled: false };
+      return { barText: item.type === 'FOUND' ? i18n.pick('這是我的，申請認領') : i18n.pick('我撿到了'), barHint: '', barDisabled: false };
     }
-    return { barText: '已結束', barHint: '', barDisabled: true };
+    return { barText: i18n.pick('已結束'), barHint: '', barDisabled: true };
   },
 
   goMatch(e) {
@@ -114,11 +114,11 @@ Page({
       if (isMine) {
         const next = item.status === 'OPEN' ? 'CLAIMED' : 'CLOSED';
         await data.updateItemStatus(item.id, next);
-        wx.showToast({ title: next === 'CLAIMED' ? '已標記認領中' : '已完成', icon: 'success' });
+        wx.showToast({ title: next === 'CLAIMED' ? i18n.pick('已標記認領中') : i18n.pick('已完成'), icon: 'success' });
       } else {
         await subscribe.request('claim'); // 模板 ID 未填就自動跳過
         await data.claimItem(item.id);
-        wx.showToast({ title: '已送出認領申請', icon: 'success' });
+        wx.showToast({ title: i18n.pick('已送出認領申請'), icon: 'success' });
       }
       this.load();
     } catch (e) {

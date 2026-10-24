@@ -5,18 +5,18 @@ const { dateKey, fromNow } = require('../../../utils/date');
 const theme = require('../../../utils/theme');
 
 const TABS = [
-  { key: 'stats', label: '概況' },
-  { key: 'claims', label: '認領' },
-  { key: 'items', label: '失物' },
-  { key: 'events', label: '活動' },
-  { key: 'notice', label: '公告' },
-  { key: 'users', label: '使用者' },
-  { key: 'parents', label: '家長' },
-  { key: 'reports', label: '檢舉' },
-  { key: 'errors', label: '錯誤' },
-  { key: 'audit', label: '審計' },
-  { key: 'export', label: '名單' },
-  { key: 'menu', label: '菜單' },
+  { key: 'stats', label: i18n.pick('概況') },
+  { key: 'claims', label: i18n.pick('認領') },
+  { key: 'items', label: i18n.pick('失物') },
+  { key: 'events', label: i18n.pick('活動') },
+  { key: 'notice', label: i18n.pick('公告') },
+  { key: 'users', label: i18n.pick('使用者') },
+  { key: 'parents', label: i18n.pick('家長') },
+  { key: 'reports', label: i18n.pick('檢舉') },
+  { key: 'errors', label: i18n.pick('錯誤') },
+  { key: 'audit', label: i18n.pick('審計') },
+  { key: 'export', label: i18n.pick('名單') },
+  { key: 'menu', label: i18n.pick('菜單') },
 ];
 
 const ROLE_TABS = {
@@ -30,11 +30,11 @@ const ROLE_TABS = {
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
 // level 不能少 —— 下面的「設為 X」按鈕靠 item.level > r.level 判斷，缺了就永遠不顯示。
 const ROLES = [
-  { key: 'PARENT', level: 1, label: '家長' },
-  { key: 'STUDENT', level: 1, label: '學生' },
-  { key: 'TEACHER', level: 2, label: '老師' },
-  { key: 'STAFF', level: 2, label: '校內職員' },
-  { key: 'ADMIN', level: 3, label: '資訊管理員' },
+  { key: 'PARENT', level: 1, label: i18n.pick('家長') },
+  { key: 'STUDENT', level: 1, label: i18n.pick('學生') },
+  { key: 'TEACHER', level: 2, label: i18n.pick('老師') },
+  { key: 'STAFF', level: 2, label: i18n.pick('校內職員') },
+  { key: 'ADMIN', level: 3, label: i18n.pick('資訊管理員') },
 ];
 
 const i18n = require('../../../utils/i18n');
@@ -142,10 +142,10 @@ Page({
     items: [],
     itemStatus: 'OPEN',
     statusFilters: [
-      { key: 'OPEN', label: '待認領' },
-      { key: 'MATCHED', label: '已匹配' },
-      { key: 'CLAIMED', label: '已認領' },
-      { key: '', label: '全部' },
+      { key: 'OPEN', label: i18n.pick('待認領') },
+      { key: 'MATCHED', label: i18n.pick('已匹配') },
+      { key: 'CLAIMED', label: i18n.pick('已認領') },
+      { key: '', label: i18n.pick('全部') },
     ],
     events: [],
     ci: null, // 現場簽到面板（老師／管理員）
@@ -156,13 +156,13 @@ Page({
     signups: [],
     notice: { title: '', content: '', kind: 'NORMAL', isPinned: false },
     kinds: [
-      { key: 'NORMAL', label: '一般' },
-      { key: 'CALENDAR', label: '校曆' },
-      { key: 'URGENT', label: '緊急' },
+      { key: 'NORMAL', label: i18n.pick('一般') },
+      { key: 'CALENDAR', label: i18n.pick('校曆') },
+      { key: 'URGENT', label: i18n.pick('緊急') },
     ],
     meals: [
-      { key: 'LUNCH', label: '午餐' },
-      { key: 'SNACK', label: '小賣部' },
+      { key: 'LUNCH', label: i18n.pick('午餐') },
+      { key: 'SNACK', label: i18n.pick('小賣部') },
     ],
     menu: { date: '', mealType: 'LUNCH', names: '' },
     menuWeekStart: '',
@@ -172,9 +172,9 @@ Page({
     users: [],
     parents: [],
     relations: [
-      { key: 'guardian', label: '監護人' },
-      { key: 'father', label: '父親' },
-      { key: 'mother', label: '母親' },
+      { key: 'guardian', label: i18n.pick('監護人') },
+      { key: 'father', label: i18n.pick('父親') },
+      { key: 'mother', label: i18n.pick('母親') },
     ],
     parentForm: { parentAccount: '', studentAccount: '', relation: 'guardian' },
     creatingParent: false,
@@ -189,8 +189,8 @@ Page({
     errors: [],
     errStatus: 'OPEN',
     errFilters: [
-      { key: 'OPEN', label: '待處理' },
-      { key: 'RESOLVED', label: '已解決' },
+      { key: 'OPEN', label: i18n.pick('待處理') },
+      { key: 'RESOLVED', label: i18n.pick('已解決') },
     ],
     errSummary: { open: 0, total: 0, kinds: 0, last24h: 0 },
     audit: [],
@@ -237,7 +237,7 @@ Page({
   logout() {
     request.setToken('');
     wx.removeStorageSync(config.STORAGE_KEYS.user);
-    wx.showToast({ title: '已登出', icon: 'none' });
+    wx.showToast({ title: i18n.pick('已登出'), icon: 'none' });
     setTimeout(() => wx.navigateBack(), 400);
   },
 
@@ -273,7 +273,7 @@ Page({
     // 不要讓「後端掛掉」在畫面上長得像「後台沒有資料」。
     return p.then(() => {
       const hint = this.data.hint || '';
-      const failed = hint.indexOf('讀不到') === 0;
+      const failed = hint.indexOf(i18n.pick('讀不到')) === 0;
       this.setData({ tabLoading: false, failed: failed, errorText: failed ? hint : '' });
     });
   },
@@ -287,7 +287,7 @@ Page({
       const stats = await admin.stats();
       this.setData({ stats: stats });
     } catch (e) {
-      this.setData({ hint: '讀不到數據：' + (e.message || e.code) });
+      this.setData({ hint: i18n.pick('讀不到數據：') + (e.message || e.code) });
     }
   },
 
@@ -296,7 +296,7 @@ Page({
       const res = await admin.claims('PENDING');
       this.setData({ claims: res.items || [] });
     } catch (e) {
-      this.setData({ hint: '讀不到申請：' + (e.message || e.code) });
+      this.setData({ hint: i18n.pick('讀不到申請：') + (e.message || e.code) });
     }
   },
 
@@ -305,7 +305,7 @@ Page({
       const res = await admin.items(this.data.itemStatus);
       this.setData({ items: res.items || [] });
     } catch (e) {
-      this.setData({ hint: '讀不到失物：' + (e.message || e.code) });
+      this.setData({ hint: i18n.pick('讀不到失物：') + (e.message || e.code) });
     }
   },
 
@@ -318,7 +318,7 @@ Page({
         this.pickEventById(events[0].id);
       }
     } catch (e) {
-      this.setData({ hint: '讀不到活動：' + (e.message || e.code) });
+      this.setData({ hint: i18n.pick('讀不到活動：') + (e.message || e.code) });
     }
   },
 
@@ -331,10 +331,10 @@ Page({
     const { id, ok } = e.currentTarget.dataset;
     try {
       await admin.reviewClaim(id, ok === '1');
-      wx.showToast({ title: ok === '1' ? '已通過' : '已拒絕', icon: 'success' });
+      wx.showToast({ title: ok === '1' ? i18n.pick('已通過') : i18n.pick('已拒絕'), icon: 'success' });
       this.loadClaims();
     } catch (err) {
-      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
     }
   },
 
@@ -342,10 +342,10 @@ Page({
     const { id, act } = e.currentTarget.dataset;
     try {
       await admin.moderateItem(id, act);
-      wx.showToast({ title: act === 'REMOVE' ? '已下架' : '已恢復', icon: 'success' });
+      wx.showToast({ title: act === 'REMOVE' ? i18n.pick('已下架') : i18n.pick('已恢復'), icon: 'success' });
       this.loadItems();
     } catch (err) {
-      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
     }
   },
 
@@ -366,7 +366,7 @@ Page({
     if (this.data.sending) return;
     const n = this.data.notice;
     if (!n.title.trim() || !n.content.trim()) {
-      wx.showToast({ title: '標題與內容都要填', icon: 'none' });
+      wx.showToast({ title: i18n.pick('標題與內容都要填'), icon: 'none' });
       return;
     }
     this.setData({ sending: true });
@@ -380,11 +380,11 @@ Page({
       this.setData({
         'notice.title': '',
         'notice.content': '',
-        hint: '已發布：' + res.title + (res.pushed ? '，已推播 ' + res.pushed + ' 人' : ''),
+        hint: i18n.pick('已發布：') + res.title + (res.pushed ? i18n.pick('，已推播 ') + res.pushed + i18n.pick(' 人') : ''),
       });
-      wx.showToast({ title: '已發布', icon: 'success' });
+      wx.showToast({ title: i18n.pick('已發布'), icon: 'success' });
     } catch (e) {
-      wx.showToast({ title: e.message || '發布失敗', icon: 'none' });
+      wx.showToast({ title: e.message || i18n.pick('發布失敗'), icon: 'none' });
     } finally {
       this.setData({ sending: false });
     }
@@ -400,17 +400,17 @@ Page({
       const res = await admin.signups(id);
       this.setData({ signups: res.items || [] });
     } catch (e) {
-      this.setData({ signups: [], hint: '讀不到名單：' + (e.message || e.code) });
+      this.setData({ signups: [], hint: i18n.pick('讀不到名單：') + (e.message || e.code) });
     }
   },
 
   copySignups() {
     const lines = this.data.signups.map((s, i) =>
-      `${i + 1}. ${s.nickname || '（未設定）'} ${s.grade || ''}${s.className || ''} — ${s.status === 'CONFIRMED' ? '正取' : '候補' + s.waitlistPos}`,
+      `${i + 1}. ${s.nickname || i18n.pick('（未設定）')} ${s.grade || ''}${s.className || ''} — ${s.status === 'CONFIRMED' ? i18n.pick('正取') : i18n.pick('候補') + s.waitlistPos}`,
     );
     wx.setClipboardData({
       data: lines.join('\n'),
-      success: () => wx.showToast({ title: '名單已複製', icon: 'none' }),
+      success: () => wx.showToast({ title: i18n.pick('名單已複製'), icon: 'none' }),
     });
   },
 
@@ -429,7 +429,7 @@ Page({
     const m = this.data.menu;
     const names = (m.names || '').split(/[,，]/).map((s) => s.trim()).filter(Boolean);
     if (!m.date || !names.length) {
-      wx.showToast({ title: '日期與菜名都要填', icon: 'none' });
+      wx.showToast({ title: i18n.pick('日期與菜名都要填'), icon: 'none' });
       return;
     }
     this.setData({ sending: true });
@@ -441,9 +441,9 @@ Page({
       }
       const res = await admin.scheduleMenu(m.date, m.mealType, ids);
       this.setData({ hint: `${res.date} 已排入 ${res.count} 道菜`, 'menu.names': '' });
-      wx.showToast({ title: '已排入', icon: 'success' });
+      wx.showToast({ title: i18n.pick('已排入'), icon: 'success' });
     } catch (e) {
-      wx.showToast({ title: e.message || '排菜單失敗', icon: 'none' });
+      wx.showToast({ title: e.message || i18n.pick('排菜單失敗'), icon: 'none' });
     } finally {
       this.setData({ sending: false });
     }
@@ -456,7 +456,7 @@ Page({
       const s = await admin.eventStats(id);
       this.setData({ evStats: s, eventId: id });
     } catch (err) {
-      wx.showToast({ title: err.message || '讀不到統計', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('讀不到統計'), icon: 'none' });
     }
   },
 
@@ -469,10 +469,10 @@ Page({
     if (!id) return;
     try {
       const res = await admin.batchSignups(id, 'PROMOTE_ALL');
-      wx.showToast({ title: '已轉正 ' + res.affected + ' 人', icon: 'none' });
+      wx.showToast({ title: i18n.pick('已轉正 ') + res.affected + i18n.pick(' 人'), icon: 'none' });
       this.loadEventStats({ currentTarget: { dataset: { id: id } } });
     } catch (err) {
-      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
     }
   },
 
@@ -483,7 +483,7 @@ Page({
       this.setData({ ci: await admin.eventCheckin(id), attendance: null });
       this.loadAttendance();
     } catch (err) {
-      wx.showToast({ title: err.message || '讀不到簽到狀態', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('讀不到簽到狀態'), icon: 'none' });
     }
   },
 
@@ -493,7 +493,7 @@ Page({
     try {
       this.setData({ attendance: await admin.attendance(ci.eventId) });
     } catch (err) {
-      wx.showToast({ title: err.message || '讀不到出席名單', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('讀不到出席名單'), icon: 'none' });
     }
   },
 
@@ -503,10 +503,10 @@ Page({
     this.setData({ ciSending: true });
     try {
       this.setData({ ci: await admin.openEventCheckin(ci.eventId) });
-      wx.showToast({ title: '已開放簽到', icon: 'success' });
+      wx.showToast({ title: i18n.pick('已開放簽到'), icon: 'success' });
       this.loadAttendance();
     } catch (err) {
-      wx.showToast({ title: err.message || '開不到簽到', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('開不到簽到'), icon: 'none' });
     } finally {
       this.setData({ ciSending: false });
     }
@@ -518,9 +518,9 @@ Page({
     this.setData({ ciSending: true });
     try {
       this.setData({ ci: await admin.closeEventCheckin(ci.eventId) });
-      wx.showToast({ title: '已結束簽到', icon: 'none' });
+      wx.showToast({ title: i18n.pick('已結束簽到'), icon: 'none' });
     } catch (err) {
-      wx.showToast({ title: err.message || '關不到簽到', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('關不到簽到'), icon: 'none' });
     } finally {
       this.setData({ ciSending: false });
     }
@@ -534,10 +534,10 @@ Page({
       const res = await admin.batchSignups(ci.eventId, on === '1' ? 'CHECK_IN' : 'CHECK_OUT', [id]);
       const rate = res.signed ? Math.round((res.checkedIn / res.signed) * 1000) / 10 : null;
       this.setData({ 'ci.checkedIn': res.checkedIn, 'ci.signed': res.signed, 'ci.rate': rate });
-      wx.showToast({ title: on === '1' ? '已代簽' : '已撤銷代簽', icon: 'none' });
+      wx.showToast({ title: on === '1' ? i18n.pick('已代簽') : i18n.pick('已撤銷代簽'), icon: 'none' });
       this.loadAttendance();
     } catch (err) {
-      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
     }
   },
 
@@ -550,8 +550,8 @@ Page({
     const type = e && e.currentTarget && e.currentTarget.dataset.type === 'menu' ? 'menu' : 'events';
     const hint =
       type === 'events'
-        ? '欄名：標題,開始時間,結束時間,地點,名額,組別,說明,狀態。時間寫成 2026-11-05 09:00；組別用逗號分隔時整格要加引號，例如 "甲組,乙組"。'
-        : '欄名：日期,餐別,菜色。日期寫成 2026-11-05；餐別填 午餐 或 小食；同一餐多道菜用 | 分隔。';
+        ? i18n.pick('欄名：標題,開始時間,結束時間,地點,名額,組別,說明,狀態。時間寫成 2026-11-05 09:00；組別用逗號分隔時整格要加引號，例如 "甲組,乙組"。')
+        : i18n.pick('欄名：日期,餐別,菜色。日期寫成 2026-11-05；餐別填 午餐 或 小食；同一餐多道菜用 | 分隔。');
     this.setData({ importType: type, importCsv: '', importResult: null, importChecked: false, importHint: hint });
   },
 
@@ -575,9 +575,9 @@ Page({
         try {
           const text = wx.getFileSystemManager().readFileSync(file.path, 'utf8');
           this.setData({ importCsv: String(text || ''), importResult: null, importChecked: false });
-          wx.showToast({ title: '已讀入 ' + (file.name || 'CSV'), icon: 'none' });
+          wx.showToast({ title: i18n.pick('已讀入 ') + (file.name || 'CSV'), icon: 'none' });
         } catch (err) {
-          wx.showToast({ title: '讀不到這個檔案', icon: 'none' });
+          wx.showToast({ title: i18n.pick('讀不到這個檔案'), icon: 'none' });
         }
       },
       fail: () => {
@@ -592,7 +592,7 @@ Page({
 
   confirmImport() {
     if (!this.data.importChecked) {
-      wx.showToast({ title: '請先按「先檢查」', icon: 'none' });
+      wx.showToast({ title: i18n.pick('請先按「先檢查」'), icon: 'none' });
       return Promise.resolve();
     }
     return this.runImport(false);
@@ -602,7 +602,7 @@ Page({
     if (this.data.importBusy) return;
     const csv = (this.data.importCsv || '').trim();
     if (!csv) {
-      wx.showToast({ title: '先貼上或選 CSV', icon: 'none' });
+      wx.showToast({ title: i18n.pick('先貼上或選 CSV'), icon: 'none' });
       return;
     }
     this.setData({ importBusy: true });
@@ -611,10 +611,10 @@ Page({
         this.data.importType === 'menu' ? await admin.importMenu(csv, dryRun) : await admin.importEvents(csv, dryRun);
       // 只有「檢查過而且至少有一列寫得進去」才放行確認匯入
       this.setData({ importResult: res, importChecked: dryRun && res.success > 0 });
-      wx.showToast({ title: dryRun ? '檢查完成' : '已匯入 ' + res.success + ' 筆', icon: 'none' });
+      wx.showToast({ title: dryRun ? i18n.pick('檢查完成') : i18n.pick('已匯入 ') + res.success + i18n.pick(' 筆'), icon: 'none' });
       if (!dryRun) this.reloadTab();
     } catch (e) {
-      wx.showToast({ title: (e && e.message) || '匯入失敗', icon: 'none' });
+      wx.showToast({ title: (e && e.message) || i18n.pick('匯入失敗'), icon: 'none' });
     } finally {
       this.setData({ importBusy: false });
     }
@@ -625,7 +625,7 @@ Page({
       const res = await admin.events();
       this.setData({ events: res.items || [] });
     } catch (e) {
-      this.setData({ hint: '讀不到活動：' + (e.message || e.code) });
+      this.setData({ hint: i18n.pick('讀不到活動：') + (e.message || e.code) });
     }
   },
 
@@ -640,7 +640,7 @@ Page({
     if (this.data.creatingEvent) return;
     const f = this.data.eventForm;
     if (!f.title.trim() || !f.date) {
-      wx.showToast({ title: '標題與日期必填', icon: 'none' });
+      wx.showToast({ title: i18n.pick('標題與日期必填'), icon: 'none' });
       return;
     }
     this.setData({ creatingEvent: true });
@@ -657,11 +657,11 @@ Page({
         status: 'PUBLISHED',
         groups: groups.length ? groups : undefined,
       });
-      this.setData({ 'eventForm.title': '', 'eventForm.location': '', 'eventForm.groups': '', hint: '活動已建立' });
-      wx.showToast({ title: '已建立', icon: 'success' });
+      this.setData({ 'eventForm.title': '', 'eventForm.location': '', 'eventForm.groups': '', hint: i18n.pick('活動已建立') });
+      wx.showToast({ title: i18n.pick('已建立'), icon: 'success' });
       this.loadEventsAdmin();
     } catch (e) {
-      wx.showToast({ title: e.message || '建立失敗', icon: 'none' });
+      wx.showToast({ title: e.message || i18n.pick('建立失敗'), icon: 'none' });
     } finally {
       this.setData({ creatingEvent: false });
     }
@@ -672,10 +672,10 @@ Page({
     const next = status === 'CANCELLED' ? 'PUBLISHED' : 'CANCELLED';
     try {
       await admin.updateEvent(id, { status: next });
-      wx.showToast({ title: next === 'CANCELLED' ? '已取消' : '已恢復', icon: 'success' });
+      wx.showToast({ title: next === 'CANCELLED' ? i18n.pick('已取消') : i18n.pick('已恢復'), icon: 'success' });
       this.loadEventsAdmin();
     } catch (err) {
-      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
     }
   },
 
@@ -685,7 +685,7 @@ Page({
       const res = await admin.parents({});
       this.setData({ parents: res.items || [], relations: res.relations || this.data.relations });
     } catch (e) {
-      this.setData({ hint: '讀不到家長綁定：' + (e.message || e.code) });
+      this.setData({ hint: i18n.pick('讀不到家長綁定：') + (e.message || e.code) });
     }
   },
 
@@ -703,7 +703,7 @@ Page({
     if (this.data.creatingParent) return;
     const f = this.data.parentForm;
     if (!f.parentAccount.trim() || !f.studentAccount.trim()) {
-      wx.showToast({ title: '家長帳號與學生學號都要填', icon: 'none' });
+      wx.showToast({ title: i18n.pick('家長帳號與學生學號都要填'), icon: 'none' });
       return;
     }
     this.setData({ creatingParent: true });
@@ -712,12 +712,12 @@ Page({
       this.setData({
         'parentForm.parentAccount': '',
         'parentForm.studentAccount': '',
-        hint: '已綁定：' + res.parent.account + ' → ' + res.student.account,
+        hint: i18n.pick('已綁定：') + res.parent.account + ' → ' + res.student.account,
       });
-      wx.showToast({ title: '已綁定', icon: 'success' });
+      wx.showToast({ title: i18n.pick('已綁定'), icon: 'success' });
       this.loadParents();
     } catch (e) {
-      wx.showToast({ title: e.message || '綁定失敗', icon: 'none' });
+      wx.showToast({ title: e.message || i18n.pick('綁定失敗'), icon: 'none' });
     } finally {
       this.setData({ creatingParent: false });
     }
@@ -725,20 +725,20 @@ Page({
 
   unbindParent(e) {
     const id = e.currentTarget.dataset.id;
-    const name = e.currentTarget.dataset.name || '這位學生';
+    const name = e.currentTarget.dataset.name || i18n.pick('這位學生');
     wx.showModal({
-      title: '解除綁定',
-      content: '確定要解除與 ' + name + ' 的綁定？解除後家長就看不到這個孩子的資料。',
-      confirmText: '解除',
+      title: i18n.pick('解除綁定'),
+      content: i18n.pick('確定要解除與 ') + name + i18n.pick(' 的綁定？解除後家長就看不到這個孩子的資料。'),
+      confirmText: i18n.pick('解除'),
       confirmColor: theme.danger,
       success: async (r) => {
         if (!r.confirm) return;
         try {
           await admin.unlinkParent(id);
-          wx.showToast({ title: '已解除', icon: 'success' });
+          wx.showToast({ title: i18n.pick('已解除'), icon: 'success' });
           this.loadParents();
         } catch (err) {
-          wx.showToast({ title: err.message || '解除失敗', icon: 'none' });
+          wx.showToast({ title: err.message || i18n.pick('解除失敗'), icon: 'none' });
         }
       },
     });
@@ -753,7 +753,7 @@ Page({
       const roles = (res.roles && res.roles.length) ? res.roles : ROLES;
       this.setData({ users: res.items || [], meLevel: (res.me || {}).level || 0, roles: roles });
     } catch (e) {
-      this.setData({ hint: '讀不到使用者：' + (e.message || e.code) });
+      this.setData({ hint: i18n.pick('讀不到使用者：') + (e.message || e.code) });
     }
   },
 
@@ -786,7 +786,7 @@ Page({
     if (this.data.creatingUser) return;
     const f = this.data.userForm;
     if (!f.account.trim() || !f.password) {
-      wx.showToast({ title: '帳號與密碼必填', icon: 'none' });
+      wx.showToast({ title: i18n.pick('帳號與密碼必填'), icon: 'none' });
       return;
     }
     this.setData({ creatingUser: true });
@@ -797,11 +797,11 @@ Page({
         nickname: f.nickname.trim() || undefined,
         role: f.role,
       });
-      this.setData({ 'userForm.account': '', 'userForm.password': '', 'userForm.nickname': '', hint: '帳號已建立' });
-      wx.showToast({ title: '已建立', icon: 'success' });
+      this.setData({ 'userForm.account': '', 'userForm.password': '', 'userForm.nickname': '', hint: i18n.pick('帳號已建立') });
+      wx.showToast({ title: i18n.pick('已建立'), icon: 'success' });
       this.loadUsers();
     } catch (e) {
-      wx.showToast({ title: e.message || '建立失敗', icon: 'none' });
+      wx.showToast({ title: e.message || i18n.pick('建立失敗'), icon: 'none' });
     } finally {
       this.setData({ creatingUser: false });
     }
@@ -835,24 +835,24 @@ Page({
   async saveEdit() {
     const f = this.data.editForm;
     if (!f.nickname.trim() || !f.account.trim()) {
-      wx.showToast({ title: '名稱與帳號都要填', icon: 'none' });
+      wx.showToast({ title: i18n.pick('名稱與帳號都要填'), icon: 'none' });
       return;
     }
     const payload = { nickname: f.nickname.trim(), account: f.account.trim(), role: f.role };
     if (f.password) {
       if (f.password.length < 8) {
-        wx.showToast({ title: '密碼至少 8 位', icon: 'none' });
+        wx.showToast({ title: i18n.pick('密碼至少 8 位'), icon: 'none' });
         return;
       }
       payload.password = f.password;
     }
     try {
       await admin.updateUser(this.data.editingId, payload);
-      wx.showToast({ title: '已更新', icon: 'success' });
+      wx.showToast({ title: i18n.pick('已更新'), icon: 'success' });
       this.cancelEdit();
       this.loadUsers();
     } catch (e) {
-      wx.showToast({ title: e.message || '更新失敗', icon: 'none' });
+      wx.showToast({ title: e.message || i18n.pick('更新失敗'), icon: 'none' });
     }
   },
 
@@ -860,19 +860,19 @@ Page({
     const id = e.currentTarget.dataset.id;
     const self = this;
     wx.showModal({
-      title: '重設密碼',
+      title: i18n.pick('重設密碼'),
       editable: true,
-      placeholderText: '輸入新密碼（至少 8 位）',
+      placeholderText: i18n.pick('輸入新密碼（至少 8 位）'),
       success(res) {
         if (!res.confirm || !res.content) return;
         if (res.content.length < 8) {
-          wx.showToast({ title: '密碼至少 8 位', icon: 'none' });
+          wx.showToast({ title: i18n.pick('密碼至少 8 位'), icon: 'none' });
           return;
         }
         admin
           .resetPassword(id, res.content)
-          .then(() => wx.showToast({ title: '已重設', icon: 'success' }))
-          .catch((err) => wx.showToast({ title: err.message || '重設失敗', icon: 'none' }));
+          .then(() => wx.showToast({ title: i18n.pick('已重設'), icon: 'success' }))
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('重設失敗'), icon: 'none' }));
         void self;
       },
     });
@@ -883,18 +883,18 @@ Page({
     const account = e.currentTarget.dataset.account;
     const self = this;
     wx.showModal({
-      title: '刪除帳號',
-      content: '刪除 ' + account + '？相關的認領／報名紀錄會一併清除。',
+      title: i18n.pick('刪除帳號'),
+      content: i18n.pick('刪除 ') + account + i18n.pick('？相關的認領／報名紀錄會一併清除。'),
       confirmColor: theme.danger,
       success(res) {
         if (!res.confirm) return;
         admin
           .deleteUser(id)
           .then(() => {
-            wx.showToast({ title: '已刪除', icon: 'success' });
+            wx.showToast({ title: i18n.pick('已刪除'), icon: 'success' });
             self.loadUsers();
           })
-          .catch((err) => wx.showToast({ title: err.message || '刪除失敗', icon: 'none' }));
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('刪除失敗'), icon: 'none' }));
       },
     });
   },
@@ -903,10 +903,10 @@ Page({
     const { id, role } = e.currentTarget.dataset;
     try {
       await admin.setRole(id, role);
-      wx.showToast({ title: '已設為 ' + role, icon: 'success' });
+      wx.showToast({ title: i18n.pick('已設為 ') + role, icon: 'success' });
       this.loadUsers();
     } catch (err) {
-      wx.showToast({ title: err.message || '權限不足', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('權限不足'), icon: 'none' });
     }
   },
 
@@ -914,10 +914,10 @@ Page({
     const { id, banned } = e.currentTarget.dataset;
     try {
       await admin.setBanned(id, banned !== '1');
-      wx.showToast({ title: banned === '1' ? '已恢復' : '已停用', icon: 'success' });
+      wx.showToast({ title: banned === '1' ? i18n.pick('已恢復') : i18n.pick('已停用'), icon: 'success' });
       this.loadUsers();
     } catch (err) {
-      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
     }
   },
 
@@ -927,7 +927,7 @@ Page({
       const res = await admin.reports('PENDING');
       this.setData({ reports: res.items || [] });
     } catch (e) {
-      this.setData({ hint: '讀不到檢舉：' + (e.message || e.code) });
+      this.setData({ hint: i18n.pick('讀不到檢舉：') + (e.message || e.code) });
     }
   },
 
@@ -943,7 +943,7 @@ Page({
         errSummary: summary,
       });
     } catch (e) {
-      this.setData({ hint: '讀不到錯誤日誌：' + (e.message || e.code) });
+      this.setData({ hint: i18n.pick('讀不到錯誤日誌：') + (e.message || e.code) });
     }
   },
 
@@ -956,10 +956,10 @@ Page({
     const { id, action } = e.currentTarget.dataset;
     try {
       await admin.setErrorStatus(id, action);
-      wx.showToast({ title: action === 'RESOLVE' ? '已標記解決' : '已重新打開', icon: 'none' });
+      wx.showToast({ title: action === 'RESOLVE' ? i18n.pick('已標記解決') : i18n.pick('已重新打開'), icon: 'none' });
       this.loadErrors();
     } catch (err) {
-      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
     }
   },
 
@@ -968,10 +968,10 @@ Page({
     try {
       const remove = action === 'RESOLVE';
       const res = await admin.handleReport(id, action, remove);
-      wx.showToast({ title: action === 'RESOLVE' ? (res.removed ? '已成立並下架' : '已成立') : '已駁回', icon: 'none' });
+      wx.showToast({ title: action === 'RESOLVE' ? (res.removed ? i18n.pick('已成立並下架') : i18n.pick('已成立')) : i18n.pick('已駁回'), icon: 'none' });
       this.loadReports();
     } catch (err) {
-      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
     }
   },
 
@@ -982,10 +982,10 @@ Page({
     if (next && !this.data.abilities.length) {
       try {
         const res = await admin.permissions();
-        const labels = { STUDENT: '學生', TEACHER: '老師', ADMIN: '資訊管理員', SUPER_ADMIN: '最高權限' };
+        const labels = { STUDENT: i18n.pick('學生'), TEACHER: i18n.pick('老師'), ADMIN: i18n.pick('資訊管理員'), SUPER_ADMIN: i18n.pick('最高權限') };
         this.setData({ abilities: (res.abilities || []).map((a) => Object.assign({}, a, { allowedText: a.allowed.map((r) => labels[r] || r).join('、') })) });
       } catch (e) {
-        this.setData({ hint: '讀不到權限表：' + (e.message || e.code) });
+        this.setData({ hint: i18n.pick('讀不到權限表：') + (e.message || e.code) });
       }
     }
   },
@@ -995,7 +995,7 @@ Page({
       const res = await admin.audit(50);
       this.setData({ audit: res.items || [] });
     } catch (e) {
-      this.setData({ hint: '讀不到審計紀錄：' + (e.message || e.code) });
+      this.setData({ hint: i18n.pick('讀不到審計紀錄：') + (e.message || e.code) });
     }
   },
 
@@ -1005,7 +1005,7 @@ Page({
       const res = await admin.notices();
       this.setData({ noticeList: res.items || [] });
     } catch (e) {
-      this.setData({ hint: '讀不到公告：' + (e.message || e.code) });
+      this.setData({ hint: i18n.pick('讀不到公告：') + (e.message || e.code) });
     }
   },
 
@@ -1013,17 +1013,17 @@ Page({
     const id = e.currentTarget.dataset.id;
     const self = this;
     wx.showModal({
-      title: '刪除公告',
-      content: '刪除後無法復原，確定嗎？',
+      title: i18n.pick('刪除公告'),
+      content: i18n.pick('刪除後無法復原，確定嗎？'),
       success(res) {
         if (!res.confirm) return;
         admin
           .deleteNotice(id)
           .then(() => {
-            wx.showToast({ title: '已刪除', icon: 'success' });
+            wx.showToast({ title: i18n.pick('已刪除'), icon: 'success' });
             self.loadNoticeList();
           })
-          .catch((err) => wx.showToast({ title: err.message || '刪除失敗', icon: 'none' }));
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('刪除失敗'), icon: 'none' }));
       },
     });
   },
@@ -1034,7 +1034,7 @@ Page({
       await admin.updateNotice(id, { isPinned: pinned !== '1' });
       this.loadNoticeList();
     } catch (err) {
-      wx.showToast({ title: err.message || '操作失敗', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
     }
   },
 
@@ -1044,7 +1044,7 @@ Page({
       const res = await admin.menuWeek(this.data.menuWeekStart || undefined);
       this.setData({ menuWeekStart: res.weekStart, menuEntries: res.items || [] });
     } catch (e) {
-      this.setData({ hint: '讀不到菜單：' + (e.message || e.code) });
+      this.setData({ hint: i18n.pick('讀不到菜單：') + (e.message || e.code) });
     }
   },
 
@@ -1052,10 +1052,10 @@ Page({
     const id = e.currentTarget.dataset.id;
     try {
       await admin.deleteMenuEntry(id);
-      wx.showToast({ title: '已移除', icon: 'success' });
+      wx.showToast({ title: i18n.pick('已移除'), icon: 'success' });
       this.loadMenuWeek();
     } catch (err) {
-      wx.showToast({ title: err.message || '移除失敗', icon: 'none' });
+      wx.showToast({ title: err.message || i18n.pick('移除失敗'), icon: 'none' });
     }
   },
 });

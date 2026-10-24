@@ -35,6 +35,7 @@ const REQUIRE = {
   'pages/admin/index/index': { loading: true, empty: true, failed: true },
   'pages/style-guide/index': { loading: false, empty: false, failed: false, why: '設計基準頁，資料寫死' },
   'pages/dev/api-check/index': { loading: false, empty: false, failed: false, why: '自檢頁，結果本身就是清單' },
+  'pages/settings/index': { loading: false, empty: false, failed: false, why: '設定頁，偏好全在本機 storage，沒有網路載入' },
 };
 
 const DETECT = {

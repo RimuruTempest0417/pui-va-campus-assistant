@@ -52,7 +52,7 @@ Page({
     const next = e.currentTarget.dataset.next;
     try {
       await data.updateItemStatus(id, next);
-      wx.showToast({ title: next === 'CLAIMED' ? '已標記認領中' : '已完成', icon: 'success' });
+      wx.showToast({ title: next === 'CLAIMED' ? i18n.pick('已標記認領中') : i18n.pick('已完成'), icon: 'success' });
       this.load();
     } catch (err) {
       wx.showToast({ title: data.messageOf(err), icon: 'none' });
