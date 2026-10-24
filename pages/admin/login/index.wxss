@@ -30,3 +30,10 @@
   font-weight: 600;
 }
 .login-btn[disabled] { opacity: 0.6; color: var(--pv-on-tint); background: var(--pv-brand); }
+
+.who { padding: var(--pv-sp-2) 0 var(--pv-sp-3); }
+.who__name { display: block; font-size: var(--pv-fs-title-2); font-weight: 700; }
+.who__role { display: block; margin-top: 4rpx; font-size: var(--pv-fs-footnote); color: var(--pv-label-3); }
+.who__actions { display: flex; flex-direction: row; justify-content: center; gap: var(--pv-sp-4); margin-top: var(--pv-sp-3); }
+.who__link { font-size: var(--pv-fs-footnote); color: var(--pv-tint); }
+.who__link--danger { color: var(--pv-danger); }

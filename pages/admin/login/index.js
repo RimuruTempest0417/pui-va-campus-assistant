@@ -1,14 +1,17 @@
 const admin = require('../../../services/admin');
 const request = require('../../../utils/request');
 const config = require('../../../config/config');
+const roleLabel = require('../../../utils/role').label;
 
 Page({
   data: {
+    loggedIn: false,      // 已登入就只顯示「目前身分＋登出」，不再同時擺一份登入表單（使用者回報的怪畫面）
     account: '',
     password: '',
     submitting: false,
     error: '',
     currentRole: '',
+    currentRoleText: '',
     currentName: '',
   },
 
@@ -49,7 +52,13 @@ Page({
     } catch (e) {
       user = {};
     }
-    this.setData({ currentRole: user.role || '', currentName: user.nickname || '' });
+    const role = user.role || '';
+    this.setData({
+      currentRole: role,
+      currentRoleText: roleLabel(role),
+      currentName: user.nickname || '',
+      loggedIn: !!role && !!request.getToken(),
+    });
   },
 
   onAccount(e) {
@@ -114,10 +123,20 @@ Page({
     }
   },
 
+  goBack() {
+    if (getCurrentPages().length > 1) wx.navigateBack();
+    else wx.reLaunch({ url: '/pages/index/index' });
+  },
+
+  // 從「已登入」切回登入表單（換另一個帳號）
+  switchAccount() {
+    this.setData({ loggedIn: false, account: '', password: '', error: '' });
+  },
+
   logout() {
     request.setToken('');
     wx.removeStorageSync(config.STORAGE_KEYS.user);
-    this.setData({ currentRole: '', currentName: '' });
+    this.setData({ currentRole: '', currentRoleText: '', currentName: '', loggedIn: false });
     wx.showToast({ title: '已登出', icon: 'none' });
   },
 });

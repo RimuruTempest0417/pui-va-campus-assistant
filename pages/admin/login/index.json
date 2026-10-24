@@ -2,8 +2,7 @@
   "navigationStyle": "custom",
   "usingComponents": {
     "pv-navbar": "/components/pv-navbar/index",
-    "pv-card": "/components/pv-card/index",
-    "pv-button": "/components/pv-button/index"
+    "pv-card": "/components/pv-card/index"
   },
   "navigationBarTitleText": "教職員登入",
   "renderer": "webview"

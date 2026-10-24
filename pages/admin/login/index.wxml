@@ -7,7 +7,21 @@
         <text class="login-title">培華校園助手</text>
       </view>
 
-      <pv-card>
+      <pv-card wx:if="{{loggedIn}}">
+        <view class="who">
+          <text class="who__name">{{currentName || '已登入'}}</text>
+          <text class="who__role">{{currentRoleText || currentRole}}</text>
+        </view>
+        <view class="login-actions">
+          <button class="login-btn" bindtap="goBack">回首頁</button>
+        </view>
+        <view class="who__actions">
+          <text class="who__link" catchtap="switchAccount">切換帳號</text>
+          <text class="who__link who__link--danger" catchtap="logout">登出</text>
+        </view>
+      </pv-card>
+
+      <pv-card wx:else>
         <!-- 用原生 form + 原生 button：不再經過自訂組件的 tap，也不用靠 bindinput 把值搬進 data
              （Skyline 下自訂組件偶發收不到 tap／受控 input 值不同步，兩者都會讓「登入」看起來沒反應） -->
         <form bindsubmit="onSubmit">
@@ -31,10 +45,6 @@
         <text wx:if="{{error}}" class="login-error">{{error}}</text>
       </pv-card>
 
-      <view wx:if="{{currentRole}}" class="login-current">
-        <text class="ui-meta">目前身分：{{currentName}}（{{currentRole}}）</text>
-        <pv-button type="plain" size="sm" bind:tap="logout">登出</pv-button>
-      </view>
     </view>
   </scroll-view>
 </view>
