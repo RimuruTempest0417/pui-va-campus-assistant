@@ -40,7 +40,7 @@ Page({
     isDemo: false,
     isStaff: false,
     apiBase: '',
-    version: '0.34.0',
+    version: config.VERSION || '',
     statusBarHeight: 20,
   },
 
