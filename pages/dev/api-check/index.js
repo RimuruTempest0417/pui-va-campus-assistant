@@ -1,4 +1,5 @@
 const data = require('../../../services/data');
+const i18n = require('../../../utils/i18n');
 
 Page({
   data: {
@@ -10,11 +11,22 @@ Page({
     resultLine: '執行中',
     forceDemo: false,
     apiBase: '',
+    locale: i18n.locale(),
+    localeTitle: i18n.t('dev.locale'),
+    locales: [{ key: 'zh-Hant', label: '繁體' }, { key: 'zh-Hans', label: '简体' }],
   },
 
   onLoad() {
     this.setData({ forceDemo: data.forceDemoOn(), apiBase: data.apiBase() });
     this.run();
+  },
+
+  // 介面語言：只改文案，不動資料
+  setLocale(e) {
+    const loc = e.currentTarget.dataset.loc;
+    const next = i18n.setLocale(loc);
+    this.setData({ locale: next });
+    wx.showToast({ title: next === 'zh-Hans' ? '已切換簡體' : '已切換繁體', icon: 'none' });
   },
 
   onApiBaseInput(e) {

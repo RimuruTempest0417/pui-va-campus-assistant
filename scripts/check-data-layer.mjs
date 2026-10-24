@@ -178,6 +178,27 @@ const afterAll = await data.listNotices({});
 check('全部標為已讀', afterAll.unread === 0, `未讀 ${afterAll.unread}`);
 
 
+// ── 介面語言（utils/i18n.js）──
+{
+  const mod = await import('../utils/i18n.js').catch(() => null);
+  const i18n = mod && (mod.default || mod);
+  if (!i18n) {
+    check('i18n 可載入', false, 'utils/i18n.js 載入失敗');
+  } else {
+    const dict = i18n.dict();
+    const bad = Object.entries(dict).filter(([, v]) => !v.hant || !v.hans);
+    check('介面語言：每條都有繁簡兩版', bad.length === 0, bad.map(([k]) => k).join(','));
+    i18n.setLocale('zh-Hant');
+    const hant = i18n.t('home.module.items');
+    i18n.setLocale('zh-Hans');
+    const hans = i18n.t('home.module.items');
+    check('介面語言：切換後文案改變', hant !== hans, `${hant} / ${hans}`);
+    check('介面語言：未知 key 原樣回傳', i18n.t('nope.not.exist') === 'nope.not.exist', i18n.t('nope.not.exist'));
+    check('介面語言：非法語言值回退預設', i18n.setLocale('en-US') === i18n.DEFAULT, i18n.locale());
+    i18n.setLocale('zh-Hant');
+  }
+}
+
 // ── 校曆工具（utils/calendar.js）──
 {
   const cal = await import('../utils/calendar.js').catch(() => null);

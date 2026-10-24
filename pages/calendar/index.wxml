@@ -1,5 +1,5 @@
 <view class="ui-page page-root">
-  <pv-navbar title="校曆" back="{{true}}" />
+  <pv-navbar title="{{L.title || '校曆'}}" back="{{true}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="cal-inner">
@@ -12,7 +12,7 @@
           <text class="cal-head__arrow">›</text>
         </view>
         <view class="cal-head__today" bindtap="goToday">
-          <text class="cal-head__today-text">今天</text>
+          <text class="cal-head__today-text">{{L.today}}</text>
         </view>
       </view>
 
@@ -40,13 +40,13 @@
         <text class="cal-day__count">{{items.length ? items.length + ' 項安排' : ''}}</text>
       </view>
 
-      <pv-empty wx:if="{{!loading && !items.length}}" icon="📅" title="這天沒有安排" desc="有公告或活動的日子會標上圓點" />
+      <pv-empty wx:if="{{!loading && !items.length}}" icon="📅" title="{{L.empty}}" desc="{{L.emptyDesc}}" />
 
       <view wx:else class="ui-list">
         <view wx:for="{{items}}" wx:key="id" class="cal-item" data-type="{{item.type}}" data-id="{{item.id}}" bindtap="openItem"
               hover-class="cal-item--pressed" hover-start-time="0">
           <view class="cal-item__head">
-            <pv-tag text="{{item.type === 'event' ? '活動' : (item.kind === 'URGENT' ? '緊急' : item.kind === 'CALENDAR' ? '校曆' : '公告')}}"
+            <pv-tag text="{{item.type === 'event' ? L.event : (item.kind === 'URGENT' ? L.urgent : item.kind === 'CALENDAR' ? L.calendar : L.notice)}}"
                     type="{{item.kind === 'URGENT' ? 'danger' : item.type === 'event' ? 'tint' : 'neutral'}}" />
             <text wx:if="{{item.time}}" class="cal-item__time">{{item.time}}</text>
           </view>

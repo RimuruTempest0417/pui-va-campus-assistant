@@ -5,13 +5,13 @@
               refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
     <view class="list-inner">
       <view class="seg-row">
-        <view class="seg-chip seg-chip--on">列表</view>
-        <view class="seg-chip" bindtap="goCalendar">校曆</view>
+        <view class="seg-chip seg-chip--on">{{L.list}}</view>
+        <view class="seg-chip" bindtap="goCalendar">{{L.calendar}}</view>
       </view>
 
       <view wx:if="{{unread > 0}}" class="unread-bar">
         <text class="unread-bar__text">{{unread}} 則未讀</text>
-        <text class="unread-bar__action" bindtap="markAllRead">全部標為已讀</text>
+        <text class="unread-bar__action" bindtap="markAllRead">{{L.allRead}}</text>
       </view>
 
       <block wx:if="{{loading}}">

@@ -1,5 +1,6 @@
 const data = require('../../services/data');
-const { dateKey, weekday, greeting, fromNow } = require('../../utils/date');
+const { dateKey, weekday, fromNow } = require('../../utils/date');
+const i18n = require('../../utils/i18n');
 const { getNav } = require('../../utils/nav');
 
 // 尚未實作的模組先用提示卡，實作後只要改這裡的路徑
@@ -18,6 +19,7 @@ Page({
     failed: false,
     isDemo: false,
     greeting: '',
+    L: { demoTag: '', urgent: '', guest: '', student: '', failed: '', failedDesc: '', retry: '' },
     today: '',
     weekday: '',
     clock: '',
@@ -45,12 +47,26 @@ Page({
   },
 
   // scroll-view 的下拉刷新（頁面已改成 scroll-view，不再用 onPullDownRefresh）
+  labels() {
+    return {
+      demoTag: i18n.t('home.demoTag'),
+      urgent: i18n.t('home.urgent'),
+      guest: i18n.t('home.guest'),
+      student: i18n.t('home.student'),
+      failed: i18n.t('home.failed'),
+      failedDesc: i18n.t('home.failedDesc'),
+      retry: i18n.t('common.retry'),
+    };
+  },
+
   onRefresh() {
     this.setData({ refreshing: true });
     this.refresh(true).then(() => this.setData({ refreshing: false }));
   },
 
   onShow() {
+    // 語言可能在自檢頁被改過：回來先更新介面文字
+    this.setData({ greeting: i18n.greetingByHour(), L: this.labels() });
     // 從「資料來源」頁切換離線示範回來時，模式變了必須整頁重抓，
     // 否則會出現「設定已改、首頁數字還是舊的」的假畫面。
     let cachedRole = '';
@@ -125,7 +141,7 @@ Page({
 
   setClockFields() {
     this.setData({
-      greeting: greeting(),
+      greeting: i18n.greetingByHour(),
       today: dateKey().slice(5).replace('-', ' 月 ') + ' 日',
       weekday: weekday(),
       clock: require('../../utils/date').clock(),
@@ -158,10 +174,10 @@ Page({
       const todayMenu = days.find((d) => d.date === todayKey) || days[0] || null;
 
       const modules = [
-        { key: 'items', icon: '🔍', label: '失物招領', sub: items.total + ' 筆', tone: 'tint' },
-        { key: 'events', icon: '🎪', label: '活動與社團', sub: (events.items || []).length + ' 個', tone: 'brand' },
-        { key: 'menu', icon: '🍚', label: '午餐與小賣部', sub: todayMenu ? (todayMenu.lunch || []).length + ' 款' : '—', tone: 'warning' },
-        { key: 'notices', icon: '📢', label: '公告與提示', sub: (notices.unread ? notices.unread + ' 則未讀' : (notices.items || []).length + ' 則'), tone: 'success' },
+        { key: 'items', icon: '🔍', label: i18n.t('home.module.items'), sub: items.total + ' ' + i18n.t('home.unit.items'), tone: 'tint' },
+        { key: 'events', icon: '🎪', label: i18n.t('home.module.events'), sub: (events.items || []).length + ' ' + i18n.t('home.unit.events'), tone: 'brand' },
+        { key: 'menu', icon: '🍚', label: i18n.t('home.module.menu'), sub: todayMenu ? (todayMenu.lunch || []).length + ' ' + i18n.t('home.unit.dishes') : '—', tone: 'warning' },
+        { key: 'notices', icon: '📢', label: i18n.t('home.module.notices'), sub: notices.unread ? notices.unread + ' ' + i18n.t('home.unread') : (notices.items || []).length + ' ' + i18n.t('home.unit.notices'), tone: 'success' },
       ];
 
       const role = (me && me.role) || '';
@@ -205,7 +221,8 @@ Page({
         modules: modules,
         lunch: todayMenu ? todayMenu.lunch : null,
         snack: todayMenu ? todayMenu.snack : null,
-        updatedAt: '剛剛更新',
+        updatedAt: i18n.t('home.justNow'),
+        L: this.labels(),
       });
     } catch (e) {
       console.error('[home] 載入失敗', e);

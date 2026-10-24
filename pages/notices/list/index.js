@@ -1,10 +1,12 @@
 const data = require('../../../services/data');
 const { decorate } = require('../../../utils/notice');
+const i18n = require('../../../utils/i18n');
 
 Page({
   data: { loading: true, refreshing: false, items: [], unread: 0 },
 
   onLoad() {
+    this.setData({ L: { list: i18n.t('common.list'), calendar: i18n.t('common.calendar'), allRead: i18n.t('common.allRead') } });
     this.load();
   },
 

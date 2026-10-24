@@ -23,6 +23,9 @@ module.exports = {
     event: '', // 候補補位／活動通知
     notice: '', // 緊急公告
   },
+  // 介面語言：'zh-Hant'（繁體，預設）／'zh-Hans'（簡體）。只影響介面文案，不改資料內容。
+  // 使用者可在開發自檢頁切換，存在 storage（pv_locale）。
+  LOCALE: 'zh-Hant',
   TIMEOUT: 8000,
   RETRY: 1,
   STORAGE_KEYS: {
@@ -31,5 +34,6 @@ module.exports = {
     demo: 'pv_demo_seed',
     forceDemo: 'pv_force_demo',
     apiBase: 'pv_api_base',
+    locale: 'pv_locale',
   },
 };

@@ -1,5 +1,6 @@
 const data = require('../../services/data');
 const cal = require('../../utils/calendar');
+const i18n = require('../../utils/i18n');
 
 Page({
   data: {
@@ -12,6 +13,7 @@ Page({
     selected: '',
     selectedText: '',
     items: [],
+    L: { title: '', today: '', empty: '', emptyDesc: '', event: '', notice: '', calendar: '校曆', urgent: '緊急' },
   },
 
   onLoad() {
@@ -20,7 +22,7 @@ Page({
       year: now.getFullYear(),
       month: now.getMonth() + 1,
       selected: cal.dateKey(now),
-      selectedText: '今天',
+      selectedText: i18n.t('cal.today'),
     });
     this.load();
   },
@@ -51,6 +53,19 @@ Page({
       monthText: cal.monthLabel(this.data.year, this.data.month),
       items: g[this.data.selected] || [],
     });
+  },
+
+  labels() {
+    return {
+      title: i18n.t('cal.title'),
+      today: i18n.t('cal.today'),
+      empty: i18n.t('cal.empty'),
+      emptyDesc: i18n.t('cal.emptyDesc'),
+      event: i18n.t('cal.event'),
+      notice: i18n.t('cal.notice'),
+      calendar: i18n.t('common.calendar'),
+      urgent: i18n.t('home.urgent'),
+    };
   },
 
   prevMonth() {
@@ -85,7 +100,7 @@ Page({
     const cell = (this.data.cells || []).filter((c) => c.key === key)[0];
     this.setData({
       selected: key,
-      selectedText: cell && cell.isToday ? '今天' : key.slice(5).replace('-', ' / '),
+      selectedText: cell && cell.isToday ? i18n.t('cal.today') : key.slice(5).replace('-', ' / '),
       items: (this._grouped || {})[key] || [],
     });
   },
