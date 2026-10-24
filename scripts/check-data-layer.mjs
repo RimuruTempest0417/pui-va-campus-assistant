@@ -357,6 +357,16 @@ check('簽到：我的報名帶簽到時間',
   check('活動：延期顯示原定時間', !!ev.postponedText, ev.postponedText || '空');
 }
 
+
+// ── W-31 活動回饋 ──
+{
+  const before = await data.eventFeedback('e1');
+  await data.submitFeedback('e1', 5, '很好玩');
+  const after = await data.eventFeedback('e1');
+  check('回饋：送出後看得到', after.mine && after.mine.rating === 5, JSON.stringify(after.mine));
+  check('回饋：平均分有算', typeof after.avg === 'number' && after.avg > 0, String(after.avg));
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

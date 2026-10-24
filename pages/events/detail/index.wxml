@@ -63,6 +63,34 @@
             <pv-button wx:if="{{!ev.myCheckedIn}}" type="tinted" size="sm" bind:tap="goCheckin">{{L.k13}}</pv-button>
           </view>
         </pv-card>
+        <!-- W-31 活動回饋（活動結束後才出現） -->
+        <view wx:if="{{ev.ended}}" class="fb-card">
+          <text class="fb-title">{{L.k56}}</text>
+          <text class="fb-avg" wx:if="{{fb.count}}">★ {{fb.avg}} · {{fb.count}} 人評分</text>
+          <text class="fb-avg" wx:else>{{L.k57}}</text>
+
+          <block wx:if="{{canFeedback}}">
+            <view class="fb-stars">
+              <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" class="fb-star {{fbDraft >= item ? 'fb-star--on' : ''}}"
+                    data-v="{{item}}" bindtap="pickStar">★</text>
+            </view>
+            <textarea class="fb-input" value="{{fbComment}}" placeholder="{{L.k58}}" maxlength="300" bindinput="onFbInput" auto-height />
+            <pv-button size="sm" type="tinted" bind:tap="submitFeedback">{{L.k59}}</pv-button>
+          </block>
+
+          <block wx:for="{{fb.items}}" wx:key="createdAt" wx:for-item="row">
+            <view class="fb-item">
+              <text class="fb-item__head">{{row.nickname}} · {{row.rating}}★</text>
+              <text class="fb-item__body">{{row.comment}}</text>
+            </view>
+          </block>
+        </view>
+
+        <!-- W-32 分享卡 -->
+        <view class="share-card" bindtap="makeShareCard">
+          <text class="share-card__text">{{L.k60}}</text>
+        </view>
+        <canvas type="2d" id="shareCanvas" class="share-canvas" />
       </block>
     </view>
   </scroll-view>

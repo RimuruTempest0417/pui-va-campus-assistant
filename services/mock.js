@@ -811,4 +811,21 @@ module.exports = {
   readNotifications() {
     return Promise.resolve({ ok: true, unread: 0 });
   },
+
+  // ── W-31 示範回饋 ──
+  eventFeedback(eventId) {
+    const rows = (this.__feedback || []).filter((x) => x.eventId === eventId);
+    const mine = rows.find((x) => x.mine) || null;
+    return Promise.resolve({
+      count: rows.length,
+      avg: rows.length ? Math.round((rows.reduce((a, b) => a + b.rating, 0) / rows.length) * 10) / 10 : 0,
+      mine: mine ? { rating: mine.rating, comment: mine.comment } : null,
+      items: rows.filter((x) => x.comment).map((x) => ({ rating: x.rating, comment: x.comment, nickname: x.nickname || '同學', createdAt: x.createdAt })),
+    });
+  },
+  submitFeedback(eventId, rating, comment) {
+    this.__feedback = (this.__feedback || []).filter((x) => !(x.eventId === eventId && x.mine));
+    this.__feedback.push({ eventId, rating, comment, mine: true, nickname: '我', createdAt: new Date().toISOString() });
+    return Promise.resolve({ ok: true });
+  },
 };

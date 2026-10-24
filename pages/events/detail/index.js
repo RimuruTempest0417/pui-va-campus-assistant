@@ -23,6 +23,11 @@ Page({
       k24: i18n.pick("未簽到"),
       k25: i18n.pick("出席紀錄已送出"),
       k26: i18n.pick("到現場掃老師的簽到碼"),
+      k56: i18n.pick('活動回饋'),
+      k57: i18n.pick('目前還沒有人評分，你可以當第一個'),
+      k58: i18n.pick('想跟主辦說的話（可不填）'),
+      k59: i18n.pick('送出回饋'),
+      k60: i18n.pick('產生分享卡（存到相簿）'),
       k53: i18n.pick('這個活動已取消，名額與報名紀錄不再更新。'),
       k54: i18n.pick('活動改期：原定 '),
       k55: i18n.pick('，請留意新時間。'),
@@ -52,6 +57,10 @@ Page({
     loading: true,
     submitting: false,
     ev: null,
+    fb: { count: 0, avg: 0, items: [], mine: null },
+    fbDraft: 5,
+    fbComment: '',
+    canFeedback: false,
     failed: false,
     errorText: '',
     barText: '',
@@ -79,16 +88,22 @@ Page({
             failed: false,
             errorText: '',
             ev: ev,
+            canFeedback: !!(ev.ended && (ev.myStatus === 'CONFIRMED' || (ev.mySignup && ev.mySignup.status === 'CONFIRMED'))),
             groups: ev.groups || [],
             pickedGroup: ev.myGroupKey || '',
           },
           this.barFor(ev),
         ),
       );
+      if (ev.ended) this.loadFeedback();
     } catch (e) {
       this.setData({
         loading: false,
         ev: null,
+    fb: { count: 0, avg: 0, items: [], mine: null },
+    fbDraft: 5,
+    fbComment: '',
+    canFeedback: false,
         pickedGroup: '',
         failed: codeOf(e) !== 'NOT_FOUND',
         errorText: data.messageOf(e),
@@ -151,5 +166,87 @@ Page({
     } finally {
       this.setData({ submitting: false });
     }
+  },
+
+  loadFeedback() {
+    data
+      .eventFeedback(this.id)
+      .then((fb) => this.setData({ fb, fbDraft: (fb.mine && fb.mine.rating) || 5, fbComment: (fb.mine && fb.mine.comment) || '', canFeedback: (this.data.canFeedback || !!fb.mine) && this.data.canFeedback ? true : this.data.canFeedback }))
+      .catch(() => {});
+  },
+
+  pickStar(e) {
+    this.setData({ fbDraft: Number(e.currentTarget.dataset.v) });
+  },
+
+  onFbInput(e) {
+    this.setData({ fbComment: e.detail.value });
+  },
+
+  async submitFeedback() {
+    try {
+      await data.submitFeedback(this.id, this.data.fbDraft, this.data.fbComment.trim() || undefined);
+      wx.showToast({ title: i18n.pick('已送出，謝謝你'), icon: 'success' });
+      this.loadFeedback();
+    } catch (e) {
+      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+    }
+  },
+
+  /** W-32 分享卡：畫一張 600×800 的圖存到相簿 */
+  makeShareCard() {
+    const ev = this.data.ev;
+    if (!ev) return;
+    wx.createSelectorQuery()
+      .select('#shareCanvas')
+      .fields({ node: true, size: true })
+      .exec((res) => {
+        const canvas = res && res[0] && res[0].node;
+        if (!canvas) return wx.showToast({ title: i18n.pick('這台裝置不支援'), icon: 'none' });
+        const ctx = canvas.getContext('2d');
+        const dpr = wx.getWindowInfo ? wx.getWindowInfo().pixelRatio : 2;
+        canvas.width = 600 * dpr;
+        canvas.height = 800 * dpr;
+        ctx.scale(dpr, dpr);
+
+        ctx.fillStyle = theme.tint;
+        ctx.fillRect(0, 0, 600, 800);
+        ctx.fillStyle = theme.onTint;
+        ctx.font = 'bold 34px sans-serif';
+        ctx.fillText(i18n.pick('培華校園助手'), 48, 80);
+        ctx.font = '20px sans-serif';
+        ctx.fillStyle = theme.onTintSoft;
+        ctx.fillText(ev.club || i18n.pick('校園活動'), 48, 116);
+
+        ctx.fillStyle = theme.onTint;
+        ctx.font = 'bold 42px sans-serif';
+        const title = String(ev.title || '');
+        const line1 = title.slice(0, 10);
+        const line2 = title.slice(10, 20);
+        ctx.fillText(line1, 48, 220);
+        if (line2) ctx.fillText(line2, 48, 274);
+
+        ctx.font = '24px sans-serif';
+        ctx.fillStyle = theme.onTintSoft;
+        ctx.fillText(i18n.pick('時間：') + (ev.timeText || ''), 48, 380);
+        ctx.fillText(i18n.pick('地點：') + (ev.location || ''), 48, 424);
+        ctx.fillText(i18n.pick('名額：') + (ev.capacityText || ''), 48, 468);
+
+        ctx.font = '18px sans-serif';
+        ctx.fillStyle = theme.onTintSoft;
+        ctx.fillText(i18n.pick('用手機在小程序內報名 · ') + new Date().toLocaleDateString('zh-TW'), 48, 740);
+
+        wx.canvasToTempFilePath({
+          canvas,
+          success: (r) => {
+            wx.saveImageToPhotosAlbum({
+              filePath: r.tempFilePath,
+              success: () => wx.showToast({ title: i18n.pick('已存到相簿'), icon: 'success' }),
+              fail: () => wx.showModal({ title: i18n.pick('需要相簿權限'), content: i18n.pick('請在設定開啟「儲存到相簿」後再試一次'), showCancel: false }),
+            });
+          },
+          fail: () => wx.showToast({ title: i18n.pick('產生失敗'), icon: 'none' }),
+        });
+      });
   },
 });

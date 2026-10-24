@@ -123,4 +123,12 @@ module.exports = {
   readNotifications(id) {
     return request.patch('/notifications/read', id ? { id } : {});
   },
+
+  // ── W-31 活動回饋 ──
+  eventFeedback(eventId) {
+    return request.get('/events/' + eventId + '/feedback');
+  },
+  submitFeedback(eventId, rating, comment) {
+    return request.post('/events/' + eventId + '/feedback', { rating, comment });
+  },
 };
