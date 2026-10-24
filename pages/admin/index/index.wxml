@@ -1,5 +1,5 @@
 <view class="ui-page page-root">
-  <pv-navbar title="管理" back="{{true}}" />
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
 
   <scroll-view class="tabs-scroll" scroll-x enable-flex show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="tabs">
@@ -17,32 +17,32 @@
       </block>
 
       <block wx:elif="{{failed}}">
-        <pv-empty icon="⚠️" title="讀取失敗" desc="{{errorText}}">
-          <pv-button size="sm" type="tinted" bind:tap="reloadTab">重試</pv-button>
+        <pv-empty icon="⚠️" title="{{L.k02}}" desc="{{errorText}}">
+          <pv-button size="sm" type="tinted" bind:tap="reloadTab">{{L.k03}}</pv-button>
         </pv-empty>
       </block>
 
       <!-- 概況 -->
       <block wx:elif="{{tab === 'stats'}}">
         <view class="stat-grid">
-          <view class="stat"><text class="stat__num">{{stats.users}}</text><text class="stat__label">使用者</text></view>
-          <view class="stat"><text class="stat__num">{{stats.items.open}}</text><text class="stat__label">待認領</text></view>
-          <view class="stat"><text class="stat__num">{{stats.claimsPending}}</text><text class="stat__label">待審認領</text></view>
-          <view class="stat"><text class="stat__num">{{stats.signups.confirmed}}</text><text class="stat__label">正取報名</text></view>
-          <view class="stat"><text class="stat__num">{{stats.signups.waitlist}}</text><text class="stat__label">候補中</text></view>
-          <view class="stat"><text class="stat__num">{{stats.noticesActive}}</text><text class="stat__label">有效公告</text></view>
+          <view class="stat"><text class="stat__num">{{stats.users}}</text><text class="stat__label">{{L.k04}}</text></view>
+          <view class="stat"><text class="stat__num">{{stats.items.open}}</text><text class="stat__label">{{L.k05}}</text></view>
+          <view class="stat"><text class="stat__num">{{stats.claimsPending}}</text><text class="stat__label">{{L.k06}}</text></view>
+          <view class="stat"><text class="stat__num">{{stats.signups.confirmed}}</text><text class="stat__label">{{L.k07}}</text></view>
+          <view class="stat"><text class="stat__num">{{stats.signups.waitlist}}</text><text class="stat__label">{{L.k08}}</text></view>
+          <view class="stat"><text class="stat__num">{{stats.noticesActive}}</text><text class="stat__label">{{L.k09}}</text></view>
         </view>
         <pv-card>
           <text class="ui-meta">近 7 天新增失物 {{stats.items.added7d}} 筆｜已認領 {{stats.items.claimed}} 筆｜評分 {{stats.ratings.count}} 則（平均 {{stats.ratings.avg}}）</text>
           <view class="row-actions">
-            <pv-button size="sm" type="plain" bind:tap="logout">登出</pv-button>
+            <pv-button size="sm" type="plain" bind:tap="logout">{{L.k10}}</pv-button>
           </view>
         </pv-card>
       </block>
 
       <!-- 待審認領 -->
       <block wx:elif="{{tab === 'claims'}}">
-        <pv-empty wx:if="{{!claims.length}}" icon="✅" title="沒有待審申請" desc="學生提出認領後會出現在這裡" />
+        <pv-empty wx:if="{{!claims.length}}" icon="✅" title="{{L.k11}}" desc="{{L.k12}}" />
         <view wx:for="{{claims}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.item.title}}</text>
@@ -51,8 +51,8 @@
           <text class="ui-meta">申請人：{{item.claimant.nickname}} {{item.claimant.className || ''}}</text>
           <text wx:if="{{item.message}}" class="ui-meta">特徵：{{item.message}}</text>
           <view class="row-actions">
-            <pv-button size="sm" type="filled" data-id="{{item.id}}" data-ok="1" bind:tap="review">通過</pv-button>
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-ok="0" bind:tap="review">拒絕</pv-button>
+            <pv-button size="sm" type="filled" data-id="{{item.id}}" data-ok="1" bind:tap="review">{{L.k13}}</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-ok="0" bind:tap="review">{{L.k14}}</pv-button>
           </view>
         </view>
       </block>
@@ -70,8 +70,8 @@
           </view>
           <text class="ui-meta">{{item.type === 'FOUND' ? '拾獲' : '遺失'}} · {{item.place}} · {{item.author.nickname}} · 申請 {{item._count.claims}}</text>
           <view class="row-actions">
-            <pv-button wx:if="{{item.deletedAt}}" size="sm" type="plain" data-id="{{item.id}}" data-act="RESTORE" bind:tap="moderate">恢復</pv-button>
-            <pv-button wx:else size="sm" type="plain" data-id="{{item.id}}" data-act="REMOVE" bind:tap="moderate">下架</pv-button>
+            <pv-button wx:if="{{item.deletedAt}}" size="sm" type="plain" data-id="{{item.id}}" data-act="RESTORE" bind:tap="moderate">{{L.k15}}</pv-button>
+            <pv-button wx:else size="sm" type="plain" data-id="{{item.id}}" data-act="REMOVE" bind:tap="moderate">{{L.k16}}</pv-button>
           </view>
         </view>
       </block>
@@ -79,21 +79,21 @@
       <!-- 發公告 -->
       <block wx:elif="{{tab === 'notice'}}">
         <pv-card>
-          <text class="field__label">標題</text>
+          <text class="field__label">{{L.k17}}</text>
           <input class="field__input" value="{{notice.title}}" bindinput="onNoticeTitle" maxlength="120" />
-          <text class="field__label">內容</text>
+          <text class="field__label">{{L.k18}}</text>
           <textarea class="field__input field__textarea" value="{{notice.content}}" bindinput="onNoticeContent" maxlength="2000" />
-          <text class="field__label">類型</text>
+          <text class="field__label">{{L.k19}}</text>
           <view class="filter-row">
             <view wx:for="{{kinds}}" wx:key="key" class="chip {{notice.kind === item.key ? 'chip--on' : ''}}"
                   data-key="{{item.key}}" bindtap="pickKind">{{item.label}}</view>
           </view>
           <view class="switch-row">
-            <text class="ui-meta">置頂</text>
+            <text class="ui-meta">{{L.k20}}</text>
             <switch checked="{{notice.isPinned}}" bindchange="onPinned" color="{{theme.tint}}" />
           </view>
           <view class="row-actions">
-            <pv-button type="filled" loading="{{sending}}" disabled="{{sending}}" bind:tap="publish">發布公告</pv-button>
+            <pv-button type="filled" loading="{{sending}}" disabled="{{sending}}" bind:tap="publish">{{L.k21}}</pv-button>
           </view>
         </pv-card>
 
@@ -107,7 +107,7 @@
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-pinned="{{item.isPinned ? '1' : '0'}}" bind:tap="togglePin">
               {{item.isPinned ? '取消置頂' : '置頂'}}
             </pv-button>
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteNotice">刪除</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteNotice">{{L.k22}}</pv-button>
           </view>
         </view>
       </block>
@@ -115,15 +115,15 @@
       <!-- 活動管理 -->
       <block wx:elif="{{tab === 'events'}}">
         <pv-card>
-          <text class="field__label">新增活動</text>
-          <input class="field__input" value="{{eventForm.title}}" data-field="title" bindinput="onEventField" placeholder="活動名稱" />
-          <input class="field__input field__gap" value="{{eventForm.location}}" data-field="location" bindinput="onEventField" placeholder="地點（可空）" />
-          <input class="field__input field__gap" value="{{eventForm.date}}" data-field="date" bindinput="onEventField" placeholder="日期 YYYY-MM-DD" />
-          <input class="field__input field__gap" value="{{eventForm.capacity}}" data-field="capacity" bindinput="onEventField" placeholder="名額（0 = 不限）" />
-          <input class="field__input field__gap" value="{{eventForm.groups}}" data-field="groups" bindinput="onEventField" placeholder="分組（可空，例：A組,B組）" />
+          <text class="field__label">{{L.k23}}</text>
+          <input class="field__input" value="{{eventForm.title}}" data-field="title" bindinput="onEventField" placeholder="{{L.k24}}" />
+          <input class="field__input field__gap" value="{{eventForm.location}}" data-field="location" bindinput="onEventField" placeholder="{{L.k25}}" />
+          <input class="field__input field__gap" value="{{eventForm.date}}" data-field="date" bindinput="onEventField" placeholder="{{L.k26}}" />
+          <input class="field__input field__gap" value="{{eventForm.capacity}}" data-field="capacity" bindinput="onEventField" placeholder="{{L.k27}}" />
+          <input class="field__input field__gap" value="{{eventForm.groups}}" data-field="groups" bindinput="onEventField" placeholder="{{L.k28}}" />
           <view class="row-actions">
-            <pv-button type="filled" size="sm" loading="{{creatingEvent}}" disabled="{{creatingEvent}}" bind:tap="createEvent">建立活動</pv-button>
-            <pv-button size="sm" type="plain" data-type="events" bind:tap="openImport">匯入 CSV</pv-button>
+            <pv-button type="filled" size="sm" loading="{{creatingEvent}}" disabled="{{creatingEvent}}" bind:tap="createEvent">{{L.k29}}</pv-button>
+            <pv-button size="sm" type="plain" data-type="events" bind:tap="openImport">{{L.k30}}</pv-button>
           </view>
         </pv-card>
 
@@ -133,10 +133,10 @@
             <pv-tag text="{{evStats.full ? '已滿' : (evStats.unlimited ? '不限名額' : '有名額')}}" type="{{evStats.full ? 'warning' : 'success'}}" />
           </view>
           <view class="stat-row">
-            <view class="stat-cell"><text class="stat-cell__num">{{evStats.signed}}</text><text class="stat-cell__label">正取</text></view>
-            <view class="stat-cell"><text class="stat-cell__num">{{evStats.waitlisted}}</text><text class="stat-cell__label">候補</text></view>
-            <view class="stat-cell"><text class="stat-cell__num">{{evStats.unlimited ? '∞' : evStats.remaining}}</text><text class="stat-cell__label">剩餘</text></view>
-            <view class="stat-cell"><text class="stat-cell__num">{{evStats.cancelled}}</text><text class="stat-cell__label">取消</text></view>
+            <view class="stat-cell"><text class="stat-cell__num">{{evStats.signed}}</text><text class="stat-cell__label">{{L.k31}}</text></view>
+            <view class="stat-cell"><text class="stat-cell__num">{{evStats.waitlisted}}</text><text class="stat-cell__label">{{L.k32}}</text></view>
+            <view class="stat-cell"><text class="stat-cell__num">{{evStats.unlimited ? '∞' : evStats.remaining}}</text><text class="stat-cell__label">{{L.k33}}</text></view>
+            <view class="stat-cell"><text class="stat-cell__num">{{evStats.cancelled}}</text><text class="stat-cell__label">{{L.k34}}</text></view>
           </view>
           <text class="ui-meta">近 7 天報名：{{evStats.timeline[0].count}}／{{evStats.timeline[1].count}}／{{evStats.timeline[2].count}}／{{evStats.timeline[3].count}}／{{evStats.timeline[4].count}}／{{evStats.timeline[5].count}}／{{evStats.timeline[6].count}}</text>
           <view wx:if="{{evStats.byGroup.length}}" class="group-stat">
@@ -148,8 +148,8 @@
           <text class="ui-meta">出席率 {{evStats.attendanceRate}}%（已簽到 {{evStats.checkedIn}}／正取 {{evStats.signed}}）</text>
 
           <view class="row-actions">
-            <pv-button size="sm" type="filled" bind:tap="promoteAll" disabled="{{evStats.waitlisted === 0}}">候補全部轉正</pv-button>
-            <pv-button size="sm" type="plain" bind:tap="closeEventStats">收起</pv-button>
+            <pv-button size="sm" type="filled" bind:tap="promoteAll" disabled="{{evStats.waitlisted === 0}}">{{L.k35}}</pv-button>
+            <pv-button size="sm" type="plain" bind:tap="closeEventStats">{{L.k36}}</pv-button>
           </view>
         </pv-card>
 
@@ -165,11 +165,11 @@
               <text class="ui-meta">已簽到 {{ci.checkedIn}} / 正取 {{ci.signed}}{{ci.rate === null ? '' : '（' + ci.rate + '%）'}}</text>
             </view>
           </view>
-          <text wx:else class="ui-meta ci-off">按「開始簽到」產生 6 位碼與 QR；學生在小程序掃碼就完成簽到。</text>
+          <text wx:else class="ui-meta ci-off">{{L.k37}}</text>
           <view class="row-actions">
             <pv-button size="sm" type="filled" loading="{{ciSending}}" disabled="{{ciSending}}" bind:tap="openCheckin">{{ci.active ? '換一張新碼' : '開始簽到'}}</pv-button>
-            <pv-button size="sm" type="plain" disabled="{{ciSending || !ci.active}}" bind:tap="closeCheckin">結束簽到</pv-button>
-            <pv-button size="sm" type="plain" bind:tap="closeCheckinPanel">收起</pv-button>
+            <pv-button size="sm" type="plain" disabled="{{ciSending || !ci.active}}" bind:tap="closeCheckin">{{L.k38}}</pv-button>
+            <pv-button size="sm" type="plain" bind:tap="closeCheckinPanel">{{L.k36}}</pv-button>
           </view>
           <view wx:if="{{attendance}}" class="ci-list">
             <view wx:for="{{attendance.items}}" wx:key="signupId" class="ci-row">
@@ -189,8 +189,8 @@
           </view>
           <text class="ui-meta">{{item.signedCount}}/{{item.capacity || '不限'}} 人</text>
           <view class="row-actions">
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventStats">統計</pv-button>
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventCheckin">簽到</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventStats">{{L.k39}}</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventCheckin">{{L.k40}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-status="{{item.status}}" bind:tap="toggleEventStatus">
               {{item.status === 'CANCELLED' ? '恢復' : '取消活動'}}
             </pv-button>
@@ -201,7 +201,7 @@
       <!-- 使用者管理 -->
       <block wx:elif="{{tab === 'users'}}">
         <view class="filter-row">
-          <view class="chip {{showPerms ? 'chip--on' : ''}}" bindtap="togglePerms">權限說明</view>
+          <view class="chip {{showPerms ? 'chip--on' : ''}}" bindtap="togglePerms">{{L.k41}}</view>
         </view>
         <pv-card wx:if="{{showPerms}}">
           <view wx:for="{{abilities}}" wx:key="key" class="signup-row">
@@ -211,25 +211,25 @@
         </pv-card>
 
         <pv-card>
-          <text class="field__label">新增帳號</text>
-          <input class="field__input" value="{{userForm.account}}" data-field="account" bindinput="onUserField" placeholder="帳號（登入用）" />
-          <input class="field__input field__gap" value="{{userForm.password}}" data-field="password" bindinput="onUserField" password placeholder="密碼（至少 8 位）" />
-          <input class="field__input field__gap" value="{{userForm.nickname}}" data-field="nickname" bindinput="onUserField" placeholder="顯示名稱（可空）" />
+          <text class="field__label">{{L.k42}}</text>
+          <input class="field__input" value="{{userForm.account}}" data-field="account" bindinput="onUserField" placeholder="{{L.k43}}" />
+          <input class="field__input field__gap" value="{{userForm.password}}" data-field="password" bindinput="onUserField" password placeholder="{{L.k44}}" />
+          <input class="field__input field__gap" value="{{userForm.nickname}}" data-field="nickname" bindinput="onUserField" placeholder="{{L.k45}}" />
           <view class="filter-row">
             <view wx:for="{{roles}}" wx:key="key" class="chip {{userForm.role === item.key ? 'chip--on' : ''}}"
                   data-role="{{item.key}}" bindtap="pickNewUserRole">{{item.label}}</view>
           </view>
           <view class="row-actions">
-            <pv-button type="filled" size="sm" loading="{{creatingUser}}" disabled="{{creatingUser}}" bind:tap="createUser">建立帳號</pv-button>
+            <pv-button type="filled" size="sm" loading="{{creatingUser}}" disabled="{{creatingUser}}" bind:tap="createUser">{{L.k46}}</pv-button>
           </view>
         </pv-card>
 
         <view class="filter-row">
-          <input class="field__input" style="flex:1" value="{{userQuery.q}}" bindinput="onUserQuery" placeholder="搜尋帳號或名稱" />
-          <pv-button size="sm" type="plain" bind:tap="applyUserQuery">搜尋</pv-button>
+          <input class="field__input" style="flex:1" value="{{userQuery.q}}" bindinput="onUserQuery" placeholder="{{L.k47}}" />
+          <pv-button size="sm" type="plain" bind:tap="applyUserQuery">{{L.k48}}</pv-button>
         </view>
         <view class="filter-row">
-          <view class="chip {{userQuery.role === '' ? 'chip--on' : ''}}" data-role="" bindtap="filterUsers">全部</view>
+          <view class="chip {{userQuery.role === '' ? 'chip--on' : ''}}" data-role="" bindtap="filterUsers">{{L.k49}}</view>
           <view wx:for="{{roles}}" wx:key="key" class="chip {{userQuery.role === item.key ? 'chip--on' : ''}}"
                 data-role="{{item.key}}" bindtap="filterUsers">{{item.label}}</view>
         </view>
@@ -249,13 +249,13 @@
           </view>
           <!-- 編輯表單（一次改名稱／帳號／密碼／等級）-->
           <view wx:if="{{editingId === item.id}}" class="edit-box">
-            <text class="field__label">名稱</text>
+            <text class="field__label">{{L.k50}}</text>
             <input class="field__input" value="{{editForm.nickname}}" data-field="nickname" bindinput="onEditField" />
-            <text class="field__label">登入帳號</text>
+            <text class="field__label">{{L.k51}}</text>
             <input class="field__input" value="{{editForm.account}}" data-field="account" bindinput="onEditField" />
-            <text class="field__label">新密碼（不填就不改）</text>
-            <input class="field__input" value="{{editForm.password}}" data-field="password" bindinput="onEditField" password placeholder="留空＝維持原密碼" />
-            <text class="field__label">等級</text>
+            <text class="field__label">{{L.k52}}</text>
+            <input class="field__input" value="{{editForm.password}}" data-field="password" bindinput="onEditField" password placeholder="{{L.k53}}" />
+            <text class="field__label">{{L.k54}}</text>
             <view class="filter-row">
               <block wx:for="{{roles}}" wx:for-item="r" wx:key="key">
                 <view wx:if="{{item.level > r.level || editForm.role === r.key}}"
@@ -264,39 +264,39 @@
               </block>
             </view>
             <view class="row-actions">
-              <pv-button size="sm" type="filled" bind:tap="saveEdit">儲存</pv-button>
-              <pv-button size="sm" type="plain" bind:tap="cancelEdit">取消</pv-button>
+              <pv-button size="sm" type="filled" bind:tap="saveEdit">{{L.k55}}</pv-button>
+              <pv-button size="sm" type="plain" bind:tap="cancelEdit">{{L.k34}}</pv-button>
             </view>
           </view>
 
           <view wx:if="{{item.canManage}}" class="row-actions">
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="startEdit">編輯</pv-button>
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="resetPassword">重設密碼</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="startEdit">{{L.k56}}</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="resetPassword">{{L.k57}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-banned="{{item.bannedAt ? '1' : '0'}}" bind:tap="toggleBan">
               {{item.bannedAt ? '恢復' : '停用'}}
             </pv-button>
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-account="{{item.openid}}" bind:tap="deleteUser">刪除</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-account="{{item.openid}}" bind:tap="deleteUser">{{L.k22}}</pv-button>
           </view>
-          <text wx:else class="ui-meta">同等或更高權限，只能查看</text>
+          <text wx:else class="ui-meta">{{L.k58}}</text>
         </view>
       </block>
 
       <!-- 家長綁定（P2）-->
       <block wx:elif="{{tab === 'parents'}}">
         <pv-card>
-          <text class="field__label">新增綁定</text>
-          <input class="field__input" value="{{parentForm.parentAccount}}" data-field="parentAccount" bindinput="onParentField" placeholder="家長帳號（先到使用者分頁把角色設為家長）" />
-          <input class="field__input field__gap" value="{{parentForm.studentAccount}}" data-field="studentAccount" bindinput="onParentField" placeholder="學生學號，例如 3201201001" />
+          <text class="field__label">{{L.k59}}</text>
+          <input class="field__input" value="{{parentForm.parentAccount}}" data-field="parentAccount" bindinput="onParentField" placeholder="{{L.k60}}" />
+          <input class="field__input field__gap" value="{{parentForm.studentAccount}}" data-field="studentAccount" bindinput="onParentField" placeholder="{{L.k61}}" />
           <view class="filter-row">
             <view wx:for="{{relations}}" wx:key="key" class="chip {{parentForm.relation === item.key ? 'chip--on' : ''}}"
                   data-key="{{item.key}}" bindtap="pickRelation">{{item.label}}</view>
           </view>
           <view class="row-actions">
-            <pv-button type="filled" size="sm" loading="{{creatingParent}}" disabled="{{creatingParent}}" bind:tap="bindParent">綁定</pv-button>
+            <pv-button type="filled" size="sm" loading="{{creatingParent}}" disabled="{{creatingParent}}" bind:tap="bindParent">{{L.k62}}</pv-button>
           </view>
         </pv-card>
 
-        <pv-empty wx:if="{{!parents.length}}" icon="👨‍👩‍👧" title="還沒有任何綁定" desc="上方填家長帳號與學生學號即可建立" />
+        <pv-empty wx:if="{{!parents.length}}" icon="👨‍👩‍👧" title="{{L.k63}}" desc="{{L.k64}}" />
 
         <view wx:for="{{parents}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
@@ -306,23 +306,23 @@
           <text class="ui-meta">家長帳號 {{item.parent.account}}</text>
           <text class="ui-meta">子女：{{item.student.nickname || item.student.account}}（{{item.student.grade || ''}}{{item.student.className || ''}} · {{item.student.account}}）</text>
           <view class="row-actions">
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-name="{{item.student.nickname || item.student.account}}" bind:tap="unbindParent">解除綁定</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-name="{{item.student.nickname || item.student.account}}" bind:tap="unbindParent">{{L.k65}}</pv-button>
           </view>
         </view>
       </block>
 
       <!-- 檢舉 -->
       <block wx:elif="{{tab === 'reports'}}">
-        <pv-empty wx:if="{{!reports.length}}" icon="🛡" title="沒有待處理檢舉" desc="" />
+        <pv-empty wx:if="{{!reports.length}}" icon="🛡" title="{{L.k66}}" desc="" />
         <view wx:for="{{reports}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.targetType}} · {{item.reason}}</text>
-            <pv-tag text="待處理" type="warning" />
+            <pv-tag text="{{L.k67}}" type="warning" />
           </view>
           <text class="ui-meta">檢舉人：{{item.reporter.nickname || '匿名'}}</text>
           <view class="row-actions">
-            <pv-button size="sm" type="filled" data-id="{{item.id}}" data-action="RESOLVE" bind:tap="handleReport">成立並下架</pv-button>
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-action="DISMISS" bind:tap="handleReport">駁回</pv-button>
+            <pv-button size="sm" type="filled" data-id="{{item.id}}" data-action="RESOLVE" bind:tap="handleReport">{{L.k68}}</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-action="DISMISS" bind:tap="handleReport">{{L.k69}}</pv-button>
           </view>
         </view>
       </block>
@@ -341,7 +341,7 @@
         </pv-card>
 
         <pv-empty wx:if="{{!errors.length}}" icon="🐞" title="{{errStatus === 'OPEN' ? '沒有待處理的錯誤' : '沒有已解決的紀錄'}}"
-                  desc="使用者手機上的白屏、閃退會自動出現在這裡" />
+                  desc="{{L.k70}}" />
 
         <view wx:for="{{errors}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
@@ -366,7 +366,7 @@
             <text class="ui-meta">{{item.target || ''}}</text>
           </view>
         </pv-card>
-        <pv-empty wx:else icon="📜" title="沒有紀錄" desc="" />
+        <pv-empty wx:else icon="📜" title="{{L.k71}}" desc="" />
       </block>
 
       <!-- 報名名單 -->
@@ -381,43 +381,43 @@
             <text class="ui-meta">{{item.status === 'CONFIRMED' ? '正取' : '候補 ' + item.waitlistPos}}</text>
           </view>
           <view class="row-actions">
-            <pv-button size="sm" type="plain" bind:tap="copySignups">複製名單</pv-button>
+            <pv-button size="sm" type="plain" bind:tap="copySignups">{{L.k72}}</pv-button>
           </view>
         </pv-card>
-        <pv-empty wx:elif="{{eventId}}" icon="🎟" title="這個活動還沒有人報名" desc="" />
+        <pv-empty wx:elif="{{eventId}}" icon="🎟" title="{{L.k73}}" desc="" />
       </block>
 
       <!-- 排菜單 -->
       <block wx:elif="{{tab === 'menu'}}">
         <pv-card>
-          <text class="field__label">日期</text>
+          <text class="field__label">{{L.k74}}</text>
           <input class="field__input" value="{{menu.date}}" placeholder="YYYY-MM-DD" bindinput="onMenuDate" />
-          <text class="field__label">餐別</text>
+          <text class="field__label">{{L.k75}}</text>
           <view class="filter-row">
             <view wx:for="{{meals}}" wx:key="key" class="chip {{menu.mealType === item.key ? 'chip--on' : ''}}"
                   data-key="{{item.key}}" bindtap="pickMeal">{{item.label}}</view>
           </view>
-          <text class="field__label">菜名（逗號分隔）</text>
-          <input class="field__input" value="{{menu.names}}" placeholder="例：葡式焗雞飯, 番茄蛋炒飯" bindinput="onMenuNames" />
+          <text class="field__label">{{L.k76}}</text>
+          <input class="field__input" value="{{menu.names}}" placeholder="{{L.k77}}" bindinput="onMenuNames" />
           <view class="row-actions">
-            <pv-button type="filled" loading="{{sending}}" disabled="{{sending}}" bind:tap="saveMenu">排入菜單</pv-button>
-            <pv-button size="sm" type="plain" data-type="menu" bind:tap="openImport">匯入 CSV</pv-button>
+            <pv-button type="filled" loading="{{sending}}" disabled="{{sending}}" bind:tap="saveMenu">{{L.k78}}</pv-button>
+            <pv-button size="sm" type="plain" data-type="menu" bind:tap="openImport">{{L.k30}}</pv-button>
           </view>
         </pv-card>
 
         <text class="field__label">本週已排（{{menuWeekStart}} 起）</text>
         <view wx:for="{{menuEntries}}" wx:key="id" class="signup-row">
           <text class="signup-row__name">{{item.date}} · {{item.mealType === 'LUNCH' ? '午餐' : '小賣部'}} · {{item.dishName}}</text>
-          <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteMenuEntry">移除</pv-button>
+          <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteMenuEntry">{{L.k79}}</pv-button>
         </view>
-        <pv-empty wx:if="{{!menuEntries.length}}" icon="🍽" title="這週還沒排菜" desc="" />
+        <pv-empty wx:if="{{!menuEntries.length}}" icon="🍽" title="{{L.k80}}" desc="" />
       </block>
 
       <!-- 批次匯入（活動／菜單共用同一塊面板） -->
       <pv-card wx:if="{{importType}}">
         <view class="ui-row-between">
           <text class="ui-title">批次匯入{{importType === 'menu' ? '菜單' : '活動'}}</text>
-          <pv-button size="sm" type="plain" bind:tap="closeImport">收起</pv-button>
+          <pv-button size="sm" type="plain" bind:tap="closeImport">{{L.k36}}</pv-button>
         </view>
         <text class="ui-meta imp-hint">{{importHint}}</text>
         <textarea
@@ -425,12 +425,12 @@
           value="{{importCsv}}"
           bindinput="onImportText"
           maxlength="-1"
-          placeholder="把 CSV 貼在這裡，或按下面「選擇 CSV 檔」從聊天記錄挑一個"
+          placeholder="{{L.k81}}"
         />
         <view class="row-actions">
-          <pv-button size="sm" type="plain" bind:tap="pickCsvFile">選擇 CSV 檔</pv-button>
-          <pv-button size="sm" type="plain" loading="{{importBusy}}" disabled="{{importBusy}}" bind:tap="checkImport">先檢查</pv-button>
-          <pv-button size="sm" type="filled" loading="{{importBusy}}" disabled="{{importBusy || !importChecked}}" bind:tap="confirmImport">確認匯入</pv-button>
+          <pv-button size="sm" type="plain" bind:tap="pickCsvFile">{{L.k82}}</pv-button>
+          <pv-button size="sm" type="plain" loading="{{importBusy}}" disabled="{{importBusy}}" bind:tap="checkImport">{{L.k83}}</pv-button>
+          <pv-button size="sm" type="filled" loading="{{importBusy}}" disabled="{{importBusy || !importChecked}}" bind:tap="confirmImport">{{L.k84}}</pv-button>
         </view>
         <view wx:if="{{importResult}}">
           <text class="ui-meta imp-sum">共 {{importResult.total}} 列：可寫入 {{importResult.success}}｜有問題 {{importResult.failed}}</text>

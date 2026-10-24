@@ -1,3 +1,4 @@
+const i18n = require('./i18n');
 // 校曆：把公告與活動攤成「日期 → 當天項目」，並產生月視圖格子。
 // 兩邊資料都是既有端點，這裡只做組合與格式化，不新增 API。
 
@@ -13,7 +14,7 @@ function dateKey(d) {
 }
 
 function monthLabel(year, month) {
-  return year + ' 年 ' + month + ' 月';
+  return year + i18n.pick(' 年 ') + month + i18n.pick(' 月');
 }
 
 /** 月視圖格子：固定 6 列 × 7 欄（42 格），週一為第一欄 */

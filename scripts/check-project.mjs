@@ -177,6 +177,32 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   walk(root);
 }
 
+// 7d) W-20：WXML 用到的 L.xxx 必須真的存在於該頁的 labels()
+{
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) { walk(full); continue; }
+      if (!e.name.endsWith('.wxml')) continue;
+      const rel = full.slice(root.length + 1);
+      const wxml = readFileSync(full, 'utf8');
+      const used = new Set([...wxml.matchAll(/\bL\.([A-Za-z_][A-Za-z0-9_]*)/g)].map((m) => m[1]));
+      if (!used.size) continue;
+      const jsPath = full.replace(/\.wxml$/, '.js');
+      const js = readFileSync(jsPath, 'utf8');
+      for (const k of used) {
+        // 允許：頁面 data 內直接宣告、或 labels() 內有同名 key
+        const inLabels = new RegExp(`\\b${k}\\s*:`).test(js);
+        if (!inLabels) errors.push(`${rel} 用到 {{L.${k}}}，但 ${jsPath.slice(root.length + 1)} 沒有任何地方提供這個 key（畫面會空白）`);
+      }
+    }
+  };
+  walk(root);
+  // 註：labels() 的 key 一律由 i18n 提供，這裡只檢查「key 完全不存在」的情況
+}
+
 // 8) W-13：頁面 JS 必須有 Page( / Component(、json 必須有標題、wxml 用到的自訂組件必須註冊
 {
   const { readFileSync } = await import('node:fs');

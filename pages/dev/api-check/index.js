@@ -3,6 +3,21 @@ const i18n = require('../../../utils/i18n');
 const theme = require('../../../utils/theme');
 
 Page({
+  labels() {
+    return {
+      k01: i18n.pick("資料層自我檢查"),
+      k02: i18n.pick("重新檢查"),
+      k03: i18n.pick("後端位址"),
+      k04: i18n.pick("換成 LAN IP 或正式域名（例如 https://api.你的域名.com/api/v1）"),
+      k05: i18n.pick("套用"),
+      k06: i18n.pick("回到預設"),
+      k07: i18n.pick("離線示範模式"),
+      k08: i18n.pick("打開後不連後端，只用本地示範資料；關掉立刻回真 API"),
+      k09: i18n.pick("重置示範資料"),
+      k10: i18n.pick("只改介面文案，不影響資料內容"),
+    };
+  },
+
   data: {
     theme,
     running: false,
@@ -19,6 +34,7 @@ Page({
   },
 
   onLoad() {
+    this.setData({ L: this.labels() });
     this.setData({ forceDemo: data.forceDemoOn(), apiBase: data.apiBase() });
     this.run();
   },

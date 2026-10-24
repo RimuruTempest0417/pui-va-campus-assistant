@@ -1,7 +1,24 @@
 const data = require('../../../services/data');
 const { dateTimeText } = require('../../../utils/date');
 
+const i18n = require('../../utils/i18n');
+
 Page({
+  labels() {
+    return {
+      k01: i18n.pick("現場簽到"),
+      k02: i18n.pick("再簽一個"),
+      k03: i18n.pick("查看活動"),
+      k04: i18n.pick("掃描老師的簽到碼"),
+      k05: i18n.pick("對準現場大屏或白板上的 QR，掃到就自動簽到。"),
+      k06: i18n.pick("掃描簽到碼"),
+      k07: i18n.pick("或手動輸入"),
+      k08: i18n.pick("6 位簽到碼"),
+      k09: i18n.pick("簽到"),
+      k10: i18n.pick("只有「正取」可以簽到；候補請等轉正後再試。"),
+    };
+  },
+
   data: {
     code: '',
     scanning: false,
@@ -11,6 +28,7 @@ Page({
   },
 
   onLoad(query) {
+    this.setData({ L: this.labels() });
     // 允許從其他地方帶碼進來（例如老師把碼貼在群組）
     if (query && query.code) this.submitCode(query.code);
   },

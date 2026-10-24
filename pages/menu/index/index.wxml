@@ -1,5 +1,5 @@
 <view class="ui-page page-root">
-  <pv-navbar title="午餐與小賣部" back="{{true}}" />
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}"
               refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
@@ -18,8 +18,8 @@
         <view class="ui-card"><pv-skeleton rows="3" /></view>
       </block>
 
-      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="載入失敗" desc="{{errorText}}">
-        <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k02}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k03}}</pv-button>
       </pv-empty>
 
       <block wx:else>
@@ -27,12 +27,12 @@
           <view class="day__head">
             <text class="day__date">{{item.md}}</text>
             <text class="day__wd">{{item.wd}}</text>
-            <pv-tag wx:if="{{item.isToday}}" text="今天" type="tint" />
+            <pv-tag wx:if="{{item.isToday}}" text="{{L.k04}}" type="tint" />
           </view>
 
           <pv-card>
             <view wx:if="{{item.lunch.length}}">
-              <view class="sec-title">午餐</view>
+              <view class="sec-title">{{L.k05}}</view>
               <view wx:for="{{item.lunch}}" wx:for-item="dish" wx:key="id" class="dish-row"
                     data-id="{{dish.id}}" bindtap="goDish" hover-class="dish-row--pressed" hover-start-time="0">
                 <view class="dish-row__main">
@@ -41,13 +41,13 @@
                 </view>
                 <view class="dish-row__score">
                   <text class="dish-row__num">{{dish.avgScore || '—'}}</text>
-                  <text class="dish-row__unit">分</text>
+                  <text class="dish-row__unit">{{L.k06}}</text>
                 </view>
               </view>
             </view>
 
             <view wx:if="{{item.snack.length}}" class="snack-sec">
-              <view class="sec-title">小賣部</view>
+              <view class="sec-title">{{L.k07}}</view>
               <view wx:for="{{item.snack}}" wx:for-item="dish" wx:key="id" class="dish-row"
                     data-id="{{dish.id}}" bindtap="goDish" hover-class="dish-row--pressed" hover-start-time="0">
                 <view class="dish-row__main">
@@ -56,24 +56,24 @@
                 </view>
                 <view class="dish-row__score">
                   <text class="dish-row__num">{{dish.avgScore || '—'}}</text>
-                  <text class="dish-row__unit">分</text>
+                  <text class="dish-row__unit">{{L.k06}}</text>
                 </view>
               </view>
             </view>
 
-            <pv-empty wx:if="{{!item.lunch.length && !item.snack.length}}" icon="🍽" title="這天沒有排菜單" desc="可能放假或尚未排定" />
+            <pv-empty wx:if="{{!item.lunch.length && !item.snack.length}}" icon="🍽" title="{{L.k08}}" desc="{{L.k09}}" />
           </pv-card>
         </view>
 
         <!-- 熱門排行 -->
-        <view class="pv-group-title">本週熱門</view>
+        <view class="pv-group-title">{{L.k10}}</view>
         <pv-card>
           <view wx:for="{{top}}" wx:key="id" class="top-row" data-id="{{item.id}}" bindtap="goDish">
             <text class="top-rank">{{index + 1}}</text>
             <text class="ui-body top-name">{{item.name}}</text>
             <text class="ui-meta">{{item.avgScore}} 分 · {{item.ratingCount}} 人</text>
           </view>
-          <pv-empty wx:if="{{!top.length}}" icon="🍚" title="還沒有評分資料" desc="第一個評分的人決定排行" />
+          <pv-empty wx:if="{{!top.length}}" icon="🍚" title="{{L.k11}}" desc="{{L.k12}}" />
         </pv-card>
       </block>
     </view>

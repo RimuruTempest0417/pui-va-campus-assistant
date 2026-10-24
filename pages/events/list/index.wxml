@@ -1,11 +1,11 @@
 <view class="ui-page page-root">
-  <pv-navbar title="活動與社團" back="{{true}}" />
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="list-inner">
       <view class="tabs-wrap">
         <pv-tabs tabs="{{tabs}}" current="{{scope}}" bind:change="onScopeChange" />
-        <view class="mine-link" bindtap="goMine">我的報名 ›</view>
+        <view class="mine-link" bindtap="goMine">{{L.k02}}</view>
       </view>
 
       <block wx:if="{{loading}}">
@@ -13,11 +13,11 @@
         <view class="ui-card"><pv-skeleton rows="2" /></view>
       </block>
 
-      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="載入失敗" desc="{{errorText}}">
-        <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k03}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k04}}</pv-button>
       </pv-empty>
 
-      <pv-empty wx:elif="{{!items.length}}" icon="🎪" title="目前沒有活動" desc="有新活動時會出現在這裡" />
+      <pv-empty wx:elif="{{!items.length}}" icon="🎪" title="{{L.k05}}" desc="{{L.k06}}" />
 
       <view wx:else class="ui-list">
         <view wx:for="{{items}}" wx:key="id" class="ui-card"
@@ -26,8 +26,8 @@
           <view class="ui-row-between">
             <text class="ui-title ev-title">{{item.title}}</text>
             <pv-tag wx:if="{{item.myLabel}}" text="{{item.myLabel}}" type="{{item.myStatus === 'CONFIRMED' ? 'success' : 'warning'}}" />
-            <pv-tag wx:elif="{{item.ended}}" text="已結束" />
-            <pv-tag wx:elif="{{item.full}}" text="已滿" type="danger" />
+            <pv-tag wx:elif="{{item.ended}}" text="{{L.k07}}" />
+            <pv-tag wx:elif="{{item.full}}" text="{{L.k08}}" type="danger" />
           </view>
           <text class="ui-meta ev-meta">{{item.club}} · {{item.timeText}}</text>
           <text class="ui-meta">{{item.location}}</text>

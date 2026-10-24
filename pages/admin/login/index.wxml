@@ -1,10 +1,10 @@
 <view class="ui-page page-root">
-  <pv-navbar title="登入" back="{{true}}" />
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="login-inner">
       <view class="login-head">
-        <text class="login-title">培華校園助手</text>
+        <text class="login-title">{{L.k02}}</text>
       </view>
 
       <pv-card wx:if="{{loggedIn}}">
@@ -13,10 +13,10 @@
           <text class="who__role">{{currentRoleText || currentRole}}</text>
         </view>
         <view class="login-actions">
-          <button class="login-btn" bindtap="goBack">回首頁</button>
+          <button class="login-btn" bindtap="goBack">{{L.k03}}</button>
         </view>
         <view class="who__actions">
-          <text class="who__link" catchtap="goSettings">到設定管理帳號</text>
+          <text class="who__link" catchtap="goSettings">{{L.k04}}</text>
         </view>
       </pv-card>
 
@@ -25,12 +25,12 @@
              （Skyline 下自訂組件偶發收不到 tap／受控 input 值不同步，兩者都會讓「登入」看起來沒反應） -->
         <form bindsubmit="onSubmit">
           <view class="field">
-            <text class="field__label">帳號</text>
-            <input class="field__input" name="account" value="{{account}}" placeholder="例如 3201201001" bindinput="onAccount" />
+            <text class="field__label">{{L.k05}}</text>
+            <input class="field__input" name="account" value="{{account}}" placeholder="{{L.k06}}" bindinput="onAccount" />
           </view>
           <view class="field">
-            <text class="field__label">密碼</text>
-            <input class="field__input" name="password" value="{{password}}" password placeholder="請輸入密碼"
+            <text class="field__label">{{L.k07}}</text>
+            <input class="field__input" name="password" value="{{password}}" password placeholder="{{L.k08}}"
                    bindinput="onPassword" bindconfirm="submit" confirm-type="done" />
           </view>
 

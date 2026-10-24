@@ -6,15 +6,16 @@ function dateKey(d) {
   return dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate());
 }
 
+const i18n = require('./i18n');
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
-function weekday(d) { return '週' + WEEK[(d || new Date()).getDay()]; }
+function weekday(d) { return i18n.pick('週') + WEEK[(d || new Date()).getDay()]; }
 
 function greeting(d) {
   const h = (d || new Date()).getHours();
-  if (h < 6) return '夜深了';
-  if (h < 12) return '早安';
-  if (h < 18) return '午安';
-  return '晚安';
+  if (h < 6) return i18n.pick('夜深了');
+  if (h < 12) return i18n.pick('早安');
+  if (h < 18) return i18n.pick('午安');
+  return i18n.pick('晚安');
 }
 
 /**
@@ -27,10 +28,10 @@ function fromNow(ts) {
   const numeric = typeof ts === 'number' || (typeof ts === 'string' && /^\d+$/.test(ts));
   const at = numeric ? Number(ts) : new Date(ts || 0).getTime();
   const diff = Date.now() - (Number.isFinite(at) ? at : Date.now());
-  if (diff < 60 * 1000) return '剛剛';
-  if (diff < 3600 * 1000) return Math.floor(diff / 60000) + ' 分鐘前';
-  if (diff < 24 * 3600 * 1000) return Math.floor(diff / 3600000) + ' 小時前';
-  return Math.floor(diff / 86400000) + ' 天前';
+  if (diff < 60 * 1000) return i18n.pick('剛剛');
+  if (diff < 3600 * 1000) return Math.floor(diff / 60000) + i18n.pick(' 分鐘前');
+  if (diff < 24 * 3600 * 1000) return Math.floor(diff / 3600000) + i18n.pick(' 小時前');
+  return Math.floor(diff / 86400000) + i18n.pick(' 天前');
 }
 
 function clock(d) {

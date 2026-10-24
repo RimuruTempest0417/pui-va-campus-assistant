@@ -1,6 +1,8 @@
 const { dateTimeText } = require('./date');
 
+const i18n = require('./i18n');
 const SIGNUP_LABEL = { CONFIRMED: '已報名', WAITLIST: '候補中' };
+const signupLabel = (k) => (SIGNUP_LABEL[k] ? i18n.pick(SIGNUP_LABEL[k]) : '');
 
 function myStatusOf(ev) {
   if (!ev) return '';
@@ -20,7 +22,7 @@ function decorate(ev) {
   return Object.assign({}, ev, {
     timeText: dateTimeText(ev.startAt),
     endText: ev.endAt ? dateTimeText(ev.endAt) : '',
-    capacityText: capacity > 0 ? signed + ' / ' + capacity + ' 人' : '不限名額 · ' + signed + ' 人已報名',
+    capacityText: capacity > 0 ? signed + ' / ' + capacity + i18n.pick(' 人') : i18n.pick('不限名額 · ') + signed + i18n.pick(' 人已報名'),
     remaining: remaining,
     full: full,
     ended: ended,

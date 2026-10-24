@@ -3,6 +3,17 @@ const { decorate } = require('../../../utils/notice');
 const i18n = require('../../../utils/i18n');
 
 Page({
+  labels() {
+    return {
+      k01: i18n.pick("公告與提示"),
+      k02: i18n.pick("載入失敗"),
+      k03: i18n.pick("重試"),
+      k04: i18n.pick("目前沒有公告"),
+      k05: i18n.pick("重要通知會出現在這裡"),
+      k06: i18n.pick("置頂"),
+    };
+  },
+
   data: { loading: true, refreshing: false, failed: false, errorText: '', items: [], unread: 0 },
 
   onLoad() {
@@ -11,6 +22,7 @@ Page({
   },
 
   onShow() {
+    this.setData({ L: this.labels() });
     if (this._loadedOnce) this.load();
     this._loadedOnce = true;
   },

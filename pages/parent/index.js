@@ -14,7 +14,37 @@ const { codeOf } = require('../../utils/errors');
  *   401 → guest：沒登入／登入過期。給登入入口
  *   其他 → failed：網路／伺服器問題，這才是重試有意義的地方
  */
+const i18n = require('../utils/i18n');
+
 Page({
+  labels() {
+    return {
+      k01: i18n.pick("我的子女"),
+      k02: i18n.pick("這一頁只給已綁定子女的家長"),
+      k03: i18n.pick("目前的帳號不是家長身分（學生、老師、校方職員都沒有子女資料）。家長端要由學校在家長帳號下綁定學號之後，這裡才會有內容。"),
+      k04: i18n.pick("回首頁"),
+      k05: i18n.pick("切換帳號"),
+      k06: i18n.pick("請先在家長帳號登入"),
+      k07: i18n.pick("子女的報名與認領要在家長帳號登入後才看得到。"),
+      k08: i18n.pick("去登入"),
+      k09: i18n.pick("無法讀取子女資料"),
+      k10: i18n.pick("重試"),
+      k11: i18n.pick("還沒有綁定的子女"),
+      k12: i18n.pick("請聯絡學校把家長帳號綁到學生的學號"),
+      k13: i18n.pick("報名中"),
+      k14: i18n.pick("認領申請"),
+      k15: i18n.pick("未讀公告"),
+      k16: i18n.pick("報名中的活動"),
+      k17: i18n.pick("取消報名"),
+      k18: i18n.pick("還沒有報名"),
+      k19: i18n.pick("由下方清單替孩子報名"),
+      k20: i18n.pick("可代為報名"),
+      k21: i18n.pick("已滿"),
+      k22: i18n.pick("近期活動都報過了"),
+      k23: i18n.pick("有新活動時會出現在這裡"),
+    };
+  },
+
   data: {
     loading: true,
     failed: false,
@@ -37,6 +67,7 @@ Page({
   },
 
   onShow() {
+    this.setData({ L: this.labels() });
     // 從活動詳情返回時重抓（首次跳過），否則狀態會停在舊的
     if (this._loadedOnce) this.load();
     this._loadedOnce = true;
