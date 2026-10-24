@@ -104,7 +104,8 @@ Page({
 
   // 頭像＝登入／帳號；管理要另外按「管理後台」那顆
   goAccount() {
-    wx.navigateTo({ url: '/pages/admin/login/index' });
+    // 右上角頭像 → 設定（登入／登出、語言、外觀都在那裡）
+    wx.navigateTo({ url: '/pages/settings/index' });
   },
 
   goAdmin() {

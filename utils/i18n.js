@@ -56,7 +56,13 @@ function normalize(loc) {
 function locale() {
   try {
     const v = wx.getStorageSync(STORAGE);
-    return normalize(v || DEFAULT);
+    // 'system'（或沒設定）→ 跟隨手機語言（使用者 2026-10-24 定案）
+    if (!v || v === 'system') {
+      const appearance = require('./appearance');
+      return normalize(appearance.systemLocale() || DEFAULT);
+    }
+    if (LOCALES.indexOf(v) >= 0) return v;
+    return normalize(DEFAULT);
   } catch (e) {
     return DEFAULT;
   }

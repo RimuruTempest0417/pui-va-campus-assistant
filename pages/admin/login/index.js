@@ -128,9 +128,8 @@ Page({
     else wx.reLaunch({ url: '/pages/index/index' });
   },
 
-  // 從「已登入」切回登入表單（換另一個帳號）
-  switchAccount() {
-    this.setData({ loggedIn: false, account: '', password: '', error: '' });
+  goSettings() {
+    wx.navigateTo({ url: '/pages/settings/index' });
   },
 
   logout() {

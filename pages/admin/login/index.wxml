@@ -16,8 +16,7 @@
           <button class="login-btn" bindtap="goBack">回首頁</button>
         </view>
         <view class="who__actions">
-          <text class="who__link" catchtap="switchAccount">切換帳號</text>
-          <text class="who__link who__link--danger" catchtap="logout">登出</text>
+          <text class="who__link" catchtap="goSettings">到設定管理帳號</text>
         </view>
       </pv-card>
 
