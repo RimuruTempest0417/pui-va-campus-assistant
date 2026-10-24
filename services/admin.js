@@ -113,6 +113,14 @@ module.exports = {
   setErrorStatus(id, action) {
     return http.patch('/admin/errors/' + id, { action: action });
   },
+  // 同類一次解決：後端以「訊息＋頁面」為 signature；省略 route = 同一句話的所有頁面
+  resolveSimilarErrors(message, route) {
+    return http.post('/admin/error-logs/resolve-similar', { message: message, route: route || null });
+  },
+  // 清理舊錯誤：預設只刪已解決的，回傳 { deleted, kept }
+  cleanupErrors(days, includeOpen) {
+    return http.post('/admin/error-logs/cleanup', { olderThanDays: days, includeOpen: !!includeOpen });
+  },
   audit(limit) {
     return http.get('/admin/audit', { limit: limit || 50 });
   },

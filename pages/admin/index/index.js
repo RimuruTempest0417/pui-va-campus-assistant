@@ -72,6 +72,8 @@ Page({
       k125: i18n.pick('活動'),
       k126: i18n.pick('列印清單'),
       k127: i18n.pick('列印名單'),
+      k128: i18n.pick('同類一次解決'),
+      k131: i18n.pick('清理舊紀錄'),
       k85: i18n.pick("已下架"),
       k86: i18n.pick("拾獲"),
       k87: i18n.pick("遺失"),
@@ -1001,13 +1003,66 @@ Page({
       const summary = res.summary || {};
       this.setData({
         errors: (res.items || []).map((e) =>
-          Object.assign({}, e, { seenText: fromNow(e.lastSeenAt), firstSeenText: fromNow(e.firstSeenAt) }),
+          Object.assign({}, e, {
+            seenText: fromNow(e.lastSeenAt),
+            firstSeenText: fromNow(e.firstSeenAt),
+            // 「同類」＝同一句話（不限頁面）。指紋含頁面，所以同一支 API 在不同頁出錯會拆成好幾列
+            similarText: e.similar > 1 ? i18n.pick('同類 ') + e.similar + i18n.pick(' 筆') : '',
+          }),
         ),
         errSummary: summary,
       });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到錯誤日誌：') + (e.message || e.code) });
     }
+  },
+
+  // 同類一次解決：把同一句話在「所有頁面」的錯誤一起標成已解決
+  resolveSimilarErr(e) {
+    const message = e.currentTarget.dataset.message;
+    const self = this;
+    wx.showModal({
+      title: i18n.pick('同類一次解決'),
+      content: i18n.pick('同一句話在不同頁面出現的錯誤會一起標記為已解決，確定嗎？'),
+      success(res) {
+        if (!res.confirm) return;
+        admin
+          .resolveSimilarErrors(message, '')
+          .then((r) => {
+            wx.showToast({ title: i18n.pick('已解決 ') + r.resolved + i18n.pick(' 筆'), icon: 'none' });
+            self.loadErrors();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // 清理舊紀錄：只刪「已解決」的，未解決的不動（刪待辦事項等於把 bug 藏起來）
+  cleanupErrors() {
+    const self = this;
+    const days = [30, 90, 180];
+    wx.showActionSheet({
+      itemList: days.map((d) => d + i18n.pick(' 天前')),
+      success(res) {
+        const picked = days[res.tapIndex];
+        if (!picked) return;
+        wx.showModal({
+          title: i18n.pick('清理舊紀錄'),
+          content: i18n.pick('只會刪除 ') + picked + i18n.pick(' 天前已解決的紀錄，未解決的不會動。'),
+          success(m) {
+            if (!m.confirm) return;
+            admin
+              .cleanupErrors(picked, false)
+              .then((r) => {
+                const tail = r.kept ? i18n.pick('，保留 ') + r.kept + i18n.pick(' 筆未解決') : '';
+                wx.showToast({ title: i18n.pick('已清理 ') + r.deleted + i18n.pick(' 筆') + tail, icon: 'none' });
+                self.loadErrors();
+              })
+              .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+          },
+        });
+      },
+    });
   },
 
   pickErrStatus(e) {
