@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 小程序專案結構檢查：CI 與提交前都能跑，不需要微信開發者工具。
 // 檢查項目：JSON 可解析、app.json 頁面四件套齊全、usingComponents 目標存在、
-// WXSS 風險選擇器、白屏守門、組件註冊一致、未登記頁面、tabBar/entryPagePath。
+// WXSS 風險選擇器、白屏守門、組件註冊一致、未登記頁面、tabBar/entryPagePath、相對 require 可解析。
 
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -369,6 +369,35 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
     if (!jm) { errors.push('utils/theme.js 沒有 ' + key + '（應為 ' + tm[1] + '）'); continue; }
     if (tm[1].toLowerCase() !== jm[1].toLowerCase()) {
       errors.push('utils/theme.js 的 ' + key + '=' + jm[1] + ' 與 tokens.wxss 的 ' + varName + '=' + tm[1] + ' 不一致');
+    }
+  }
+}
+
+// 14) 相對 require 必須真的指到檔案（v0.36.1）
+//     新增 i18n／appearance 之類的 utils 時手寫 ../ 層數很容易少一層，
+//     症狀是頁面一打開就「module 'xxx.js' is not defined」、整頁空白，
+//     但模擬器編譯不會報錯、資料層自檢也照樣全綠。這裡直接靜態解析。
+{
+  const { readdirSync, statSync } = await import('node:fs');
+  const { resolve } = await import('node:path');
+  const walkJs = (dir, out = []) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (['node_modules', '.git', 'minitest', 'dist'].includes(e.name)) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walkJs(full, out);
+      else if (e.name.endsWith('.js')) out.push(full);
+    }
+  };
+  const files = [];
+  walkJs(root, files);
+  const resolvable = (t) => existsSync(t) || existsSync(t + '.js') || existsSync(join(t, 'index.js'));
+  for (const file of files) {
+    const src = readFileSync(file, 'utf8');
+    for (const m of src.matchAll(/require\((['"])(\.[^'"]+)\1\)/g)) {
+      const target = resolve(dirname(file), m[2]);
+      if (!resolvable(target)) {
+        errors.push(`${file.slice(root.length + 1)} 的 require('${m[2]}') 找不到檔案（路徑層數錯了，執行期會 module is not defined）`);
+      }
     }
   }
 }

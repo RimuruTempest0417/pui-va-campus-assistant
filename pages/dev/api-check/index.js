@@ -2,7 +2,7 @@ const data = require('../../../services/data');
 const i18n = require('../../../utils/i18n');
 const theme = require('../../../utils/theme');
 
-const appearance = require('../../utils/appearance');
+const appearance = require('../../../utils/appearance');
 
 Page({
   labels() {

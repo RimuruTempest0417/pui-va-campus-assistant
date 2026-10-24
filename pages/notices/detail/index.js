@@ -5,9 +5,9 @@ const { dateKey } = require('../../../utils/date');
 
 const reportSheet = require('../../../utils/reportSheet');
 
-const i18n = require('../../utils/i18n');
+const i18n = require('../../../utils/i18n');
 
-const appearance = require('../../utils/appearance');
+const appearance = require('../../../utils/appearance');
 
 Page({
   labels() {

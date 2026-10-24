@@ -2,7 +2,7 @@ const data = require('../../services/data');
 const cal = require('../../utils/calendar');
 const i18n = require('../../utils/i18n');
 
-const appearance = require('../utils/appearance');
+const appearance = require('../../utils/appearance');
 
 Page({
   data: {

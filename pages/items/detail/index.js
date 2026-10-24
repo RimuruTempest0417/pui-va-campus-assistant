@@ -7,9 +7,9 @@ const subscribe = require('../../../utils/subscribe');
 
 const theme = require('../../../utils/theme');
 
-const i18n = require('../../utils/i18n');
+const i18n = require('../../../utils/i18n');
 
-const appearance = require('../../utils/appearance');
+const appearance = require('../../../utils/appearance');
 
 Page({
   labels() {
