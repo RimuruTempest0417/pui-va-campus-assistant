@@ -8,6 +8,10 @@ const roleLabel = require('../../utils/role').label;
 Page({
   labels() {
     return {
+      k17: i18n.pick("已登入"),
+      k18: i18n.pick(" · 示範模式"),
+      k19: i18n.pick("離線示範資料"),
+      k20: i18n.pick("校內後端"),
       k01: i18n.pick("設定"),
       k02: i18n.pick("帳號"),
       k03: i18n.pick("管理後台"),

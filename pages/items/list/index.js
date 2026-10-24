@@ -8,6 +8,11 @@ const appearance = require('../../../utils/appearance');
 Page({
   labels() {
     return {
+      k09: i18n.pick("沒有符合的結果"),
+      k10: i18n.pick("這裡還空著"),
+      k11: i18n.pick("換個關鍵字，或清除篩選條件"),
+      k12: i18n.pick("第一個發布的人，最有機會找回東西"),
+      k13: i18n.pick("其他"),
       k01: i18n.pick("校園失物招領"),
       k02: i18n.pick("搜標題、地點、描述"),
       k03: i18n.pick("載入失敗"),

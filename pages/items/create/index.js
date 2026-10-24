@@ -8,6 +8,13 @@ const appearance = require('../../../utils/appearance');
 Page({
   labels() {
     return {
+      k17: i18n.pick("我丟了東西"),
+      k18: i18n.pick("我撿到東西"),
+      k19: i18n.pick("請選擇"),
+      k20: i18n.pick("示範模式下圖片只存在本機"),
+      k21: i18n.pick("圖片上傳尚未開通，目前只送出文字"),
+      k22: i18n.pick("電話"),
+      k23: i18n.pick("微信號"),
       k01: i18n.pick("基本資訊"),
       k02: i18n.pick("標題（必填）"),
       k03: i18n.pick("例：藍色水壺"),

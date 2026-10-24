@@ -1,5 +1,5 @@
 <view class="{{themeClass}} ui-page page-root">
-  <pv-navbar title="{{L.title || '校曆'}}" back="{{true}}" />
+  <pv-navbar title="{{L.title || L.k03}}" back="{{true}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="cal-inner">
@@ -44,7 +44,7 @@
 
       <view class="cal-day">
         <text class="cal-day__title">{{selectedText}}</text>
-        <text class="cal-day__count">{{items.length ? items.length + ' 項安排' : ''}}</text>
+        <text class="cal-day__count">{{items.length ? items.length + L.k04 : ''}}</text>
       </view>
 
       <pv-empty wx:if="{{!loading && !failed && !items.length}}" icon="📅" title="{{L.empty}}" desc="{{L.emptyDesc}}" />

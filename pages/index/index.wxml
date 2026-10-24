@@ -5,7 +5,7 @@
   <view class="home__status" />
   <view class="home__top">
     <view class="home__brand">
-      <text class="home__brand-name">{{L.brand || '培華校園助手'}}</text>
+      <text class="home__brand-name">{{L.brand || L.k13}}</text>
       <text class="home__brand-sub">PUI VA CAMPUS</text>
     </view>
     <view class="home__right">
@@ -116,7 +116,7 @@
         </view>
         <view class="kids__sum" bindtap="goParent" hover-class="home__entry--pressed" hover-start-time="0">
           <view class="kids__sum-main">
-            <text class="kids__sum-line">{{parentSummary.grade}}{{parentSummary.className ? ' · ' + parentSummary.className + '班' : ''}}{{parentSummary ? '' : '正在讀取…'}}</text>
+            <text class="kids__sum-line">{{parentSummary.grade}}{{parentSummary.className ? ' · ' + parentSummary.className + L.k14 : ''}}{{parentSummary ? '' : L.k15}}</text>
             <text class="kids__sum-meta" wx:if="{{parentSummary}}">{{parentSummary.signupCount}} 個報名 · {{parentSummary.claimCount}} 件認領 · {{parentSummary.unreadNotices}} 則未讀</text>
           </view>
           <text class="kids__go">{{L.k09}}</text>

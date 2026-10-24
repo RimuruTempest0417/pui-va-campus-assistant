@@ -9,7 +9,7 @@
 
       <pv-card wx:if="{{loggedIn}}">
         <view class="who">
-          <text class="who__name">{{currentName || '已登入'}}</text>
+          <text class="who__name">{{currentName || L.k09}}</text>
           <text class="who__role">{{currentRoleText || currentRole}}</text>
         </view>
         <view class="login-actions">
@@ -36,7 +36,7 @@
 
           <view class="login-actions">
             <button class="login-btn" form-type="submit" loading="{{submitting}}" disabled="{{submitting}}">
-              {{submitting ? '登入中…' : '登入'}}
+              {{submitting ? L.k10 : L.k11}}
             </button>
           </view>
         </form>

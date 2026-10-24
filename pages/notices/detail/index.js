@@ -12,6 +12,7 @@ const appearance = require('../../../utils/appearance');
 Page({
   labels() {
     return {
+      k09: i18n.pick(" · 有效期至 "),
       k01: i18n.pick("公告"),
       k02: i18n.pick("載入失敗"),
       k03: i18n.pick("重試"),

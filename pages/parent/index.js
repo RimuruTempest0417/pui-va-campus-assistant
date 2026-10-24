@@ -21,6 +21,10 @@ const appearance = require('../../utils/appearance');
 Page({
   labels() {
     return {
+      k24: i18n.pick("請稍後再試"),
+      k25: i18n.pick("班"),
+      k26: i18n.pick("排候補"),
+      k27: i18n.pick("代為報名"),
       k01: i18n.pick("我的子女"),
       k02: i18n.pick("這一頁只給已綁定子女的家長"),
       k03: i18n.pick("目前的帳號不是家長身分（學生、老師、校方職員都沒有子女資料）。家長端要由學校在家長帳號下綁定學號之後，這裡才會有內容。"),

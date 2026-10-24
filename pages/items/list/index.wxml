@@ -33,8 +33,8 @@
   </pv-empty>
 
   <pv-empty wx:elif="{{!items.length}}" icon="🔍"
-            title="{{keyword ? '沒有符合的結果' : '這裡還空著'}}"
-            desc="{{keyword ? '換個關鍵字，或清除篩選條件' : '第一個發布的人，最有機會找回東西'}}">
+            title="{{keyword ? L.k09 : L.k10}}"
+            desc="{{keyword ? L.k11 : L.k12}}">
     <view class="empty-action" bindtap="goCreate">{{L.k05}}</view>
   </pv-empty>
 
@@ -57,7 +57,7 @@
             <text class="ui-title card-title">{{item.title}}</text>
             <pv-tag text="{{item.statusLabel}}" type="{{item.statusTag}}" />
           </view>
-          <text class="ui-meta card-meta">{{item.typeLabel}} · {{item.categoryName || '其他'}} · {{item.place}}</text>
+          <text class="ui-meta card-meta">{{item.typeLabel}} · {{item.categoryName || L.k13}} · {{item.place}}</text>
           <text class="ui-meta">{{item.timeText}} · {{item.viewCount || 0}} 次查看</text>
         </view>
       </view>

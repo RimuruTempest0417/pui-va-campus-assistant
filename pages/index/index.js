@@ -61,6 +61,9 @@ Page({
   // scroll-view 的下拉刷新（頁面已改成 scroll-view，不再用 onPullDownRefresh）
   labels() {
     return {
+      k13: i18n.pick("培華校園助手"),
+      k14: i18n.pick("班"),
+      k15: i18n.pick("正在讀取…"),
       k01: i18n.pick("重新載入"),
       k02: i18n.pick("設定後端位址"),
       k03: i18n.pick("今日午餐"),

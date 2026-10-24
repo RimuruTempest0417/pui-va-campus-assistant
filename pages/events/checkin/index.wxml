@@ -7,7 +7,7 @@
         <pv-card>
           <view class="ci-done">
             <text class="ci-done__mark">✓</text>
-            <text class="ci-done__title">{{result.already ? '你已經簽到過' : '簽到成功'}}</text>
+            <text class="ci-done__title">{{result.already ? L.k11 : L.k12}}</text>
             <text class="ci-done__ev">{{result.title}}</text>
             <text class="ui-meta">{{result.whenText}}</text>
           </view>

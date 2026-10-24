@@ -14,6 +14,8 @@ const appearance = require('../../../utils/appearance');
 Page({
   labels() {
     return {
+      k16: i18n.pick("其他"),
+      k17: i18n.pick("作者沒有填寫說明"),
       k01: i18n.pick("失物詳情"),
       k02: i18n.pick("載入失敗"),
       k03: i18n.pick("重試"),

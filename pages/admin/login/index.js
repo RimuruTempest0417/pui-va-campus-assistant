@@ -10,6 +10,9 @@ const appearance = require('../../../utils/appearance');
 Page({
   labels() {
     return {
+      k09: i18n.pick("已登入"),
+      k10: i18n.pick("登入中…"),
+      k11: i18n.pick("登入"),
       k01: i18n.pick("登入"),
       k02: i18n.pick("培華校園助手"),
       k03: i18n.pick("回首頁"),
