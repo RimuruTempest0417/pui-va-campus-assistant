@@ -127,4 +127,15 @@ module.exports = {
   calendar: (...a) => call('calendar', a),
   createReport: (...a) => call('createReport', a),
   externalCalendar: (...a) => call('externalCalendar', a),
+
+  // ── W-34 站內通知 ──
+  notifications(opts) {
+    return call('notifications', [opts && opts.unreadOnly]);
+  },
+  notificationsUnread() {
+    return call('notificationsUnread', []);
+  },
+  readNotifications(id) {
+    return call('readNotifications', [id]);
+  },
 };

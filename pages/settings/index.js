@@ -54,6 +54,8 @@ Page({
       k46: i18n.pick("我已保存"),
       k47: i18n.pick("未開啟（請在網頁後台設定）"),
       k48: i18n.pick("複製設定網址"),
+      k51: i18n.pick("通知"),
+      k52: i18n.pick("報名、候補、認領、活動改期的提醒"),
       k49: i18n.pick("使用說明"),
       k50: i18n.pick("依身分看操作步驟（學生／家長／老師／管理員）"),
 
@@ -205,6 +207,10 @@ Page({
     } finally {
       this.setData({ tfaBusy: false });
     }
+  },
+
+  goNotifications() {
+    wx.navigateTo({ url: '/pages/notifications/index' });
   },
 
   goHelp() {

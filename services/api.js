@@ -112,4 +112,15 @@ module.exports = {
       return { notices: (res[0] && res[0].items) || [], events: (res[1] && res[1].items) || [] };
     });
   },
+
+  // ── W-34 站內通知 ──
+  notifications(unreadOnly) {
+    return request.get('/notifications', unreadOnly ? { unreadOnly: '1' } : {});
+  },
+  notificationsUnread() {
+    return request.get('/notifications/unread-count');
+  },
+  readNotifications(id) {
+    return request.patch('/notifications/read', id ? { id } : {});
+  },
 };

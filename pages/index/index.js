@@ -29,6 +29,7 @@ Page({
     loading: true,
     failed: false,
     isDemo: false,
+    unread: 0,
     greeting: '',
     L: { demoTag: '', urgent: '', guest: '', student: '', failed: '', failedDesc: '', retry: '' },
     today: '',
@@ -96,6 +97,7 @@ Page({
   onShow() {
     // 語言可能在自檢頁被改過：回來先更新介面文字
     this.setData({ greeting: i18n.greetingByHour(), L: this.labels(), themeClass: appearance.themeClass() });
+    this.refreshUnread();
     // 從「資料來源」頁切換離線示範回來時，模式變了必須整頁重抓，
     // 否則會出現「設定已改、首頁數字還是舊的」的假畫面。
     let cachedRole = '';
@@ -132,6 +134,17 @@ Page({
   },
 
   // 頭像＝登入／帳號；管理要另外按「管理後台」那顆
+  refreshUnread() {
+    data
+      .notificationsUnread()
+      .then((r) => this.setData({ unread: (r && r.unread) || 0 }))
+      .catch(() => this.setData({ unread: 0 }));
+  },
+
+  goNotifications() {
+    wx.navigateTo({ url: '/pages/notifications/index' });
+  },
+
   goAccount() {
     // 右上角頭像 → 設定（登入／登出、語言、外觀都在那裡）
     wx.navigateTo({ url: '/pages/settings/index' });

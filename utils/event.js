@@ -20,6 +20,9 @@ function decorate(ev) {
   const ended = ev.status === 'FINISHED' || Number(ev.startAt) < Date.now();
 
   return Object.assign({}, ev, {
+    // W-29：延期／取消要一眼看到
+    postponedText: ev.postponedFrom ? dateTimeText(ev.postponedFrom) : '',
+    cancelled: ev.status === 'CANCELLED',
     timeText: dateTimeText(ev.startAt),
     endText: ev.endAt ? dateTimeText(ev.endAt) : '',
     capacityText: capacity > 0 ? signed + ' / ' + capacity + i18n.pick(' 人') : i18n.pick('不限名額 · ') + signed + i18n.pick(' 人已報名'),

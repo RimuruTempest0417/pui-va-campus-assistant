@@ -490,8 +490,11 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   const { readdirSync, readFileSync } = await import('node:fs');
   const phPath = join(root, 'utils/i18n-phrases.js');
   const keys = new Set();
-  for (const m of readFileSync(phPath, 'utf8').matchAll(/"((?:\\.|[^"\\])+)":/g)) {
-    keys.add(JSON.parse('"' + m[1] + '"'));
+  // 逐行解析：整檔 matchAll 在 600+ 條對照表上會爆 call stack
+  for (const line of readFileSync(phPath, 'utf8').split('\n')) {
+    const m = /^\s*"((?:\\.|[^"\\])+)":/.exec(line);
+    if (!m) continue;
+    try { keys.add(JSON.parse('"' + m[1] + '"')); } catch { /* 跳過壞行 */ }
   }
   const walkJs = (dir, out = []) => {
     for (const e of readdirSync(dir, { withFileTypes: true })) {

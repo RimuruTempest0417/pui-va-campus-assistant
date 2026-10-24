@@ -795,4 +795,20 @@ module.exports = {
     return Promise.resolve({ items: rows });
   },
 
+
+  // ── W-34 示範站內通知 ──
+  notifications(unreadOnly) {
+    const all = [
+      { id: 'n1', kind: 'EVENT', title: '活動改期：班際籃球賽', body: '原定 11/10 09:00 → 11/17 09:00', link: '/pages/events/detail/index?id=e7', readAt: null, createdAt: '2026-10-24T09:12:00.000Z' },
+      { id: 'n2', kind: 'CLAIM', title: '認領已通過', body: '你申請的「黑色雨傘」已審批通過，請到失物招領領取。', link: '/pages/items/detail/index?id=i1', readAt: null, createdAt: '2026-10-23T15:40:00.000Z' },
+      { id: 'n3', kind: 'NOTICE', title: '新公告：期中考試安排', body: '教務處已發布期中考試時間表。', link: '/pages/notices/detail/index?id=nt1', readAt: '2026-10-22T08:00:00.000Z', createdAt: '2026-10-22T07:30:00.000Z' },
+    ];
+    return Promise.resolve({ items: unreadOnly ? all.filter((x) => !x.readAt) : all, unread: all.filter((x) => !x.readAt).length });
+  },
+  notificationsUnread() {
+    return this.notifications(true).then((r) => ({ unread: r.unread }));
+  },
+  readNotifications() {
+    return Promise.resolve({ ok: true, unread: 0 });
+  },
 };

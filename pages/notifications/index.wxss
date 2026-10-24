@@ -1,0 +1,21 @@
+@import "../../styles/tokens.wxss";
+@import "../../styles/ui.wxss";
+
+.notif { min-height: 100vh; background: var(--pv-bg); }
+.notif-inner { padding: var(--pv-sp-3); }
+
+.notif-head { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: var(--pv-sp-2); }
+.notif-head__count { font-size: var(--pv-fs-footnote); color: var(--pv-label-3); }
+.notif-head__all { font-size: var(--pv-fs-subhead); color: var(--pv-tint); padding: 8rpx 12rpx; }
+
+.notif-item { position: relative; background: var(--pv-surface); border-radius: var(--pv-r-lg); padding: var(--pv-sp-3); margin-bottom: var(--pv-sp-2); }
+.notif-item--unread { box-shadow: inset 3rpx 0 0 0 var(--pv-tint); }
+.notif-item__top { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 8rpx; }
+.notif-item__kind { font-size: var(--pv-fs-caption-2); padding: 2rpx 12rpx; border-radius: var(--pv-r-pill); background: var(--pv-fill); color: var(--pv-label-2); }
+.notif-item__kind--EVENT { color: var(--pv-tint); }
+.notif-item__kind--CLAIM { color: var(--pv-success); }
+.notif-item__kind--NOTICE { color: var(--pv-warning); }
+.notif-item__time { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+.notif-item__title { display: block; font-size: var(--pv-fs-callout); font-weight: 600; color: var(--pv-label); }
+.notif-item__body { display: block; margin-top: 6rpx; font-size: var(--pv-fs-subhead); color: var(--pv-label-2); line-height: 1.5; }
+.notif-item__dot { position: absolute; top: var(--pv-sp-3); right: var(--pv-sp-3); width: 14rpx; height: 14rpx; border-radius: 50%; background: var(--pv-danger); }

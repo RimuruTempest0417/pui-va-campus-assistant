@@ -6,6 +6,7 @@
 """
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -21,10 +22,25 @@ check_only = '--check' in sys.argv
 cc = opencc.OpenCC('tw2sp')
 ph_path = root / 'utils' / 'i18n-phrases.js'
 
+# 讀舊表：用 node 直接 require（正則解析遇到內含引號的文案會錯位，曾把檔案養成 60MB）
+MAX_KEEP = 2_000_000  # 超過 2MB 視為壞檔，直接重建
 existing = {}
 if ph_path.exists():
-    for m in re.finditer(r'"([^"]+)":\s*"([^"]*)"', ph_path.read_text(encoding='utf-8')):
-        existing[m.group(1)] = m.group(2)
+    size = ph_path.stat().st_size
+    if size > MAX_KEEP:
+        print(f'舊對照表過大（{size} bytes，疑似損壞）→ 重建', file=sys.stderr)
+    else:
+        r = subprocess.run(
+            ['node', '-e', 'process.stdout.write(JSON.stringify(require(process.argv[1])))', str(ph_path)],
+            capture_output=True, text=True,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            try:
+                existing = json.loads(r.stdout)
+            except json.JSONDecodeError:
+                print('舊對照表解析失敗 → 重建', file=sys.stderr)
+        else:
+            print('舊對照表無法載入 → 重建', file=sys.stderr)
 
 # 收集所有 i18n.pick('…')／i18n.pick("…") 的第一個參數（只收字面值）
 UNESC = {'n': '\n', 't': '\t', '\\': '\\', "'": "'", '"': '"'}

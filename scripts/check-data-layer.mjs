@@ -339,6 +339,24 @@ check('簽到：我的報名帶簽到時間',
   }
 }
 
+
+// ── W-34 站內通知 ──
+{
+  const list = await data.notifications();
+  check('通知：清單可讀', Array.isArray(list.items) && list.items.length > 0, `${list.items.length} 則`);
+  check('通知：未讀數是數字', typeof list.unread === 'number', String(list.unread));
+  const only = await data.notifications({ unreadOnly: true });
+  check('通知：只看未讀', only.items.every((x) => !x.readAt), `${only.items.length} 則未讀`);
+}
+
+// ── W-29 活動延期／取消要能顯示 ──
+{
+  const { decorate } = require(join(here, '..', 'utils', 'event.js'));
+  const ev = decorate({ id: 'x', title: 't', startAt: Date.now() + 86400000, capacity: 10, signedCount: 1, status: 'CANCELLED', postponedFrom: '2026-11-10T01:00:00.000Z' });
+  check('活動：取消狀態可判', ev.cancelled === true, String(ev.cancelled));
+  check('活動：延期顯示原定時間', !!ev.postponedText, ev.postponedText || '空');
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

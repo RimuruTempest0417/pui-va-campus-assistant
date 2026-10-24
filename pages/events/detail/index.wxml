@@ -14,6 +14,9 @@
       <pv-empty wx:elif="{{!ev}}" icon="🕳" title="{{L.k04}}" desc="{{L.k05}}" />
 
       <block wx:else>
+        <view wx:if="{{ev.cancelled}}" class="ev-alert ev-alert--danger">{{L.k53}}</view>
+        <view wx:elif="{{ev.postponedText}}" class="ev-alert">{{L.k54}}{{ev.postponedText}}{{L.k55}}</view>
+
         <view class="ev-head">
           <text class="ev-head__title">{{ev.title}}</text>
           <view class="ui-row ev-head__tags">

@@ -1,0 +1,28 @@
+<view class="notif page-root {{themeClass}}">
+  <pv-navbar title="{{L.title}}" back="{{true}}" />
+
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="notif-inner">
+      <view wx:if="{{unread > 0}}" class="notif-head">
+        <text class="notif-head__count">{{unread}} 則未讀</text>
+        <text class="notif-head__all" bindtap="readAll">{{L.readAll}}</text>
+      </view>
+
+      <pv-skeleton wx:if="{{loading}}" rows="{{4}}" />
+
+      <block wx:elif="{{items.length}}">
+        <view wx:for="{{items}}" wx:key="id" class="notif-item {{item.unread ? 'notif-item--unread' : ''}}" data-i="{{index}}" bindtap="openItem">
+          <view class="notif-item__top">
+            <text class="notif-item__kind notif-item__kind--{{item.kind}}">{{item.kindText}}</text>
+            <text class="notif-item__time">{{item.timeText}}</text>
+          </view>
+          <text class="notif-item__title">{{item.title}}</text>
+          <text wx:if="{{item.body}}" class="notif-item__body">{{item.body}}</text>
+          <view wx:if="{{item.unread}}" class="notif-item__dot"></view>
+        </view>
+      </block>
+
+      <pv-empty wx:else title="{{L.empty}}" desc="{{L.emptySub}}" />
+    </view>
+  </scroll-view>
+</view>

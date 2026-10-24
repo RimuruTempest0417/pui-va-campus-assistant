@@ -82,6 +82,17 @@
         </pv-card>
       </block>
 
+      <!-- 通知 -->
+      <pv-card>
+        <view class="set-row" bindtap="goNotifications">
+          <view class="set-row__main">
+            <text class="set-row__title">{{L.k51}}</text>
+            <text class="set-row__sub">{{L.k52}}</text>
+          </view>
+          <text class="set-row__chev">›</text>
+        </view>
+      </pv-card>
+
       <!-- 使用說明 -->
       <pv-card>
         <view class="set-row" bindtap="goHelp">
