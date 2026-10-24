@@ -55,7 +55,7 @@ Page({
   },
 
   /** 外觀／語言選項的顯示字（切換後要重算，否則留在舊語言） */
-  options() {
+  labelOptions() {
     return {
       themeOptions: [
         { key: 'system', label: i18n.pick('跟隨系統') },
@@ -71,7 +71,7 @@ Page({
   },
 
   onShow() {
-    this.setData(Object.assign({ L: this.labels() }, this.options()));
+    this.setData(Object.assign({ L: this.labels() }, this.labelOptions()));
     this.refresh();
   },
 
@@ -113,7 +113,7 @@ Page({
       /* ignore */
     }
     i18n.setLocale(v === 'system' ? appearance.systemLocale() : v);
-    this.setData(Object.assign({ localePref: v, L: this.labels() }, this.options()));
+    this.setData(Object.assign({ localePref: v, L: this.labels() }, this.labelOptions()));
     wx.showToast({ title: i18n.pick('語言已切換'), icon: 'none' });
   },
 

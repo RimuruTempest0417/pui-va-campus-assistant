@@ -208,7 +208,8 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   const { readFileSync: rf } = await import('node:fs');
   const tok = rf(join(root, 'styles/tokens.wxss'), 'utf8');
   const grab = (sel) => {
-    const i = tok.indexOf(sel + ' {');
+    // 用最後一個出現位置：`.theme-light,\n.theme-dark {` 這種群組選擇器會先命中一次
+    const i = tok.lastIndexOf(sel + ' {');
     if (i < 0) return '';
     const start = tok.indexOf('{', i);
     let depth = 0;
@@ -229,6 +230,28 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   for (const v of lightVars) {
     if (!new RegExp(v + '\\s*:').test(dark)) errors.push(`styles/tokens.wxss 的 .theme-dark 沒有覆寫 ${v}（深色模式下會殘留淺色值）`);
   }
+}
+
+// 7f) Page 的保留欄位不可當自訂方法（options 被覆蓋會讓整個頁面資料空白）
+{
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const RESERVED = ['options', 'data', 'onLoad', 'onShow', 'onHide', 'onUnload', 'behaviors', 'properties'];
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) { walk(full); continue; }
+      if (!e.name.endsWith('.js')) continue;
+      const src = readFileSync(full, 'utf8');
+      if (!/Page\(\{/.test(src)) continue;
+      for (const k of ['options', 'behaviors', 'properties']) {
+        if (new RegExp('^\\s{2}' + k + '\\(', 'm').test(src)) {
+          errors.push(`${full.slice(root.length + 1)} 用 ${k}() 當方法名稱，這是 Page 保留欄位（會讓整頁資料空白）`);
+        }
+      }
+    }
+  };
+  walk(root);
 }
 
 // 8) W-13：頁面 JS 必須有 Page( / Component(、json 必須有標題、wxml 用到的自訂組件必須註冊
