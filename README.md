@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.45.0-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.46.0-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -163,6 +163,7 @@ node scripts/check-console.mjs     # 24 頁 console 走查：0 error／0 warn（
 
 ## 目前進度
 
+- [x] **錯誤日誌整理（v0.46.0）**：後台「錯誤」分頁多兩顆按鈕 —— 「同類 N 筆一次解決」（同一句話在不同頁面出錯會各佔一列，一次把全部標成已解決）與「清理舊紀錄」（只刪已解決的舊紀錄，未解決的不動，清完告訴你還剩幾筆）
 - [x] **活動前自動提醒（v0.45.0）**：活動開始前 24 小時與 1 小時，後端排程自動通知正取報名者（站內通知＋訂閱消息），同一階段只發一次；`CRON_SECRET` 保護，沒設定就整支停用（503），不會出現「誰都能對全校發通知」的裸奔端點
 - [x] **列印版頁面（v0.44.0）**：後台「失物」分頁按「列印清單」、「活動」分頁按「列印名單」→ A4 黑白版面（白底黑字、無品牌色塊、隱藏按鈕、每頁列數固定），紙高由量測寬度乘 A4 比例推算；「複製表格」把名單複製成 Tab 分隔文字，貼進 Word／Excel 直接列印（小程序沒有列印 API，這是手機端真實可走的路）
 - [x] 產品定位、痛點分析、功能地圖（P0/P1/P2）

@@ -346,6 +346,9 @@
             <view wx:for="{{errFilters}}" wx:key="key" class="chip {{errStatus === item.key ? 'chip--on' : ''}}"
                   data-key="{{item.key}}" bindtap="pickErrStatus">{{item.label}}</view>
           </view>
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" bind:tap="cleanupErrors">{{L.k131}}</pv-button>
+          </view>
         </pv-card>
 
         <pv-empty wx:if="{{!errors.length}}" icon="🐞" title="{{errStatus === 'OPEN' ? L.k115 : L.k116}}"
@@ -358,10 +361,15 @@
           </view>
           <text class="ui-meta">{{item.route || L.k117}}{{item.platform ? ' · ' + item.platform : ''}}</text>
           <text class="ui-meta">最近 {{item.seenText}} · 首次 {{item.firstSeenText}}</text>
+          <view class="row-actions" wx:if="{{item.similarText}}">
+            <pv-tag text="{{item.similarText}}" type="neutral" />
+          </view>
           <view class="row-actions">
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-action="{{item.status === 'OPEN' ? 'RESOLVE' : 'REOPEN'}}" bind:tap="toggleErrStatus">
               {{item.status === 'OPEN' ? L.k118 : L.k119}}
             </pv-button>
+            <pv-button wx:if="{{item.similar > 1 && item.status === 'OPEN'}}" size="sm" type="plain"
+                       data-message="{{item.message}}" bind:tap="resolveSimilarErr">{{L.k128}}</pv-button>
           </view>
         </view>
       </block>

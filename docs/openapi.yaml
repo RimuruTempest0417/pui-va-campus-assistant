@@ -1395,6 +1395,73 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /admin/error-logs/cleanup:
+    post:
+      tags: [admin]
+      summary: 清理舊錯誤紀錄（預設只刪已解決的；需要 error:read = ADMIN 以上）
+      description: |
+        OPEN 代表還沒修，自動刪掉等於把待辦事項藏起來，所以預設只刪「已解決」且最後出現時間早於 cutoff 的紀錄。
+        要連未解決的一起清必須明確帶 `includeOpen: true`。回傳 kept 讓前端老實說「還有 N 筆沒動」。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [olderThanDays]
+              properties:
+                olderThanDays: { type: integer, minimum: 1, maximum: 365 }
+                includeOpen: { type: boolean, default: false, description: 連未解決的舊紀錄一起刪 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted: { type: integer, description: 實際刪除筆數 }
+                  kept: { type: integer, description: 還留著的舊紀錄數（未解決的） }
+                  olderThanDays: { type: integer }
+                  includeOpen: { type: boolean }
+                  cutoff: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /admin/error-logs/resolve-similar:
+    post:
+      tags: [admin]
+      summary: 同類一次解決（signature＝訊息＋頁面；需要 error:read = ADMIN 以上）
+      description: |
+        指紋含頁面，所以同一句話在不同頁面出錯會被拆成好幾列。省略 route 就一次解決「所有頁面」的同句話，
+        帶 route 只解決那一頁。已 RESOLVED 的不重算 resolvedAt。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, maxLength: 300 }
+                route: { type: string, nullable: true, description: 省略或 null＝不限頁面 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resolved: { type: integer, description: 這次被標成已解決的筆數 }
+                  matched: { type: integer, description: 符合 signature 的總筆數（含已解決） }
+                  message: { type: string }
+                  route: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /admin/export.json:
     get:
       tags: [admin]
@@ -2047,6 +2114,8 @@ components:
         firstSeenAt: { type: string, format: date-time }
         lastSeenAt: { type: string, format: date-time }
         resolvedAt: { type: string, format: date-time, nullable: true }
+        # 同類筆數＝訊息相同的紀錄數（不限頁面）；後台用它顯示「同類 N 筆」與一次解決
+        similar: { type: integer }
 
     EventCheckinState:
       type: object
