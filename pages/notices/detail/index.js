@@ -3,8 +3,13 @@ const { codeOf } = require('../../../utils/errors');
 const { decorate } = require('../../../utils/notice');
 const { dateKey } = require('../../../utils/date');
 
+const reportSheet = require('../../../utils/reportSheet');
+
 Page({
-  data: { loading: true, failed: false, errorText: '', notice: null },
+  ...reportSheet.methods('NOTICE', function () { return this.data.notice && this.data.notice.id; }),
+
+  data: {
+    ...reportSheet.data(), loading: true, failed: false, errorText: '', notice: null },
 
   onLoad(query) {
     this.id = query.id;

@@ -17,3 +17,6 @@
   padding: var(--pv-sp-2) var(--pv-sp-3);
   font-size: var(--pv-fs-subhead);
 }
+
+.report-link { display: block; margin-top: var(--pv-sp-4); font-size: var(--pv-fs-footnote); color: var(--pv-label-3); text-decoration: underline; }
+.report-row { padding: var(--pv-sp-3) 0; font-size: var(--pv-fs-callout); border-bottom: 1rpx solid var(--pv-sep); }

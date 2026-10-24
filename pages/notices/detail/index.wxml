@@ -30,7 +30,14 @@
         <view wx:if="{{notice.kind === 'URGENT'}}" class="urgent-note">
           緊急公告由校方發布，如有疑問請聯絡校務處。
         </view>
+
+        <text class="report-link" catchtap="openReport">檢舉這則公告</text>
       </block>
     </view>
   </scroll-view>
+
+  <pv-sheet show="{{reportOpen}}" title="檢舉這則內容" bind:close="closeReport">
+    <view wx:for="{{reportReasons}}" wx:key="*this" class="report-row"
+          data-reason="{{item}}" catchtap="pickReason">{{item}}</view>
+  </pv-sheet>
 </view>

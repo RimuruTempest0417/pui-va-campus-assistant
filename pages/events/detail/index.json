@@ -6,7 +6,8 @@
     "pv-tag": "/components/pv-tag/index",
     "pv-button": "/components/pv-button/index",
     "pv-empty": "/components/pv-empty/index",
-    "pv-skeleton": "/components/pv-skeleton/index"
+    "pv-skeleton": "/components/pv-skeleton/index",
+    "pv-sheet": "/components/pv-sheet/index"
   },
   "navigationBarTitleText": "活動詳情"
 }

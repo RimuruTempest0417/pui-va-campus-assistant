@@ -3,8 +3,13 @@ const { codeOf } = require('../../../utils/errors');
 const { decorate } = require('../../../utils/event');
 const subscribe = require('../../../utils/subscribe');
 
+const reportSheet = require('../../../utils/reportSheet');
+
 Page({
+  ...reportSheet.methods('EVENT', function () { return this.data.ev && this.data.ev.id; }),
+
   data: {
+    ...reportSheet.data(),
     loading: true,
     submitting: false,
     ev: null,

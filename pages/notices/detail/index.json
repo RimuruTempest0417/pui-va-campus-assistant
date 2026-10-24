@@ -6,7 +6,8 @@
     "pv-tag": "/components/pv-tag/index",
     "pv-empty": "/components/pv-empty/index",
     "pv-skeleton": "/components/pv-skeleton/index",
-    "pv-button": "/components/pv-button/index"
+    "pv-button": "/components/pv-button/index",
+    "pv-sheet": "/components/pv-sheet/index"
   },
   "navigationBarTitleText": "公告詳情"
 }
