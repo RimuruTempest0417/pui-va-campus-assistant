@@ -35,5 +35,6 @@ module.exports = {
     forceDemo: 'pv_force_demo',
     apiBase: 'pv_api_base',
     locale: 'pv_locale',
+    diag: 'pv_diag', // console 走查收集器（utils/diagnostics.js）
   },
 };

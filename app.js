@@ -1,5 +1,6 @@
 // app.js
 const reporter = require('./utils/reporter');
+const diagnostics = require('./utils/diagnostics');
 
 App({
   globalData: {
@@ -8,6 +9,8 @@ App({
   },
 
   onLaunch() {
+    // 包一層 console.error／warn 寫進 storage → scripts/check-console.mjs 逐頁讀回
+    diagnostics.install();
     this.globalData.nav = measureNav();
   },
 
