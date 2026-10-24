@@ -7,6 +7,10 @@
         <view class="ui-card"><pv-skeleton rows="3" avatar /></view>
       </block>
 
+      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="載入失敗" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+      </pv-empty>
+
       <pv-empty wx:elif="{{!ev}}" icon="🕳" title="找不到這個活動" desc="可能已取消或刪除" />
 
       <block wx:else>

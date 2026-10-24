@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.26.1-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.26.2-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -85,7 +85,8 @@
 ├── config/config.js                      # API_BASE_URL、DEMO_MODE
 ├── scripts/
 │   ├── check-project.mjs                 # 結構／WXSS／白屏守門
-│   └── check-data-layer.mjs              # 資料層自檢（Node 跑，36 項）
+│   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，60 項）
+│   └── check-states.mjs                  # 19 頁三態（載入／空／失敗）對照表守門
 ├── docs/
 │   ├── 01-藍圖與評分對標.md
 │   ├── 02-資料模型與API.md
@@ -113,7 +114,8 @@ node scripts/package.mjs     # → dist/pui-va-campus-assistant-vX.Y.Z.zip
 ```bash
 # 結構與資料層自檢（CI 也會跑）
 node scripts/check-project.mjs     # 19 頁面 / 0 警告
-node scripts/check-data-layer.mjs  # ALL PASS 56/56（固定跑示範資料層，含 data↔api↔mock 方法對齊）
+node scripts/check-data-layer.mjs  # ALL PASS 60/60（固定跑示範資料層，含 data↔api↔mock 方法對齊）
+node scripts/check-states.mjs      # 19 頁三態全部符合（--table 印出對照表）
 ```
 
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄
@@ -132,6 +134,7 @@ node scripts/check-data-layer.mjs  # ALL PASS 56/56（固定跑示範資料層�
 - [x] 後端 P0 端點（認領審批、報名行鎖＋候補、菜單評分、公告已讀、上傳簽名）
 - [x] **失物智能匹配**（pg_trgm 加權評分 + 詳情頁「可能是你的東西」）
 - [x] 後端 e2e（真實 Postgres，27 項，含 20 併發超賣壓測）
+- [x] **載入／空／失敗三態一致（v0.26.2）**：19 頁對照表（`scripts/check-states.mjs` 守門）；我的發布／我的報名補載入骨架；11 頁補「載入失敗＋重試」；詳情頁把 404 與斷網分開（不再把後端掛掉說成「資料已被刪除」）；後台分頁載入骨架＋讀取失敗卡片
 - [x] 校內職員（STAFF）後台入口（v0.26.1）：校務處／圖書館帳號登入後只有「菜單」「名單」兩頁，開活動與發公告仍是 403；網頁後台同步
 - [x] 老師端管理後台（W-10）：10 個分頁，含**使用者管理**（建立帳號／改名／改帳號／改密碼／改等級／停用／刪除／權限說明）
 - [x] **家長綁定（P2）＋資料隔離（P4）**：`parent_links` 表＋後台「家長」分頁；家長端四支查詢一律經 `parent-scope` 閘門（`parentId` 取自 JWT、未綁定 403 且訊息與「不存在的人」相同），子女概況／失物／認領都只能看自己的孩子

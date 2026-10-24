@@ -19,6 +19,10 @@
         <view class="ui-card"><pv-skeleton rows="2" /></view>
       </block>
 
+      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="載入失敗" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+      </pv-empty>
+
       <pv-empty wx:elif="{{!items.length}}" icon="📢" title="目前沒有公告" desc="重要通知會出現在這裡" />
 
       <view wx:else class="ui-list">

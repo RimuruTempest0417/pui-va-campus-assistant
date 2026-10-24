@@ -9,7 +9,7 @@ const TEXT = {
   ALREADY_CLAIMED: '這件物品已有人認領',
   CONTENT_RISKY: '內容未通過安全檢查，請修改後再送出',
   RATE_LIMITED: '操作太頻繁，請稍後再試',
-  NETWORK: '網路不穩，已改用離線資料',
+  NETWORK: '網路不穩，請檢查連線後重試',
   NO_BACKEND: '目前是示範模式',
   INTERNAL: '服務暫時不可用，請稍後再試',
 };

@@ -22,7 +22,13 @@
 
       <view wx:if="{{loading}}" class="ui-card"><pv-skeleton rows="4" /></view>
 
-      <view wx:else class="cal-grid">
+      <view wx:elif="{{failed}}" class="ui-card">
+        <pv-empty icon="⚠️" title="載入失敗" desc="{{errorText}}">
+          <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+        </pv-empty>
+      </view>
+
+      <view wx:elif="{{!failed}}" class="cal-grid">
         <view wx:for="{{cells}}" wx:key="key"
               class="cal-cell {{item.inMonth ? '' : 'cal-cell--out'}} {{item.key === selected ? 'cal-cell--on' : ''}} {{item.isToday ? 'cal-cell--today' : ''}}"
               data-key="{{item.key}}" bindtap="selectDay">
@@ -40,9 +46,9 @@
         <text class="cal-day__count">{{items.length ? items.length + ' 項安排' : ''}}</text>
       </view>
 
-      <pv-empty wx:if="{{!loading && !items.length}}" icon="📅" title="{{L.empty}}" desc="{{L.emptyDesc}}" />
+      <pv-empty wx:if="{{!loading && !failed && !items.length}}" icon="📅" title="{{L.empty}}" desc="{{L.emptyDesc}}" />
 
-      <view wx:else class="ui-list">
+      <view wx:elif="{{items.length}}" class="ui-list">
         <view wx:for="{{items}}" wx:key="id" class="cal-item" data-type="{{item.type}}" data-id="{{item.id}}" bindtap="openItem"
               hover-class="cal-item--pressed" hover-start-time="0">
           <view class="cal-item__head">

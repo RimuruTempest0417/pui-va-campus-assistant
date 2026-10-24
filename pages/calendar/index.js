@@ -5,6 +5,8 @@ const i18n = require('../../utils/i18n');
 Page({
   data: {
     loading: true,
+    failed: false,
+    errorText: '',
     year: 0,
     month: 0,
     monthText: '',
@@ -38,11 +40,16 @@ Page({
       const grouped = cal.groupByDate(res.notices, res.events);
       this._grouped = grouped;
       this.render(grouped);
-      this.setData({ loading: false });
+      this.setData({ loading: false, failed: false, errorText: '' });
     } catch (e) {
-      this.setData({ loading: false, cells: [], items: [] });
+      this.setData({ loading: false, failed: true, errorText: data.messageOf(e), cells: [], items: [] });
       wx.showToast({ title: data.messageOf(e), icon: 'none' });
     }
+  },
+
+  retry() {
+    this.setData({ loading: true, failed: false, errorText: '' });
+    return this.load();
   },
 
   render(grouped) {

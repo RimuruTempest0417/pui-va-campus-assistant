@@ -4,7 +4,8 @@
     "pv-tag": "/components/pv-tag/index",
     "pv-empty": "/components/pv-empty/index",
     "pv-button": "/components/pv-button/index",
-    "pv-navbar": "/components/pv-navbar/index"
+    "pv-navbar": "/components/pv-navbar/index",
+    "pv-skeleton": "/components/pv-skeleton/index"
   },
   "navigationStyle": "custom"
 }

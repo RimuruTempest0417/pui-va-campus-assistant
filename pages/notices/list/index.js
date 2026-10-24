@@ -3,7 +3,7 @@ const { decorate } = require('../../../utils/notice');
 const i18n = require('../../../utils/i18n');
 
 Page({
-  data: { loading: true, refreshing: false, items: [], unread: 0 },
+  data: { loading: true, refreshing: false, failed: false, errorText: '', items: [], unread: 0 },
 
   onLoad() {
     this.setData({ L: { list: i18n.t('common.list'), calendar: i18n.t('common.calendar'), allRead: i18n.t('common.allRead') } });
@@ -27,11 +27,18 @@ Page({
         loading: false,
         items: (res.items || []).map(decorate),
         unread: res.unread || 0,
+        failed: false,
+        errorText: '',
       });
     } catch (e) {
-      this.setData({ loading: false, items: [] });
+      this.setData({ loading: false, failed: true, errorText: data.messageOf(e), items: [] });
       wx.showToast({ title: data.messageOf(e), icon: 'none' });
     }
+  },
+
+  retry() {
+    this.setData({ loading: true, failed: false, errorText: '' });
+    return this.load();
   },
 
   async markAllRead() {

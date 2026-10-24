@@ -4,6 +4,8 @@ const week = require('../../../utils/week');
 Page({
   data: {
     loading: true,
+    failed: false,
+    errorText: '',
     refreshing: false,
     offset: 0,
     weekLabelText: '本週',
@@ -44,11 +46,18 @@ Page({
         top: top.items || [],
         weekLabelText: week.weekLabel(offset),
         rangeText: dates.length ? dates[0].slice(5).replace('-', '/') + ' — ' + dates[dates.length - 1].slice(5).replace('-', '/') : '',
+        failed: false,
+        errorText: '',
       });
     } catch (e) {
-      this.setData({ loading: false });
+      this.setData({ loading: false, failed: true, errorText: data.messageOf(e) });
       wx.showToast({ title: data.messageOf(e), icon: 'none' });
     }
+  },
+
+  retry() {
+    this.setData({ loading: true, failed: false, errorText: '' });
+    return this.load();
   },
 
   prevWeek() {

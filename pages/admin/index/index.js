@@ -103,6 +103,9 @@ Page({
     abilities: [],
     sending: false,
     hint: '',
+    tabLoading: false,
+    failed: false,
+    errorText: '',
   },
 
   onLoad() {
@@ -142,19 +145,37 @@ Page({
 
   loadTab() {
     const t = this.data.tab;
-    if (t === 'stats') return this.loadStats();
-    if (t === 'claims') return this.loadClaims();
-    if (t === 'items') return this.loadItems();
-    if (t === 'export') return this.loadEventsForExport();
-    if (t === 'events') return this.loadEventsAdmin();
-    if (t === 'users') return this.loadUsers();
-    if (t === 'parents') return this.loadParents();
-    if (t === 'reports') return this.loadReports();
-    if (t === 'errors') return this.loadErrors();
-    if (t === 'audit') return this.loadAudit();
-    if (t === 'notice') return this.loadNoticeList();
-    if (t === 'menu') return this.loadMenuWeek();
-    return null;
+    this.setData({ tabLoading: true, failed: false, errorText: '' });
+
+    let p = null;
+    if (t === 'stats') p = this.loadStats();
+    else if (t === 'claims') p = this.loadClaims();
+    else if (t === 'items') p = this.loadItems();
+    else if (t === 'export') p = this.loadEventsForExport();
+    else if (t === 'events') p = this.loadEventsAdmin();
+    else if (t === 'users') p = this.loadUsers();
+    else if (t === 'parents') p = this.loadParents();
+    else if (t === 'reports') p = this.loadReports();
+    else if (t === 'errors') p = this.loadErrors();
+    else if (t === 'audit') p = this.loadAudit();
+    else if (t === 'notice') p = this.loadNoticeList();
+    else if (t === 'menu') p = this.loadMenuWeek();
+
+    if (!p || typeof p.then !== 'function') {
+      this.setData({ tabLoading: false });
+      return p;
+    }
+    // 讀取類的 catch 一律寫成 hint「讀不到…」；這裡統一翻成失敗畫面（含重試），
+    // 不要讓「後端掛掉」在畫面上長得像「後台沒有資料」。
+    return p.then(() => {
+      const hint = this.data.hint || '';
+      const failed = hint.indexOf('讀不到') === 0;
+      this.setData({ tabLoading: false, failed: failed, errorText: failed ? hint : '' });
+    });
+  },
+
+  reloadTab() {
+    this.loadTab();
   },
 
   async loadStats() {

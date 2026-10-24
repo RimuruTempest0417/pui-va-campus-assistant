@@ -18,6 +18,10 @@
         <view class="ui-card"><pv-skeleton rows="3" /></view>
       </block>
 
+      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="載入失敗" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+      </pv-empty>
+
       <block wx:else>
         <view wx:for="{{days}}" wx:key="date" class="day {{item.isToday ? 'is-today' : ''}}">
           <view class="day__head">

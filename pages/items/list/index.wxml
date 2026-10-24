@@ -28,6 +28,10 @@
     </view>
   </block>
 
+  <pv-empty wx:elif="{{failed}}" icon="⚠️" title="載入失敗" desc="{{errorText}}">
+    <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+  </pv-empty>
+
   <pv-empty wx:elif="{{!items.length}}" icon="🔍"
             title="{{keyword ? '沒有符合的結果' : '這裡還空著'}}"
             desc="{{keyword ? '換個關鍵字，或清除篩選條件' : '第一個發布的人，最有機會找回東西'}}">

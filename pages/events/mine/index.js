@@ -2,7 +2,7 @@ const data = require('../../../services/data');
 const { dateTimeText } = require('../../../utils/date');
 
 Page({
-  data: { loading: true, items: [] },
+  data: { loading: true, items: [], failed: false, errorText: '' },
 
   onLoad() {
     this.load();
@@ -23,10 +23,15 @@ Page({
         checkedIn: !!x.checkedInAt,
         canCheckIn: x.status === 'CONFIRMED' && !x.checkedInAt,
       }));
-      this.setData({ loading: false, items: items });
+      this.setData({ loading: false, failed: false, errorText: '', items: items });
     } catch (e) {
-      this.setData({ loading: false, items: [] });
+      this.setData({ loading: false, failed: true, errorText: data.messageOf(e), items: [] });
     }
+  },
+
+  retry() {
+    this.setData({ loading: true, failed: false, errorText: '' });
+    return this.load();
   },
 
   async cancel(e) {

@@ -6,6 +6,8 @@ Page({
     refreshing: false,
     loading: true,
     loadingMore: false,
+    failed: false,
+    errorText: '',
     items: [],
     total: 0,
     page: 1,
@@ -66,11 +68,24 @@ Page({
         total: res.total,
         hasMore: res.hasMore,
         page: res.page,
+        failed: false,
+        errorText: '',
       });
     } catch (e) {
-      this.setData({ loading: false, loadingMore: false });
+      // 只有「畫面上本來就沒有東西」才整塊換成失敗畫面；分頁的第二頁失敗不該蓋掉已載入的清單
+      this.setData({
+        loading: false,
+        loadingMore: false,
+        failed: !this.data.items.length,
+        errorText: data.messageOf(e),
+      });
       wx.showToast({ title: data.messageOf(e), icon: 'none' });
     }
+  },
+
+  retry() {
+    this.setData({ loading: true, failed: false, errorText: '' });
+    return this.load(true);
   },
 
   onTypeChange(e) {

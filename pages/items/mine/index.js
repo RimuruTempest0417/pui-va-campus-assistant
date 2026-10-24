@@ -2,7 +2,7 @@ const data = require('../../../services/data');
 const { decorate } = require('../../../utils/item');
 
 Page({
-  data: { loading: true, items: [] },
+  data: { loading: true, items: [], failed: false, errorText: '' },
 
   onLoad() {
     this.load();
@@ -16,11 +16,15 @@ Page({
   async load() {
     try {
       const res = await data.myItems();
-      this.setData({ loading: false, items: (res.items || []).map(decorate) });
+      this.setData({ loading: false, failed: false, errorText: '', items: (res.items || []).map(decorate) });
     } catch (e) {
-      this.setData({ loading: false, items: [] });
-      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+      this.setData({ loading: false, failed: true, errorText: data.messageOf(e), items: [] });
     }
+  },
+
+  retry() {
+    this.setData({ loading: true, failed: false, errorText: '' });
+    return this.load();
   },
 
   async advance(e) {

@@ -11,8 +11,19 @@
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="admin-inner">
 
+      <block wx:if="{{tabLoading}}">
+        <view class="ui-card"><pv-skeleton rows="2" /></view>
+        <view class="ui-card"><pv-skeleton rows="3" /></view>
+      </block>
+
+      <block wx:elif="{{failed}}">
+        <pv-empty icon="⚠️" title="讀取失敗" desc="{{errorText}}">
+          <pv-button size="sm" type="tinted" bind:tap="reloadTab">重試</pv-button>
+        </pv-empty>
+      </block>
+
       <!-- 概況 -->
-      <block wx:if="{{tab === 'stats'}}">
+      <block wx:elif="{{tab === 'stats'}}">
         <view class="stat-grid">
           <view class="stat"><text class="stat__num">{{stats.users}}</text><text class="stat__label">使用者</text></view>
           <view class="stat"><text class="stat__num">{{stats.items.open}}</text><text class="stat__label">待認領</text></view>

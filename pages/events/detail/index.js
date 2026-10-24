@@ -1,4 +1,5 @@
 const data = require('../../../services/data');
+const { codeOf } = require('../../../utils/errors');
 const { decorate } = require('../../../utils/event');
 const subscribe = require('../../../utils/subscribe');
 
@@ -7,6 +8,8 @@ Page({
     loading: true,
     submitting: false,
     ev: null,
+    failed: false,
+    errorText: '',
     barText: '',
     barType: 'filled',
     barHint: '',
@@ -22,10 +25,20 @@ Page({
     try {
       const raw = await data.getEvent(this.id);
       const ev = decorate(raw);
-      this.setData(Object.assign({ loading: false, ev: ev }, this.barFor(ev)));
+      this.setData(Object.assign({ loading: false, failed: false, errorText: '', ev: ev }, this.barFor(ev)));
     } catch (e) {
-      this.setData({ loading: false, ev: null });
+      this.setData({
+        loading: false,
+        ev: null,
+        failed: codeOf(e) !== 'NOT_FOUND',
+        errorText: data.messageOf(e),
+      });
     }
+  },
+
+  retry() {
+    this.setData({ loading: true, failed: false, errorText: '' });
+    return this.load();
   },
 
   barFor(ev) {

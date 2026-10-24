@@ -5,7 +5,8 @@
     "pv-card": "/components/pv-card/index",
     "pv-tag": "/components/pv-tag/index",
     "pv-button": "/components/pv-button/index",
-    "pv-empty": "/components/pv-empty/index"
+    "pv-empty": "/components/pv-empty/index",
+    "pv-skeleton": "/components/pv-skeleton/index"
   },
   "navigationBarTitleText": "管理"
 }

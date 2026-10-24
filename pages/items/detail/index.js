@@ -1,4 +1,5 @@
 const data = require('../../../services/data');
+const { codeOf } = require('../../../utils/errors');
 const { decorate } = require('../../../utils/item');
 const { dateKey } = require('../../../utils/date');
 const subscribe = require('../../../utils/subscribe');
@@ -7,6 +8,8 @@ Page({
   data: {
     loading: true,
     item: null,
+    failed: false,
+    errorText: '',
     matches: [],
     matchHint: '分數越高越像',
     isMine: false,
@@ -37,8 +40,19 @@ Page({
       }));
       this.setData({ matches: rows });
     } catch (e) {
-      this.setData({ loading: false, item: null });
+      // 404＝真的沒有這筆（走空狀態）；其他（斷網／後端掛）不要偽裝成「已刪除」
+      this.setData({
+        loading: false,
+        item: null,
+        failed: codeOf(e) !== 'NOT_FOUND',
+        errorText: data.messageOf(e),
+      });
     }
+  },
+
+  retry() {
+    this.setData({ loading: true, failed: false, errorText: '' });
+    return this.load();
   },
 
   barFor(item, isMine) {

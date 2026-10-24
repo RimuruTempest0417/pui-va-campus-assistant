@@ -4,6 +4,8 @@ const { decorate } = require('../../../utils/event');
 Page({
   data: {
     loading: true,
+    failed: false,
+    errorText: '',
     scope: 'upcoming',
     items: [],
     tabs: [
@@ -30,11 +32,16 @@ Page({
   async load() {
     try {
       const res = await data.listEvents({ scope: this.data.scope || undefined });
-      this.setData({ loading: false, items: (res.items || []).map(decorate) });
+      this.setData({ loading: false, failed: false, errorText: '', items: (res.items || []).map(decorate) });
     } catch (e) {
-      this.setData({ loading: false, items: [] });
+      this.setData({ loading: false, failed: true, errorText: data.messageOf(e), items: [] });
       wx.showToast({ title: data.messageOf(e), icon: 'none' });
     }
+  },
+
+  retry() {
+    this.setData({ loading: true, failed: false, errorText: '' });
+    return this.load();
   },
 
   onScopeChange(e) {
