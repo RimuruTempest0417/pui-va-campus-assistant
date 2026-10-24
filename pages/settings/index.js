@@ -9,6 +9,12 @@ const adminApi = require('../../services/admin');
 Page({
   labels() {
     return {
+      k01: i18n.pick("安全"),
+      k02: i18n.pick("兩步驗證"),
+      k03: i18n.pick("開啟（產生密鑰）"),
+      k04: i18n.pick("複製密鑰"),
+      k05: i18n.pick("輸入驗證器上的 6 位數字"),
+      k06: i18n.pick("輸入登入密碼以關閉"),
       k17: i18n.pick("已登入"),
       k18: i18n.pick(" · 示範模式"),
       k19: i18n.pick("離線示範資料"),
@@ -29,6 +35,21 @@ Page({
       k14: i18n.pick("版本"),
       k15: i18n.pick("學校"),
       k16: i18n.pick("澳門培華中學"),
+      k30: i18n.pick("安全"),
+      k31: i18n.pick("兩步驗證"),
+      k32: i18n.pick("已開啟 · 備用碼"),
+      k33: i18n.pick("組"),
+      k34: i18n.pick("未開啟（建議資訊管理員開啟）"),
+      k35: i18n.pick("開啟（產生密鑰）"),
+      k36: i18n.pick("密鑰："),
+      k37: i18n.pick("複製密鑰"),
+      k38: i18n.pick("輸入驗證器上的 6 位數字"),
+      k39: i18n.pick("確認中…"),
+      k40: i18n.pick("確認開啟"),
+      k41: i18n.pick("輸入登入密碼以關閉"),
+      k42: i18n.pick("處理中…"),
+      k43: i18n.pick("關閉兩步驗證"),
+
     };
   },
 

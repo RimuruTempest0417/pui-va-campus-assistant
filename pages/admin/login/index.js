@@ -10,6 +10,8 @@ const appearance = require('../../../utils/appearance');
 Page({
   labels() {
     return {
+      k01: i18n.pick("兩步驗證碼"),
+      k02: i18n.pick("驗證器上的 6 位數字（或備用碼）"),
       k09: i18n.pick("已登入"),
       k10: i18n.pick("登入中…"),
       k11: i18n.pick("登入"),
