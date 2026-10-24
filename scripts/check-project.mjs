@@ -3,7 +3,7 @@
 // 檢查項目：JSON 可解析、app.json 頁面四件套齊全、usingComponents 目標存在、
 // WXSS 風險選擇器、白屏守門、組件註冊一致、未登記頁面、tabBar/entryPagePath、相對 require 可解析。
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 
 const root = process.cwd();
@@ -522,6 +522,76 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
     }
   }
   if (!missing && keys.size < 100) warnings.push('i18n-phrases.js 只有 ' + keys.size + ' 組，疑似被截斷');
+}
+
+// 17) 同一個物件裡的重複 key：後面的定義會靜默蓋掉前面的（畫面顯示成別的字，console 完全沒有錯）
+//     實測：admin 頁的 W-39 卡片沿用 k100~k102，把出席名單的「已簽到／未簽到」蓋成「累計」；
+//     登入頁的兩步驗證欄位被「登入／培華校園助手」蓋掉。這種錯編譯不會報，只能靠掃描。
+{
+  const stripCode = (src) => {
+    let out = '';
+    let i = 0;
+    while (i < src.length) {
+      const c = src[i];
+      const n = src[i + 1];
+      if (c === '/' && n === '/') { while (i < src.length && src[i] !== '\n') { out += ' '; i += 1; } continue; }
+      if (c === '/' && n === '*') {
+        while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) { out += ' '; i += 1; }
+        out += '  '; i += 2; continue;
+      }
+      if (c === '"' || c === "'" || c === '`') {
+        const q = c; out += ' '; i += 1;
+        while (i < src.length && src[i] !== q) { out += ' '; i += src[i] === '\\' ? 2 : 1; }
+        out += ' '; i += 1; continue;
+      }
+      out += c; i += 1;
+    }
+    return out;
+  };
+  // 從開頭 { 走訪到配對的 }，只收 depth 1 的 key
+  const topKeys = (code, openAt) => {
+    const keys = [];
+    let depth = 0;
+    let seg = '';
+    for (let i = openAt; i < code.length; i += 1) {
+      const ch = code[i];
+      if (ch === '{' || ch === '(' || ch === '[') { depth += 1; seg = ''; continue; }
+      if (ch === '}' || ch === ')' || ch === ']') { depth -= 1; if (depth === 0) break; seg = ''; continue; }
+      if (depth !== 1) continue;
+      if (/[A-Za-z0-9_$]/.test(ch)) { seg += ch; continue; }
+      if (ch === ':' && seg) { keys.push(seg); seg = ''; continue; }
+      seg = '';
+    }
+    return keys;
+  };
+  const targets = [];
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (e.name.endsWith('.js')) targets.push(full);
+    }
+  };
+  for (const d of ['pages', 'components']) if (existsSync(join(root, d))) walk(join(root, d));
+
+  for (const file of targets) {
+    const code = stripCode(readFileSync(file, 'utf8'));
+    const blocks = [];
+    for (const m of code.matchAll(/\bdata\s*:\s*\{/g)) blocks.push({ at: m.index + m[0].length - 1, kind: 'data' });
+    for (const m of code.matchAll(/\blabels\s*\(\s*\)\s*\{/g)) {
+      const ret = code.indexOf('return', m.index);
+      if (ret < 0) continue;
+      const brace = code.indexOf('{', ret);
+      if (brace > 0) blocks.push({ at: brace, kind: 'labels()' });
+    }
+    for (const b of blocks) {
+      const seen = new Set();
+      for (const k of topKeys(code, b.at)) {
+        if (seen.has(k)) errors.push(`${file.slice(root.length + 1)} 的 ${b.kind} 物件裡「${k}」重複定義（後面的會蓋掉前面的，畫面顯示到別的字）`);
+        seen.add(k);
+      }
+    }
+  }
 }
 
 for (const w of warnings) console.warn(`⚠️  ${w}`);

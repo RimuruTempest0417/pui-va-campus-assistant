@@ -35,9 +35,9 @@
           </view>
 
           <view wx:if="{{needCode}}" class="field">
-            <text class="field__label">{{L.k01}}</text>
+            <text class="field__label">{{L.k12}}</text>
             <input class="field__input" name="code" value="{{code}}" type="number" maxlength="6"
-                   placeholder="{{L.k02}}" bindinput="onCode" />
+                   placeholder="{{L.k13}}" bindinput="onCode" />
           </view>
 
           <view class="login-actions">

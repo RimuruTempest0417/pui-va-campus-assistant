@@ -1715,6 +1715,30 @@ paths:
       responses:
         '200': { description: 已更新 }
 
+  /admin/users/{id}/unlock:
+    post:
+      tags: [admin]
+      summary: 解除登入失敗鎖定（連續 5 次密碼錯會鎖 15 分鐘；需 user:ban 能力）
+      description: 只能解鎖等級低於自己的帳號；回 403 代表能力或等級不足、404 代表帳號不存在。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 已解除鎖定（failedLogins 歸零、lockedUntil 清空）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  locked: { type: boolean }
+        '403': { description: 能力或等級不足 }
+        '404': { description: 找不到使用者 }
+
   /admin/permissions:
     get:
       tags: [admin]

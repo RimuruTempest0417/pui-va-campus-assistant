@@ -9,12 +9,6 @@ const adminApi = require('../../services/admin');
 Page({
   labels() {
     return {
-      k01: i18n.pick("安全"),
-      k02: i18n.pick("兩步驗證"),
-      k03: i18n.pick("開啟（產生密鑰）"),
-      k04: i18n.pick("複製密鑰"),
-      k05: i18n.pick("輸入驗證器上的 6 位數字"),
-      k06: i18n.pick("輸入登入密碼以關閉"),
       k17: i18n.pick("已登入"),
       k18: i18n.pick(" · 示範模式"),
       k19: i18n.pick("離線示範資料"),

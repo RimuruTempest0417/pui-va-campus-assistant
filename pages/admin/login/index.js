@@ -10,8 +10,10 @@ const appearance = require('../../../utils/appearance');
 Page({
   labels() {
     return {
-      k01: i18n.pick("兩步驗證碼"),
-      k02: i18n.pick("驗證器上的 6 位數字（或備用碼）"),
+      // W-41：這兩條原本也用 k01/k02，被下面「登入／培華校園助手」蓋掉 →
+      // 登入頁的兩步驗證欄位標籤顯示成「登入」、placeholder 顯示成「培華校園助手」。改獨立號碼。
+      k12: i18n.pick("兩步驗證碼"),
+      k13: i18n.pick("驗證器上的 6 位數字（或備用碼）"),
       k09: i18n.pick("已登入"),
       k10: i18n.pick("登入中…"),
       k11: i18n.pick("登入"),

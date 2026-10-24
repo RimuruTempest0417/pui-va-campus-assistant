@@ -2,7 +2,7 @@ const i18n = require('../../../utils/i18n');
 const admin = require('../../../services/admin');
 const request = require('../../../utils/request');
 const config = require('../../../config/config');
-const { dateKey, fromNow } = require('../../../utils/date');
+const { dateKey, fromNow, dateTimeText } = require('../../../utils/date');
 const role = require('../../../utils/role');
 const theme = require('../../../utils/theme');
 
@@ -203,9 +203,16 @@ Page({
       k83: i18n.pick("先檢查"),
       k84: i18n.pick("確認匯入"),
       // v0.48.0 後台統計首頁（W-39）：第一屏五張數字卡
-      k100: i18n.pick("本週概況"),
-      k101: i18n.pick("累計"),
-      k102: i18n.pick("點卡片跳到對應分頁"),
+      // 注意：這裡的 key 一定要用「本檔還沒用過」的號碼 —— 舊版沿用 k100~k102，
+      // 和上面出席名單的「（未設定）／已簽到／未簽到」撞號，後面的定義會靜默蓋掉前面的，
+      // 結果簽到名單顯示成「累計／點卡片跳到對應分頁」。新增 key 前先 grep 一次最大號。
+      k157: i18n.pick("本週概況"),
+      k158: i18n.pick("累計"),
+      k159: i18n.pick("點卡片跳到對應分頁"),
+      // W-41：登入失敗鎖定（帳號層級，與 IP 限流互補）
+      k160: i18n.pick(" · 已鎖定"),
+      k161: i18n.pick("解除鎖定"),
+      k162: i18n.pick("已解除鎖定"),
     };
   },
 
@@ -899,7 +906,13 @@ Page({
       const res = await admin.users({ q: q.q || undefined, role: q.role || undefined });
       // roles 用後端回來的（帶 level 與 label，單一來源）；離線或舊後端才退回本地 ROLES
       const roles = (res.roles && res.roles.length) ? res.roles : ROLES;
-      this.setData({ users: res.items || [], meLevel: (res.me || {}).level || 0, roles: roles });
+      // W-41：最後登入時間換成本地時區、加上鎖定旗標（locked 由後端算，前端不比時間）
+      const users = (res.items || []).map((u) => ({
+        ...u,
+        locked: Boolean(u.locked),
+        lastLoginText: u.lastLoginAt ? dateTimeText(u.lastLoginAt) : '',
+      }));
+      this.setData({ users: users, meLevel: (res.me || {}).level || 0, roles: roles });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到使用者：') + (e.message || e.code) });
     }
@@ -1063,6 +1076,18 @@ Page({
     try {
       await admin.setBanned(id, banned !== '1');
       wx.showToast({ title: banned === '1' ? i18n.pick('已恢復') : i18n.pick('已停用'), icon: 'success' });
+      this.loadUsers();
+    } catch (err) {
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
+    }
+  },
+
+  /** W-41：解除登入失敗鎖定（密碼錯太多次會鎖 15 分鐘） */
+  async unlockUser(e) {
+    const { id } = e.currentTarget.dataset;
+    try {
+      await admin.unlockUser(id);
+      wx.showToast({ title: i18n.pick('已解除鎖定'), icon: 'success' });
       this.loadUsers();
     } catch (err) {
       wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
