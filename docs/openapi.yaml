@@ -1393,6 +1393,35 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /admin/export.json:
+    get:
+      tags: [admin]
+      summary: 全庫匯出（JSON 備份，只有最高權限）
+      description: |
+        一次匯出全部 18 張資料表的 JSON；還原用後端 repo 的 `node scripts/restore.mjs 備份檔 --yes`，
+        刻意不提供 HTTP 還原端點（破壞性操作只留在終端）。檔案含 `users.passwordHash`，等同資料庫機密。
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 備份檔（附件下載）
+          headers:
+            content-disposition: { schema: { type: string } }
+            x-backup-rows: { schema: { type: string } }
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  format: { type: string, enum: [pui-va-backup] }
+                  version: { type: integer, enum: [1] }
+                  appVersion: { type: string }
+                  exportedAt: { type: string, format: date-time }
+                  counts: { type: object, additionalProperties: { type: integer } }
+                  data: { type: object, additionalProperties: { type: array, items: { type: object } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
 components:
   securitySchemes:
     bearerAuth:
