@@ -376,6 +376,22 @@ check('簽到：我的報名帶簽到時間',
   check('組隊：隊伍列表看得到自己', list.teams.some((t) => t.name === '測試隊' && t.mine), `${list.teams.length} 隊`);
 }
 
+// ── W-28 列印版（A4 分頁與表格文字；純函式，不依賴 IDE） ──
+{
+  const print = require(join(here, '..', 'utils', 'print.js'));
+  const rows = Array.from({ length: 45 }, (_, i) => ({ no: i + 1 }));
+  const pages = print.paginate(rows, 20);
+  check(
+    '列印：分頁列數固定',
+    pages.length === 3 && pages[1].rows.length === 20 && pages[2].rows.length === 5,
+    `${pages.length} 頁／最後一頁 ${pages[2].rows.length} 列`,
+  );
+  const per = print.rowsPerPage({ sheetHeight: 800, headHeight: 80, footHeight: 40, rowHeight: 24 });
+  check('列印：每頁列數由紙高推算', per === 28, String(per));
+  const tsv = print.toTsv(['A', 'B'], [['x\ty', 'z\nw']]);
+  check('列印：表格文字清掉跳字', tsv.split('\n').length === 2 && tsv.indexOf('\t\n') === -1, JSON.stringify(tsv));
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

@@ -12,7 +12,7 @@ const KIND_KEYS = {
 const kindText = (kind) => KIND_KEYS[kind] || KIND_KEYS.SYSTEM;
 
 Page({
-  data: { themeClass: appearance.themeClass(), loading: true, items: [], unread: 0 },
+  data: { themeClass: appearance.themeClass(), loading: true, failed: false, errorText: '', items: [], unread: 0 },
 
   onLoad() {
     this.setData({ L: this.labels() });
@@ -31,10 +31,12 @@ Page({
       markFail: i18n.pick('標記失敗'),
       empty: i18n.pick('還沒有通知'),
       emptySub: i18n.pick('報名成功、候補轉正、認領審批、活動改期都會在這裡通知你'),
+      retry: i18n.pick('重試'),
     };
   },
 
   async load() {
+    this.setData({ failed: false, errorText: '' });
     try {
       const res = await data.notifications();
       const items = (res.items || []).map((n) => ({
@@ -45,9 +47,14 @@ Page({
       }));
       this.setData({ items, unread: res.unread || 0, loading: false });
     } catch (e) {
-      this.setData({ loading: false });
-      wx.showToast({ title: this.data.L ? this.data.L.readFail : i18n.pick('讀不到通知'), icon: 'none' });
+      // 讀取失敗要說「讀不到」，不能讓清單空著看起來像「沒有通知」
+      this.setData({ loading: false, failed: true, errorText: data.messageOf(e) });
     }
+  },
+
+  retry() {
+    this.setData({ loading: true });
+    return this.load();
   },
 
   async openItem(e) {

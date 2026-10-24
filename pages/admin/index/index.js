@@ -69,7 +69,9 @@ Page({
       k122: i18n.pick("午餐"),
       k123: i18n.pick("小賣部"),
       k124: i18n.pick("菜單"),
-      k125: i18n.pick("活動"),
+      k125: i18n.pick('活動'),
+      k126: i18n.pick('列印清單'),
+      k127: i18n.pick('列印名單'),
       k85: i18n.pick("已下架"),
       k86: i18n.pick("拾獲"),
       k87: i18n.pick("遺失"),
@@ -368,6 +370,19 @@ Page({
   filterItems(e) {
     this.setData({ itemStatus: e.currentTarget.dataset.key });
     this.loadItems();
+  },
+
+  // W-28：列印版（A4 黑白）——失物清單帶目前篩選、活動名單帶該場活動
+  openPrint(e) {
+    const { kind, id } = e.currentTarget.dataset;
+    if (kind === 'event') {
+      wx.navigateTo({ url: '/pages/print/event/index?id=' + id });
+      return;
+    }
+    // 後台的 MATCHED 是內部狀態，公開清單只認 OPEN／CLAIMED／CLOSED，其餘一律印全部
+    const printable = ['OPEN', 'CLAIMED', 'CLOSED'];
+    const status = printable.indexOf(this.data.itemStatus) >= 0 ? this.data.itemStatus : '';
+    wx.navigateTo({ url: '/pages/print/items/index?status=' + status });
   },
 
   async review(e) {

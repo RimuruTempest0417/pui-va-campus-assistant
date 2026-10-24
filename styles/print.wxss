@@ -1,0 +1,89 @@
+/* A4 列印版共用樣式（失物清單／活動名單）
+   刻意全黑白：紙永遠是白的，影印後也要看得清楚，所以整頁不套品牌紫。
+   顏色一律走 tokens 的 --pv-label／--pv-surface／--pv-sep（列印頁強制 .theme-light）。 */
+
+.print-page { min-height: 100vh; background: var(--pv-bg); }
+.print-inner { padding: var(--pv-sp-3); }
+
+/* ── 螢幕上的工具列（預覽模式會整塊消失，紙上不會出現按鈕）── */
+.toolbar { padding-bottom: var(--pv-sp-2); }
+.chips { display: flex; flex-direction: row; flex-wrap: wrap; }
+.chip {
+  padding: 10rpx 24rpx;
+  margin: 0 var(--pv-sp-1) var(--pv-sp-1) 0;
+  border-radius: var(--pv-r-pill);
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-label-2);
+  background: var(--pv-fill);
+}
+.chip--on { background: var(--pv-tint); color: var(--pv-on-tint); }
+.toolbar__row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--pv-sp-2);
+}
+.toolbar__meta { font-size: var(--pv-fs-caption-1); color: var(--pv-label-2); }
+.toolbar__btns { display: flex; flex-direction: row; align-items: center; flex-shrink: 0; }
+
+.preview-bar { padding: var(--pv-sp-2); text-align: center; }
+.preview-bar__text { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+.state-card { padding: var(--pv-sp-3); background: var(--pv-surface); border-radius: var(--pv-r); }
+
+/* ── 紙張：白底、黑框、無圓角無陰影（圓角與陰影在影印後只會變成灰塊）── */
+.sheet {
+  display: flex;
+  flex-direction: column;
+  background: var(--pv-surface);
+  color: var(--pv-label);
+  border: 1rpx solid var(--pv-sep);
+  padding: 28rpx;
+  box-sizing: border-box;
+  margin-bottom: var(--pv-sp-3);
+}
+.sheet__head { padding-bottom: 12rpx; border-bottom: 2rpx solid var(--pv-label); }
+.sheet__title { font-size: var(--pv-fs-title-3); font-weight: 700; color: var(--pv-label); }
+.sheet__sub { margin-top: 6rpx; font-size: var(--pv-fs-caption-1); color: var(--pv-label-2); }
+.sheet__meta { margin-top: 4rpx; font-size: var(--pv-fs-caption-1); color: var(--pv-label-2); }
+
+.sheet__table { flex: 1; min-height: 0; margin-top: 10rpx; }
+.trow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 46rpx;
+  border-bottom: 1rpx solid var(--pv-sep);
+}
+.trow--head { border-bottom: 2rpx solid var(--pv-label); }
+.trow--head .c { font-weight: 600; }
+.c {
+  font-size: var(--pv-fs-caption-2);
+  color: var(--pv-label);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.c--no { width: 8%; flex-shrink: 0; }
+/* 標題吃剩餘寬度：flex:1 要配 min-width:0，否則旁邊的固定欄會被壓扁 */
+.c--item { flex: 1; min-width: 0; }
+.c--type { width: 12%; flex-shrink: 0; }
+.c--place { width: 18%; flex-shrink: 0; }
+.c--date { width: 18%; flex-shrink: 0; }
+.c--status { width: 12%; flex-shrink: 0; }
+
+/* 活動名單的欄寬（姓名吃剩餘寬度，其餘固定） */
+.c--name { flex: 1; min-width: 0; }
+.c--grade { width: 12%; flex-shrink: 0; }
+.c--klass { width: 16%; flex-shrink: 0; }
+.c--time { width: 22%; flex-shrink: 0; }
+
+.sheet__foot {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10rpx;
+  border-top: 1rpx solid var(--pv-sep);
+}
+.sheet__foot-text { font-size: var(--pv-fs-caption-2); color: var(--pv-label-2); }

@@ -63,6 +63,9 @@
           <view wx:for="{{statusFilters}}" wx:key="key" class="chip {{itemStatus === item.key ? 'chip--on' : ''}}"
                 data-key="{{item.key}}" bindtap="filterItems">{{item.label}}</view>
         </view>
+        <view class="row-actions">
+          <pv-button size="sm" type="plain" data-kind="items" bind:tap="openPrint">{{L.k126}}</pv-button>
+        </view>
         <view wx:for="{{items}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.title}}</text>
@@ -195,6 +198,7 @@
           <view class="row-actions">
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventStats">{{L.k39}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventCheckin">{{L.k40}}</pv-button>
+            <pv-button size="sm" type="plain" data-kind="event" data-id="{{item.id}}" bind:tap="openPrint">{{L.k127}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-status="{{item.status}}" bind:tap="toggleEventStatus">
               {{item.status === 'CANCELLED' ? L.k109 : L.k110}}
             </pv-button>

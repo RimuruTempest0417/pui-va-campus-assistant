@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.43.0-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.44.0-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -30,6 +30,7 @@
 | 校內管理（小程序內建） | 概況、認領、失物、活動、公告、使用者、家長、檢舉、**錯誤**、審計、名單、菜單；**CSV 批次匯入活動／菜單**（先檢查再匯入、逐列回報）；**校內職員（STAFF）登入只看到「菜單」「名單」**，不能開活動、不能發公告 | ✅ 12 個分頁 | ✅ 依能力矩陣分權 |
 | 資料備份（維運） | 全庫匯出成一份 JSON（18 張表）、終端一支指令還原、還原後逐表對帳 | ✅ 網頁後台「下載備份」（只有最高權限看得到） | ✅ `GET /admin/export.json`（`backup:export`）＋後端 repo 的 `restore.mjs` |
 | 錯誤日誌（觀測） | 手機端的白屏／閃退／未處理 Promise 自動送上報，後台按出現次數排序、可標記已解決 | ✅ 自動上報（不影響使用者） | ✅ `error_logs` ＋ 3 支端點（`error:read`） |
+| 列印版（A4 黑白） | 失物清單、活動名單兩頁紙版：白底黑字、無品牌色塊、每頁列數固定；「列印預覽」收起按鈕、「複製表格」貼進 Word／Excel 即可列印（小程序沒有列印 API，這是手機端真實可走的路） | ✅ 2 頁 | — （失物走公開列表、名單走 `event:export`） |
 
 | 設定與個人化 | 右上角頭像進入「設定」：帳號（登入／登出／切換）、**介面語言（跟隨系統／繁體／簡體）**、**外觀（跟隨系統／淺色／深色）**、資料來源（教職員以上）、關於 | ✅ 1 頁 | — |
 | 帳號安全 | **兩步驗證（TOTP）**：高權限帳號可自行開啟，登入要密碼＋6 位動態碼，附 8 組一次性備用碼；關閉要再輸密碼 | ✅ 設定頁「安全」區塊 | ✅ 4 支端點、RFC 6238、e2e 4 項 |
@@ -70,7 +71,7 @@
 
 ```
 .
-├── app.js / app.json / app.wxss          # 全局入口（22 個頁面註冊）
+├── app.js / app.json / app.wxss          # 全局入口（24 個頁面註冊）
 ├── pages/
 │   ├── index/                            # 首頁：四模組入口、緊急公告、今日午餐
 │   ├── items/{list,detail,create,mine}/  # 失物招領
@@ -79,23 +80,24 @@
 │   ├── notices/{list,detail}/            # 公告與提示
 │   ├── calendar/                         # 校曆：月視圖（公告＋活動同框）
 │   ├── parent/                           # 家長端：切換子女、代報名／取消
+│   ├── print/{items,event}/              # 列印版（A4 黑白）：失物清單、活動名單
 │   ├── style-guide/                      # 設計系統展示頁
 │   └── dev/api-check/                    # 開發自檢頁（9 項互動檢查）
 ├── components/                           # pv-navbar / pv-button / pv-card / pv-tag
 │   └── …                                 # pv-avatar / pv-empty / pv-skeleton / pv-tabs / pv-sheet
-├── styles/{tokens.wxss,ui.wxss}          # design tokens 與共用樣式
+├── styles/{tokens.wxss,ui.wxss,print.wxss} # design tokens、共用樣式、列印版面
 ├── services/{api.js,mock.js,data.js}     # 真 API／示範資料／唯一資料入口
-├── utils/{request,errors,reporter,date,event,week,notice,item,nav}.js
+├── utils/{request,errors,reporter,date,event,week,notice,item,nav,print}.js
 ├── config/config.js                      # API_BASE_URL、DEMO_MODE
 ├── scripts/
 │   ├── check-project.mjs                 # 結構／WXSS／白屏守門
 │   ├── check-openapi.mjs                 # API 契約守門（重複鍵／可解析／操作數；--parity 對後端路由）
-│   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，65 項）
+│   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，77 項）
 │   ├── check-i18n.mjs                    # 繁簡介面守門（pick 抽樣／對照表殘留／L.* 供應）
 │   ├── i18n-js-scan.mjs／i18n-wrap-js.mjs # 掃出／包裝頁面 JS 的中文字面值（W-20b 工具）
 │   ├── build-i18n-phrases.py             # 用 opencc tw2sp 重建繁→簡對照表
-│   ├── check-states.mjs                  # 22 頁三態（載入／空／失敗）對照表守門
-│   ├── check-console.mjs                 # 22 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
+│   ├── check-states.mjs                  # 24 頁三態（載入／空／失敗）對照表守門
+│   ├── check-console.mjs                 # 24 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
 │   └── verify-all.mjs                    # 一鍵驗收：上面四支串起來跑完並彙總（失敗貼完整輸出）
 ├── docs/
 │   ├── 01-藍圖與評分對標.md
@@ -126,11 +128,11 @@ node scripts/package.mjs     # → dist/pui-va-campus-assistant-vX.Y.Z.zip
 node scripts/verify-all.mjs        # 4 通過／0 失敗；--no-console 跳過走查、--strict 讓略過也算失敗
 
 # 也可以單獨跑（CI 也會跑）
-node scripts/check-project.mjs     # 22 頁面 / 0 警告
+node scripts/check-project.mjs     # 24 頁面 / 0 警告
 node scripts/check-openapi.mjs     # 52 條路徑／59 個操作、0 重複鍵（--parity 印出與後端路由表的差）
-node scripts/check-data-layer.mjs  # ALL PASS 65/65（固定跑示範資料層，含 data↔api↔mock 方法對齊）
-node scripts/check-states.mjs      # 22 頁三態全部符合（--table 印出對照表）
-node scripts/check-console.mjs     # 22 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
+node scripts/check-data-layer.mjs  # ALL PASS 77/77（固定跑示範資料層，含 data↔api↔mock 方法對齊）
+node scripts/check-states.mjs      # 24 頁三態全部符合（--table 印出對照表）
+node scripts/check-console.mjs     # 24 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
 ```
 
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄
@@ -161,6 +163,7 @@ node scripts/check-console.mjs     # 22 頁 console 走查：0 error／0 warn（
 
 ## 目前進度
 
+- [x] **列印版頁面（v0.44.0）**：後台「失物」分頁按「列印清單」、「活動」分頁按「列印名單」→ A4 黑白版面（白底黑字、無品牌色塊、隱藏按鈕、每頁列數固定），紙高由量測寬度乘 A4 比例推算；「複製表格」把名單複製成 Tab 分隔文字，貼進 Word／Excel 直接列印（小程序沒有列印 API，這是手機端真實可走的路）
 - [x] 產品定位、痛點分析、功能地圖（P0/P1/P2）
 - [x] 評分對標與系統架構設計
 - [x] 設計系統（品牌色、6 級字級、9 個組件、展示頁）
@@ -170,8 +173,8 @@ node scripts/check-console.mjs     # 22 頁 console 走查：0 error／0 warn（
 - [x] 後端 P0 端點（認領審批、報名行鎖＋候補、菜單評分、公告已讀、上傳簽名）
 - [x] **失物智能匹配**（pg_trgm 加權評分 + 詳情頁「可能是你的東西」）
 - [x] 後端 e2e（真實 Postgres，27 項，含 20 併發超賣壓測）
-- [x] **載入／空／失敗三態一致（v0.26.2）**：22 頁對照表（`scripts/check-states.mjs` 守門）；我的發布／我的報名補載入骨架；22 頁補「載入失敗＋重試」；詳情頁把 404 與斷網分開（不再把後端掛掉說成「資料已被刪除」）；後台分頁載入骨架＋讀取失敗卡片
-- [x] **22 頁 console 走查（v0.26.3）**：`utils/diagnostics.js` 把 `console.error`／`warn` 收進 storage `pv_diag`，`scripts/check-console.mjs` 逐頁「清空→開頁→輪詢到載入完→讀回」；22 頁 **0 error／0 warn**，每頁另印「內容筆數」防空綠（`get_simulator_console` 實測回不到執行期輸出，用它會變成假綠）
+- [x] **載入／空／失敗三態一致（v0.26.2）**：全頁三態對照表（`scripts/check-states.mjs` 守門）；我的發布／我的報名補載入骨架；全頁補「載入失敗＋重試」；詳情頁把 404 與斷網分開（不再把後端掛掉說成「資料已被刪除」）；後台分頁載入骨架＋讀取失敗卡片
+- [x] **全頁 console 走查（v0.26.3）**：`utils/diagnostics.js` 把 `console.error`／`warn` 收進 storage `pv_diag`，`scripts/check-console.mjs` 逐頁「清空→開頁→輪詢到載入完→讀回」；全頁 **0 error／0 warn**，每頁另印「內容筆數」防空綠（`get_simulator_console` 實測回不到執行期輸出，用它會變成假綠）
 - [x] **家長頁的「進不來」分成三態（v0.26.4）**：學生／老師／職員打開「我的子女」時後端回 403，原本畫成「載入失敗＋重試」（重試永遠是 403）；現在 403 給說明型空狀態（回首頁／切換帳號、不給重試）、401 給「去登入」、只有真的斷網才給重試
 - [x] **顏色只剩一個來源（v0.26.5／後端 v0.12.5）**：12 個 wxss 的 `#fff`／`rgba()` 全換成 token（新增 `--pv-on-tint`／`--pv-scrim`／`--pv-shadow` 等 12 個）；WXML 屬性用的字面色改由 `utils/theme.js` 提供並與 tokens 比對；`switch` 從上版殘留的綠 `#17694a` 改回培華紫；網頁後台整套由綠 `#17694a` 換成 `#6D3FC4`。守門加三條：寫死色值／用了未定義的 `--pv-*`／theme.js 與 tokens 不一致 → 一加就抓到 4 個靜默失效的變數（星評永遠灰、後台統計數字變黑等）
 - [x] **線上環境漂移修復（後端 v0.12.4）**：Neon 正式庫補 4 支 migration（`event_signups.checkedInAt` 等），帶 token 的 `GET /events/mine`／`GET /events/:id` 由 **500 修回 200**；後端 repo 加 `npm run check:drift`，把「本機 migration↔Neon／health／端點行為／部署 commit」四邊對一次，漂移不再只能等使用者回報

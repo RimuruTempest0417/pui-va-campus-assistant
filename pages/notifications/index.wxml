@@ -10,6 +10,12 @@
 
       <pv-skeleton wx:if="{{loading}}" rows="{{4}}" />
 
+      <block wx:elif="{{failed}}">
+        <pv-empty icon="⚠️" title="{{L.readFail}}" desc="{{errorText}}">
+          <pv-button size="sm" type="tinted" bind:tap="retry">{{L.retry}}</pv-button>
+        </pv-empty>
+      </block>
+
       <block wx:elif="{{items.length}}">
         <view wx:for="{{items}}" wx:key="id" class="notif-item {{item.unread ? 'notif-item--unread' : ''}}" data-i="{{index}}" bindtap="openItem">
           <view class="notif-item__top">
