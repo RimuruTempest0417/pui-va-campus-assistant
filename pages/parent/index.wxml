@@ -17,12 +17,41 @@
         <view class="ui-card"><pv-skeleton rows="3" /></view>
       </block>
 
+      <!-- 403：帳號不是家長（學生／老師／職員）。這是「這一頁不屬於你」，不是載入失敗 → 不給重試 -->
+      <pv-empty
+        wx:elif="{{denied}}"
+        icon="👪"
+        title="這一頁只給已綁定子女的家長"
+        desc="目前的帳號不是家長身分（學生、老師、校方職員都沒有子女資料）。家長端要由學校在家長帳號下綁定學號之後，這裡才會有內容。"
+      >
+        <view class="state-actions">
+          <pv-button type="tinted" size="sm" bind:tap="goHome">回首頁</pv-button>
+          <pv-button class="state-actions__next" type="plain" size="sm" bind:tap="goLogin">切換帳號</pv-button>
+        </view>
+      </pv-empty>
+
+      <!-- 401：沒登入或登入過期 → 給登入入口 -->
+      <pv-empty
+        wx:elif="{{guest}}"
+        icon="🔐"
+        title="請先在家長帳號登入"
+        desc="子女的報名與認領要在家長帳號登入後才看得到。"
+      >
+        <view class="state-actions">
+          <pv-button type="tinted" size="sm" bind:tap="goLogin">去登入</pv-button>
+          <pv-button class="state-actions__next" type="plain" size="sm" bind:tap="goHome">回首頁</pv-button>
+        </view>
+      </pv-empty>
+
+      <!-- 真的讀不到（斷網／伺服器錯誤）才給重試 -->
       <pv-empty
         wx:elif="{{failed}}"
-        icon="👪"
+        icon="⚠️"
         title="無法讀取子女資料"
-        desc="{{errorText || '請確認這個帳號是家長身分，且已由學校綁定子女'}}"
-      />
+        desc="{{errorText || '請稍後再試'}}"
+      >
+        <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+      </pv-empty>
 
       <pv-empty wx:elif="{{!children.length}}" icon="👪" title="還沒有綁定的子女" desc="請聯絡學校把家長帳號綁到學生的學號" />
 

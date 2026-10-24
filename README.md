@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.26.3-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.26.4-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -138,6 +138,7 @@ node scripts/check-console.mjs     # 19 頁 console 走查：0 error／0 warn（
 - [x] 後端 e2e（真實 Postgres，27 項，含 20 併發超賣壓測）
 - [x] **載入／空／失敗三態一致（v0.26.2）**：19 頁對照表（`scripts/check-states.mjs` 守門）；我的發布／我的報名補載入骨架；11 頁補「載入失敗＋重試」；詳情頁把 404 與斷網分開（不再把後端掛掉說成「資料已被刪除」）；後台分頁載入骨架＋讀取失敗卡片
 - [x] **19 頁 console 走查（v0.26.3）**：`utils/diagnostics.js` 把 `console.error`／`warn` 收進 storage `pv_diag`，`scripts/check-console.mjs` 逐頁「清空→開頁→輪詢到載入完→讀回」；19 頁 **0 error／0 warn**，每頁另印「內容筆數」防空綠（`get_simulator_console` 實測回不到執行期輸出，用它會變成假綠）
+- [x] **家長頁的「進不來」分成三態（v0.26.4）**：學生／老師／職員打開「我的子女」時後端回 403，原本畫成「載入失敗＋重試」（重試永遠是 403）；現在 403 給說明型空狀態（回首頁／切換帳號、不給重試）、401 給「去登入」、只有真的斷網才給重試
 - [x] **線上環境漂移修復（後端 v0.12.4）**：Neon 正式庫補 4 支 migration（`event_signups.checkedInAt` 等），帶 token 的 `GET /events/mine`／`GET /events/:id` 由 **500 修回 200**；後端 repo 加 `npm run check:drift`，把「本機 migration↔Neon／health／端點行為／部署 commit」四邊對一次，漂移不再只能等使用者回報
 - [x] 校內職員（STAFF）後台入口（v0.26.1）：校務處／圖書館帳號登入後只有「菜單」「名單」兩頁，開活動與發公告仍是 403；網頁後台同步
 - [x] 老師端管理後台（W-10）：10 個分頁，含**使用者管理**（建立帳號／改名／改帳號／改密碼／改等級／停用／刪除／權限說明）

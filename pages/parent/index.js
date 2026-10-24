@@ -8,11 +8,18 @@ const { codeOf } = require('../../utils/errors');
  * 所有寫入都帶 activeId（子女的 studentId），真正的門在後端：
  * role 必須是 PARENT、studentId 必須存在於 parent_links，否則 403。
  * 前端不自己判斷「這是不是我的孩子」—— 那只會多一份會過期的真相。
+ *
+ * 進不來的時候要分清楚「這不是你的頁面」與「載入壞了」：
+ *   403 → denied：帳號不是家長。給說明＋回首頁，**不要給重試**（重試一萬次還是 403）
+ *   401 → guest：沒登入／登入過期。給登入入口
+ *   其他 → failed：網路／伺服器問題，這才是重試有意義的地方
  */
 Page({
   data: {
     loading: true,
     failed: false,
+    denied: false,
+    guest: false,
     errorText: '',
     children: [],
     tabs: [],
@@ -40,6 +47,20 @@ Page({
     this.load().then(() => this.setData({ refreshing: false }));
   },
 
+  /** 失敗卡上的「重試」：只在 failed 這一態出現 */
+  retry() {
+    this.setData({ loading: true, failed: false, errorText: '' });
+    this.load();
+  },
+
+  goHome() {
+    wx.reLaunch({ url: '/pages/index/index' });
+  },
+
+  goLogin() {
+    wx.navigateTo({ url: '/pages/admin/login/index' });
+  },
+
   async load() {
     try {
       const res = await data.parentChildren();
@@ -60,17 +81,38 @@ Page({
         activeId: activeId,
         loading: false,
         failed: false,
+        denied: false,
+        guest: false,
       });
       if (activeId) await this.loadChild(activeId);
     } catch (e) {
-      // 訪客／學生／老師打進來都是 401・403：給人話，不要把後端的權限訊息直接丟到畫面上
       const code = codeOf(e);
-      const needLogin = code === 'UNAUTHORIZED' || code === 'FORBIDDEN' || code === 'UNAUTHENTICATED';
-      this.setData({
+      const cleared = {
         loading: false,
-        failed: true,
-        errorText: needLogin ? '請先在家長帳號登入（首頁右上角頭像），而且這個帳號要已綁定子女' : data.messageOf(e),
-      });
+        failed: false,
+        denied: false,
+        guest: false,
+        errorText: '',
+        children: [],
+        tabs: [],
+        activeId: '',
+        child: null,
+        signups: [],
+        openEvents: [],
+      };
+
+      // 403：帳號存在但角色不是家長（學生／老師／職員都會打到這裡）
+      if (code === 'FORBIDDEN') {
+        this.setData(Object.assign(cleared, { denied: true }));
+        return;
+      }
+      // 401：沒有 token 或 token 過期
+      if (code === 'UNAUTHORIZED' || code === 'UNAUTHENTICATED') {
+        this.setData(Object.assign(cleared, { guest: true }));
+        return;
+      }
+      // 其餘（NETWORK／INTERNAL／…）才是真的讀不到
+      this.setData(Object.assign(cleared, { failed: true, errorText: data.messageOf(e) }));
     }
   },
 
