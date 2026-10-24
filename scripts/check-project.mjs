@@ -402,6 +402,57 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   }
 }
 
+// 15) 頁面 JS 不得有「沒包 i18n.pick() 的中文字面值」（W-20b）
+//     切到簡體後，只有包 pick() 的字串會變；漏一個就是「半繁半簡」，
+//     而這種錯編譯不會報、console 也不會叫，只有使用者看得出。
+{
+  const { scan } = await import('./i18n-js-scan.mjs');
+  const { report } = scan(root);
+  for (const [rel, hits] of Object.entries(report)) {
+    if (!rel.startsWith('pages/')) continue; // utils 的標籤表在取用時才 pick()
+    for (const h of hits) {
+      if (/console\.(log|warn|error|info|debug)\(/.test(h.source)) continue; // 開發訊息不翻
+      errors.push(`${rel}:${h.line} 的中文字面值 ${JSON.stringify(h.text)} 沒有包 i18n.pick()（簡體模式不會翻）`);
+    }
+  }
+}
+
+// 16) 每一條 i18n.pick('…') 都要在 utils/i18n-phrases.js 有對照，否則 pick() 靜默回傳繁體
+{
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const phPath = join(root, 'utils/i18n-phrases.js');
+  const keys = new Set();
+  for (const m of readFileSync(phPath, 'utf8').matchAll(/"((?:\\.|[^"\\])+)":/g)) {
+    keys.add(JSON.parse('"' + m[1] + '"'));
+  }
+  const walkJs = (dir, out = []) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (['node_modules', '.git', 'minitest', 'dist'].includes(e.name)) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walkJs(full, out);
+      else if (e.name.endsWith('.js')) out.push(full);
+    }
+  };
+  const files = [];
+  for (const d of ['pages', 'components', 'services', 'utils']) if (existsSync(join(root, d))) walkJs(join(root, d), files);
+  const UNESC = { n: '\n', t: '\t', '\\': '\\', "'": "'", '"': '"' };
+  const PICK = /i18n\.pick\(\s*(?:'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)")\s*[,)]/g;
+  let missing = 0;
+  for (const file of files) {
+    if (file.endsWith('utils/i18n-phrases.js')) continue;
+    const src = readFileSync(file, 'utf8');
+    for (const m of src.matchAll(PICK)) {
+      const raw = m[1] !== undefined ? m[1] : m[2];
+      const text = raw.replace(/\\(.)/g, (_, c) => UNESC[c] || c);
+      if (!keys.has(text)) {
+        missing += 1;
+        errors.push(`${file.slice(root.length + 1)} 的 pick('${text}') 沒有簡體對照（跑 python3 scripts/build-i18n-phrases.py）`);
+      }
+    }
+  }
+  if (!missing && keys.size < 100) warnings.push('i18n-phrases.js 只有 ' + keys.size + ' 組，疑似被截斷');
+}
+
 for (const w of warnings) console.warn(`⚠️  ${w}`);
 if (errors.length) {
   for (const e of errors) console.error(`❌ ${e}`);

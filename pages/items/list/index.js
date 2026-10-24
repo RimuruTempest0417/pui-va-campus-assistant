@@ -35,15 +35,15 @@ Page({
     keyword: '',
     pressedId: '',
     typeTabs: [
-      { key: '', label: '全部' },
-      { key: 'LOST', label: '失物' },
-      { key: 'FOUND', label: '拾獲' },
+      { key: '', label: i18n.pick('全部') },
+      { key: 'LOST', label: i18n.pick('失物') },
+      { key: 'FOUND', label: i18n.pick('拾獲') },
     ],
     statusChips: [
-      { key: '', label: '不限狀態' },
-      { key: 'OPEN', label: '待認領' },
-      { key: 'CLAIMED', label: '已認領' },
-      { key: 'CLOSED', label: '已完成' },
+      { key: '', label: i18n.pick('不限狀態') },
+      { key: 'OPEN', label: i18n.pick('待認領') },
+      { key: 'CLAIMED', label: i18n.pick('已認領') },
+      { key: 'CLOSED', label: i18n.pick('已完成') },
     ],
   },
 

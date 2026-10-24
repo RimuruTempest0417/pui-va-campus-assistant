@@ -31,23 +31,16 @@ Page({
     theme: 'system',
     themeClass: appearance.themeClass(),
     localePref: 'system',
-    themeOptions: [
-      { key: 'system', label: '跟隨系統' },
-      { key: 'light', label: '淺色' },
-      { key: 'dark', label: '深色' },
-    ],
-    localeOptions: [
-      { key: 'system', label: '跟隨系統' },
-      { key: 'zh-Hant', label: '繁體' },
-      { key: 'zh-Hans', label: '簡體' },
-    ],
+    // 選項文字由 options() 在 onShow 產生（含切換後的重算），這裡不重複一份
+    themeOptions: [],
+    localeOptions: [],
     loggedIn: false,
     user: {},
     roleText: '',
     isDemo: false,
     isStaff: false,
     apiBase: '',
-    version: '0.34.0',
+    version: config.VERSION || '',
     statusBarHeight: 20,
   },
 
@@ -61,8 +54,24 @@ Page({
     this.setData({ statusBarHeight: info.statusBarHeight || 20, apiBase: request.apiBase() });
   },
 
+  /** 外觀／語言選項的顯示字（切換後要重算，否則留在舊語言） */
+  options() {
+    return {
+      themeOptions: [
+        { key: 'system', label: i18n.pick('跟隨系統') },
+        { key: 'light', label: i18n.pick('淺色') },
+        { key: 'dark', label: i18n.pick('深色') },
+      ],
+      localeOptions: [
+        { key: 'system', label: i18n.pick('跟隨系統') },
+        { key: 'zh-Hant', label: i18n.pick('繁體') },
+        { key: 'zh-Hans', label: i18n.pick('簡體') },
+      ],
+    };
+  },
+
   onShow() {
-    this.setData({ L: this.labels() });
+    this.setData(Object.assign({ L: this.labels() }, this.options()));
     this.refresh();
   },
 
@@ -91,7 +100,7 @@ Page({
     const v = e.currentTarget.dataset.key;
     appearance.setTheme(v);
     this.setData({ theme: appearance.getTheme(), themeClass: appearance.themeClass() });
-    wx.showToast({ title: '外觀已更新', icon: 'none' });
+    wx.showToast({ title: i18n.pick('外觀已更新'), icon: 'none' });
   },
 
   pickLocale(e) {
@@ -104,8 +113,8 @@ Page({
       /* ignore */
     }
     i18n.setLocale(v === 'system' ? appearance.systemLocale() : v);
-    this.setData({ localePref: v });
-    wx.showToast({ title: '語言已切換', icon: 'none' });
+    this.setData(Object.assign({ localePref: v, L: this.labels() }, this.options()));
+    wx.showToast({ title: i18n.pick('語言已切換'), icon: 'none' });
   },
 
   goLogin() {
@@ -128,7 +137,7 @@ Page({
       /* ignore */
     }
     this.refresh();
-    wx.showToast({ title: '已登出', icon: 'none' });
+    wx.showToast({ title: i18n.pick('已登出'), icon: 'none' });
   },
 
   back() {

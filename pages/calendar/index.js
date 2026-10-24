@@ -13,12 +13,12 @@ Page({
     year: 0,
     month: 0,
     monthText: '',
-    weekdays: ['一', '二', '三', '四', '五', '六', '日'],
+    weekdays: [i18n.pick('一'), i18n.pick('二'), i18n.pick('三'), i18n.pick('四'), i18n.pick('五'), i18n.pick('六'), i18n.pick('日')],
     cells: [],
     selected: '',
     selectedText: '',
     items: [],
-    L: { title: '', today: '', empty: '', emptyDesc: '', event: '', notice: '', calendar: '校曆', urgent: '緊急', school: '校曆表' },
+    L: { title: '', today: '', empty: '', emptyDesc: '', event: '', notice: '', calendar: i18n.pick('校曆'), urgent: i18n.pick('緊急'), school: i18n.pick('校曆表') },
     externalCount: 0,
   },
 
@@ -115,7 +115,7 @@ Page({
       year: now.getFullYear(),
       month: now.getMonth() + 1,
       selected: cal.dateKey(now),
-      selectedText: '今天',
+      selectedText: i18n.pick('今天'),
     });
     this.render();
   },

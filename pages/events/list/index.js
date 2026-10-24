@@ -27,9 +27,9 @@ Page({
     scope: 'upcoming',
     items: [],
     tabs: [
-      { key: 'upcoming', label: '即將開始' },
-      { key: 'past', label: '已結束' },
-      { key: '', label: '全部' },
+      { key: 'upcoming', label: i18n.pick('即將開始') },
+      { key: 'past', label: i18n.pick('已結束') },
+      { key: '', label: i18n.pick('全部') },
     ],
   },
 

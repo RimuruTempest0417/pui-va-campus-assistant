@@ -55,7 +55,7 @@ Page({
   async onToggleLike() {
     const dish = this.data.dish;
     if (!dish.myScore) {
-      wx.showToast({ title: '先給個星評分吧', icon: 'none' });
+      wx.showToast({ title: i18n.pick('先給個星評分吧'), icon: 'none' });
       return;
     }
     await this.rate(dish.myScore, !dish.myLiked);
@@ -65,7 +65,7 @@ Page({
     try {
       const dish = await data.rateDish(this.id, { score: score, liked: liked });
       this.setData({ dish: dish });
-      wx.showToast({ title: '已記錄', icon: 'success' });
+      wx.showToast({ title: i18n.pick('已記錄'), icon: 'success' });
     } catch (e) {
       wx.showToast({ title: data.messageOf(e), icon: 'none' });
     }

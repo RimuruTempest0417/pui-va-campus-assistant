@@ -31,13 +31,13 @@ Page({
     themeClass: appearance.themeClass(),
     type: 'LOST',
     typeTabs: [
-      { key: 'LOST', label: '我丟了東西' },
-      { key: 'FOUND', label: '我撿到東西' },
+      { key: 'LOST', label: i18n.pick('我丟了東西') },
+      { key: 'FOUND', label: i18n.pick('我撿到東西') },
     ],
     contactOptions: [
-      { key: 'inApp', label: '站內聯絡' },
-      { key: 'wechat', label: '微信' },
-      { key: 'phone', label: '電話' },
+      { key: 'inApp', label: i18n.pick('站內聯絡') },
+      { key: 'wechat', label: i18n.pick('微信') },
+      { key: 'phone', label: i18n.pick('電話') },
     ],
     form: {
       title: '',
@@ -128,15 +128,15 @@ Page({
     const f = this.data.form;
     if (this.data.submitting) return;
     if (!f.title || f.title.trim().length < 2) {
-      wx.showToast({ title: '請填寫標題（至少 2 個字）', icon: 'none' });
+      wx.showToast({ title: i18n.pick('請填寫標題（至少 2 個字）'), icon: 'none' });
       return;
     }
     if (!f.place || !f.place.trim()) {
-      wx.showToast({ title: '請填寫地點', icon: 'none' });
+      wx.showToast({ title: i18n.pick('請填寫地點'), icon: 'none' });
       return;
     }
     if (f.contactType !== 'inApp' && !f.contactValue) {
-      wx.showToast({ title: '請填聯絡方式或改成站內聯絡', icon: 'none' });
+      wx.showToast({ title: i18n.pick('請填聯絡方式或改成站內聯絡'), icon: 'none' });
       return;
     }
 
@@ -161,7 +161,7 @@ Page({
         images: images,
       });
       wx.showToast({
-        title: !isDemo && f.images.length ? '已發布（圖片暫不支援）' : '已發布',
+        title: !isDemo && f.images.length ? i18n.pick('已發布（圖片暫不支援）') : i18n.pick('已發布'),
         icon: 'success',
       });
       setTimeout(() => wx.navigateBack(), 600);

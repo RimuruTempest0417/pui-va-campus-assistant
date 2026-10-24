@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.36.1-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.37.0-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -86,7 +86,10 @@
 ├── scripts/
 │   ├── check-project.mjs                 # 結構／WXSS／白屏守門
 │   ├── check-openapi.mjs                 # API 契約守門（重複鍵／可解析／操作數；--parity 對後端路由）
-│   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，62 項）
+│   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，65 項）
+│   ├── check-i18n.mjs                    # 繁簡介面守門（pick 抽樣／對照表殘留／L.* 供應）
+│   ├── i18n-js-scan.mjs／i18n-wrap-js.mjs # 掃出／包裝頁面 JS 的中文字面值（W-20b 工具）
+│   ├── build-i18n-phrases.py             # 用 opencc tw2sp 重建繁→簡對照表
 │   ├── check-states.mjs                  # 20 頁三態（載入／空／失敗）對照表守門
 │   ├── check-console.mjs                 # 20 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
 │   └── verify-all.mjs                    # 一鍵驗收：上面四支串起來跑完並彙總（失敗貼完整輸出）
@@ -115,13 +118,13 @@ node scripts/package.mjs     # → dist/pui-va-campus-assistant-vX.Y.Z.zip
 ## 本地開發
 
 ```bash
-# 一鍵驗收：四支守門串起來跑完並彙總（console 那步要 DevTools 開著，沒開會標「略過」）
+# 一鍵驗收：六支守門串起來跑完並彙總（console 那步要 DevTools 開著，沒開會標「略過」）
 node scripts/verify-all.mjs        # 4 通過／0 失敗；--no-console 跳過走查、--strict 讓略過也算失敗
 
 # 也可以單獨跑（CI 也會跑）
 node scripts/check-project.mjs     # 20 頁面 / 0 警告
 node scripts/check-openapi.mjs     # 52 條路徑／59 個操作、0 重複鍵（--parity 印出與後端路由表的差）
-node scripts/check-data-layer.mjs  # ALL PASS 62/62（固定跑示範資料層，含 data↔api↔mock 方法對齊）
+node scripts/check-data-layer.mjs  # ALL PASS 65/65（固定跑示範資料層，含 data↔api↔mock 方法對齊）
 node scripts/check-states.mjs      # 20 頁三態全部符合（--table 印出對照表）
 node scripts/check-console.mjs     # 20 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
 ```

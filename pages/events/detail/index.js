@@ -96,17 +96,17 @@ Page({
 
   barFor(ev) {
     if (!ev.mySignup && (ev.groups || []).length && !this.data.pickedGroup) {
-      return { barText: '選擇組別', barType: 'tinted', barHint: '這個活動需要先選組別', barDisabled: true };
+      return { barText: i18n.pick('選擇組別'), barType: 'tinted', barHint: i18n.pick('這個活動需要先選組別'), barDisabled: true };
     }
     if (ev.myStatus === 'CONFIRMED') {
-      return { barText: '取消報名', barType: 'plain', barHint: '你已報名', barDisabled: false };
+      return { barText: i18n.pick('取消報名'), barType: 'plain', barHint: i18n.pick('你已報名'), barDisabled: false };
     }
     if (ev.myStatus === 'WAITLIST') {
-      return { barText: '取消候補', barType: 'plain', barHint: '候補第 ' + ev.waitlistPos + ' 位', barDisabled: false };
+      return { barText: i18n.pick('取消候補'), barType: 'plain', barHint: i18n.pick('候補第 ') + ev.waitlistPos + i18n.pick(' 位'), barDisabled: false };
     }
-    if (ev.ended) return { barText: '已結束', barType: 'tinted', barHint: '', barDisabled: true };
-    if (ev.full) return { barText: '排入候補', barType: 'tinted', barHint: '名額已滿', barDisabled: false };
-    return { barText: '立即報名', barType: 'filled', barHint: '', barDisabled: false };
+    if (ev.ended) return { barText: i18n.pick('已結束'), barType: 'tinted', barHint: '', barDisabled: true };
+    if (ev.full) return { barText: i18n.pick('排入候補'), barType: 'tinted', barHint: i18n.pick('名額已滿'), barDisabled: false };
+    return { barText: i18n.pick('立即報名'), barType: 'filled', barHint: '', barDisabled: false };
   },
 
   goCheckin() {
@@ -121,14 +121,14 @@ Page({
     try {
       if (ev.mySignup) {
         await data.cancelSignup(ev.id);
-        wx.showToast({ title: '已取消', icon: 'success' });
+        wx.showToast({ title: i18n.pick('已取消'), icon: 'success' });
       } else {
         await subscribe.request('event'); // 模板 ID 未填就自動跳過
         const rec = await data.signupEvent(ev.id, this.data.pickedGroup || null);
         if (rec.status === 'WAITLIST') {
-          wx.showToast({ title: '已額滿，候補第 ' + rec.waitlistPos + ' 位', icon: 'none' });
+          wx.showToast({ title: i18n.pick('已額滿，候補第 ') + rec.waitlistPos + i18n.pick(' 位'), icon: 'none' });
         } else {
-          wx.showToast({ title: '報名成功', icon: 'success' });
+          wx.showToast({ title: i18n.pick('報名成功'), icon: 'success' });
         }
       }
       await this.load();
