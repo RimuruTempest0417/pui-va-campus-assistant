@@ -34,15 +34,30 @@ Page({
     this.setData({ password: e.detail.value, error: '' });
   },
 
+  // 原生 form 送出：值直接由表單回傳，即使 bindinput 沒觸發也拿得到
+  onSubmit(e) {
+    const v = (e && e.detail && e.detail.value) || {};
+    const account = v.account || this.data.account;
+    const password = v.password || this.data.password;
+    return this.doLogin(account, password);
+  },
+
   async submit() {
-    if (this.data.submitting) return;
-    const account = this.data.account.trim();
-    const password = this.data.password;
+    return this.doLogin(this.data.account, this.data.password);
+  },
+
+  async doLogin(accountRaw, passwordRaw) {
+    const account = String(accountRaw || '').trim();
+    const password = String(passwordRaw || '');
     if (!account || !password) {
       this.setData({ error: '請填帳號與密碼' });
       return;
     }
+    return this._login(account, password);
+  },
 
+  async _login(account, password) {
+    if (this.data.submitting) return;
     this.setData({ submitting: true, error: '' });
     try {
       const res = await admin.login(account, password);
