@@ -14,9 +14,9 @@ const { codeOf } = require('../../utils/errors');
  *   401 → guest：沒登入／登入過期。給登入入口
  *   其他 → failed：網路／伺服器問題，這才是重試有意義的地方
  */
-const i18n = require('../utils/i18n');
+const i18n = require('../../utils/i18n');
 
-const appearance = require('../utils/appearance');
+const appearance = require('../../utils/appearance');
 
 Page({
   labels() {

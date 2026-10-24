@@ -1,9 +1,9 @@
 const data = require('../../../services/data');
 const { dateKey } = require('../../../utils/date');
 
-const i18n = require('../../utils/i18n');
+const i18n = require('../../../utils/i18n');
 
-const appearance = require('../../utils/appearance');
+const appearance = require('../../../utils/appearance');
 
 Page({
   labels() {

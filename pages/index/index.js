@@ -19,7 +19,7 @@ const ADMIN_SUB = {
   SUPER_ADMIN: '審核認領 · 發公告 · 排菜單 · 名單 · 審計',
 };
 
-const appearance = require('../utils/appearance');
+const appearance = require('../../utils/appearance');
 
 Page({
   data: {
