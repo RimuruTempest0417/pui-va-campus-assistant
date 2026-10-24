@@ -29,51 +29,20 @@
         </view>
       </pv-card>
 
-      <!-- 兩步驗證（教職員） -->
+      <!-- 兩步驗證：只在網頁後台設定（v0.40.0 起） -->
       <block wx:if="{{isStaff && loggedIn}}">
         <text class="set-group">{{L.k30}}</text>
         <pv-card>
           <view class="set-row">
             <view class="set-row__main">
               <text class="set-row__title">{{L.k31}}</text>
-              <text class="set-row__sub">{{tfaEnabled ? (L.k32 + ' ' + tfaCodesLeft + ' ' + L.k33) : L.k34}}</text>
+              <text class="set-row__sub">{{tfaEnabled ? (L.k32 + ' ' + tfaCodesLeft + ' ' + L.k33) : L.k47}}</text>
             </view>
           </view>
-
-          <block wx:if="{{!tfaEnabled && !tfaSetup}}">
-            <view class="set-actions">
-              <text class="set-link" catchtap="tfaBegin">{{L.k35}}</text>
-            </view>
-          </block>
-
-          <block wx:if="{{!tfaEnabled && tfaSetup}}">
-            <text class="set-hint">{{L.k36}}{{tfaSetup.secret}}</text>
-            <view class="set-actions"><text class="set-link" catchtap="copySecret">{{L.k37}}</text></view>
-            <input class="set-input" value="{{tfaCode}}" type="number" maxlength="6"
-                   placeholder="{{L.k38}}" bindinput="onTfaCode" />
-            <view class="set-actions">
-              <text class="set-link" catchtap="tfaEnable">{{tfaBusy ? L.k39 : L.k40}}</text>
-            </view>
-          </block>
-
-          <block wx:if="{{tfaBackupCodes.length}}">
-            <text class="set-hint">{{L.k44}}</text>
-            <view class="codes">
-              <text wx:for="{{tfaBackupCodes}}" wx:key="*this" class="codes__item">{{item}}</text>
-            </view>
-            <view class="set-actions">
-              <text class="set-link" catchtap="copyBackupCodes">{{L.k45}}</text>
-              <text class="set-link" catchtap="hideBackupCodes">{{L.k46}}</text>
-            </view>
-          </block>
-
-          <block wx:if="{{tfaEnabled}}">
-            <input class="set-input" value="{{tfaPassword}}" password
-                   placeholder="{{L.k41}}" bindinput="onTfaPassword" />
-            <view class="set-actions">
-              <text class="set-link set-link--danger" catchtap="tfaDisable">{{tfaBusy ? L.k42 : L.k43}}</text>
-            </view>
-          </block>
+          <view class="set-actions">
+            <text class="set-link" catchtap="copy2faUrl">{{L.k48}}</text>
+          </view>
+          <text class="set-hint">{{tfa2faUrl}}</text>
         </pv-card>
       </block>
 
@@ -112,6 +81,17 @@
           </view>
         </pv-card>
       </block>
+
+      <!-- 使用說明 -->
+      <pv-card>
+        <view class="set-row" bindtap="goHelp">
+          <view class="set-row__main">
+            <text class="set-row__title">{{L.k49}}</text>
+            <text class="set-row__sub">{{L.k50}}</text>
+          </view>
+          <text class="set-row__chev">›</text>
+        </view>
+      </pv-card>
 
       <!-- 關於 -->
       <text class="set-group">{{L.k13}}</text>

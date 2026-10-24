@@ -1,0 +1,85 @@
+const appearance = require('../../utils/appearance');
+const i18n = require('../../utils/i18n');
+const config = require('../../config/config');
+const roleLabel = require('../../utils/role').label;
+
+Page({
+  data: {
+    themeClass: appearance.themeClass(),
+    role: 'STUDENT',
+    roleText: '',
+    tabs: [],
+    sections: {},
+    active: 'STUDENT',
+  },
+
+  onShow() {
+    let user = {};
+    try {
+      user = wx.getStorageSync(config.STORAGE_KEYS.user) || {};
+    } catch (e) {
+      user = {};
+    }
+    const role = user.role || 'STUDENT';
+    const isStaff = ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'TEACHER'].indexOf(role) >= 0;
+    const defaultTab = role === 'PARENT' ? 'PARENT' : isStaff ? 'TEACHER' : 'STUDENT';
+    this.setData({
+      themeClass: appearance.themeClass(),
+      L: this.labels(),
+      role: defaultTab,
+      roleText: roleLabel(role),
+      tabs: this.tabs(),
+      active: this.data.active && this.data.active !== '' ? this.data.active : defaultTab,
+      sections: this.sections(),
+    });
+  },
+
+  labels() {
+    return {
+      title: i18n.pick('使用說明'),
+    };
+  },
+
+  tabs() {
+    return [
+      { key: 'STUDENT', label: i18n.pick('學生') },
+      { key: 'PARENT', label: i18n.pick('家長') },
+      { key: 'TEACHER', label: i18n.pick('老師') },
+      { key: 'ADMIN', label: i18n.pick('資訊管理員') },
+    ];
+  },
+
+  pickTab(e) {
+    this.setData({ active: e.currentTarget.dataset.key });
+  },
+
+  sections() {
+    return {
+      STUDENT: [
+        { q: i18n.pick('找不到東西怎麼辦？'), a: i18n.pick('首頁 → 失物招領 → 右上「我要發布」，填分類、地點、時間與照片。標題寫清楚（例如「藍色水壺 3F 走廊」），比只寫「水壺」容易被找到。') },
+        { q: i18n.pick('我撿到東西呢？'), a: i18n.pick('同一頁發布時把類型選「拾獲」。如果失主看到，他會提出認領；你會在「我的發布」看到申請，按同意即可。') },
+        { q: i18n.pick('看到「可能是你的東西」是什麼？'), a: i18n.pick('系統比對同分類、地點相近、時間接近的紀錄，列出機會最高的幾筆，並顯示吻合度。真的像你的再提出認領。') },
+        { q: i18n.pick('活動滿了還能報嗎？'), a: i18n.pick('可以。滿額會自動排候補並顯示順位；有人取消時系統會依順序自動補位，你會收到通知。') },
+        { q: i18n.pick('怎麼知道活動有沒有報到？'), a: i18n.pick('活動詳情底部會顯示你目前的狀態（已報名／候補第 N 位），「我的報名」也看得到全部紀錄。') },
+        { q: i18n.pick('午餐可以評分嗎？'), a: i18n.pick('可以。菜單頁點任一菜色 → 給 1–5 星與點讚；每人每道菜一次，之後可改。') },
+      ],
+      PARENT: [
+        { q: i18n.pick('為什麼我看不到子女資料？'), a: i18n.pick('家長帳號需要由學校綁定學號。綁定後首頁會出現「我的子女」，可切換不同孩子。') },
+        { q: i18n.pick('可以幫孩子報名嗎？'), a: i18n.pick('可以。家長頁可代為報名與取消，名額與候補規則跟學生自己報名一樣。') },
+        { q: i18n.pick('會看到孩子的成績或出缺席嗎？'), a: i18n.pick('目前不會。家長端只顯示報名、認領與未讀公告，成績不在本系統範圍。') },
+      ],
+      TEACHER: [
+        { q: i18n.pick('怎麼發公告？'), a: i18n.pick('首頁 → 管理後台 → 公告分頁 → 新增。可設緊急（首頁會出現紅色提示條）與到期日，過期自動隱藏。') },
+        { q: i18n.pick('怎麼開活動與設定名額？'), a: i18n.pick('後台 → 活動 → 新增。填開始／結束時間、地點、名額（0 表示不限）、說明；也可以用 CSV 批次匯入多個活動。') },
+        { q: i18n.pick('現場簽到怎麼做？'), a: i18n.pick('活動詳情 → 產生簽到碼（6 位＋QR），學生掃碼或輸入即可；老師可代簽，統計頁看得到出席率。') },
+        { q: i18n.pick('怎麼看報名名單？'), a: i18n.pick('後台 → 活動 → 該活動的「統計」，可看各組正取／候補／出席，並匯出 CSV（Excel 直接開不亂碼）。') },
+      ],
+      ADMIN: [
+        { q: i18n.pick('認領申請要審批嗎？'), a: i18n.pick('要。後台 → 認領，通過後物品狀態變「已認領」，其他同時申請的會自動拒絕，並通知雙方。') },
+        { q: i18n.pick('帳號怎麼管理？'), a: i18n.pick('後台 → 使用者：可新增、改名稱／帳號／密碼／等級、停用、刪除（兩段式確認）。只能管理等級低於自己的帳號。') },
+        { q: i18n.pick('兩步驗證在哪設定？'), a: i18n.pick('在網頁後台 /admin/2fa-ui（設定頁有「複製設定網址」）。開啟後登入要密碼＋6 位動態碼，並會給你 8 組一次性備用碼。') },
+        { q: i18n.pick('東西不見了怎麼查？'), a: i18n.pick('後台 → 錯誤分頁看手機端自動上報的錯誤；審計分頁看誰做了什麼；名單分頁可匯出資料。') },
+      ],
+    };
+  },
+});

@@ -52,6 +52,10 @@ Page({
       k44: i18n.pick("備用碼（只顯示這一次，請抄下來或複製收好；每組只能用一次）"),
       k45: i18n.pick("複製全部"),
       k46: i18n.pick("我已保存"),
+      k47: i18n.pick("未開啟（請在網頁後台設定）"),
+      k48: i18n.pick("複製設定網址"),
+      k49: i18n.pick("使用說明"),
+      k50: i18n.pick("依身分看操作步驟（學生／家長／老師／管理員）"),
 
     };
   },
@@ -79,6 +83,7 @@ Page({
     tfaCode: '',
     tfaPassword: '',
     tfaBusy: false,
+    tfa2faUrl: 'https://pui-va-campus-server.vercel.app/admin/2fa-ui',
   },
 
   onLoad() {
@@ -200,6 +205,14 @@ Page({
     } finally {
       this.setData({ tfaBusy: false });
     }
+  },
+
+  goHelp() {
+    wx.navigateTo({ url: '/pages/help/index' });
+  },
+
+  copy2faUrl() {
+    wx.setClipboardData({ data: this.data.tfa2faUrl });
   },
 
   copyBackupCodes() {

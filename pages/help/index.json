@@ -1,0 +1,8 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "pv-navbar": "/components/pv-navbar/index",
+    "pv-card": "/components/pv-card/index"
+  },
+  "navigationBarTitleText": "使用說明"
+}
