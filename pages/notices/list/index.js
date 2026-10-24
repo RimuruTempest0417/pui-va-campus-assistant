@@ -2,6 +2,8 @@ const data = require('../../../services/data');
 const { decorate } = require('../../../utils/notice');
 const i18n = require('../../../utils/i18n');
 
+const appearance = require('../../utils/appearance');
+
 Page({
   labels() {
     return {
@@ -14,7 +16,8 @@ Page({
     };
   },
 
-  data: { loading: true, refreshing: false, failed: false, errorText: '', items: [], unread: 0 },
+  data: {
+    themeClass: appearance.themeClass(), loading: true, refreshing: false, failed: false, errorText: '', items: [], unread: 0 },
 
   onLoad() {
     this.setData({ L: { list: i18n.t('common.list'), calendar: i18n.t('common.calendar'), allRead: i18n.t('common.allRead') } });
@@ -22,7 +25,7 @@ Page({
   },
 
   onShow() {
-    this.setData({ L: this.labels() });
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     if (this._loadedOnce) this.load();
     this._loadedOnce = true;
   },

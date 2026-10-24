@@ -39,6 +39,8 @@ const ROLES = [
 
 const i18n = require('../../utils/i18n');
 
+const appearance = require('../../utils/appearance');
+
 Page({
   labels() {
     return {
@@ -130,6 +132,7 @@ Page({
   },
 
   data: {
+    themeClass: appearance.themeClass(),
     theme,
     tabs: TABS,
     tab: 'stats',
@@ -209,7 +212,7 @@ Page({
   },
 
   onLoad() {
-    this.setData({ L: this.labels() });
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     let user = {};
     try {
       user = wx.getStorageSync(config.STORAGE_KEYS.user) || {};

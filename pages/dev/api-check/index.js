@@ -2,6 +2,8 @@ const data = require('../../../services/data');
 const i18n = require('../../../utils/i18n');
 const theme = require('../../../utils/theme');
 
+const appearance = require('../../utils/appearance');
+
 Page({
   labels() {
     return {
@@ -19,6 +21,7 @@ Page({
   },
 
   data: {
+    themeClass: appearance.themeClass(),
     theme,
     running: false,
     modeText: '檢查中…',
@@ -34,7 +37,7 @@ Page({
   },
 
   onLoad() {
-    this.setData({ L: this.labels() });
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     this.setData({ forceDemo: data.forceDemoOn(), apiBase: data.apiBase() });
     this.run();
   },

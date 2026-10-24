@@ -9,6 +9,8 @@ const theme = require('../../../utils/theme');
 
 const i18n = require('../../utils/i18n');
 
+const appearance = require('../../utils/appearance');
+
 Page({
   labels() {
     return {
@@ -33,6 +35,7 @@ Page({
   ...reportSheet.methods('ITEM', function () { return this.data.item && this.data.item.id; }),
 
   data: {
+    themeClass: appearance.themeClass(),
     theme,
     loading: true,
     item: null,
@@ -48,7 +51,7 @@ Page({
   },
 
   onLoad(query) {
-    this.setData({ L: this.labels() });
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     this.id = query.id;
     this.load();
   },

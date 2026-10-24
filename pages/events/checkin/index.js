@@ -3,6 +3,8 @@ const { dateTimeText } = require('../../../utils/date');
 
 const i18n = require('../../utils/i18n');
 
+const appearance = require('../../utils/appearance');
+
 Page({
   labels() {
     return {
@@ -20,6 +22,7 @@ Page({
   },
 
   data: {
+    themeClass: appearance.themeClass(),
     code: '',
     scanning: false,
     submitting: false,
@@ -28,7 +31,7 @@ Page({
   },
 
   onLoad(query) {
-    this.setData({ L: this.labels() });
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     // 允許從其他地方帶碼進來（例如老師把碼貼在群組）
     if (query && query.code) this.submitCode(query.code);
   },

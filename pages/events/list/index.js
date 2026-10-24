@@ -3,6 +3,8 @@ const { decorate } = require('../../../utils/event');
 
 const i18n = require('../../utils/i18n');
 
+const appearance = require('../../utils/appearance');
+
 Page({
   labels() {
     return {
@@ -18,6 +20,7 @@ Page({
   },
 
   data: {
+    themeClass: appearance.themeClass(),
     loading: true,
     failed: false,
     errorText: '',
@@ -35,7 +38,7 @@ Page({
   },
 
   onShow() {
-    this.setData({ L: this.labels() });
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     if (this._loadedOnce) this.load();
     this._loadedOnce = true;
   },

@@ -203,6 +203,34 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   // 註：labels() 的 key 一律由 i18n 提供，這裡只檢查「key 完全不存在」的情況
 }
 
+// 7e) W-21：深色模式必須覆寫所有「顏色」變數（漏一個就會深色底配白色卡片）
+{
+  const { readFileSync: rf } = await import('node:fs');
+  const tok = rf(join(root, 'styles/tokens.wxss'), 'utf8');
+  const grab = (sel) => {
+    const i = tok.indexOf(sel + ' {');
+    if (i < 0) return '';
+    const start = tok.indexOf('{', i);
+    let depth = 0;
+    for (let p = start; p < tok.length; p += 1) {
+      if (tok[p] === '{') depth += 1;
+      else if (tok[p] === '}') {
+        depth -= 1;
+        if (depth === 0) return tok.slice(start, p);
+      }
+    }
+    return '';
+  };
+  const light = grab('page');
+  const dark = grab('.theme-dark');
+  if (!dark) errors.push('styles/tokens.wxss 沒有 .theme-dark 區塊（深色模式無效）');
+  const NON_COLOR = /^--pv-(fs|ls|sp|r$|r-|ease|dur|font|weight)/;
+  const lightVars = [...light.matchAll(/(--pv-[a-z0-9-]+)\s*:/g)].map((m) => m[1]).filter((v) => !NON_COLOR.test(v));
+  for (const v of lightVars) {
+    if (!new RegExp(v + '\\s*:').test(dark)) errors.push(`styles/tokens.wxss 的 .theme-dark 沒有覆寫 ${v}（深色模式下會殘留淺色值）`);
+  }
+}
+
 // 8) W-13：頁面 JS 必須有 Page( / Component(、json 必須有標題、wxml 用到的自訂組件必須註冊
 {
   const { readFileSync } = await import('node:fs');

@@ -3,6 +3,8 @@ const week = require('../../../utils/week');
 
 const i18n = require('../../utils/i18n');
 
+const appearance = require('../../utils/appearance');
+
 Page({
   labels() {
     return {
@@ -22,6 +24,7 @@ Page({
   },
 
   data: {
+    themeClass: appearance.themeClass(),
     loading: true,
     failed: false,
     errorText: '',
@@ -34,7 +37,7 @@ Page({
   },
 
   onLoad() {
-    this.setData({ L: this.labels() });
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     this.load();
   },
 

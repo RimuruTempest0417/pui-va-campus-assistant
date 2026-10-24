@@ -3,6 +3,8 @@ const { dateTimeText } = require('../../../utils/date');
 
 const i18n = require('../../utils/i18n');
 
+const appearance = require('../../utils/appearance');
+
 Page({
   labels() {
     return {
@@ -19,14 +21,15 @@ Page({
     };
   },
 
-  data: { loading: true, items: [], failed: false, errorText: '' },
+  data: {
+    themeClass: appearance.themeClass(), loading: true, items: [], failed: false, errorText: '' },
 
   onLoad() {
     this.load();
   },
 
   onShow() {
-    this.setData({ L: this.labels() });
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     if (this._loadedOnce) this.load();
     this._loadedOnce = true;
   },
