@@ -10,6 +10,8 @@ const appearance = require('../../../utils/appearance');
 Page({
   labels() {
     return {
+      k01: i18n.pick("兩步驗證碼"),
+      k02: i18n.pick("驗證器上的 6 位數字（或備用碼）"),
       k09: i18n.pick("已登入"),
       k10: i18n.pick("登入中…"),
       k11: i18n.pick("登入"),
@@ -26,7 +28,9 @@ Page({
 
   data: {
     themeClass: appearance.themeClass(),
-    loggedIn: false,      // 已登入就只顯示「目前身分＋登出」，不再同時擺一份登入表單（使用者回報的怪畫面）
+    loggedIn: false,
+    needCode: false,
+    code: '',      // 已登入就只顯示「目前身分＋登出」，不再同時擺一份登入表單（使用者回報的怪畫面）
     account: '',
     password: '',
     submitting: false,
@@ -91,34 +95,39 @@ Page({
     this.setData({ password: e.detail.value, error: '' });
   },
 
+  onCode(e) {
+    this.setData({ code: e.detail.value, error: '' });
+  },
+
   // 原生 form 送出：值直接由表單回傳，即使 bindinput 沒觸發也拿得到
   onSubmit(e) {
     const v = (e && e.detail && e.detail.value) || {};
     const account = v.account || this.data.account;
     const password = v.password || this.data.password;
-    return this.doLogin(account, password);
+    const code = v.code || this.data.code;
+    return this.doLogin(account, password, code);
   },
 
   async submit() {
-    return this.doLogin(this.data.account, this.data.password);
+    return this.doLogin(this.data.account, this.data.password, this.data.code);
   },
 
-  async doLogin(accountRaw, passwordRaw) {
+  async doLogin(accountRaw, passwordRaw, codeRaw) {
     const account = String(accountRaw || '').trim();
     const password = String(passwordRaw || '');
     if (!account || !password) {
       this.setData({ error: i18n.pick('請填帳號與密碼') });
       return;
     }
-    return this._login(account, password);
+    return this._login(account, password, String(codeRaw || '').trim());
   },
 
-  async _login(account, password) {
+  async _login(account, password, code) {
     if (this.data.submitting) return;
     this.setData({ submitting: true, error: '' });
     this.armWatchdog();
     try {
-      const res = await admin.login(account, password);
+      const res = await admin.login(account, password, code);
       request.setToken(res.token);
       wx.setStorageSync(config.STORAGE_KEYS.user, { nickname: res.nickname, role: res.role });
       wx.showToast({ title: i18n.pick('已登入'), icon: 'success' });
@@ -129,6 +138,9 @@ Page({
       // 錯誤要看得懂：把代碼也顯示出來，否則「登入失敗」四個字無法判斷是網路、密碼還是權限
       const code = (e && e.code) || 'UNKNOWN';
       const msg = (e && e.message) || i18n.pick('登入失敗');
+      if (code === 'TOTP_REQUIRED' || code === 'TOTP_INVALID') {
+        this.setData({ needCode: true });
+      }
       const hint =
         code === 'NETWORK' || code === 'TIMEOUT'
           ? msg + i18n.pick('（連不到後端：') + config.API_BASE_URL + '）'

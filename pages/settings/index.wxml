@@ -29,6 +29,43 @@
         </view>
       </pv-card>
 
+      <!-- 兩步驗證（教職員） -->
+      <block wx:if="{{isStaff && loggedIn}}">
+        <text class="set-group">{{L.k30}}</text>
+        <pv-card>
+          <view class="set-row">
+            <view class="set-row__main">
+              <text class="set-row__title">{{L.k31}}</text>
+              <text class="set-row__sub">{{tfaEnabled ? (L.k32 + ' ' + tfaCodesLeft + ' ' + L.k33) : L.k34}}</text>
+            </view>
+          </view>
+
+          <block wx:if="{{!tfaEnabled && !tfaSetup}}">
+            <view class="set-actions">
+              <text class="set-link" catchtap="tfaBegin">{{L.k35}}</text>
+            </view>
+          </block>
+
+          <block wx:if="{{!tfaEnabled && tfaSetup}}">
+            <text class="set-hint">{{L.k36}}{{tfaSetup.secret}}</text>
+            <view class="set-actions"><text class="set-link" catchtap="copySecret">{{L.k37}}</text></view>
+            <input class="set-input" value="{{tfaCode}}" type="number" maxlength="6"
+                   placeholder="{{L.k38}}" bindinput="onTfaCode" />
+            <view class="set-actions">
+              <text class="set-link" catchtap="tfaEnable">{{tfaBusy ? L.k39 : L.k40}}</text>
+            </view>
+          </block>
+
+          <block wx:if="{{tfaEnabled}}">
+            <input class="set-input" value="{{tfaPassword}}" password
+                   placeholder="{{L.k41}}" bindinput="onTfaPassword" />
+            <view class="set-actions">
+              <text class="set-link set-link--danger" catchtap="tfaDisable">{{tfaBusy ? L.k42 : L.k43}}</text>
+            </view>
+          </block>
+        </pv-card>
+      </block>
+
       <!-- 介面語言 -->
       <text class="set-group">{{L.k08}}</text>
       <pv-card>

@@ -90,7 +90,7 @@ page {
 }
 
 /* ── 通用排版與容器 ─────────────────────── */
-.pv-page { min-height: 100vh; padding: var(--pv-sp-3) var(--pv-sp-3) var(--pv-sp-6); box-sizing: border-box; }
+.pv-page { min-height: 100vh; background: var(--pv-bg); padding: var(--pv-sp-3) var(--pv-sp-3) var(--pv-sp-6); box-sizing: border-box; }
 .pv-large-title { font-size: var(--pv-fs-large-title); font-weight: 700; letter-spacing: var(--pv-ls-large-title); line-height: 1.1; }
 .pv-title { font-size: var(--pv-fs-title-2); font-weight: 600; letter-spacing: var(--pv-ls-title); line-height: 1.2; }
 .pv-group-title {                     /* iOS 列表的分組標題 */

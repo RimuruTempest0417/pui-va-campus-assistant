@@ -75,3 +75,10 @@
 .cal-item__head { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
 .cal-item__time { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
 .cal-item__title { display: block; margin-top: var(--pv-sp-1); font-size: var(--pv-fs-callout); font-weight: 600; }
+
+.cal-src { display: flex; flex-direction: row; flex-wrap: wrap; gap: var(--pv-sp-1); padding-bottom: var(--pv-sp-2); }
+.cal-src__chip {
+  padding: 8rpx 20rpx; border-radius: var(--pv-r-pill);
+  background: var(--pv-fill); color: var(--pv-label-2); font-size: var(--pv-fs-caption-1);
+}
+.cal-src__chip--on { background: var(--pv-tint-soft); color: var(--pv-tint); font-weight: 600; }

@@ -254,6 +254,51 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   walk(root);
 }
 
+// 7g) 用到 i18n.* 就必須 require('…/utils/i18n')
+{
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) { walk(full); continue; }
+      if (!e.name.endsWith('.js')) continue;
+      const src = readFileSync(full, 'utf8');
+      if (!/\bi18n\.(pick|t)\(/.test(src)) continue;
+      const rel = full.slice(root.length + 1);
+      const ok = /require\(['"][^'"]*utils\/i18n['"]\)/.test(src) || (rel.startsWith('utils/') && /require\(['"]\.\/i18n['"]\)/.test(src));
+      if (!ok) {
+        errors.push(`${full.slice(root.length + 1)} 用了 i18n.* 但沒有 require utils/i18n（執行期會 undefined）`);
+      }
+    }
+  };
+  walk(root);
+}
+
+// 7h) 所有 .js 必須能解析（曾因字串替換留下殘骸，令整頁註冊失敗、畫面空白）
+{
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const { execFileSync } = await import('node:child_process');
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) { walk(full); continue; }
+      if (!e.name.endsWith('.js')) continue;
+      try {
+        execFileSync('node', ['--check', full], { stdio: 'pipe' });
+      } catch (err) {
+        const msg = String(err.stderr || '').split('\n').find((l) => l.includes('SyntaxError')) || '語法錯誤';
+        errors.push(`${full.slice(root.length + 1)} ${msg.trim()}`);
+      }
+    }
+  };
+  for (const d of ['pages', 'services', 'utils', 'components', 'config']) {
+    const p = join(root, d);
+    try { walk(p); } catch { /* 目錄不存在就略過 */ }
+  }
+}
+
 // 8) W-13：頁面 JS 必須有 Page( / Component(、json 必須有標題、wxml 用到的自訂組件必須註冊
 {
   const { readFileSync } = await import('node:fs');

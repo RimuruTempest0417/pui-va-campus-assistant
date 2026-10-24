@@ -23,3 +23,9 @@
 }
 .seg__item--on { background: var(--pv-surface); color: var(--pv-label); font-weight: 600; }
 .set-hint { display: block; margin-top: var(--pv-sp-2); font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); line-height: 1.5; }
+
+.set-input {
+  margin-top: var(--pv-sp-2); padding: 18rpx var(--pv-sp-2);
+  background: var(--pv-fill); border-radius: var(--pv-r-sm);
+  font-size: var(--pv-fs-subhead);
+}
