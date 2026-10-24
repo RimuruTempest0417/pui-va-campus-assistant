@@ -58,6 +58,20 @@ Page({
   // scroll-view 的下拉刷新（頁面已改成 scroll-view，不再用 onPullDownRefresh）
   labels() {
     return {
+      k01: i18n.pick("重新載入"),
+      k02: i18n.pick("設定後端位址"),
+      k03: i18n.pick("今日午餐"),
+      k04: i18n.pick("分"),
+      k05: i18n.pick("今天沒有午餐資料"),
+      k06: i18n.pick("可能尚未排菜單或今天是假日"),
+      k07: i18n.pick("小賣部"),
+      k08: i18n.pick("我的子女"),
+      k09: i18n.pick("代報名 ›"),
+      k10: i18n.pick("管理後台"),
+      k11: i18n.pick("· 示範資料（未連後端）"),
+      k12: i18n.pick("· 資料來源"),
+      brand: i18n.pick('培華校園助手'),
+      brandSub: i18n.pick('PUI VA CAMPUS'),
       demoTag: i18n.t('home.demoTag'),
       urgent: i18n.t('home.urgent'),
       guest: i18n.t('home.guest'),

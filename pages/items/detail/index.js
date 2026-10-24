@@ -7,7 +7,29 @@ const subscribe = require('../../../utils/subscribe');
 
 const theme = require('../../../utils/theme');
 
+const i18n = require('../../utils/i18n');
+
 Page({
+  labels() {
+    return {
+      k01: i18n.pick("失物詳情"),
+      k02: i18n.pick("載入失敗"),
+      k03: i18n.pick("重試"),
+      k04: i18n.pick("找不到這筆資料"),
+      k05: i18n.pick("可能已被作者刪除"),
+      k06: i18n.pick("沒有圖片"),
+      k07: i18n.pick("地點"),
+      k08: i18n.pick("時間"),
+      k09: i18n.pick("聯絡"),
+      k10: i18n.pick("瀏覽"),
+      k11: i18n.pick("說明"),
+      k12: i18n.pick("可能是你的東西"),
+      k13: i18n.pick("發布者"),
+      k14: i18n.pick("檢舉"),
+      k15: i18n.pick("檢舉這則內容"),
+    };
+  },
+
   ...reportSheet.methods('ITEM', function () { return this.data.item && this.data.item.id; }),
 
   data: {
@@ -26,6 +48,7 @@ Page({
   },
 
   onLoad(query) {
+    this.setData({ L: this.labels() });
     this.id = query.id;
     this.load();
   },

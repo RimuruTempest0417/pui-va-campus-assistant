@@ -1,5 +1,5 @@
 <view class="sv-page page-root">
-  <pv-navbar title="設計系統" back="{{true}}" />
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="sv-inner">
   <!-- 探針：尺寸完全由 CSS 變數決定；var() 不生效時會量到 0 -->
@@ -7,12 +7,12 @@
 
   <view class="sv-hero">
     <text class="sv-eyebrow">PUI VA CAMPUS</text>
-    <text class="sv-title">設計系統</text>
-    <text class="sv-sub">Apple HIG 風格 · 8 個原子組件 · design tokens v2</text>
+    <text class="sv-title">{{L.k01}}</text>
+    <text class="sv-sub">{{L.k02}}</text>
   </view>
 
   <!-- 色彩 -->
-  <view class="pv-group-title">色彩</view>
+  <view class="pv-group-title">{{L.k03}}</view>
   <pv-card>
     <view class="sv-swatches">
       <view wx:for="{{colors}}" wx:key="varName" class="sv-swatch">
@@ -24,7 +24,7 @@
   </pv-card>
 
   <!-- 字階 -->
-  <view class="pv-group-title">字階（pt → rpx，字距隨字級變化）</view>
+  <view class="pv-group-title">{{L.k04}}</view>
   <pv-card>
     <view wx:for="{{types}}" wx:key="cls" class="sv-type-row">
       <text class="{{item.cls}}">{{item.text}}</text>
@@ -33,34 +33,34 @@
   </pv-card>
 
   <!-- 按鈕 -->
-  <view class="pv-group-title">按鈕（44pt 最小觸控，按下即時縮放）</view>
+  <view class="pv-group-title">{{L.k05}}</view>
   <pv-card>
     <view class="sv-gap">
-      <pv-button class="sv-gap__item" type="filled" bind:tap="simulateLoading" loading="{{loading}}">發布失物</pv-button>
-      <pv-button class="sv-gap__item" type="tinted">我要認領</pv-button>
-      <pv-button class="sv-gap__item" type="plain">取消</pv-button>
-      <pv-button class="sv-gap__item" type="destructive">刪除</pv-button>
+      <pv-button class="sv-gap__item" type="filled" bind:tap="simulateLoading" loading="{{loading}}">{{L.k06}}</pv-button>
+      <pv-button class="sv-gap__item" type="tinted">{{L.k07}}</pv-button>
+      <pv-button class="sv-gap__item" type="plain">{{L.k08}}</pv-button>
+      <pv-button class="sv-gap__item" type="destructive">{{L.k09}}</pv-button>
     </view>
     <view class="sv-gap">
-      <pv-button class="sv-gap__item" type="filled" size="sm">小 34pt</pv-button>
-      <pv-button class="sv-gap__item" type="tinted" size="lg">大 56pt</pv-button>
-      <pv-button class="sv-gap__item" type="filled" disabled>禁用</pv-button>
+      <pv-button class="sv-gap__item" type="filled" size="sm">{{L.k10}}</pv-button>
+      <pv-button class="sv-gap__item" type="tinted" size="lg">{{L.k11}}</pv-button>
+      <pv-button class="sv-gap__item" type="filled" disabled>{{L.k12}}</pv-button>
     </view>
     <view class="sv-gap">
-      <pv-button class="sv-gap__item" type="filled" block>整行主要動作</pv-button>
+      <pv-button class="sv-gap__item" type="filled" block>{{L.k13}}</pv-button>
     </view>
   </pv-card>
 
   <!-- 標籤與頭像 -->
-  <view class="pv-group-title">標籤與頭像</view>
+  <view class="pv-group-title">{{L.k14}}</view>
   <pv-card>
     <view class="sv-gap">
-      <pv-tag class="sv-gap__item" text="待認領" type="warning" />
-      <pv-tag class="sv-gap__item" text="已認領" type="success" />
-      <pv-tag class="sv-gap__item" text="已結束" />
-      <pv-tag class="sv-gap__item" text="緊急" type="danger" />
-      <pv-tag class="sv-gap__item" text="校曆" type="tint" plain />
-      <pv-tag class="sv-gap__item" text="培華" type="brand" />
+      <pv-tag class="sv-gap__item" text="{{L.k15}}" type="warning" />
+      <pv-tag class="sv-gap__item" text="{{L.k16}}" type="success" />
+      <pv-tag class="sv-gap__item" text="{{L.k17}}" />
+      <pv-tag class="sv-gap__item" text="{{L.k18}}" type="danger" />
+      <pv-tag class="sv-gap__item" text="{{L.k19}}" type="tint" plain />
+      <pv-tag class="sv-gap__item" text="{{L.k20}}" type="brand" />
     </view>
     <view class="sv-gap sv-avatars">
       <pv-avatar class="sv-gap__item" name="霖" size="sm" />
@@ -70,29 +70,29 @@
   </pv-card>
 
   <!-- 分段控制 -->
-  <view class="pv-group-title">分段控制（iOS UISegmentedControl）</view>
+  <view class="pv-group-title">{{L.k21}}</view>
   <pv-tabs tabs="{{tabs}}" current="{{tab}}" bind:change="onTabChange" />
   <view class="pv-footnote" style="margin-top: 16rpx;">目前選中：{{tab}}</view>
 
   <!-- 列表樣式 -->
-  <view class="pv-group-title">列表（inset grouped）</view>
+  <view class="pv-group-title">{{L.k22}}</view>
   <pv-card padded="{{false}}">
     <view class="sv-cell">
-      <text class="sv-cell__label">校園失物招領</text>
-      <text class="sv-cell__value">8 筆 ›</text>
+      <text class="sv-cell__label">{{L.k23}}</text>
+      <text class="sv-cell__value">{{L.k24}}</text>
     </view>
     <view class="sv-cell">
-      <text class="sv-cell__label">本週活動</text>
-      <text class="sv-cell__value">3 個 ›</text>
+      <text class="sv-cell__label">{{L.k25}}</text>
+      <text class="sv-cell__value">{{L.k26}}</text>
     </view>
     <view class="sv-cell sv-cell--last">
-      <text class="sv-cell__label">緊急公告</text>
+      <text class="sv-cell__label">{{L.k27}}</text>
       <pv-tag class="sv-gap__item" text="1" type="danger" />
     </view>
   </pv-card>
 
   <!-- 骨架屏 -->
-  <view class="pv-group-title">載入中</view>
+  <view class="pv-group-title">{{L.k28}}</view>
   <pv-card padded="{{false}}">
     <pv-skeleton rows="3" avatar />
     <view class="sv-divider" />
@@ -100,26 +100,26 @@
   </pv-card>
 
   <!-- 空狀態 -->
-  <view class="pv-group-title">空狀態</view>
+  <view class="pv-group-title">{{L.k29}}</view>
   <pv-card padded="{{false}}">
-    <pv-empty icon="🔍" title="還沒有人發布失物" desc="第一個發布的人，最有機會找回東西">
-      <pv-button class="sv-gap__item" type="tinted" size="sm">我要發布</pv-button>
+    <pv-empty icon="🔍" title="{{L.k30}}" desc="{{L.k31}}">
+      <pv-button class="sv-gap__item" type="tinted" size="sm">{{L.k32}}</pv-button>
     </pv-empty>
   </pv-card>
 
   <!-- 彈層 -->
-  <view class="pv-group-title">底部彈層（抓手 + 安全區）</view>
-  <pv-button class="sv-gap__item" type="plain" block bind:tap="openSheet">開啟彈層</pv-button>
+  <view class="pv-group-title">{{L.k33}}</view>
+  <pv-button class="sv-gap__item" type="plain" block bind:tap="openSheet">{{L.k34}}</pv-button>
 
   
 
-  <view class="sv-foot">開發期檢視頁，不進正式導覽</view>
+  <view class="sv-foot">{{L.k35}}</view>
 
     </view>
   </scroll-view>
-<pv-sheet show="{{sheetShow}}" title="選擇分類" bind:close="closeSheet">
-    <view class="pv-sheet-item">卡證／學生證</view>
-    <view class="pv-sheet-item">電子產品</view>
-    <view class="pv-sheet-item">書本／文具</view>
+<pv-sheet show="{{sheetShow}}" title="{{L.k36}}" bind:close="closeSheet">
+    <view class="pv-sheet-item">{{L.k37}}</view>
+    <view class="pv-sheet-item">{{L.k38}}</view>
+    <view class="pv-sheet-item">{{L.k39}}</view>
   </pv-sheet>
 </view>

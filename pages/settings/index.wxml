@@ -1,11 +1,11 @@
 <view class="ui-page page-root {{themeClass}}">
-  <pv-navbar title="設定" back="{{true}}" />
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="set-inner">
 
       <!-- 帳號 -->
-      <text class="set-group">帳號</text>
+      <text class="set-group">{{L.k02}}</text>
       <pv-card>
         <block wx:if="{{loggedIn}}">
           <view class="set-row">
@@ -15,45 +15,45 @@
             </view>
           </view>
           <view class="set-actions">
-            <pv-tag wx:if="{{isStaff}}" text="管理後台" type="tint" bind:tap="goAdmin" />
-            <text class="set-link" catchtap="goLogin">切換帳號</text>
-            <text class="set-link set-link--danger" catchtap="logout">登出</text>
+            <pv-tag wx:if="{{isStaff}}" text="{{L.k03}}" type="tint" bind:tap="goAdmin" />
+            <text class="set-link" catchtap="goLogin">{{L.k04}}</text>
+            <text class="set-link set-link--danger" catchtap="logout">{{L.k05}}</text>
           </view>
         </block>
         <view wx:else class="set-row" bindtap="goLogin">
           <view class="set-row__main">
-            <text class="set-row__title">登入</text>
-            <text class="set-row__sub">教職員、家長、學生登入後才能報名或管理</text>
+            <text class="set-row__title">{{L.k06}}</text>
+            <text class="set-row__sub">{{L.k07}}</text>
           </view>
           <text class="set-row__chev">›</text>
         </view>
       </pv-card>
 
       <!-- 介面語言 -->
-      <text class="set-group">介面語言</text>
+      <text class="set-group">{{L.k08}}</text>
       <pv-card>
         <view class="seg">
           <view wx:for="{{localeOptions}}" wx:key="key"
                 class="seg__item {{localePref === item.key ? 'seg__item--on' : ''}}"
                 data-key="{{item.key}}" catchtap="pickLocale">{{item.label}}</view>
         </view>
-        <text class="set-hint">預設跟隨手機語言；只想看繁體或簡體可以在這裡鎖定。只影響介面文字，不動公告與貼文內容。</text>
+        <text class="set-hint">{{L.k09}}</text>
       </pv-card>
 
       <!-- 外觀 -->
-      <text class="set-group">外觀</text>
+      <text class="set-group">{{L.k10}}</text>
       <pv-card>
         <view class="seg">
           <view wx:for="{{themeOptions}}" wx:key="key"
                 class="seg__item {{theme === item.key ? 'seg__item--on' : ''}}"
                 data-key="{{item.key}}" catchtap="pickTheme">{{item.label}}</view>
         </view>
-        <text class="set-hint">跟隨系統：手機切換深色時自動跟著變。</text>
+        <text class="set-hint">{{L.k11}}</text>
       </pv-card>
 
       <!-- 資料來源（教職員以上） -->
       <block wx:if="{{isStaff}}">
-        <text class="set-group">資料來源</text>
+        <text class="set-group">{{L.k12}}</text>
         <pv-card>
           <view class="set-row" bindtap="goDev">
             <view class="set-row__main">
@@ -66,15 +66,15 @@
       </block>
 
       <!-- 關於 -->
-      <text class="set-group">關於</text>
+      <text class="set-group">{{L.k13}}</text>
       <pv-card>
         <view class="set-row">
-          <text class="set-row__title">版本</text>
+          <text class="set-row__title">{{L.k14}}</text>
           <text class="set-row__value">{{version}}</text>
         </view>
         <view class="set-row">
-          <text class="set-row__title">學校</text>
-          <text class="set-row__value">澳門培華中學</text>
+          <text class="set-row__title">{{L.k15}}</text>
+          <text class="set-row__value">{{L.k16}}</text>
         </view>
       </pv-card>
 

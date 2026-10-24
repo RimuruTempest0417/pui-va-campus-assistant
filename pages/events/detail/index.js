@@ -5,7 +5,29 @@ const subscribe = require('../../../utils/subscribe');
 
 const reportSheet = require('../../../utils/reportSheet');
 
+const i18n = require('../../utils/i18n');
+
 Page({
+  labels() {
+    return {
+      k01: i18n.pick("活動詳情"),
+      k02: i18n.pick("載入失敗"),
+      k03: i18n.pick("重試"),
+      k04: i18n.pick("找不到這個活動"),
+      k05: i18n.pick("可能已取消或刪除"),
+      k06: i18n.pick("時間"),
+      k07: i18n.pick("地點"),
+      k08: i18n.pick("名額"),
+      k09: i18n.pick("活動說明"),
+      k10: i18n.pick("組別"),
+      k11: i18n.pick("報名前請先選一個組別"),
+      k12: i18n.pick("你已報名成功，記得準時出席。"),
+      k13: i18n.pick("去簽到"),
+      k14: i18n.pick("檢舉"),
+      k15: i18n.pick("檢舉這則內容"),
+    };
+  },
+
   ...reportSheet.methods('EVENT', function () { return this.data.ev && this.data.ev.id; }),
 
   data: {
@@ -24,6 +46,7 @@ Page({
   },
 
   onLoad(query) {
+    this.setData({ L: this.labels() });
     this.id = query.id;
     this.load();
   },

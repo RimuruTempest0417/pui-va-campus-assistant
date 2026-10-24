@@ -6,44 +6,44 @@
     <pv-tabs tabs="{{typeTabs}}" current="{{type}}" bind:change="onTypeChange" />
   </view>
 
-  <view class="pv-group-title">基本資訊</view>
+  <view class="pv-group-title">{{L.k01}}</view>
   <pv-card>
     <view class="ui-field">
-      <text class="ui-field__label">標題（必填）</text>
-      <input class="ui-input" placeholder="例：藍色水壺" placeholder-class="ui-placeholder"
+      <text class="ui-field__label">{{L.k02}}</text>
+      <input class="ui-input" placeholder="{{L.k03}}" placeholder-class="ui-placeholder"
              value="{{form.title}}" data-key="title" bindinput="onInput" maxlength="80" />
     </view>
     <view class="ui-field">
-      <text class="ui-field__label">說明</text>
-      <textarea class="ui-textarea" placeholder="顏色、特徵、有沒有貼紙…寫得越具體越容易認回"
+      <text class="ui-field__label">{{L.k04}}</text>
+      <textarea class="ui-textarea" placeholder="{{L.k05}}"
                 placeholder-class="ui-placeholder" value="{{form.description}}"
                 data-key="description" bindinput="onInput" maxlength="500" auto-height />
     </view>
   </pv-card>
 
-  <view class="pv-group-title">地點與時間</view>
+  <view class="pv-group-title">{{L.k06}}</view>
   <pv-card>
     <view class="ui-field" bindtap="openCategory">
-      <text class="ui-field__label">分類</text>
+      <text class="ui-field__label">{{L.k07}}</text>
       <view class="ui-row-between">
         <text class="ui-input {{form.categoryKey ? '' : 'ui-placeholder'}}">{{categoryName || '請選擇'}}</text>
         <text class="chev">›</text>
       </view>
     </view>
     <view class="ui-field">
-      <text class="ui-field__label">地點（必填）</text>
-      <input class="ui-input" placeholder="例：圖書館三樓自習區" placeholder-class="ui-placeholder"
+      <text class="ui-field__label">{{L.k08}}</text>
+      <input class="ui-input" placeholder="{{L.k09}}" placeholder-class="ui-placeholder"
              value="{{form.place}}" data-key="place" bindinput="onInput" maxlength="120" />
     </view>
     <view class="ui-field">
-      <text class="ui-field__label">發生時間</text>
+      <text class="ui-field__label">{{L.k10}}</text>
       <picker mode="date" value="{{form.date}}" bindchange="onDateChange">
         <view class="ui-row-between"><text class="ui-input">{{form.date}}</text><text class="chev">›</text></view>
       </picker>
     </view>
   </pv-card>
 
-  <view class="pv-group-title">圖片（最多 3 張）</view>
+  <view class="pv-group-title">{{L.k11}}</view>
   <pv-card>
     <view class="ui-thumbs">
       <view wx:for="{{form.images}}" wx:key="*this" class="ui-thumb-item">
@@ -55,10 +55,10 @@
     <text class="ui-meta">{{isDemo ? '示範模式下圖片只存在本機' : '圖片上傳尚未開通，目前只送出文字'}}</text>
   </pv-card>
 
-  <view class="pv-group-title">聯絡方式</view>
+  <view class="pv-group-title">{{L.k12}}</view>
   <pv-card>
     <view class="ui-field">
-      <text class="ui-field__label">讓對方怎麼找你</text>
+      <text class="ui-field__label">{{L.k13}}</text>
       <view class="seg-row">
         <view wx:for="{{contactOptions}}" wx:key="key"
               class="seg-item {{form.contactType === item.key ? 'is-active' : ''}}"
@@ -67,7 +67,7 @@
     </view>
     <view wx:if="{{form.contactType !== 'inApp'}}" class="ui-field">
       <text class="ui-field__label">{{form.contactType === 'phone' ? '電話' : '微信號'}}</text>
-      <input class="ui-input" placeholder="僅登入者可見" placeholder-class="ui-placeholder"
+      <input class="ui-input" placeholder="{{L.k14}}" placeholder-class="ui-placeholder"
              value="{{form.contactValue}}" data-key="contactValue" bindinput="onInput" maxlength="64" />
     </view>
   </pv-card>
@@ -80,9 +80,9 @@
   </scroll-view>
 <view class="ui-bar">
     <text class="ui-bar__hint">{{form.images.length}}/3 張圖片</text>
-    <pv-button type="filled" bind:tap="submit" loading="{{submitting}}" disabled="{{submitting}}">發布</pv-button>
+    <pv-button type="filled" bind:tap="submit" loading="{{submitting}}" disabled="{{submitting}}">{{L.k15}}</pv-button>
   </view>
-<pv-sheet show="{{categorySheet}}" title="選擇分類" bind:close="closeCategory">
+<pv-sheet show="{{categorySheet}}" title="{{L.k16}}" bind:close="closeCategory">
     <view wx:for="{{categories}}" wx:key="key" class="sheet-row" data-key="{{item.key}}" bindtap="pickCategory">
       <text>{{item.icon}} {{item.name}}</text>
     </view>

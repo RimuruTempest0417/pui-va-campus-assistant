@@ -76,6 +76,8 @@ Page({
 
   labels() {
     return {
+      k01: i18n.pick("載入失敗"),
+      k02: i18n.pick("重試"),
       title: i18n.t('cal.title'),
       today: i18n.t('cal.today'),
       empty: i18n.t('cal.empty'),

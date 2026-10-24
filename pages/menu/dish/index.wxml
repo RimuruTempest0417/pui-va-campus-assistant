@@ -1,5 +1,5 @@
 <view class="ui-page page-root">
-  <pv-navbar title="菜式" back="{{true}}" />
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="dish-inner">
@@ -7,11 +7,11 @@
         <view class="ui-card"><pv-skeleton rows="3" /></view>
       </block>
 
-      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="載入失敗" desc="{{errorText}}">
-        <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k02}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k03}}</pv-button>
       </pv-empty>
 
-      <pv-empty wx:elif="{{!dish}}" icon="🍽" title="找不到這道菜" desc="可能已下架" />
+      <pv-empty wx:elif="{{!dish}}" icon="🍽" title="{{L.k04}}" desc="{{L.k05}}" />
 
       <block wx:else>
         <view class="hero">
@@ -28,7 +28,7 @@
           <view class="score-row">
             <view class="score-main">
               <text class="score-num">{{dish.avgScore || '—'}}</text>
-              <text class="score-unit">平均分</text>
+              <text class="score-unit">{{L.k06}}</text>
             </view>
             <view class="score-side">
               <text class="ui-sub">{{dish.ratingCount}} 人評分</text>
@@ -39,7 +39,7 @@
           <view class="divider" />
 
           <view class="rate-block">
-            <text class="ui-field__label">我的評分</text>
+            <text class="ui-field__label">{{L.k07}}</text>
             <view class="stars">
               <view wx:for="{{[1,2,3,4,5]}}" wx:key="*this" class="star {{dish.myScore >= item ? 'is-on' : ''}}"
                     data-score="{{item}}" bindtap="onRate">{{item <= dish.myScore ? '★' : '☆'}}</view>
@@ -48,7 +48,7 @@
               <view class="like-chip {{dish.myLiked ? 'is-on' : ''}}">
                 <text>{{dish.myLiked ? '♥ 已讚' : '♡ 點讚'}}</text>
               </view>
-              <text class="ui-meta">點讚會影響本週熱門排行</text>
+              <text class="ui-meta">{{L.k08}}</text>
             </view>
           </view>
         </pv-card>

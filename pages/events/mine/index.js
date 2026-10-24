@@ -1,7 +1,24 @@
 const data = require('../../../services/data');
 const { dateTimeText } = require('../../../utils/date');
 
+const i18n = require('../../utils/i18n');
+
 Page({
+  labels() {
+    return {
+      k01: i18n.pick("我的報名"),
+      k02: i18n.pick("載入失敗"),
+      k03: i18n.pick("重試"),
+      k04: i18n.pick("還沒有報名任何活動"),
+      k05: i18n.pick("去活動列表看看有什麼可以參加"),
+      k06: i18n.pick("去看活動"),
+      k07: i18n.pick("已簽到"),
+      k08: i18n.pick("現場簽到"),
+      k09: i18n.pick("查看"),
+      k10: i18n.pick("取消報名"),
+    };
+  },
+
   data: { loading: true, items: [], failed: false, errorText: '' },
 
   onLoad() {
@@ -9,6 +26,7 @@ Page({
   },
 
   onShow() {
+    this.setData({ L: this.labels() });
     if (this._loadedOnce) this.load();
     this._loadedOnce = true;
   },

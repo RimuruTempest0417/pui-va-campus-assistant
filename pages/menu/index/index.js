@@ -1,7 +1,26 @@
 const data = require('../../../services/data');
 const week = require('../../../utils/week');
 
+const i18n = require('../../utils/i18n');
+
 Page({
+  labels() {
+    return {
+      k01: i18n.pick("午餐與小賣部"),
+      k02: i18n.pick("載入失敗"),
+      k03: i18n.pick("重試"),
+      k04: i18n.pick("今天"),
+      k05: i18n.pick("午餐"),
+      k06: i18n.pick("分"),
+      k07: i18n.pick("小賣部"),
+      k08: i18n.pick("這天沒有排菜單"),
+      k09: i18n.pick("可能放假或尚未排定"),
+      k10: i18n.pick("本週熱門"),
+      k11: i18n.pick("還沒有評分資料"),
+      k12: i18n.pick("第一個評分的人決定排行"),
+    };
+  },
+
   data: {
     loading: true,
     failed: false,
@@ -15,6 +34,7 @@ Page({
   },
 
   onLoad() {
+    this.setData({ L: this.labels() });
     this.load();
   },
 
