@@ -28,5 +28,5 @@
   padding: 0 var(--pv-sp-3); line-height: 64rpx; border-radius: 999rpx;
   background: var(--pv-fill); color: var(--pv-label-2); font-size: var(--pv-fs-subhead);
 }
-.dev-chip--on { background: var(--pv-tint); color: #fff; font-weight: 600; }
+.dev-chip--on { background: var(--pv-tint); color: var(--pv-on-tint); font-weight: 600; }
 .dev-hint { display: block; margin-top: var(--pv-sp-1); font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }

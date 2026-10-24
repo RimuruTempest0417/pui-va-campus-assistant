@@ -4,8 +4,11 @@ const { decorate } = require('../../../utils/item');
 const { dateKey } = require('../../../utils/date');
 const subscribe = require('../../../utils/subscribe');
 
+const theme = require('../../../utils/theme');
+
 Page({
   data: {
+    theme,
     loading: true,
     item: null,
     failed: false,

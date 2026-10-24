@@ -13,7 +13,7 @@
   <pv-empty wx:elif="{{!item}}" icon="🕳" title="找不到這筆資料" desc="可能已被作者刪除" />
 
   <block wx:else>
-    <swiper class="gallery" indicator-dots="{{item.images.length > 1}}" indicator-active-color="#ffffff">
+    <swiper class="gallery" indicator-dots="{{item.images.length > 1}}" indicator-active-color="{{theme.onTint}}">
       <swiper-item wx:for="{{item.images}}" wx:key="*this">
         <image class="gallery__img" src="{{item}}" mode="aspectFill" />
       </swiper-item>

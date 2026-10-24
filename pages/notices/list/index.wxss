@@ -34,4 +34,4 @@
   background: var(--pv-surface); color: var(--pv-label-2);
   font-size: var(--pv-fs-subhead); line-height: 56rpx;
 }
-.seg-chip--on { background: var(--pv-tint); color: #fff; font-weight: 600; }
+.seg-chip--on { background: var(--pv-tint); color: var(--pv-on-tint); font-weight: 600; }

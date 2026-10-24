@@ -24,7 +24,7 @@
   transition-duration: var(--pv-dur-press);
 }
 
-.pv-btn--filled { background: var(--pv-tint); color: #ffffff; }
+.pv-btn--filled { background: var(--pv-tint); color: var(--pv-on-tint); }
 .pv-btn--tinted { background: var(--pv-tint-soft); color: var(--pv-tint); }
 .pv-btn--plain { background: transparent; color: var(--pv-tint); }
 .pv-btn--destructive { background: transparent; color: var(--pv-danger); }
@@ -35,8 +35,8 @@
   width: 30rpx;
   height: 30rpx;
   margin-right: var(--pv-sp-1);
-  border: 4rpx solid rgba(255, 255, 255, 0.45);
-  border-top-color: #ffffff;
+  border: 4rpx solid var(--pv-on-tint-line);
+  border-top-color: var(--pv-on-tint);
   border-radius: 50%;
   animation: pv-spin 0.7s linear infinite;
 }

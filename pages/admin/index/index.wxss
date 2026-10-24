@@ -9,7 +9,7 @@
   border-radius: var(--pv-r-pill); background: var(--pv-surface);
   font-size: var(--pv-fs-subhead); color: var(--pv-label-2);
 }
-.tab--on { background: var(--pv-brand); color: #fff; font-weight: 600; }
+.tab--on { background: var(--pv-brand); color: var(--pv-on-tint); font-weight: 600; }
 
 .admin-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
 .stat-grid { display: flex; flex-direction: row; flex-wrap: wrap; margin-bottom: var(--pv-sp-2); }
@@ -40,7 +40,7 @@
 .field__textarea { min-height: 200rpx; width: 100%; box-sizing: border-box; }
 .switch-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-top: var(--pv-sp-2); }
 .ci-box { display: flex; flex-direction: row; align-items: center; margin-top: var(--pv-sp-2); }
-.ci-qr { width: 240rpx; height: 240rpx; border-radius: var(--pv-r-sm); background: #ffffff; }
+.ci-qr { width: 240rpx; height: 240rpx; border-radius: var(--pv-r-sm); background: var(--pv-surface); }
 .ci-side { display: flex; flex-direction: column; margin-left: var(--pv-sp-3); }
 .ci-code { font-size: 56rpx; font-weight: 700; letter-spacing: 8rpx; color: var(--pv-label); }
 .ci-off { display: block; margin-top: var(--pv-sp-2); line-height: 1.45; }
@@ -82,6 +82,6 @@
 }
 .stat-cell__label {
   font-size: 22rpx;
-  color: var(--pv-ink-3);
+  color: var(--pv-label-3);
   margin-top: 4rpx;
 }

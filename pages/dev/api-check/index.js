@@ -1,8 +1,10 @@
 const data = require('../../../services/data');
 const i18n = require('../../../utils/i18n');
+const theme = require('../../../utils/theme');
 
 Page({
   data: {
+    theme,
     running: false,
     modeText: '檢查中…',
     lines: [],

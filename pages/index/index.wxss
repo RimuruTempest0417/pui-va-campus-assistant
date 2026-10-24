@@ -43,14 +43,14 @@
 .urgent__badge {
   font-size: var(--pv-fs-caption-2);
   color: var(--pv-brand);
-  background: #ffffff;
+  background: var(--pv-surface);
   border-radius: var(--pv-r-pill);
   padding: 2rpx 12rpx;
   font-weight: 700;
   margin-right: var(--pv-sp-2);
 }
-.urgent__title { color: #ffffff; font-size: var(--pv-fs-subhead); font-weight: 600; flex: 1; }
-.urgent__arrow { color: rgba(255, 255, 255, 0.8); font-size: var(--pv-fs-title-3); margin-left: var(--pv-sp-1); }
+.urgent__title { color: var(--pv-on-tint); font-size: var(--pv-fs-subhead); font-weight: 600; flex: 1; }
+.urgent__arrow { color: var(--pv-on-tint-2); font-size: var(--pv-fs-title-3); margin-left: var(--pv-sp-1); }
 
 /* 四宮格 */
 .grid {
@@ -151,7 +151,7 @@
 }
 .kids__chip.is-active {
   background: var(--pv-tint);
-  color: #ffffff;
+  color: var(--pv-on-tint);
   font-weight: 600;
 }
 .kids__sum {

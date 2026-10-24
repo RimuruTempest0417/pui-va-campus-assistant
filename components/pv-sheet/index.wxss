@@ -1,7 +1,7 @@
 @import "../../styles/tokens.wxss";
 
 .pv-sheet { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 900; }
-.pv-sheet__mask { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background: rgba(0, 0, 0, 0.28); }
+.pv-sheet__mask { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background: var(--pv-scrim); }
 .pv-sheet__panel {
   position: absolute; left: 0; right: 0; bottom: 0;
   background: var(--pv-surface);

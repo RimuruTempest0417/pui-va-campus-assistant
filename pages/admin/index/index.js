@@ -2,6 +2,7 @@ const admin = require('../../../services/admin');
 const request = require('../../../utils/request');
 const config = require('../../../config/config');
 const { dateKey, fromNow } = require('../../../utils/date');
+const theme = require('../../../utils/theme');
 
 const TABS = [
   { key: 'stats', label: '概況' },
@@ -38,6 +39,7 @@ const ROLES = [
 
 Page({
   data: {
+    theme,
     tabs: TABS,
     tab: 'stats',
     role: '',
@@ -546,7 +548,7 @@ Page({
       title: '解除綁定',
       content: '確定要解除與 ' + name + ' 的綁定？解除後家長就看不到這個孩子的資料。',
       confirmText: '解除',
-      confirmColor: '#C8102E',
+      confirmColor: theme.danger,
       success: async (r) => {
         if (!r.confirm) return;
         try {
@@ -701,7 +703,7 @@ Page({
     wx.showModal({
       title: '刪除帳號',
       content: '刪除 ' + account + '？相關的認領／報名紀錄會一併清除。',
-      confirmColor: '#b3261e',
+      confirmColor: theme.danger,
       success(res) {
         if (!res.confirm) return;
         admin

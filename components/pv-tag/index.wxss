@@ -15,5 +15,5 @@
 .pv-tag--success { background: var(--pv-success-soft); color: var(--pv-success); }
 .pv-tag--warning { background: var(--pv-warning-soft); color: var(--pv-warning); }
 .pv-tag--danger { background: var(--pv-brand-soft); color: var(--pv-danger); }
-.pv-tag--brand { background: var(--pv-brand); color: #ffffff; }
+.pv-tag--brand { background: var(--pv-brand); color: var(--pv-on-tint); }
 .pv-tag.is-plain { background: transparent; border: 1rpx solid currentColor; }

@@ -23,11 +23,11 @@
 .pv-seg__item.is-active {
   background: var(--pv-surface);
   font-weight: 600;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2rpx 8rpx var(--pv-shadow);
 }
 .pv-seg__item.is-pressed { opacity: 0.7; }
 .pv-seg__badge {
   margin-left: 6rpx; min-width: 26rpx; height: 26rpx; border-radius: var(--pv-r-pill);
-  background: var(--pv-brand); color: #fff; font-size: 18rpx;
+  background: var(--pv-brand); color: var(--pv-on-tint); font-size: 18rpx;
   display: flex; align-items: center; justify-content: center; padding: 0 6rpx;
 }

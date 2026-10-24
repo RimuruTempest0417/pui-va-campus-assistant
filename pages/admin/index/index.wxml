@@ -90,7 +90,7 @@
           </view>
           <view class="switch-row">
             <text class="ui-meta">置頂</text>
-            <switch checked="{{notice.isPinned}}" bindchange="onPinned" color="#17694a" />
+            <switch checked="{{notice.isPinned}}" bindchange="onPinned" color="{{theme.tint}}" />
           </view>
           <view class="row-actions">
             <pv-button type="filled" loading="{{sending}}" disabled="{{sending}}" bind:tap="publish">發布公告</pv-button>

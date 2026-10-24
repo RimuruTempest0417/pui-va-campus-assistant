@@ -10,23 +10,35 @@ page {
   --pv-tint-pressed: #5a31a6;
   --pv-tint-soft: #f0eafb;
   --pv-brand: #c8102e;              /* 培華紅：校徽用色，保留給身份識別與緊急 */
+  --pv-brand-strong: #a00d24;       /* 培華紅深階：後台統計數字（白底對比 7.6:1） */
   --pv-brand-soft: #fcebec;
   --pv-danger: #d70015;             /* iOS systemRed：破壞性操作 */
   --pv-warning: #b25000;            /* iOS systemOrange（深） */
   --pv-warning-soft: #fff3e0;
   --pv-success: #248a3d;            /* iOS systemGreen（深） */
   --pv-success-soft: #e9f7ec;
+  --pv-accent: #e0a100;             /* 星評琥珀：只給評分星形字元，不當文字色（白底 2.6:1） */
 
   /* ── 文字與中性（iOS label / fill 階層）──── */
   --pv-label: #000000;
   --pv-label-2: rgba(60, 60, 67, 0.6);   /* secondaryLabel */
   --pv-label-3: rgba(60, 60, 67, 0.3);   /* tertiaryLabel */
+  --pv-label-4: rgba(60, 60, 67, 0.18);  /* quaternaryLabel：月曆非本月日期 */
   --pv-sep: rgba(60, 60, 67, 0.29);      /* separator */
   --pv-fill: rgba(120, 120, 128, 0.12);  /* systemFill（分段控制底） */
   --pv-fill-2: rgba(120, 120, 128, 0.16);
   --pv-bg: #f2f2f7;                      /* systemGroupedBackground */
   --pv-surface: #ffffff;                 /* secondarySystemGroupedBackground */
   --pv-bar: rgba(249, 249, 249, 0.86);   /* 半透明導航列（近似 material） */
+
+  /* ── 疊加層與前景色（紫／紅底上的白字、遮罩、陰影）── */
+  --pv-on-tint: #ffffff;                 /* 紫／紅實心底上的文字與圖示 */
+  --pv-on-tint-2: rgba(255, 255, 255, 0.75);   /* 同上但次要（箭頭、圓點） */
+  --pv-on-tint-line: rgba(255, 255, 255, 0.45); /* 白字按鈕的轉圈指示環 */
+  --pv-scrim: rgba(0, 0, 0, 0.28);       /* 彈層遮罩 */
+  --pv-overlay: rgba(0, 0, 0, 0.65);     /* 縮圖刪除鈕等深色圓底 */
+  --pv-shadow: rgba(0, 0, 0, 0.12);      /* 分段控制選中項浮起 */
+  --pv-shadow-tint: rgba(109, 63, 196, 0.32); /* 懸浮按鈕的紫暈 */
 
   /* ── 字級（Apple 字階）──────────────────── */
   --pv-fs-large-title: 68rpx; /* 34pt */

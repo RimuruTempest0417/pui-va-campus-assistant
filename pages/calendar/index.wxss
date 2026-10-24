@@ -44,15 +44,15 @@
 .cal-cell--today { background: var(--pv-tint-soft); }
 .cal-cell--today .cal-cell__day { color: var(--pv-tint); font-weight: 600; }
 .cal-cell--on { background: var(--pv-tint); }
-.cal-cell--on .cal-cell__day { color: #fff; font-weight: 600; }
+.cal-cell--on .cal-cell__day { color: var(--pv-on-tint); font-weight: 600; }
 
 .cal-dots { display: flex; flex-direction: row; height: 12rpx; margin-top: 6rpx; }
 .cal-dot { width: 10rpx; height: 10rpx; border-radius: 50%; margin: 0 2rpx; }
 .cal-dot--urgent { background: var(--pv-brand); }
 .cal-dot--event { background: var(--pv-tint); }
 .cal-dot--notice { background: var(--pv-label-3); }
-.cal-cell--on .cal-dot--notice { background: rgba(255, 255, 255, 0.75); }
-.cal-cell--on .cal-dot--event { background: #fff; }
+.cal-cell--on .cal-dot--notice { background: var(--pv-on-tint-2); }
+.cal-cell--on .cal-dot--event { background: var(--pv-on-tint); }
 
 .cal-day {
   display: flex; flex-direction: row; align-items: baseline; justify-content: space-between;

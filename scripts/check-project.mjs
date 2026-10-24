@@ -201,6 +201,83 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   }
 }
 
+// 11) 顏色單一來源：wxss / wxml / js 不得寫死色值（唯一來源 styles/tokens.wxss）
+//     例外：tokens.wxss 本身、style-guide 展示頁（它的工作就是把色值印出來）、utils/theme.js（第 13 條單獨比對）
+{
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const SKIP_DIRS = new Set(['node_modules', 'dist', 'minitest', 'docs', '.git', '.github', 'scripts', 'config']);
+  const ALLOW = new Set([
+    'styles/tokens.wxss',
+    'pages/style-guide/index.js',
+    'pages/style-guide/index.wxml',
+    'pages/style-guide/index.wxss',
+  ]);
+  const HEX = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
+  const RGBA = /\brgba?\(/g;
+  const strip = (text) => text
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|\n)\s*\/\/[^\n]*/g, '$1');
+
+  const scan = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name.startsWith('.') || SKIP_DIRS.has(e.name)) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) { scan(full); continue; }
+      if (!/\.(wxss|wxml|js)$/.test(e.name)) continue;
+      const rel = full.slice(root.length + 1);
+      if (ALLOW.has(rel) || rel === 'utils/theme.js') continue;
+      const text = strip(readFileSync(full, 'utf8'));
+      text.split('\n').forEach((line, i) => {
+        const m = line.match(HEX) || line.match(RGBA);
+        if (m) errors.push(`${rel}:${i + 1} 寫死色值 ${m[0]}（顏色只能來自 var(--pv-*) 或 utils/theme.js）`);
+      });
+    }
+  };
+  for (const dir of ['pages', 'components', 'styles', 'utils', 'services']) {
+    if (existsSync(join(root, dir))) scan(join(root, dir));
+  }
+}
+
+// 12) CSS 變數必須先定義：用到未定義的 --pv-* 會靜默退回繼承色（畫面只像「顏色不對」）
+{
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const tokenText = readFileSync(join(root, 'styles/tokens.wxss'), 'utf8');
+  const defined = new Set((tokenText.match(/^\s*(--pv-[a-z0-9-]+)\s*:/gm) || []).map((s) => s.trim().replace(/\s*:$/, '')));
+  const walkVars = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) { walkVars(full); continue; }
+      if (!e.name.endsWith('.wxss')) continue;
+      const rel = full.slice(root.length + 1);
+      if (rel === 'styles/tokens.wxss') continue;
+      const text = readFileSync(full, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+      const used = new Set((text.match(/var\(\s*(--pv-[a-z0-9-]+)/g) || []).map((s) => s.replace(/var\(\s*/, '')));
+      for (const v of used) {
+        if (!defined.has(v)) errors.push(`${rel} 用了未定義的 ${v}（tokens.wxss 沒有這個變數，會靜默退回繼承色）`);
+      }
+    }
+  };
+  for (const dir of ['pages', 'components', 'styles']) if (existsSync(join(root, dir))) walkVars(join(root, dir));
+}
+
+// 13) utils/theme.js（WXML 屬性用的字面色）必須與 tokens.wxss 一致
+{
+  const { readFileSync } = await import('node:fs');
+  const tokenText = readFileSync(join(root, 'styles/tokens.wxss'), 'utf8');
+  const themeText = readFileSync(join(root, 'utils/theme.js'), 'utf8');
+  const pairs = [['tint', '--pv-tint'], ['brand', '--pv-brand'], ['danger', '--pv-danger'], ['onTint', '--pv-on-tint']];
+  for (const [key, varName] of pairs) {
+    const tm = tokenText.match(new RegExp(varName + '\\s*:\\s*(#[0-9a-fA-F]{3,8})'));
+    const jm = themeText.match(new RegExp('\\b' + key + "\\s*:\\s*'(#[0-9a-fA-F]{3,8})'"));
+    if (!tm) { errors.push('tokens.wxss 找不到 ' + varName); continue; }
+    if (!jm) { errors.push('utils/theme.js 沒有 ' + key + '（應為 ' + tm[1] + '）'); continue; }
+    if (tm[1].toLowerCase() !== jm[1].toLowerCase()) {
+      errors.push('utils/theme.js 的 ' + key + '=' + jm[1] + ' 與 tokens.wxss 的 ' + varName + '=' + tm[1] + ' 不一致');
+    }
+  }
+}
+
 for (const w of warnings) console.warn(`⚠️  ${w}`);
 if (errors.length) {
   for (const e of errors) console.error(`❌ ${e}`);

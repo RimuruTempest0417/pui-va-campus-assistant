@@ -33,7 +33,7 @@
 .ui-thumb-del {
   position: absolute; top: -8rpx; right: -8rpx;
   width: 40rpx; height: 40rpx; border-radius: 50%;
-  background: rgba(0,0,0,0.65); color: #fff;
+  background: var(--pv-overlay); color: var(--pv-on-tint);
   font-size: 22rpx; display: flex; align-items: center; justify-content: center;
 }
 .ui-thumb-add {

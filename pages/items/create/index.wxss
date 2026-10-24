@@ -8,5 +8,5 @@
   background: var(--pv-fill); border-radius: var(--pv-r-pill);
   padding: 10rpx var(--pv-sp-3); margin-right: var(--pv-sp-2); margin-bottom: var(--pv-sp-1);
 }
-.seg-item.is-active { background: var(--pv-tint); color: #fff; font-weight: 600; }
+.seg-item.is-active { background: var(--pv-tint); color: var(--pv-on-tint); font-weight: 600; }
 .sheet-row { padding: var(--pv-sp-3) 0; border-bottom: 1rpx solid var(--pv-sep); font-size: var(--pv-fs-body); }
