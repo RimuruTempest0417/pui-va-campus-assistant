@@ -105,6 +105,13 @@ Page({
     abilities: [],
     sending: false,
     hint: '',
+    // 批次匯入（W-19）：同一塊面板依目前分頁決定匯入活動或菜單
+    importType: '',
+    importCsv: '',
+    importHint: '',
+    importResult: null,
+    importChecked: false,
+    importBusy: false,
     tabLoading: false,
     failed: false,
     errorText: '',
@@ -441,6 +448,81 @@ Page({
 
   closeCheckinPanel() {
     this.setData({ ci: null, attendance: null });
+  },
+
+  // ───────── 批次匯入（CSV）─────────
+  openImport(e) {
+    const type = e && e.currentTarget && e.currentTarget.dataset.type === 'menu' ? 'menu' : 'events';
+    const hint =
+      type === 'events'
+        ? '欄名：標題,開始時間,結束時間,地點,名額,組別,說明,狀態。時間寫成 2026-11-05 09:00；組別用逗號分隔時整格要加引號，例如 "甲組,乙組"。'
+        : '欄名：日期,餐別,菜色。日期寫成 2026-11-05；餐別填 午餐 或 小食；同一餐多道菜用 | 分隔。';
+    this.setData({ importType: type, importCsv: '', importResult: null, importChecked: false, importHint: hint });
+  },
+
+  closeImport() {
+    this.setData({ importType: '', importCsv: '', importResult: null, importChecked: false });
+  },
+
+  onImportText(e) {
+    this.setData({ importCsv: e.detail.value, importChecked: false });
+  },
+
+  /** 從微信聊天記錄選一個 CSV，讀成文字後貼進同一個輸入框（兩條入口共用一套驗證） */
+  pickCsvFile() {
+    wx.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      extension: ['csv'],
+      success: (res) => {
+        const file = (res.tempFiles || [])[0];
+        if (!file) return;
+        try {
+          const text = wx.getFileSystemManager().readFileSync(file.path, 'utf8');
+          this.setData({ importCsv: String(text || ''), importResult: null, importChecked: false });
+          wx.showToast({ title: '已讀入 ' + (file.name || 'CSV'), icon: 'none' });
+        } catch (err) {
+          wx.showToast({ title: '讀不到這個檔案', icon: 'none' });
+        }
+      },
+      fail: () => {
+        // 使用者取消選擇不算錯誤
+      },
+    });
+  },
+
+  checkImport() {
+    return this.runImport(true);
+  },
+
+  confirmImport() {
+    if (!this.data.importChecked) {
+      wx.showToast({ title: '請先按「先檢查」', icon: 'none' });
+      return Promise.resolve();
+    }
+    return this.runImport(false);
+  },
+
+  async runImport(dryRun) {
+    if (this.data.importBusy) return;
+    const csv = (this.data.importCsv || '').trim();
+    if (!csv) {
+      wx.showToast({ title: '先貼上或選 CSV', icon: 'none' });
+      return;
+    }
+    this.setData({ importBusy: true });
+    try {
+      const res =
+        this.data.importType === 'menu' ? await admin.importMenu(csv, dryRun) : await admin.importEvents(csv, dryRun);
+      // 只有「檢查過而且至少有一列寫得進去」才放行確認匯入
+      this.setData({ importResult: res, importChecked: dryRun && res.success > 0 });
+      wx.showToast({ title: dryRun ? '檢查完成' : '已匯入 ' + res.success + ' 筆', icon: 'none' });
+      if (!dryRun) this.reloadTab();
+    } catch (e) {
+      wx.showToast({ title: (e && e.message) || '匯入失敗', icon: 'none' });
+    } finally {
+      this.setData({ importBusy: false });
+    }
   },
 
   async loadEventsAdmin() {

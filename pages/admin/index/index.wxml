@@ -123,6 +123,7 @@
           <input class="field__input field__gap" value="{{eventForm.groups}}" data-field="groups" bindinput="onEventField" placeholder="分組（可空，例：A組,B組）" />
           <view class="row-actions">
             <pv-button type="filled" size="sm" loading="{{creatingEvent}}" disabled="{{creatingEvent}}" bind:tap="createEvent">建立活動</pv-button>
+            <pv-button size="sm" type="plain" data-type="events" bind:tap="openImport">匯入 CSV</pv-button>
           </view>
         </pv-card>
 
@@ -400,6 +401,7 @@
           <input class="field__input" value="{{menu.names}}" placeholder="例：葡式焗雞飯, 番茄蛋炒飯" bindinput="onMenuNames" />
           <view class="row-actions">
             <pv-button type="filled" loading="{{sending}}" disabled="{{sending}}" bind:tap="saveMenu">排入菜單</pv-button>
+            <pv-button size="sm" type="plain" data-type="menu" bind:tap="openImport">匯入 CSV</pv-button>
           </view>
         </pv-card>
 
@@ -410,6 +412,34 @@
         </view>
         <pv-empty wx:if="{{!menuEntries.length}}" icon="🍽" title="這週還沒排菜" desc="" />
       </block>
+
+      <!-- 批次匯入（活動／菜單共用同一塊面板） -->
+      <pv-card wx:if="{{importType}}">
+        <view class="ui-row-between">
+          <text class="ui-title">批次匯入{{importType === 'menu' ? '菜單' : '活動'}}</text>
+          <pv-button size="sm" type="plain" bind:tap="closeImport">收起</pv-button>
+        </view>
+        <text class="ui-meta imp-hint">{{importHint}}</text>
+        <textarea
+          class="field__input field__textarea field__gap"
+          value="{{importCsv}}"
+          bindinput="onImportText"
+          maxlength="-1"
+          placeholder="把 CSV 貼在這裡，或按下面「選擇 CSV 檔」從聊天記錄挑一個"
+        />
+        <view class="row-actions">
+          <pv-button size="sm" type="plain" bind:tap="pickCsvFile">選擇 CSV 檔</pv-button>
+          <pv-button size="sm" type="plain" loading="{{importBusy}}" disabled="{{importBusy}}" bind:tap="checkImport">先檢查</pv-button>
+          <pv-button size="sm" type="filled" loading="{{importBusy}}" disabled="{{importBusy || !importChecked}}" bind:tap="confirmImport">確認匯入</pv-button>
+        </view>
+        <view wx:if="{{importResult}}">
+          <text class="ui-meta imp-sum">共 {{importResult.total}} 列：可寫入 {{importResult.success}}｜有問題 {{importResult.failed}}</text>
+          <view wx:for="{{importResult.rows}}" wx:key="line" class="imp-row">
+            <text class="imp-row__line">第 {{item.line}} 列</text>
+            <text class="imp-row__msg {{item.ok ? 'imp-row__msg--ok' : 'imp-row__msg--bad'}}">{{item.message}}{{item.label ? '：' + item.label : ''}}</text>
+          </view>
+        </view>
+      </pv-card>
 
       <text wx:if="{{hint}}" class="ui-meta hint">{{hint}}</text>
     </view>

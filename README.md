@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.30.0-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.30.1-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -27,7 +27,7 @@
 | 午餐與小賣部 | 週菜單（可切上／下週）、午餐與小賣部分區、1–5 星評分、點讚、每週熱門排行 | ✅ 2 頁 | ✅ 一人一評 upsert |
 | 公告與溫馨提示 | 置頂／緊急／校曆分類、詳情、已讀狀態、過期自動隱藏 | ✅ 2 頁 | ✅ 每人各自已讀 |
 | 家長端（綁定子女） | 首頁「我的子女」切換、代報名／取消、子女的報名／認領／未讀公告 | ✅ 1 頁 ＋ 首頁卡 | ✅ 兩道門（role PARENT ＋ parent_links）＋ 與學生共用 `lib/signup.ts` |
-| 校內管理（小程序內建） | 概況、認領、失物、活動、公告、使用者、家長、檢舉、**錯誤**、審計、名單、菜單；**校內職員（STAFF）登入只看到「菜單」「名單」**，不能開活動、不能發公告 | ✅ 12 個分頁 | ✅ 依能力矩陣分權 |
+| 校內管理（小程序內建） | 概況、認領、失物、活動、公告、使用者、家長、檢舉、**錯誤**、審計、名單、菜單；**CSV 批次匯入活動／菜單**（先檢查再匯入、逐列回報）；**校內職員（STAFF）登入只看到「菜單」「名單」**，不能開活動、不能發公告 | ✅ 12 個分頁 | ✅ 依能力矩陣分權 |
 | 資料備份（維運） | 全庫匯出成一份 JSON（18 張表）、終端一支指令還原、還原後逐表對帳 | ✅ 網頁後台「下載備份」（只有最高權限看得到） | ✅ `GET /admin/export.json`（`backup:export`）＋後端 repo 的 `restore.mjs` |
 | 錯誤日誌（觀測） | 手機端的白屏／閃退／未處理 Promise 自動送上報，後台按出現次數排序、可標記已解決 | ✅ 自動上報（不影響使用者） | ✅ `error_logs` ＋ 3 支端點（`error:read`） |
 
@@ -174,6 +174,7 @@ node scripts/check-console.mjs     # 19 頁 console 走查：0 error／0 warn（
 - [x] **家長端（P3，v0.23.0）**：首頁「我的子女」切換＋`pages/parent` 代報名／取消（後端 `event:signup:child`，名額與學生共用 `lib/signup.ts`）
 - [x] **活動現場簽到（v0.24.0）**：老師在後台按「開始簽到」生成 6 位碼＋QR（每次換新碼），學生掃碼或手打碼簽到；只有正取能簽，重複掃不重複計；後台／網頁後台都看得到「已簽到 n / 正取 m（出席率）」並可代簽、撤銷代簽
 - [x] **錯誤日誌（v0.25.0）**：`App.onError`／`onUnhandledRejection` → `POST /client-errors` → 後台「錯誤」分頁按次數排序；順手修 `fromNow` 不吃 ISO 字串（真 API 模式「NaN 天前」）
+- [x] **CSV 批次匯入（v0.30.1／後端 v0.14.1）**：後台「活動」「菜單」各一顆「匯入 CSV」—— 貼上或從微信聊天記錄選檔 → 先檢查（`dryRun`）逐列看結果 → 確認匯入；同一份檔案裡只有 1 列打錯也不會讓其他列白做；同名同時段只提示不覆蓋、菜單同日同餐整組取代、菜名自動建立；網頁後台與小程序同一套規則（解析全在後端）
 - [x] **API 契約守門（v0.27.2）**：`docs/openapi.yaml` 合併 6 組重複路徑（YAML 取後者、前面操作被靜默丟掉）＋修掉 `$ref` 被吃掉的壞行（整檔原本解析失敗）＋刪掉 2 條後端不存在的假操作；新增 `scripts/check-openapi.mjs`（重複鍵／可解析／操作數下限，`--parity` 對後端路由表對帳）並接進一鍵驗收。實測 52 路徑／59 操作／0 重複鍵、文件有而後端沒有 0 條
 - [x] 訂閱消息（W-11）
 - [x] 雲端部署（W-15）：Vercel + Neon，API `https://pui-va-campus-server.vercel.app/api/v1`

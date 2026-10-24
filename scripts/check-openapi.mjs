@@ -6,7 +6,7 @@ import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 
 const FILE = "docs/openapi.yaml";
-const MIN_OPS = 59; // 2026-10-25 合併重複鍵＋刪掉 2 條後端不存在的假操作後的操作數，只准往上
+const MIN_OPS = 62; // 2026-10-25 加 CSV 匯入三條（範本／活動／菜單）後的操作數，只准往上
 const QT = String.fromCharCode(34, 39); // 雙引號與單引號
 const errors = [];
 

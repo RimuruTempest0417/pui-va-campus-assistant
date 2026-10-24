@@ -92,3 +92,12 @@
   padding: var(--pv-sp-1) 0; border-bottom: 1rpx solid var(--pv-sep);
 }
 .group-stat__name { font-size: var(--pv-fs-subhead); font-weight: 600; color: var(--pv-label); }
+
+/* 批次匯入（活動／菜單）：逐列結果像 iOS 的清單，成功用主字色、失敗才用警示色 */
+.imp-hint { display: block; margin-top: var(--pv-sp-1); line-height: 1.45; }
+.imp-sum { display: block; margin-top: var(--pv-sp-2); }
+.imp-row { display: flex; flex-direction: row; align-items: flex-start; padding: 10rpx 0; border-bottom: 1rpx solid var(--pv-sep); }
+.imp-row__line { width: 140rpx; flex-shrink: 0; font-size: var(--pv-fs-caption-1); color: var(--pv-label-2); }
+.imp-row__msg { flex: 1; font-size: var(--pv-fs-footnote); line-height: 1.45; }
+.imp-row__msg--ok { color: var(--pv-label); }
+.imp-row__msg--bad { color: var(--pv-warning); }

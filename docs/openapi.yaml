@@ -1037,6 +1037,97 @@ paths:
                   count: { type: integer }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /admin/import/template:
+    get:
+      tags: [admin]
+      summary: CSV 匯入範本（text/csv，帶 UTF-8 BOM；需登入）
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string, enum: [events, menu], default: events }
+      responses:
+        '200':
+          description: 範本 CSV（第一列為欄名，可直接改內容後匯入）
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /admin/import/events:
+    post:
+      tags: [admin]
+      summary: 批次建立活動（逐列回報，同名同時段只提示不覆蓋；需 event:create）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [csv]
+              properties:
+                csv: { type: string, description: CSV 全文，第一列為欄名 }
+                dryRun: { type: boolean, default: false, description: 只驗證不寫入 }
+      responses:
+        '200':
+          description: 逐列結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type: { type: string, enum: [events, menu] }
+                  dryRun: { type: boolean }
+                  total: { type: integer }
+                  success: { type: integer }
+                  failed: { type: integer }
+                  rows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        line: { type: integer }
+                        ok: { type: boolean }
+                        message: { type: string }
+                        label: { type: string, description: 標題或日期餐別 }
+                        id: { type: string, description: 成功時建立後的 id }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/import/menu:
+    post:
+      tags: [admin]
+      summary: 批次匯入菜單（同日同餐合併為一組並整組取代；菜名自動建立；需 menu:manage）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [csv]
+              properties:
+                csv: { type: string, description: CSV 全文，第一列為欄名 }
+                dryRun: { type: boolean, default: false }
+      responses:
+        '200':
+          description: 逐列結果（同日同餐的多列會各自回報同一組的結果）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type: { type: string, enum: [events, menu] }
+                  dryRun: { type: boolean }
+                  total: { type: integer }
+                  success: { type: integer }
+                  failed: { type: integer }
+                  rows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        line: { type: integer }
+                        ok: { type: boolean }
+                        message: { type: string }
+                        label: { type: string, description: 標題或日期餐別 }
+                        id: { type: string, description: 成功時建立後的 id }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /admin/notices:
     post:
       tags: [admin]

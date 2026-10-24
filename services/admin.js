@@ -48,6 +48,13 @@ module.exports = {
   attendance(eventId) {
     return http.get('/events/' + eventId + '/attendance');
   },
+  // 批次匯入（W-19）：逐列回報，dryRun 只驗不寫
+  importEvents(csv, dryRun) {
+    return http.post('/admin/import/events', { csv: csv, dryRun: !!dryRun });
+  },
+  importMenu(csv, dryRun) {
+    return http.post('/admin/import/menu', { csv: csv, dryRun: !!dryRun });
+  },
   createDish(name, mealType) {
     return http.post('/admin/dishes/ensure', { name: name, mealType: mealType || 'LUNCH' });
   },
