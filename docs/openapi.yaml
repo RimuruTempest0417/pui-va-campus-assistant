@@ -1000,6 +1000,12 @@ paths:
         - { in: query, name: status, schema: { type: string, enum: [PENDING, APPROVED, REJECTED], default: PENDING } }
 
   /admin/events:
+    post:
+      tags: [admin]
+      summary: 建立活動
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
     get:
       tags: [admin]
       summary: 活動清單（匯出 CSV 用，需 event:export）
@@ -1010,6 +1016,12 @@ paths:
       summary: 依菜名取得或建立菜色（排菜單用，需 menu:manage）
 
   /admin/menu:
+    get:
+      tags: [admin]
+      summary: 整週菜單（後台）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
     post:
       tags: [admin]
       summary: 排菜單（同日同餐別覆蓋，需 menu:manage）
@@ -1129,6 +1141,12 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
 
   /admin/notices:
+    get:
+      tags: [admin]
+      summary: 公告列表（後台）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
     post:
       tags: [admin]
       summary: 發公告（可推送訂閱消息）
@@ -1405,6 +1423,527 @@ paths:
                   data: { type: object, additionalProperties: { type: array, items: { type: object } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ── 健康檢查（監控用，不需認證） ──
+  /health:
+    get:
+      tags: [system]
+      summary: 存活檢查
+      responses:
+        '200':
+          description: 服務正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  uptime: { type: number }
+
+  /health/deep:
+    get:
+      tags: [system]
+      summary: 深度檢查（含資料庫）
+      responses:
+        '200':
+          description: 服務與資料庫都正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  db: { type: boolean }
+
+  # ── 站內通知（W-34） ──
+  /notifications:
+    get:
+      tags: [notifications]
+      summary: 我的通知（最近 50 筆）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: unreadOnly
+          schema: { type: string, enum: ['0', '1'] }
+      responses:
+        '200':
+          description: 通知列表與未讀數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unread: { type: integer }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        kind: { type: string, enum: [EVENT, CLAIM, NOTICE, SYSTEM] }
+                        title: { type: string }
+                        body: { type: string, nullable: true }
+                        link: { type: string, nullable: true }
+                        readAt: { type: string, format: date-time, nullable: true }
+                        createdAt: { type: string, format: date-time }
+
+  /notifications/unread-count:
+    get:
+      tags: [notifications]
+      summary: 未讀數（首頁鈴鐺）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 未讀數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unread: { type: integer }
+
+  /notifications/read:
+    patch:
+      tags: [notifications]
+      summary: 標記已讀（帶 id 標一筆，不帶就全部）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id: { type: string }
+      responses:
+        '200':
+          description: 已標記，回傳剩下未讀數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  unread: { type: integer }
+
+  # ── 檢舉 ──
+  /reports:
+    post:
+      tags: [reports]
+      summary: 送出檢舉
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetType, targetId, reason]
+              properties:
+                targetType: { type: string, example: ITEM }
+                targetId: { type: string }
+                reason: { type: string }
+      responses:
+        '201': { description: 已建立 }
+
+  /admin/reports:
+    get:
+      tags: [admin]
+      summary: 檢舉列表（教職員）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: 檢舉列表 }
+
+  /admin/reports/{id}:
+    patch:
+      tags: [admin]
+      summary: 處理檢舉（標記已處理／駁回）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [OPEN, RESOLVED, REJECTED] }
+                note: { type: string }
+      responses:
+        '200': { description: 已更新 }
+
+  # ── 訂閱消息同意狀態 ──
+  /subscriptions/check:
+    get:
+      tags: [notifications]
+      summary: 查詢是否已同意某個訂閱模板
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: templateId
+          schema: { type: string }
+        - in: query
+          name: scene
+          schema: { type: string }
+      responses:
+        '200':
+          description: 同意狀態
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agreed: { type: boolean }
+
+  # ── 使用者管理（等級低於自己才可操作） ──
+  /admin/users/{id}/ban:
+    patch:
+      tags: [admin]
+      summary: 停用／恢復帳號
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                banned: { type: boolean }
+      responses:
+        '200': { description: 已更新 }
+
+  /admin/permissions:
+    get:
+      tags: [admin]
+      summary: 能力矩陣（角色 × 能力）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: 能力矩陣 }
+
+  /admin/audit:
+    get:
+      tags: [admin]
+      summary: 審計紀錄
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: 審計紀錄列表 }
+
+  /admin/audit.csv:
+    get:
+      tags: [admin]
+      summary: 審計紀錄匯出 CSV（UTF-8 BOM，最高權限）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: CSV 檔
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /admin/notices/{id}:
+    patch:
+      tags: [admin]
+      summary: 編輯公告
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: 已更新 }
+    delete:
+      tags: [admin]
+      summary: 刪除公告
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: 已刪除 }
+
+  /admin/menu/{id}:
+    delete:
+      tags: [admin]
+      summary: 移除某一天的菜單
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: 已移除 }
+
+  # ── 外部校曆（iCalendar 唯讀） ──
+  /calendar/external:
+    get:
+      tags: [calendar]
+      summary: 外部校曆場次（10 分鐘快取，可多來源）
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+        - in: query
+          name: refresh
+          schema: { type: string, enum: ['0', '1'] }
+      responses:
+        '200':
+          description: 場次與各來源狀態
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items: { type: object }
+                  sources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        label: { type: string }
+                        ok: { type: boolean }
+                        count: { type: integer }
+                        error: { type: string, nullable: true }
+
+  # ── 活動回饋（W-31） ──
+  /events/{id}/feedback:
+    post:
+      tags: [events]
+      summary: 送出回饋（需正取且活動已結束，一人一次可改）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rating]
+              properties:
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                comment: { type: string, maxLength: 300 }
+      responses:
+        '200': { description: 已記錄 }
+    get:
+      tags: [events]
+      summary: 回饋摘要（平均分、筆數、我的、最近 20 條留言）
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 回饋摘要
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  avg: { type: number }
+                  mine: { type: object, nullable: true }
+                  items: { type: array, items: { type: object } }
+
+  # ── 組隊報名（W-30） ──
+  /events/{id}/teams:
+    post:
+      tags: [events]
+      summary: 建立隊伍（回 6 碼邀請碼）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 40 }
+      responses:
+        '201': { description: 已建立，回傳 code }
+    get:
+      tags: [events]
+      summary: 隊伍列表（人數；只有隊長看得到邀請碼）
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 隊伍列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teams:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        members: { type: integer }
+                        mine: { type: boolean }
+                        code: { type: string, nullable: true }
+        '404': { description: 活動不存在 }
+
+  /admin:
+    get:
+      tags: [admin]
+      summary: 後台 HTML 頁（不需認證，登入在頁內做）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/2fa-ui:
+    get:
+      tags: [admin]
+      summary: 兩步驗證設定頁（HTML）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/2fa:
+    get:
+      tags: [admin]
+      summary: 查詢我的兩步驗證狀態
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/2fa/begin:
+    post:
+      tags: [admin]
+      summary: 產生 TOTP 密鑰與 8 組備用碼
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/2fa/enable:
+    post:
+      tags: [admin]
+      summary: 輸入 6 位碼完成開啟（回傳備用碼）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/2fa/disable:
+    post:
+      tags: [admin]
+      summary: 關閉兩步驗證（需密碼）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/dishes:
+    get:
+      tags: [admin]
+      summary: 菜色清單
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/events/{id}:
+    patch:
+      tags: [admin]
+      summary: 修改活動（含取消／延期 postpone）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/users:
+    post:
+      tags: [admin]
+      summary: 建立帳號（只能建立低於自己等級）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+    get:
+      tags: [admin]
+      summary: 使用者清單（含 level／canManage／assignable）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/users/{id}:
+    delete:
+      tags: [admin]
+      summary: 刪除帳號
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+    patch:
+      tags: [admin]
+      summary: 修改名稱／帳號／密碼／等級
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/users/{id}/password:
+    patch:
+      tags: [admin]
+      summary: 重設密碼
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/users/{id}/temp-password:
+    post:
+      tags: [admin]
+      summary: 產生一次性臨時密碼（順便清 2FA）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/users/{id}/reset-2fa:
+    post:
+      tags: [admin]
+      summary: 重設兩步驗證（清密鑰與備用碼）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/users/{id}/role:
+    patch:
+      tags: [admin]
+      summary: 指派角色
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
 
 components:
   securitySchemes:

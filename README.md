@@ -70,7 +70,7 @@
 
 ```
 .
-├── app.js / app.json / app.wxss          # 全局入口（21 個頁面註冊）
+├── app.js / app.json / app.wxss          # 全局入口（22 個頁面註冊）
 ├── pages/
 │   ├── index/                            # 首頁：四模組入口、緊急公告、今日午餐
 │   ├── items/{list,detail,create,mine}/  # 失物招領
@@ -170,8 +170,8 @@ node scripts/check-console.mjs     # 22 頁 console 走查：0 error／0 warn（
 - [x] 後端 P0 端點（認領審批、報名行鎖＋候補、菜單評分、公告已讀、上傳簽名）
 - [x] **失物智能匹配**（pg_trgm 加權評分 + 詳情頁「可能是你的東西」）
 - [x] 後端 e2e（真實 Postgres，27 項，含 20 併發超賣壓測）
-- [x] **載入／空／失敗三態一致（v0.26.2）**：21 頁對照表（`scripts/check-states.mjs` 守門）；我的發布／我的報名補載入骨架；21 頁補「載入失敗＋重試」；詳情頁把 404 與斷網分開（不再把後端掛掉說成「資料已被刪除」）；後台分頁載入骨架＋讀取失敗卡片
-- [x] **22 頁 console 走查（v0.26.3）**：`utils/diagnostics.js` 把 `console.error`／`warn` 收進 storage `pv_diag`，`scripts/check-console.mjs` 逐頁「清空→開頁→輪詢到載入完→讀回」；21 頁 **0 error／0 warn**，每頁另印「內容筆數」防空綠（`get_simulator_console` 實測回不到執行期輸出，用它會變成假綠）
+- [x] **載入／空／失敗三態一致（v0.26.2）**：22 頁對照表（`scripts/check-states.mjs` 守門）；我的發布／我的報名補載入骨架；22 頁補「載入失敗＋重試」；詳情頁把 404 與斷網分開（不再把後端掛掉說成「資料已被刪除」）；後台分頁載入骨架＋讀取失敗卡片
+- [x] **22 頁 console 走查（v0.26.3）**：`utils/diagnostics.js` 把 `console.error`／`warn` 收進 storage `pv_diag`，`scripts/check-console.mjs` 逐頁「清空→開頁→輪詢到載入完→讀回」；22 頁 **0 error／0 warn**，每頁另印「內容筆數」防空綠（`get_simulator_console` 實測回不到執行期輸出，用它會變成假綠）
 - [x] **家長頁的「進不來」分成三態（v0.26.4）**：學生／老師／職員打開「我的子女」時後端回 403，原本畫成「載入失敗＋重試」（重試永遠是 403）；現在 403 給說明型空狀態（回首頁／切換帳號、不給重試）、401 給「去登入」、只有真的斷網才給重試
 - [x] **顏色只剩一個來源（v0.26.5／後端 v0.12.5）**：12 個 wxss 的 `#fff`／`rgba()` 全換成 token（新增 `--pv-on-tint`／`--pv-scrim`／`--pv-shadow` 等 12 個）；WXML 屬性用的字面色改由 `utils/theme.js` 提供並與 tokens 比對；`switch` 從上版殘留的綠 `#17694a` 改回培華紫；網頁後台整套由綠 `#17694a` 換成 `#6D3FC4`。守門加三條：寫死色值／用了未定義的 `--pv-*`／theme.js 與 tokens 不一致 → 一加就抓到 4 個靜默失效的變數（星評永遠灰、後台統計數字變黑等）
 - [x] **線上環境漂移修復（後端 v0.12.4）**：Neon 正式庫補 4 支 migration（`event_signups.checkedInAt` 等），帶 token 的 `GET /events/mine`／`GET /events/:id` 由 **500 修回 200**；後端 repo 加 `npm run check:drift`，把「本機 migration↔Neon／health／端點行為／部署 commit」四邊對一次，漂移不再只能等使用者回報
