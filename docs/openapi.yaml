@@ -1945,6 +1945,57 @@ paths:
       responses:
         '200': { description: OK }
 
+  /cron/reminders:
+    get:
+      tags: [admin]
+      summary: 活動前自動提醒（定時任務；Vercel Cron 用 GET）
+      description: |
+        由排程每 30 分鐘呼叫。找出 24 小時／1 小時內開始、狀態 PUBLISHED、
+        尚未提醒過的活動，對 **正取（CONFIRMED）** 報名者寫站內通知並嘗試發訂閱消息。
+        同一活動同一階段只發一次（`Event.reminder24SentAt`／`reminder1SentAt` 做樂觀鎖）。
+        認證不是 JWT，而是 `Authorization: Bearer <CRON_SECRET>`（或 `x-cron-secret`）；
+        後端沒設定 `CRON_SECRET` 時一律回 503 `CRON_DISABLED`。
+      security: []
+      responses:
+        '200':
+          description: 這一輪的結果（沒有活動要提醒時回 0 筆）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  now: { type: string, format: date-time }
+                  checked: { type: integer, description: 進入檢查的活動數 }
+                  reminders:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        eventId: { type: string }
+                        title: { type: string }
+                        stage: { type: string, enum: [24h, 1h] }
+                        startAt: { type: string, format: date-time }
+                        recipients: { type: integer, description: 正取人數 }
+                        subscribeSent: { type: integer }
+                        subscribeSkipped: { type: integer }
+                  totals:
+                    type: object
+                    properties:
+                      events: { type: integer }
+                      recipients: { type: integer }
+                      subscribeSent: { type: integer }
+                      subscribeSkipped: { type: integer }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+    post:
+      tags: [admin]
+      summary: 活動前自動提醒（手動觸發／GitHub Actions 用 POST）
+      security: []
+      responses:
+        '200': { description: 同 GET }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+
 components:
   securitySchemes:
     bearerAuth:
