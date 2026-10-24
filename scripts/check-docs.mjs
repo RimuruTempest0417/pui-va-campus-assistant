@@ -44,6 +44,48 @@ const plan = read('docs/規劃書-待完成.md');
 const planVer = (plan.match(/## 現況（[^，]*，v(\d+\.\d+\.\d+)/) || [])[1];
 if (planVer && planVer !== latest) errors.push(`規劃書現況版本 v${planVer} ≠ 最新 release v${latest}`);
 
+// ── 2b) 進度.md：最新一列要等於最新 release；不得偷放隊列；表格不得被空行打斷 ──
+const prog = read('docs/進度.md');
+const progRows = prog.split('\n').filter((l) => /^\| 20\d\d-/.test(l));
+if (!progRows.length) {
+  errors.push('docs/進度.md 的「已完成」表是空的');
+} else {
+  const vers = progRows.map((l) => (l.match(/v(\d+\.\d+\.\d+)/) || [])[1]).filter(Boolean);
+  if (vers.length && vers[0] !== latest) {
+    errors.push(`docs/進度.md 最新一列是 v${vers[0]}，但最新 release 是 v${latest}（做完沒登記）`);
+  }
+  const sorted = vers.map((v) => v.split('.').map(Number));
+  for (let i = 1; i < sorted.length; i += 1) {
+    const [a, b] = [sorted[i - 1], sorted[i]];
+    if (a[0] * 1e6 + a[1] * 1e3 + a[2] < b[0] * 1e6 + b[1] * 1e3 + b[2]) {
+      errors.push(`docs/進度.md 排序錯誤：v${vers[i - 1]} 排在 v${vers[i]} 之前（最新要在最上面）`);
+      break;
+    }
+  }
+  const progBody = prog.split('| 時間 | 項目 | 驗證 | Commit |')[1] || '';
+  const tablePart = progBody.split('\n## ')[0].trim();
+  if (/\n\s*\n/.test(tablePart)) {
+    errors.push('docs/進度.md 的表格中間有空白行（Markdown 會斷表）');
+  }
+  if (/^\| \d+ \|/m.test(prog)) {
+    errors.push('docs/進度.md 出現「隊列」表格：隊列只放規劃書，兩邊各一份一定有一邊過期');
+  }
+}
+
+// ── 2c) 規劃書：待完成細節不得有「已完成」段；執行順序每項都要有對應章節 ──
+{
+  const detail = plan.split('## 待完成細節')[1] || '';
+  if (/✅/.test(detail)) errors.push('docs/規劃書-待完成.md 的「待完成細節」裡還有 ✅ 已完成項（做完要刪掉）');
+  const orderIds = [...plan.split('## 執行順序')[1].split('##')[0].matchAll(/^\| \d+ \| (W-\d+)/gm)].map((m) => m[1]);
+  const detailIds = [...detail.matchAll(/^### (W-\d+)/gm)].map((m) => m[1]);
+  for (const id of orderIds) {
+    if (!detailIds.includes(id)) errors.push(`規劃書「執行順序」有 ${id}，但「待完成細節」沒有這一節`);
+  }
+  for (const id of detailIds) {
+    if (!orderIds.includes(id)) errors.push(`規劃書「待完成細節」有 ${id}，但「執行順序」表沒列`);
+  }
+}
+
 // ── 3) 孤兒文件 ──
 const docs = readdirSync(join(root, 'docs')).filter((f) => f.endsWith('.md'));
 const haystack = readme + plan;
