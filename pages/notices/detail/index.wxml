@@ -1,5 +1,5 @@
-<view class="ui-page page-root">
-  <pv-navbar title="公告" back="{{true}}" />
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="detail-inner">
@@ -7,16 +7,16 @@
         <view class="ui-card"><pv-skeleton rows="4" /></view>
       </block>
 
-      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="載入失敗" desc="{{errorText}}">
-        <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k02}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k03}}</pv-button>
       </pv-empty>
 
-      <pv-empty wx:elif="{{!notice}}" icon="🕳" title="找不到這則公告" desc="可能已下架或過期" />
+      <pv-empty wx:elif="{{!notice}}" icon="🕳" title="{{L.k04}}" desc="{{L.k05}}" />
 
       <block wx:else>
         <view class="head {{notice.kind === 'URGENT' ? 'head--urgent' : ''}}">
           <view class="ui-row head__tags">
-            <pv-tag wx:if="{{notice.isPinned}}" class="head__tag" text="置頂" type="tint" />
+            <pv-tag wx:if="{{notice.isPinned}}" class="head__tag" text="{{L.k06}}" type="tint" />
             <pv-tag class="head__tag" text="{{notice.kindLabel}}" type="{{notice.kindTag}}" />
           </view>
           <text class="head__title">{{notice.title}}</text>
@@ -31,12 +31,12 @@
           緊急公告由校方發布，如有疑問請聯絡校務處。
         </view>
 
-        <text class="report-link" catchtap="openReport">檢舉這則公告</text>
+        <text class="report-link" catchtap="openReport">{{L.k07}}</text>
       </block>
     </view>
   </scroll-view>
 
-  <pv-sheet show="{{reportOpen}}" title="檢舉這則內容" bind:close="closeReport">
+  <pv-sheet show="{{reportOpen}}" title="{{L.k08}}" bind:close="closeReport">
     <view wx:for="{{reportReasons}}" wx:key="*this" class="report-row"
           data-reason="{{item}}" catchtap="pickReason">{{item}}</view>
   </pv-sheet>

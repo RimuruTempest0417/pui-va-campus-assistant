@@ -1,5 +1,5 @@
-<view class="ui-page page-root">
-  <pv-navbar title="公告與提示" back="{{true}}" />
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}"
               refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
@@ -19,11 +19,11 @@
         <view class="ui-card"><pv-skeleton rows="2" /></view>
       </block>
 
-      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="載入失敗" desc="{{errorText}}">
-        <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k02}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k03}}</pv-button>
       </pv-empty>
 
-      <pv-empty wx:elif="{{!items.length}}" icon="📢" title="目前沒有公告" desc="重要通知會出現在這裡" />
+      <pv-empty wx:elif="{{!items.length}}" icon="📢" title="{{L.k04}}" desc="{{L.k05}}" />
 
       <view wx:else class="ui-list">
         <view wx:for="{{items}}" wx:key="id"
@@ -32,7 +32,7 @@
               hover-class="notice--pressed" hover-start-time="0">
           <view class="notice__head">
             <view class="ui-row">
-              <pv-tag wx:if="{{item.isPinned}}" class="pin-tag" text="置頂" type="tint" />
+              <pv-tag wx:if="{{item.isPinned}}" class="pin-tag" text="{{L.k06}}" type="tint" />
               <pv-tag class="pin-tag" text="{{item.kindLabel}}" type="{{item.kindTag}}" />
               <text wx:if="{{!item.isRead}}" class="dot" />
             </view>

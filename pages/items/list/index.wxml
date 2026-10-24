@@ -1,5 +1,5 @@
-<view class="ui-page page-root">
-  <pv-navbar title="校園失物招領" back="{{true}}" />
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}" refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
     <view class="list-inner">
   <view class="filter">
@@ -15,7 +15,7 @@
     </view>
     <view class="search">
       <text class="search__icon">🔍</text>
-      <input class="search__input" placeholder="搜標題、地點、描述" placeholder-class="ui-placeholder"
+      <input class="search__input" placeholder="{{L.k02}}" placeholder-class="ui-placeholder"
              value="{{keyword}}" bindinput="onKeywordInput" confirm-type="search" bindconfirm="onSearch" />
       <text wx:if="{{keyword}}" class="search__clear" bindtap="onClearKeyword">✕</text>
     </view>
@@ -28,14 +28,14 @@
     </view>
   </block>
 
-  <pv-empty wx:elif="{{failed}}" icon="⚠️" title="載入失敗" desc="{{errorText}}">
-    <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+  <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k03}}" desc="{{errorText}}">
+    <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k04}}</pv-button>
   </pv-empty>
 
   <pv-empty wx:elif="{{!items.length}}" icon="🔍"
             title="{{keyword ? '沒有符合的結果' : '這裡還空著'}}"
             desc="{{keyword ? '換個關鍵字，或清除篩選條件' : '第一個發布的人，最有機會找回東西'}}">
-    <view class="empty-action" bindtap="goCreate">我要發布</view>
+    <view class="empty-action" bindtap="goCreate">{{L.k05}}</view>
   </pv-empty>
 
   <view wx:else class="ui-list">
@@ -63,8 +63,8 @@
       </view>
     </view>
     <view class="list-foot">
-      <text wx:if="{{loadingMore}}">載入中…</text>
-      <text wx:elif="{{!hasMore}}">— 已經到底了 —</text>
+      <text wx:if="{{loadingMore}}">{{L.k06}}</text>
+      <text wx:elif="{{!hasMore}}">{{L.k07}}</text>
     </view>
   </view>
 
@@ -72,5 +72,5 @@
 
     </view>
   </scroll-view>
-<view class="fab" bindtap="goCreate">＋ 發布</view>
+<view class="fab" bindtap="goCreate">{{L.k08}}</view>
 </view>

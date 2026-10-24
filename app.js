@@ -2,6 +2,8 @@
 const reporter = require('./utils/reporter');
 const diagnostics = require('./utils/diagnostics');
 
+const appearance = require('./utils/appearance');
+
 App({
   globalData: {
     nav: null,
@@ -12,6 +14,13 @@ App({
     // 包一層 console.error／warn 寫進 storage → scripts/check-console.mjs 逐頁讀回
     diagnostics.install();
     this.globalData.nav = measureNav();
+
+    // 跟隨系統時，系統切深／淺色要即時反映到當前頁
+    appearance.watchTheme(() => {
+      const pages = getCurrentPages();
+      const cur = pages[pages.length - 1];
+      if (cur && cur.setData) cur.setData({ themeClass: appearance.themeClass() });
+    });
   },
 
   // 全域錯誤（白屏、閃退最常見的來源）→ 送到後端，後台「錯誤」分頁看得到。

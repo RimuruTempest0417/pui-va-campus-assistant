@@ -112,3 +112,44 @@ page {
 /* ── 全站滾動容器（Skyline 下用 scroll-view 才穩定，bounces 提供回彈）── */
 .page-root { height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
 .page-scroll { flex: 1; min-height: 0; box-sizing: border-box; }
+
+/* ============================================================
+   深色模式（W-21）：只在頁面根節點加上 .theme-dark 時覆寫顏色
+   由 utils/appearance.js 決定（跟隨系統／淺色／深色），
+   因為 Skyline 對 prefers-color-scheme 支援不穩定，用 class 最可靠。
+   對比度：白字 on #1c1c1e ≈ 15.8:1；#9d7ce0 on #1c1c1e ≈ 4.9:1
+   ============================================================ */
+.theme-dark {
+  --pv-tint: #9d7ce0;
+  --pv-tint-pressed: #b39aeb;
+  --pv-tint-soft: rgba(109, 63, 196, 0.24);
+  --pv-brand-soft: rgba(200, 16, 46, 0.18);
+  --pv-danger: #ff6961;
+  --pv-warning: #ffb340;
+  --pv-warning-soft: rgba(178, 80, 0, 0.22);
+  --pv-success: #4cd964;
+  --pv-success-soft: rgba(36, 138, 61, 0.22);
+
+  --pv-label: #ffffff;
+  --pv-label-2: rgba(235, 235, 245, 0.62);
+  --pv-label-3: rgba(235, 235, 245, 0.52);   /* 3.4→4.8:1：三級文字在深色底也要過 4.5 */
+  --pv-label-4: rgba(235, 235, 245, 0.20);
+  --pv-sep: rgba(84, 84, 88, 0.65);
+  --pv-fill: rgba(120, 120, 128, 0.36);
+  --pv-fill-2: rgba(120, 120, 128, 0.46);
+  --pv-bg: #000000;
+  --pv-surface: #1c1c1e;
+  --pv-bar: rgba(28, 28, 30, 0.88);
+  --pv-shadow: rgba(0, 0, 0, 0.55);
+
+  /* 疊加層與品牌色（深色下調整亮度，白字仍要清楚） */
+  --pv-on-tint: #ffffff;
+  --pv-on-tint-2: rgba(255, 255, 255, 0.80);
+  --pv-on-tint-line: rgba(255, 255, 255, 0.45);
+  --pv-scrim: rgba(0, 0, 0, 0.60);
+  --pv-overlay: rgba(0, 0, 0, 0.72);
+  --pv-shadow-tint: rgba(109, 63, 196, 0.45);
+  --pv-brand: #c8102e;            /* 校徽紅不變：身份識別色不隨外觀漂移 */
+  --pv-brand-strong: #a00d24;
+  --pv-accent: #e0a100;
+}

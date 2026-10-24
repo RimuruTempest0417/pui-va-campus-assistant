@@ -19,8 +19,11 @@ const ADMIN_SUB = {
   SUPER_ADMIN: '審核認領 · 發公告 · 排菜單 · 名單 · 審計',
 };
 
+const appearance = require('../../utils/appearance');
+
 Page({
   data: {
+    themeClass: appearance.themeClass(),
     navTotal: 0,
     refreshing: false,
     loading: true,
@@ -58,6 +61,20 @@ Page({
   // scroll-view 的下拉刷新（頁面已改成 scroll-view，不再用 onPullDownRefresh）
   labels() {
     return {
+      k01: i18n.pick("重新載入"),
+      k02: i18n.pick("設定後端位址"),
+      k03: i18n.pick("今日午餐"),
+      k04: i18n.pick("分"),
+      k05: i18n.pick("今天沒有午餐資料"),
+      k06: i18n.pick("可能尚未排菜單或今天是假日"),
+      k07: i18n.pick("小賣部"),
+      k08: i18n.pick("我的子女"),
+      k09: i18n.pick("代報名 ›"),
+      k10: i18n.pick("管理後台"),
+      k11: i18n.pick("· 示範資料（未連後端）"),
+      k12: i18n.pick("· 資料來源"),
+      brand: i18n.pick('培華校園助手'),
+      brandSub: i18n.pick('PUI VA CAMPUS'),
       demoTag: i18n.t('home.demoTag'),
       urgent: i18n.t('home.urgent'),
       guest: i18n.t('home.guest'),
@@ -75,7 +92,7 @@ Page({
 
   onShow() {
     // 語言可能在自檢頁被改過：回來先更新介面文字
-    this.setData({ greeting: i18n.greetingByHour(), L: this.labels() });
+    this.setData({ greeting: i18n.greetingByHour(), L: this.labels(), themeClass: appearance.themeClass() });
     // 從「資料來源」頁切換離線示範回來時，模式變了必須整頁重抓，
     // 否則會出現「設定已改、首頁數字還是舊的」的假畫面。
     let cachedRole = '';
@@ -234,7 +251,7 @@ Page({
         lunch: todayMenu ? todayMenu.lunch : null,
         snack: todayMenu ? todayMenu.snack : null,
         updatedAt: i18n.t('home.justNow'),
-        L: this.labels(),
+        L: this.labels(), themeClass: appearance.themeClass(),
       });
     } catch (e) {
       console.error('[home] 載入失敗', e);

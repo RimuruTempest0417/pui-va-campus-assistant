@@ -1,5 +1,5 @@
-<view class="ui-page page-root">
-  <pv-navbar title="我的發布" back="{{true}}" />
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="mine-inner">
       <block wx:if="{{loading}}">
@@ -7,13 +7,13 @@
         <view class="ui-card"><pv-skeleton rows="2" /></view>
       </block>
 
-      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="載入失敗" desc="{{errorText}}">
-        <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k02}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k03}}</pv-button>
       </pv-empty>
 
-      <pv-empty wx:elif="{{!items.length}}" icon="📭" title="你還沒發布過"
-            desc="東西丟了或撿到東西，都在這裡管理">
-    <pv-button type="tinted" size="sm" bind:tap="goCreate">去發布</pv-button>
+      <pv-empty wx:elif="{{!items.length}}" icon="📭" title="{{L.k04}}"
+            desc="{{L.k05}}">
+    <pv-button type="tinted" size="sm" bind:tap="goCreate">{{L.k06}}</pv-button>
   </pv-empty>
 
   <view wx:else class="ui-list">
@@ -24,9 +24,9 @@
       </view>
       <text class="ui-meta mine-meta">{{item.typeLabel}} · {{item.categoryName || '其他'}} · {{item.place}} · {{item.timeText}}</text>
       <view class="mine-actions">
-        <pv-button class="mine-btn" wx:if="{{item.status === 'OPEN'}}" type="tinted" size="sm" data-id="{{item.id}}" data-next="CLAIMED" bind:tap="advance">標記已認領</pv-button>
-        <pv-button class="mine-btn" wx:if="{{item.status === 'CLAIMED'}}" type="filled" size="sm" data-id="{{item.id}}" data-next="CLOSED" bind:tap="advance">標記已完成</pv-button>
-        <pv-button wx:if="{{item.status !== 'CLOSED'}}" type="plain" size="sm" data-id="{{item.id}}" bind:tap="goDetail">查看</pv-button>
+        <pv-button class="mine-btn" wx:if="{{item.status === 'OPEN'}}" type="tinted" size="sm" data-id="{{item.id}}" data-next="CLAIMED" bind:tap="advance">{{L.k07}}</pv-button>
+        <pv-button class="mine-btn" wx:if="{{item.status === 'CLAIMED'}}" type="filled" size="sm" data-id="{{item.id}}" data-next="CLOSED" bind:tap="advance">{{L.k08}}</pv-button>
+        <pv-button wx:if="{{item.status !== 'CLOSED'}}" type="plain" size="sm" data-id="{{item.id}}" bind:tap="goDetail">{{L.k09}}</pv-button>
       </view>
     </view>
   </view>

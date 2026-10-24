@@ -1,5 +1,5 @@
-<view class="ui-page page-root">
-  <pv-navbar title="現場簽到" back="{{true}}" />
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="ci-inner">
@@ -13,28 +13,28 @@
           </view>
         </pv-card>
         <view class="ci-actions">
-          <pv-button type="tinted" bind:tap="again">再簽一個</pv-button>
-          <pv-button type="plain" bind:tap="goDetail">查看活動</pv-button>
+          <pv-button type="tinted" bind:tap="again">{{L.k02}}</pv-button>
+          <pv-button type="plain" bind:tap="goDetail">{{L.k03}}</pv-button>
         </view>
       </block>
 
       <block wx:else>
         <pv-card>
-          <text class="ci-title">掃描老師的簽到碼</text>
-          <text class="ui-meta ci-hint">對準現場大屏或白板上的 QR，掃到就自動簽到。</text>
+          <text class="ci-title">{{L.k04}}</text>
+          <text class="ui-meta ci-hint">{{L.k05}}</text>
           <view class="ci-scan">
-            <pv-button type="filled" block="{{true}}" loading="{{scanning}}" disabled="{{scanning}}" bind:tap="scan">掃描簽到碼</pv-button>
+            <pv-button type="filled" block="{{true}}" loading="{{scanning}}" disabled="{{scanning}}" bind:tap="scan">{{L.k06}}</pv-button>
           </view>
         </pv-card>
 
-        <view class="pv-group-title">或手動輸入</view>
+        <view class="pv-group-title">{{L.k07}}</view>
         <pv-card>
-          <input class="ci-input" type="number" maxlength="6" value="{{code}}" placeholder="6 位簽到碼" placeholder-class="ui-placeholder" bindinput="onInput" />
-          <pv-button type="tinted" block="{{true}}" loading="{{submitting}}" disabled="{{submitting || code.length < 4}}" bind:tap="submit">簽到</pv-button>
+          <input class="ci-input" type="number" maxlength="6" value="{{code}}" placeholder="{{L.k08}}" placeholder-class="ui-placeholder" bindinput="onInput" />
+          <pv-button type="tinted" block="{{true}}" loading="{{submitting}}" disabled="{{submitting || code.length < 4}}" bind:tap="submit">{{L.k09}}</pv-button>
         </pv-card>
 
         <text wx:if="{{error}}" class="ci-error">{{error}}</text>
-        <text class="ui-meta ci-note">只有「正取」可以簽到；候補請等轉正後再試。</text>
+        <text class="ui-meta ci-note">{{L.k10}}</text>
       </block>
     </view>
   </scroll-view>

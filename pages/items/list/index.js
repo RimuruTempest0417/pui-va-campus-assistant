@@ -1,8 +1,26 @@
 const data = require('../../../services/data');
 const { decorate } = require('../../../utils/item');
 
+const i18n = require('../../../utils/i18n');
+
+const appearance = require('../../../utils/appearance');
+
 Page({
+  labels() {
+    return {
+      k01: i18n.pick("校園失物招領"),
+      k02: i18n.pick("搜標題、地點、描述"),
+      k03: i18n.pick("載入失敗"),
+      k04: i18n.pick("重試"),
+      k05: i18n.pick("我要發布"),
+      k06: i18n.pick("載入中…"),
+      k07: i18n.pick("— 已經到底了 —"),
+      k08: i18n.pick("＋ 發布"),
+    };
+  },
+
   data: {
+    themeClass: appearance.themeClass(),
     refreshing: false,
     loading: true,
     loadingMore: false,
@@ -35,6 +53,7 @@ Page({
 
   // 從詳情／發布頁返回時要重新抓，否則認領後狀態還是舊的
   onShow() {
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     if (this._loadedOnce) this.load(true);
     this._loadedOnce = true;
   },

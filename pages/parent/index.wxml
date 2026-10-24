@@ -1,5 +1,5 @@
-<view class="ui-page page-root">
-  <pv-navbar title="我的子女" back="{{true}}" />
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
 
   <scroll-view
     class="page-scroll"
@@ -21,12 +21,12 @@
       <pv-empty
         wx:elif="{{denied}}"
         icon="👪"
-        title="這一頁只給已綁定子女的家長"
-        desc="目前的帳號不是家長身分（學生、老師、校方職員都沒有子女資料）。家長端要由學校在家長帳號下綁定學號之後，這裡才會有內容。"
+        title="{{L.k02}}"
+        desc="{{L.k03}}"
       >
         <view class="state-actions">
-          <pv-button type="tinted" size="sm" bind:tap="goHome">回首頁</pv-button>
-          <pv-button class="state-actions__next" type="plain" size="sm" bind:tap="goLogin">切換帳號</pv-button>
+          <pv-button type="tinted" size="sm" bind:tap="goHome">{{L.k04}}</pv-button>
+          <pv-button class="state-actions__next" type="plain" size="sm" bind:tap="goLogin">{{L.k05}}</pv-button>
         </view>
       </pv-empty>
 
@@ -34,12 +34,12 @@
       <pv-empty
         wx:elif="{{guest}}"
         icon="🔐"
-        title="請先在家長帳號登入"
-        desc="子女的報名與認領要在家長帳號登入後才看得到。"
+        title="{{L.k06}}"
+        desc="{{L.k07}}"
       >
         <view class="state-actions">
-          <pv-button type="tinted" size="sm" bind:tap="goLogin">去登入</pv-button>
-          <pv-button class="state-actions__next" type="plain" size="sm" bind:tap="goHome">回首頁</pv-button>
+          <pv-button type="tinted" size="sm" bind:tap="goLogin">{{L.k08}}</pv-button>
+          <pv-button class="state-actions__next" type="plain" size="sm" bind:tap="goHome">{{L.k04}}</pv-button>
         </view>
       </pv-empty>
 
@@ -47,13 +47,13 @@
       <pv-empty
         wx:elif="{{failed}}"
         icon="⚠️"
-        title="無法讀取子女資料"
+        title="{{L.k09}}"
         desc="{{errorText || '請稍後再試'}}"
       >
-        <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k10}}</pv-button>
       </pv-empty>
 
-      <pv-empty wx:elif="{{!children.length}}" icon="👪" title="還沒有綁定的子女" desc="請聯絡學校把家長帳號綁到學生的學號" />
+      <pv-empty wx:elif="{{!children.length}}" icon="👪" title="{{L.k11}}" desc="{{L.k12}}" />
 
       <block wx:else>
         <view wx:if="{{tabs.length > 1}}" class="tabs-wrap">
@@ -69,20 +69,20 @@
           <view class="stats">
             <view class="stat">
               <text class="stat__num">{{signups.length}}</text>
-              <text class="stat__label">報名中</text>
+              <text class="stat__label">{{L.k13}}</text>
             </view>
             <view class="stat">
               <text class="stat__num">{{child.claimCount}}</text>
-              <text class="stat__label">認領申請</text>
+              <text class="stat__label">{{L.k14}}</text>
             </view>
             <view class="stat">
               <text class="stat__num">{{child.unreadNotices}}</text>
-              <text class="stat__label">未讀公告</text>
+              <text class="stat__label">{{L.k15}}</text>
             </view>
           </view>
         </view>
 
-        <view class="pv-group-title">報名中的活動</view>
+        <view class="pv-group-title">{{L.k16}}</view>
         <view wx:if="{{signups.length}}" class="ui-list">
           <view wx:for="{{signups}}" wx:key="id" class="ui-card">
             <view class="ui-row-between" data-id="{{item.event.id}}" bindtap="goEvent" hover-class="ui-card--pressed" hover-start-time="0">
@@ -91,18 +91,18 @@
             </view>
             <text class="ui-meta row-meta">{{item.timeText}}{{item.event.location ? ' · ' + item.event.location : ''}}</text>
             <view class="row-actions">
-              <pv-button class="row-btn" type="plain" size="sm" data-id="{{item.event.id}}" bind:tap="onCancel">取消報名</pv-button>
+              <pv-button class="row-btn" type="plain" size="sm" data-id="{{item.event.id}}" bind:tap="onCancel">{{L.k17}}</pv-button>
             </view>
           </view>
         </view>
-        <view wx:else class="ui-card"><pv-empty icon="🎟" title="還沒有報名" desc="由下方清單替孩子報名" /></view>
+        <view wx:else class="ui-card"><pv-empty icon="🎟" title="{{L.k18}}" desc="{{L.k19}}" /></view>
 
-        <view class="pv-group-title">可代為報名</view>
+        <view class="pv-group-title">{{L.k20}}</view>
         <view wx:if="{{openEvents.length}}" class="ui-list">
           <view wx:for="{{openEvents}}" wx:key="id" class="ui-card">
             <view class="ui-row-between" data-id="{{item.id}}" bindtap="goEvent" hover-class="ui-card--pressed" hover-start-time="0">
               <text class="ui-title row-title">{{item.title}}</text>
-              <pv-tag wx:if="{{item.full}}" text="已滿" type="danger" />
+              <pv-tag wx:if="{{item.full}}" text="{{L.k21}}" type="danger" />
               <pv-tag wx:else text="{{item.capText}}" type="tint" plain />
             </view>
             <text class="ui-meta row-meta">{{item.timeText}}{{item.location ? ' · ' + item.location : ''}}</text>
@@ -111,7 +111,7 @@
             </view>
           </view>
         </view>
-        <view wx:else class="ui-card"><pv-empty icon="✅" title="近期活動都報過了" desc="有新活動時會出現在這裡" /></view>
+        <view wx:else class="ui-card"><pv-empty icon="✅" title="{{L.k22}}" desc="{{L.k23}}" /></view>
       </block>
     </view>
   </scroll-view>

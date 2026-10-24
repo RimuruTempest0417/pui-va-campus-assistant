@@ -1,16 +1,16 @@
-<view class="ui-page ui-page--withbar page-root">
-  <pv-navbar title="失物詳情" back="{{true}}" />
+<view class="{{themeClass}} ui-page ui-page--withbar page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="detail-inner">
   <block wx:if="{{loading}}">
     <view class="ui-card ui-mt-2"><pv-skeleton rows="3" avatar /></view>
   </block>
 
-  <pv-empty wx:elif="{{failed}}" icon="⚠️" title="載入失敗" desc="{{errorText}}">
-    <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+  <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k02}}" desc="{{errorText}}">
+    <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k03}}</pv-button>
   </pv-empty>
 
-  <pv-empty wx:elif="{{!item}}" icon="🕳" title="找不到這筆資料" desc="可能已被作者刪除" />
+  <pv-empty wx:elif="{{!item}}" icon="🕳" title="{{L.k04}}" desc="{{L.k05}}" />
 
   <block wx:else>
     <swiper class="gallery" indicator-dots="{{item.images.length > 1}}" indicator-active-color="{{theme.onTint}}">
@@ -20,7 +20,7 @@
       <swiper-item wx:if="{{!item.images.length}}">
         <view class="gallery__placeholder">
           <text class="gallery__ph-icon">{{item.type === 'LOST' ? '🔍' : '📦'}}</text>
-          <text class="ui-meta">沒有圖片</text>
+          <text class="ui-meta">{{L.k06}}</text>
         </view>
       </swiper-item>
     </swiper>
@@ -37,19 +37,19 @@
     </view>
 
     <pv-card>
-      <view class="meta-row"><text class="meta-k">地點</text><text class="meta-v">{{item.place}}</text></view>
-      <view class="meta-row"><text class="meta-k">時間</text><text class="meta-v">{{item.timeText}} · {{item.happenedAtText}}</text></view>
-      <view class="meta-row"><text class="meta-k">聯絡</text><text class="meta-v">{{item.contactLabel}}</text></view>
-      <view class="meta-row"><text class="meta-k">瀏覽</text><text class="meta-v">{{item.viewCount}} 次</text></view>
+      <view class="meta-row"><text class="meta-k">{{L.k07}}</text><text class="meta-v">{{item.place}}</text></view>
+      <view class="meta-row"><text class="meta-k">{{L.k08}}</text><text class="meta-v">{{item.timeText}} · {{item.happenedAtText}}</text></view>
+      <view class="meta-row"><text class="meta-k">{{L.k09}}</text><text class="meta-v">{{item.contactLabel}}</text></view>
+      <view class="meta-row"><text class="meta-k">{{L.k10}}</text><text class="meta-v">{{item.viewCount}} 次</text></view>
     </pv-card>
 
-    <view class="pv-group-title">說明</view>
+    <view class="pv-group-title">{{L.k11}}</view>
     <pv-card>
       <text class="ui-body">{{item.description || '作者沒有填寫說明'}}</text>
     </pv-card>
 
     <block wx:if="{{matches.length}}">
-      <view class="pv-group-title">可能是你的東西</view>
+      <view class="pv-group-title">{{L.k12}}</view>
       <pv-card>
         <text class="ui-meta match-hint">依分類、地點、時間與描述自動比對，{{matchHint}}</text>
         <view wx:for="{{matches}}" wx:key="id" class="match-row" data-id="{{item.id}}" bindtap="goMatch"
@@ -69,7 +69,7 @@
       </pv-card>
     </block>
 
-    <view class="pv-group-title">發布者</view>
+    <view class="pv-group-title">{{L.k13}}</view>
     <pv-card>
       <view class="ui-row">
         <pv-avatar name="{{item.author.nickname}}" size="md" />
@@ -88,12 +88,12 @@
 <view wx:if="{{item}}" class="ui-bar">
     <view class="ui-bar__left">
       <text class="ui-bar__hint">{{barHint}}</text>
-      <text class="ui-bar__report" catchtap="openReport">檢舉</text>
+      <text class="ui-bar__report" catchtap="openReport">{{L.k14}}</text>
     </view>
     <pv-button type="filled" size="md" disabled="{{barDisabled}}" bind:tap="onPrimaryAction">{{barText}}</pv-button>
   </view>
 
-  <pv-sheet show="{{reportOpen}}" title="檢舉這則內容" bind:close="closeReport">
+  <pv-sheet show="{{reportOpen}}" title="{{L.k15}}" bind:close="closeReport">
     <view wx:for="{{reportReasons}}" wx:key="*this" class="report-row"
           data-reason="{{item}}" catchtap="pickReason">{{item}}</view>
   </pv-sheet>

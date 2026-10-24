@@ -1,4 +1,4 @@
-<view class="home page-root">
+<view class="{{themeClass}} home page-root">
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}" refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
     <view class="home-inner" style="padding-top: {{navTotal}}px">
   <!-- 狀態列 + 頂部列（自訂導航）-->
@@ -34,8 +34,8 @@
   <!-- 失敗 -->
   <pv-card wx:elif="{{failed}}">
     <pv-empty icon="⚠️" title="{{L.failed}}" desc="{{L.failedDesc}}：{{apiBaseText}}">
-      <view class="home__retry" bindtap="onRetry">重新載入</view>
-      <view class="home__retry home__retry--plain" bindtap="goDev">設定後端位址</view>
+      <view class="home__retry" bindtap="onRetry">{{L.k01}}</view>
+      <view class="home__retry home__retry--plain" bindtap="goDev">{{L.k02}}</view>
     </pv-empty>
   </pv-card>
 
@@ -75,7 +75,7 @@
     </view>
 
     <!-- 今日午餐 -->
-    <view class="pv-group-title">今日午餐</view>
+    <view class="pv-group-title">{{L.k03}}</view>
     <pv-card>
       <block wx:if="{{lunch && lunch.length}}">
         <view wx:for="{{lunch}}" wx:key="id" class="dish">
@@ -85,15 +85,15 @@
           </view>
           <view class="dish__score">
             <text class="dish__score-num">{{item.avgScore || '—'}}</text>
-            <text class="dish__score-unit">分</text>
+            <text class="dish__score-unit">{{L.k04}}</text>
           </view>
         </view>
       </block>
-      <pv-empty wx:else icon="🍽" title="今天沒有午餐資料" desc="可能尚未排菜單或今天是假日" />
+      <pv-empty wx:else icon="🍽" title="{{L.k05}}" desc="{{L.k06}}" />
     </pv-card>
 
     <!-- 小賣部 -->
-    <view wx:if="{{snack && snack.length}}" class="pv-group-title">小賣部</view>
+    <view wx:if="{{snack && snack.length}}" class="pv-group-title">{{L.k07}}</view>
     <pv-card wx:if="{{snack && snack.length}}">
       <view wx:for="{{snack}}" wx:key="id" class="dish dish--snack">
         <text class="dish__name">{{item.name}}</text>
@@ -103,7 +103,7 @@
 
     <!-- 家長：我的子女（首頁直接切換，代報名在下一頁）-->
     <block wx:if="{{parentChildren.length}}">
-      <view class="pv-group-title">我的子女</view>
+      <view class="pv-group-title">{{L.k08}}</view>
       <pv-card>
         <view class="kids">
           <view
@@ -119,7 +119,7 @@
             <text class="kids__sum-line">{{parentSummary.grade}}{{parentSummary.className ? ' · ' + parentSummary.className + '班' : ''}}{{parentSummary ? '' : '正在讀取…'}}</text>
             <text class="kids__sum-meta" wx:if="{{parentSummary}}">{{parentSummary.signupCount}} 個報名 · {{parentSummary.claimCount}} 件認領 · {{parentSummary.unreadNotices}} 則未讀</text>
           </view>
-          <text class="kids__go">代報名 ›</text>
+          <text class="kids__go">{{L.k09}}</text>
         </view>
       </pv-card>
     </block>
@@ -127,7 +127,7 @@
     <view wx:if="{{showAdmin}}" class="home__entry" bindtap="goAdmin"
           hover-class="home__entry--pressed" hover-start-time="0">
       <view class="home__entry-main">
-        <text class="home__entry-title">管理後台</text>
+        <text class="home__entry-title">{{L.k10}}</text>
         <text class="home__entry-sub">{{adminSub}}</text>
       </view>
       <text class="home__entry-go">›</text>
@@ -135,8 +135,8 @@
 
     <view class="home__foot" bindtap="{{showData ? 'goDev' : ''}}" hover-class="home__foot--pressed" hover-start-time="0">
       <text>{{updatedAt}}</text>
-      <text wx:if="{{isDemo}}"> · 示範資料（未連後端）</text>
-      <text wx:if="{{showData}}" class="home__foot-link"> · 資料來源</text>
+      <text wx:if="{{isDemo}}"> {{L.k11}}</text>
+      <text wx:if="{{showData}}" class="home__foot-link"> {{L.k12}}</text>
 
     </view>
   </block>

@@ -6,6 +6,27 @@ const config = require('../../config/config');
 const roleLabel = require('../../utils/role').label;
 
 Page({
+  labels() {
+    return {
+      k01: i18n.pick("設定"),
+      k02: i18n.pick("帳號"),
+      k03: i18n.pick("管理後台"),
+      k04: i18n.pick("切換帳號"),
+      k05: i18n.pick("登出"),
+      k06: i18n.pick("登入"),
+      k07: i18n.pick("教職員、家長、學生登入後才能報名或管理"),
+      k08: i18n.pick("介面語言"),
+      k09: i18n.pick("預設跟隨手機語言；只想看繁體或簡體可以在這裡鎖定。只影響介面文字，不動公告與貼文內容。"),
+      k10: i18n.pick("外觀"),
+      k11: i18n.pick("跟隨系統：手機切換深色時自動跟著變。"),
+      k12: i18n.pick("資料來源"),
+      k13: i18n.pick("關於"),
+      k14: i18n.pick("版本"),
+      k15: i18n.pick("學校"),
+      k16: i18n.pick("澳門培華中學"),
+    };
+  },
+
   data: {
     theme: 'system',
     themeClass: appearance.themeClass(),
@@ -41,6 +62,7 @@ Page({
   },
 
   onShow() {
+    this.setData({ L: this.labels() });
     this.refresh();
   },
 
@@ -68,7 +90,7 @@ Page({
   pickTheme(e) {
     const v = e.currentTarget.dataset.key;
     appearance.setTheme(v);
-    this.setData({ theme: appearance.getTheme() });
+    this.setData({ theme: appearance.getTheme(), themeClass: appearance.themeClass() });
     wx.showToast({ title: '外觀已更新', icon: 'none' });
   },
 

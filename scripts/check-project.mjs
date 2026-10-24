@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 小程序專案結構檢查：CI 與提交前都能跑，不需要微信開發者工具。
 // 檢查項目：JSON 可解析、app.json 頁面四件套齊全、usingComponents 目標存在、
-// WXSS 風險選擇器、白屏守門、組件註冊一致、未登記頁面、tabBar/entryPagePath。
+// WXSS 風險選擇器、白屏守門、組件註冊一致、未登記頁面、tabBar/entryPagePath、相對 require 可解析。
 
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -177,6 +177,60 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   walk(root);
 }
 
+// 7d) W-20：WXML 用到的 L.xxx 必須真的存在於該頁的 labels()
+{
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) { walk(full); continue; }
+      if (!e.name.endsWith('.wxml')) continue;
+      const rel = full.slice(root.length + 1);
+      const wxml = readFileSync(full, 'utf8');
+      const used = new Set([...wxml.matchAll(/\bL\.([A-Za-z_][A-Za-z0-9_]*)/g)].map((m) => m[1]));
+      if (!used.size) continue;
+      const jsPath = full.replace(/\.wxml$/, '.js');
+      const js = readFileSync(jsPath, 'utf8');
+      for (const k of used) {
+        // 允許：頁面 data 內直接宣告、或 labels() 內有同名 key
+        const inLabels = new RegExp(`\\b${k}\\s*:`).test(js);
+        if (!inLabels) errors.push(`${rel} 用到 {{L.${k}}}，但 ${jsPath.slice(root.length + 1)} 沒有任何地方提供這個 key（畫面會空白）`);
+      }
+    }
+  };
+  walk(root);
+  // 註：labels() 的 key 一律由 i18n 提供，這裡只檢查「key 完全不存在」的情況
+}
+
+// 7e) W-21：深色模式必須覆寫所有「顏色」變數（漏一個就會深色底配白色卡片）
+{
+  const { readFileSync: rf } = await import('node:fs');
+  const tok = rf(join(root, 'styles/tokens.wxss'), 'utf8');
+  const grab = (sel) => {
+    const i = tok.indexOf(sel + ' {');
+    if (i < 0) return '';
+    const start = tok.indexOf('{', i);
+    let depth = 0;
+    for (let p = start; p < tok.length; p += 1) {
+      if (tok[p] === '{') depth += 1;
+      else if (tok[p] === '}') {
+        depth -= 1;
+        if (depth === 0) return tok.slice(start, p);
+      }
+    }
+    return '';
+  };
+  const light = grab('page');
+  const dark = grab('.theme-dark');
+  if (!dark) errors.push('styles/tokens.wxss 沒有 .theme-dark 區塊（深色模式無效）');
+  const NON_COLOR = /^--pv-(fs|ls|sp|r$|r-|ease|dur|font|weight)/;
+  const lightVars = [...light.matchAll(/(--pv-[a-z0-9-]+)\s*:/g)].map((m) => m[1]).filter((v) => !NON_COLOR.test(v));
+  for (const v of lightVars) {
+    if (!new RegExp(v + '\\s*:').test(dark)) errors.push(`styles/tokens.wxss 的 .theme-dark 沒有覆寫 ${v}（深色模式下會殘留淺色值）`);
+  }
+}
+
 // 8) W-13：頁面 JS 必須有 Page( / Component(、json 必須有標題、wxml 用到的自訂組件必須註冊
 {
   const { readFileSync } = await import('node:fs');
@@ -315,6 +369,35 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
     if (!jm) { errors.push('utils/theme.js 沒有 ' + key + '（應為 ' + tm[1] + '）'); continue; }
     if (tm[1].toLowerCase() !== jm[1].toLowerCase()) {
       errors.push('utils/theme.js 的 ' + key + '=' + jm[1] + ' 與 tokens.wxss 的 ' + varName + '=' + tm[1] + ' 不一致');
+    }
+  }
+}
+
+// 14) 相對 require 必須真的指到檔案（v0.36.1）
+//     新增 i18n／appearance 之類的 utils 時手寫 ../ 層數很容易少一層，
+//     症狀是頁面一打開就「module 'xxx.js' is not defined」、整頁空白，
+//     但模擬器編譯不會報錯、資料層自檢也照樣全綠。這裡直接靜態解析。
+{
+  const { readdirSync, statSync } = await import('node:fs');
+  const { resolve } = await import('node:path');
+  const walkJs = (dir, out = []) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (['node_modules', '.git', 'minitest', 'dist'].includes(e.name)) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walkJs(full, out);
+      else if (e.name.endsWith('.js')) out.push(full);
+    }
+  };
+  const files = [];
+  walkJs(root, files);
+  const resolvable = (t) => existsSync(t) || existsSync(t + '.js') || existsSync(join(t, 'index.js'));
+  for (const file of files) {
+    const src = readFileSync(file, 'utf8');
+    for (const m of src.matchAll(/require\((['"])(\.[^'"]+)\1\)/g)) {
+      const target = resolve(dirname(file), m[2]);
+      if (!resolvable(target)) {
+        errors.push(`${file.slice(root.length + 1)} 的 require('${m[2]}') 找不到檔案（路徑層數錯了，執行期會 module is not defined）`);
+      }
     }
   }
 }

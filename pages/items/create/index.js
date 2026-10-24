@@ -1,8 +1,34 @@
 const data = require('../../../services/data');
 const { dateKey } = require('../../../utils/date');
 
+const i18n = require('../../../utils/i18n');
+
+const appearance = require('../../../utils/appearance');
+
 Page({
+  labels() {
+    return {
+      k01: i18n.pick("基本資訊"),
+      k02: i18n.pick("標題（必填）"),
+      k03: i18n.pick("例：藍色水壺"),
+      k04: i18n.pick("說明"),
+      k05: i18n.pick("顏色、特徵、有沒有貼紙…寫得越具體越容易認回"),
+      k06: i18n.pick("地點與時間"),
+      k07: i18n.pick("分類"),
+      k08: i18n.pick("地點（必填）"),
+      k09: i18n.pick("例：圖書館三樓自習區"),
+      k10: i18n.pick("發生時間"),
+      k11: i18n.pick("圖片（最多 3 張）"),
+      k12: i18n.pick("聯絡方式"),
+      k13: i18n.pick("讓對方怎麼找你"),
+      k14: i18n.pick("僅登入者可見"),
+      k15: i18n.pick("發布"),
+      k16: i18n.pick("選擇分類"),
+    };
+  },
+
   data: {
+    themeClass: appearance.themeClass(),
     type: 'LOST',
     typeTabs: [
       { key: 'LOST', label: '我丟了東西' },
@@ -31,6 +57,7 @@ Page({
   },
 
   onLoad() {
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     this.setData({ 'form.date': dateKey(), isDemo: data.isDemo() });
     this.loadCategories();
   },

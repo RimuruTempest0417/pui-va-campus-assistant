@@ -1,4 +1,4 @@
-<view class="ui-page page-root">
+<view class="{{themeClass}} ui-page page-root">
   <pv-navbar title="{{L.title || '校曆'}}" back="{{true}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
@@ -23,8 +23,8 @@
       <view wx:if="{{loading}}" class="ui-card"><pv-skeleton rows="4" /></view>
 
       <view wx:elif="{{failed}}" class="ui-card">
-        <pv-empty icon="⚠️" title="載入失敗" desc="{{errorText}}">
-          <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+        <pv-empty icon="⚠️" title="{{L.k01}}" desc="{{errorText}}">
+          <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k02}}</pv-button>
         </pv-empty>
       </view>
 

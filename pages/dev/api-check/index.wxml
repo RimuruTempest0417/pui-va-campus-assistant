@@ -1,8 +1,8 @@
-<view class="pv-page page-root">
-  <pv-navbar title="資料層自我檢查" back="{{true}}" />
+<view class="{{themeClass}} pv-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="check-inner">
-  <view class="pv-large-title">資料層自我檢查</view>
+  <view class="pv-large-title">{{L.k01}}</view>
   <view class="pv-footnote" id="mode-line">模式：{{modeText}}｜通過 {{passed}}／{{total}}</view>
 
   <view id="check-summary" class="checks">
@@ -13,30 +13,30 @@
   </view>
 
   <pv-card>
-    <pv-button type="filled" block bind:tap="rerun">重新檢查</pv-button>
+    <pv-button type="filled" block bind:tap="rerun">{{L.k02}}</pv-button>
   </pv-card>
   <pv-card>
     <view class="api-row">
-      <text class="demo-row__title">後端位址</text>
-      <text class="demo-row__desc">換成 LAN IP 或正式域名（例如 https://api.你的域名.com/api/v1）</text>
+      <text class="demo-row__title">{{L.k03}}</text>
+      <text class="demo-row__desc">{{L.k04}}</text>
       <input class="api-input" value="{{apiBase}}" bindinput="onApiBaseInput" placeholder="http://127.0.0.1:3100/api/v1" />
       <view class="api-actions">
-        <pv-button type="filled" size="sm" bind:tap="saveApiBase">套用</pv-button>
-        <pv-button type="plain" size="sm" bind:tap="resetApiBase">回到預設</pv-button>
+        <pv-button type="filled" size="sm" bind:tap="saveApiBase">{{L.k05}}</pv-button>
+        <pv-button type="plain" size="sm" bind:tap="resetApiBase">{{L.k06}}</pv-button>
       </view>
     </view>
   </pv-card>
   <pv-card>
     <view class="demo-row">
       <view class="demo-row__text">
-        <text class="demo-row__title">離線示範模式</text>
-        <text class="demo-row__desc">打開後不連後端，只用本地示範資料；關掉立刻回真 API</text>
+        <text class="demo-row__title">{{L.k07}}</text>
+        <text class="demo-row__desc">{{L.k08}}</text>
       </view>
       <switch checked="{{forceDemo}}" bindchange="toggleDemo" color="{{theme.tint}}" />
     </view>
   </pv-card>
   <pv-card>
-    <pv-button type="tinted" block bind:tap="resetDemo">重置示範資料</pv-button>
+    <pv-button type="tinted" block bind:tap="resetDemo">{{L.k09}}</pv-button>
   </pv-card>
   <view class="pv-caption" id="result-line">{{resultLine}}</view>
 
@@ -48,7 +48,7 @@
       <view wx:for="{{locales}}" wx:key="key" class="dev-chip {{locale === item.key ? 'dev-chip--on' : ''}}"
             data-loc="{{item.key}}" bindtap="setLocale">{{item.label}}</view>
     </view>
-    <text class="dev-hint">只改介面文案，不影響資料內容</text>
+    <text class="dev-hint">{{L.k10}}</text>
   </view>
 
 

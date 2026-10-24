@@ -3,8 +3,26 @@ const request = require('../../../utils/request');
 const config = require('../../../config/config');
 const roleLabel = require('../../../utils/role').label;
 
+const i18n = require('../../../utils/i18n');
+
+const appearance = require('../../../utils/appearance');
+
 Page({
+  labels() {
+    return {
+      k01: i18n.pick("登入"),
+      k02: i18n.pick("培華校園助手"),
+      k03: i18n.pick("回首頁"),
+      k04: i18n.pick("到設定管理帳號"),
+      k05: i18n.pick("帳號"),
+      k06: i18n.pick("例如 3201201001"),
+      k07: i18n.pick("密碼"),
+      k08: i18n.pick("請輸入密碼"),
+    };
+  },
+
   data: {
+    themeClass: appearance.themeClass(),
     loggedIn: false,      // 已登入就只顯示「目前身分＋登出」，不再同時擺一份登入表單（使用者回報的怪畫面）
     account: '',
     password: '',
@@ -20,6 +38,7 @@ Page({
   },
 
   onShow() {
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     // 從背景回來或換頁回來時，不要把上一次的「登入中…」帶進來
     if (this.data.submitting) this.setData({ submitting: false });
   },

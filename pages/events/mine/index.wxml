@@ -1,5 +1,5 @@
-<view class="ui-page page-root">
-  <pv-navbar title="我的報名" back="{{true}}" />
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="mine-inner">
@@ -8,12 +8,12 @@
         <view class="ui-card"><pv-skeleton rows="2" /></view>
       </block>
 
-      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="載入失敗" desc="{{errorText}}">
-        <pv-button type="tinted" size="sm" bind:tap="retry">重試</pv-button>
+      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k02}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k03}}</pv-button>
       </pv-empty>
 
-      <pv-empty wx:elif="{{!items.length}}" icon="🎟" title="還沒有報名任何活動" desc="去活動列表看看有什麼可以參加">
-        <pv-button type="tinted" size="sm" bind:tap="goList">去看活動</pv-button>
+      <pv-empty wx:elif="{{!items.length}}" icon="🎟" title="{{L.k04}}" desc="{{L.k05}}">
+        <pv-button type="tinted" size="sm" bind:tap="goList">{{L.k06}}</pv-button>
       </pv-empty>
 
       <view wx:else class="ui-list">
@@ -24,11 +24,11 @@
           </view>
           <text class="ui-meta mine-meta">{{item.timeText}} · {{item.location}}</text>
           <text wx:if="{{item.status === 'WAITLIST'}}" class="ui-meta mine-wait">候補第 {{item.waitlistPos}} 位</text>
-          <text wx:if="{{item.checkedIn}}" class="ui-meta mine-checked">已簽到</text>
+          <text wx:if="{{item.checkedIn}}" class="ui-meta mine-checked">{{L.k07}}</text>
           <view class="mine-actions">
-            <pv-button wx:if="{{item.canCheckIn}}" class="mine-btn" type="tinted" size="sm" bind:tap="goCheckin">現場簽到</pv-button>
-            <pv-button class="mine-btn" type="plain" size="sm" data-id="{{item.eventId}}" bind:tap="goDetail">查看</pv-button>
-            <pv-button class="mine-btn" type="plain" size="sm" data-id="{{item.eventId}}" bind:tap="cancel">取消報名</pv-button>
+            <pv-button wx:if="{{item.canCheckIn}}" class="mine-btn" type="tinted" size="sm" bind:tap="goCheckin">{{L.k08}}</pv-button>
+            <pv-button class="mine-btn" type="plain" size="sm" data-id="{{item.eventId}}" bind:tap="goDetail">{{L.k09}}</pv-button>
+            <pv-button class="mine-btn" type="plain" size="sm" data-id="{{item.eventId}}" bind:tap="cancel">{{L.k10}}</pv-button>
           </view>
         </view>
       </view>

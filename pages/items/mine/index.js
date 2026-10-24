@@ -1,14 +1,34 @@
 const data = require('../../../services/data');
 const { decorate } = require('../../../utils/item');
 
+const i18n = require('../../../utils/i18n');
+
+const appearance = require('../../../utils/appearance');
+
 Page({
-  data: { loading: true, items: [], failed: false, errorText: '' },
+  labels() {
+    return {
+      k01: i18n.pick("我的發布"),
+      k02: i18n.pick("載入失敗"),
+      k03: i18n.pick("重試"),
+      k04: i18n.pick("你還沒發布過"),
+      k05: i18n.pick("東西丟了或撿到東西，都在這裡管理"),
+      k06: i18n.pick("去發布"),
+      k07: i18n.pick("標記已認領"),
+      k08: i18n.pick("標記已完成"),
+      k09: i18n.pick("查看"),
+    };
+  },
+
+  data: {
+    themeClass: appearance.themeClass(), loading: true, items: [], failed: false, errorText: '' },
 
   onLoad() {
     this.load();
   },
 
   onShow() {
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     if (this._loadedOnce) this.load();
     this._loadedOnce = true;
   },

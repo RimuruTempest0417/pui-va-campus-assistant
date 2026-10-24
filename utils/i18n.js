@@ -83,6 +83,18 @@ function isHans() {
 }
 
 /** 取文案；找不到 key 就原樣回傳（方便漸進遷移，不會出現 undefined） */
+/**
+ * 以「繁體原文」為 key 的翻譯：locale 是簡體時回傳對照表的簡體，否則原樣回傳。
+ * 對照表由 scripts/i18n-migrate.py 用 opencc(t2s) 產生，見 utils/i18n-phrases.js。
+ */
+const PHRASES = require('./i18n-phrases');
+
+function pick(hant, loc) {
+  const use = normalize(loc || locale());
+  if (use !== 'zh-Hans') return hant;
+  return PHRASES[hant] || hant;
+}
+
 function t(key, loc) {
   const entry = DICT[key];
   if (!entry) return key;
@@ -99,6 +111,7 @@ function greetingByHour(hour) {
 }
 
 module.exports = {
+  pick,
   t,
   locale,
   setLocale,
