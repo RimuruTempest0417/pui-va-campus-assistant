@@ -116,6 +116,15 @@ for (const m of readme.matchAll(/(\d+)\s*個?頁|(\d+)\s*頁面/g)) {
   if (n && n !== pageCount && n > 5) warnings.push(`README 寫「${n} 頁」，但 app.json 是 ${pageCount} 頁`);
 }
 
+// ── 2d) 進度.md「現況」版本 ＝ 最新 release ──
+{
+  const progText = read('docs/進度.md');
+  const m = progText.match(/## 現況[\s\S]*?- 前端 \*\*v(\d+\.\d+\.\d+)\*\*/);
+  const now = m && m[1];
+  if (!now) errors.push('docs/進度.md 的「現況」沒有寫前端版本');
+  else if (now !== latest) errors.push(`docs/進度.md「現況」寫 v${now}，但最新 release 是 v${latest}`);
+}
+
 for (const w of warnings) console.warn(`⚠️  ${w}`);
 if (errors.length) {
   for (const e of errors) console.error(`❌ ${e}`);

@@ -22,6 +22,7 @@ Page({
   onLoad() {
     const now = new Date();
     this.setData({
+      L: this.labels(),              // 以前漏了這行 → 「今天」按鈕文字是空的，只剩一個紫色方塊
       year: now.getFullYear(),
       month: now.getMonth() + 1,
       selected: cal.dateKey(now),
@@ -31,6 +32,8 @@ Page({
   },
 
   onShow() {
+    // 回來時重新套一次標籤（使用者可能在自檢頁切了繁／簡）
+    this.setData({ L: this.labels() });
     if (this._loadedOnce) this.load();
     this._loadedOnce = true;
   },

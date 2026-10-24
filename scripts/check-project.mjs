@@ -158,6 +158,25 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   walk(root);
 }
 
+// 7c) 有 labels() 的頁面必須真的呼叫它（曾漏呼叫 → 校曆「今天」按鈕文字空白，只剩紫色方塊）
+{
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) { walk(full); continue; }
+      if (!e.name.endsWith('.js')) continue;
+      const src = readFileSync(full, 'utf8');
+      if (!/\blabels\(\)\s*\{/.test(src)) continue;
+      if (!/L:\s*this\.labels\(\)/.test(src)) {
+        errors.push(`${full.slice(root.length + 1)} 定義了 labels() 但沒有 setData({ L: this.labels() })（介面文字會空白）`);
+      }
+    }
+  };
+  walk(root);
+}
+
 // 8) W-13：頁面 JS 必須有 Page( / Component(、json 必須有標題、wxml 用到的自訂組件必須註冊
 {
   const { readFileSync } = await import('node:fs');

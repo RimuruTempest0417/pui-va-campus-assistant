@@ -8,17 +8,21 @@
   padding: var(--pv-sp-2) 0 var(--pv-sp-3);
 }
 .cal-head__nav {
-  width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center;
+  width: 72rpx; height: 72rpx; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
   border-radius: var(--pv-r-sm); background: var(--pv-surface);
 }
 .cal-head__arrow { font-size: 40rpx; color: var(--pv-tint); line-height: 1; }
 .cal-head__title {
-  flex: 1; text-align: center;
+  flex: 1; min-width: 0; text-align: center;
   font-size: var(--pv-fs-title-3); font-weight: 600; color: var(--pv-label);
 }
 .cal-head__today {
-  margin-left: var(--pv-sp-2); padding: 0 var(--pv-sp-2); height: 72rpx;
-  display: flex; align-items: center; border-radius: var(--pv-r-sm);
+  /* 固定寬度＋不壓縮：曾量到只剩 18px，「今天」兩個字被裁成大半個紫色方塊 */
+  flex-shrink: 0; width: 104rpx; height: 72rpx; margin-left: var(--pv-sp-2);
+  box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--pv-r-sm);
   background: var(--pv-tint-soft);
 }
 .cal-head__today-text { font-size: var(--pv-fs-subhead); color: var(--pv-tint); font-weight: 600; }
