@@ -4,6 +4,7 @@ const data = require('../../services/data');
 const request = require('../../utils/request');
 const config = require('../../config/config');
 const roleLabel = require('../../utils/role').label;
+const adminApi = require('../../services/admin');
 
 Page({
   labels() {
@@ -46,6 +47,13 @@ Page({
     apiBase: '',
     version: config.VERSION || '',
     statusBarHeight: 20,
+    // W-22 兩步驗證
+    tfaEnabled: false,
+    tfaCodesLeft: 0,
+    tfaSetup: null,        // { secret, otpauth, backupCodes }
+    tfaCode: '',
+    tfaPassword: '',
+    tfaBusy: false,
   },
 
   onLoad() {
@@ -77,6 +85,7 @@ Page({
   onShow() {
     this.setData(Object.assign({ L: this.labels() }, this.labelOptions()));
     this.refresh();
+    this.loadTwoFactor();
   },
 
   refresh() {
@@ -98,6 +107,77 @@ Page({
       isStaff: ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'TEACHER'].indexOf(role) >= 0,
       apiBase: request.apiBase(),
     });
+  },
+
+  async loadTwoFactor() {
+    if (!this.data.isStaff) return;
+    try {
+      const r = await adminApi.twoFactorStatus();
+      this.setData({ tfaEnabled: !!r.enabled, tfaCodesLeft: r.backupCodesLeft || 0 });
+    } catch (e) {
+      // 沒登入或權限不足時不顯示錯誤，保持頁面安靜
+    }
+  },
+
+  async tfaBegin() {
+    if (this.data.tfaBusy) return;
+    this.setData({ tfaBusy: true });
+    try {
+      const r = await adminApi.twoFactorBegin();
+      this.setData({ tfaSetup: r, tfaCode: '' });
+      wx.showModal({
+        title: i18n.pick('把密鑰加進驗證器'),
+        content: i18n.pick('在驗證器 App 選「輸入設定金鑰」，貼上：') + '\n' + r.secret,
+        showCancel: false,
+      });
+    } catch (e) {
+      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+    } finally {
+      this.setData({ tfaBusy: false });
+    }
+  },
+
+  onTfaCode(e) {
+    this.setData({ tfaCode: e.detail.value });
+  },
+
+  async tfaEnable() {
+    if (this.data.tfaBusy) return;
+    this.setData({ tfaBusy: true });
+    try {
+      await adminApi.twoFactorEnable(String(this.data.tfaCode || '').trim());
+      this.setData({ tfaSetup: null, tfaCode: '' });
+      await this.loadTwoFactor();
+      wx.showToast({ title: i18n.pick('已開啟兩步驗證'), icon: 'success' });
+    } catch (e) {
+      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+    } finally {
+      this.setData({ tfaBusy: false });
+    }
+  },
+
+  onTfaPassword(e) {
+    this.setData({ tfaPassword: e.detail.value });
+  },
+
+  async tfaDisable() {
+    if (this.data.tfaBusy) return;
+    this.setData({ tfaBusy: true });
+    try {
+      await adminApi.twoFactorDisable(String(this.data.tfaPassword || ''));
+      this.setData({ tfaPassword: '' });
+      await this.loadTwoFactor();
+      wx.showToast({ title: i18n.pick('已關閉兩步驗證'), icon: 'none' });
+    } catch (e) {
+      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+    } finally {
+      this.setData({ tfaBusy: false });
+    }
+  },
+
+  copySecret() {
+    if (!this.data.tfaSetup) return;
+    wx.setClipboardData({ data: this.data.tfaSetup.secret });
   },
 
   pickTheme(e) {

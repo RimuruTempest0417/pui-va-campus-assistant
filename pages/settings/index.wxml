@@ -29,6 +29,43 @@
         </view>
       </pv-card>
 
+      <!-- 兩步驗證（教職員） -->
+      <block wx:if="{{isStaff && loggedIn}}">
+        <text class="set-group">安全</text>
+        <pv-card>
+          <view class="set-row">
+            <view class="set-row__main">
+              <text class="set-row__title">兩步驗證</text>
+              <text class="set-row__sub">{{tfaEnabled ? ('已開啟 · 備用碼 ' + tfaCodesLeft + ' 組') : '未開啟（建議資訊管理員開啟）'}}</text>
+            </view>
+          </view>
+
+          <block wx:if="{{!tfaEnabled && !tfaSetup}}">
+            <view class="set-actions">
+              <text class="set-link" catchtap="tfaBegin">開啟（產生密鑰）</text>
+            </view>
+          </block>
+
+          <block wx:if="{{!tfaEnabled && tfaSetup}}">
+            <text class="set-hint">密鑰：{{tfaSetup.secret}}</text>
+            <view class="set-actions"><text class="set-link" catchtap="copySecret">複製密鑰</text></view>
+            <input class="set-input" value="{{tfaCode}}" type="number" maxlength="6"
+                   placeholder="輸入驗證器上的 6 位數字" bindinput="onTfaCode" />
+            <view class="set-actions">
+              <text class="set-link" catchtap="tfaEnable">{{tfaBusy ? '確認中…' : '確認開啟'}}</text>
+            </view>
+          </block>
+
+          <block wx:if="{{tfaEnabled}}">
+            <input class="set-input" value="{{tfaPassword}}" password
+                   placeholder="輸入登入密碼以關閉" bindinput="onTfaPassword" />
+            <view class="set-actions">
+              <text class="set-link set-link--danger" catchtap="tfaDisable">{{tfaBusy ? '處理中…' : '關閉兩步驗證'}}</text>
+            </view>
+          </block>
+        </pv-card>
+      </block>
+
       <!-- 介面語言 -->
       <text class="set-group">{{L.k08}}</text>
       <pv-card>

@@ -20,6 +20,9 @@ Page({
     items: [],
     L: { title: '', today: '', empty: '', emptyDesc: '', event: '', notice: '', calendar: i18n.pick('校曆'), urgent: i18n.pick('緊急'), school: i18n.pick('校曆表') },
     externalCount: 0,
+    sources: [],          // W-23：外部校曆來源（[{label,count,ok}]）
+    sourceFilter: 'ALL',  // 'ALL' 或某個來源標籤
+    sourceChips: [],
   },
 
   onLoad() {
@@ -52,7 +55,19 @@ Page({
           return { items: [] };
         });
       this._external = (ext && ext.items) || [];
-      const grouped = cal.mergeExternal(cal.groupByDate(res.notices, res.events), this._external);
+      // W-23：多來源時提供「全部／各來源」篩選（只有一個來源就不顯示 chips）
+      const sources = (ext && ext.sources) || [];
+      const chips = sources.length > 1
+        ? [{ key: 'ALL', label: i18n.pick('全部來源') }].concat(sources.map(function (s) { return { key: s.label, label: s.label }; }))
+        : [];
+      if (this.data.sourceFilter !== 'ALL' && !sources.some((s) => s.label === this.data.sourceFilter)) {
+        this.setData({ sourceFilter: 'ALL' });
+      }
+      this.setData({ sources: sources, sourceChips: chips });
+      const filtered = this.data.sourceFilter === 'ALL'
+        ? this._external
+        : this._external.filter((e) => e.source === this.data.sourceFilter);
+      const grouped = cal.mergeExternal(cal.groupByDate(res.notices, res.events), filtered);
       this._grouped = grouped;
       this.render(grouped);
       this.setData({ loading: false, failed: false, errorText: '', externalCount: this._external.length });
@@ -60,6 +75,13 @@ Page({
       this.setData({ loading: false, failed: true, errorText: data.messageOf(e), cells: [], items: [] });
       wx.showToast({ title: data.messageOf(e), icon: 'none' });
     }
+  },
+
+  pickSource(e) {
+    const key = e.currentTarget.dataset.key;
+    if (key === this.data.sourceFilter) return;
+    this.setData({ sourceFilter: key });
+    this.load();
   },
 
   retry() {

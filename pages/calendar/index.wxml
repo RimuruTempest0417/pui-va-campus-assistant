@@ -16,6 +16,12 @@
         </view>
       </view>
 
+      <view wx:if="{{sourceChips.length}}" class="cal-src">
+        <view wx:for="{{sourceChips}}" wx:key="key"
+              class="cal-src__chip {{sourceFilter === item.key ? 'cal-src__chip--on' : ''}}"
+              data-key="{{item.key}}" catchtap="pickSource">{{item.label}}</view>
+      </view>
+
       <view class="cal-week">
         <text wx:for="{{weekdays}}" wx:key="*this" class="cal-week__cell">{{item}}</text>
       </view>

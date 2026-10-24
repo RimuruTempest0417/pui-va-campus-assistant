@@ -2,8 +2,9 @@
 const http = require('../utils/request');
 
 module.exports = {
-  login(account, password) {
-    return http.post('/admin/login', { account: account, password: password }, { auth: false });
+  login(account, password, code) {
+    return http.post('/admin/login', { account: account, password: password, code: code || undefined }, { auth: false });
+  }, { auth: false });
   },
   stats() {
     return http.get('/admin/stats');
@@ -138,5 +139,19 @@ module.exports = {
   },
   unlinkParent(id) {
     return http.del('/admin/parents/link/' + id);
+  },
+
+  // ── W-22 兩步驗證 ──
+  twoFactorStatus() {
+    return http.get('/admin/2fa');
+  },
+  twoFactorBegin() {
+    return http.post('/admin/2fa/begin', {});
+  },
+  twoFactorEnable(code) {
+    return http.post('/admin/2fa/enable', { code: code });
+  },
+  twoFactorDisable(password) {
+    return http.post('/admin/2fa/disable', { password: password });
   },
 };
