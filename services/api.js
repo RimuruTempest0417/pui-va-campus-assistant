@@ -95,6 +95,11 @@ module.exports = {
   markAllNoticesRead() {
     return http.post('/notices/read-all', {});
   },
+  /** 外部校曆（學校／個人 iCloud 發布的 ICS）：後端抓取＋展開後回場次 */
+  externalCalendar(range) {
+    const q = range || {};
+    return http.get('/calendar/external', { from: q.from || undefined, to: q.to || undefined });
+  },
   /** 校曆：公告（含校曆類）＋ 活動，兩支既有端點組合，不新增 API */
   calendar() {
     return Promise.all([

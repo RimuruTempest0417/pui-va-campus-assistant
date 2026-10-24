@@ -15,7 +15,8 @@ Page({
     selected: '',
     selectedText: '',
     items: [],
-    L: { title: '', today: '', empty: '', emptyDesc: '', event: '', notice: '', calendar: '校曆', urgent: '緊急' },
+    L: { title: '', today: '', empty: '', emptyDesc: '', event: '', notice: '', calendar: '校曆', urgent: '緊急', school: '校曆表' },
+    externalCount: 0,
   },
 
   onLoad() {
@@ -37,10 +38,18 @@ Page({
   async load() {
     try {
       const res = await data.calendar();
-      const grouped = cal.groupByDate(res.notices, res.events);
+      // 外部校曆（學校／個人 iCloud 發布的 ICS）：取前一年到後一年，月切換不必再打
+      const year = new Date().getFullYear();
+      const ext = await data
+        .externalCalendar({ from: year - 1 + '-01-01', to: year + 1 + '-12-31' })
+        .catch(function () {
+          return { items: [] };
+        });
+      this._external = (ext && ext.items) || [];
+      const grouped = cal.mergeExternal(cal.groupByDate(res.notices, res.events), this._external);
       this._grouped = grouped;
       this.render(grouped);
-      this.setData({ loading: false, failed: false, errorText: '' });
+      this.setData({ loading: false, failed: false, errorText: '', externalCount: this._external.length });
     } catch (e) {
       this.setData({ loading: false, failed: true, errorText: data.messageOf(e), cells: [], items: [] });
       wx.showToast({ title: data.messageOf(e), icon: 'none' });
@@ -71,6 +80,7 @@ Page({
       event: i18n.t('cal.event'),
       notice: i18n.t('cal.notice'),
       calendar: i18n.t('common.calendar'),
+      school: i18n.t('cal.school'),
       urgent: i18n.t('home.urgent'),
     };
   },

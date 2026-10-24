@@ -84,9 +84,34 @@ function monthSummary(cells, grouped) {
       count: items.length,
       hasUrgent: items.some((i) => i.kind === 'URGENT'),
       hasEvent: items.some((i) => i.type === 'event'),
+      hasSchool: items.some((i) => i.type === 'school'),
       hasNotice: items.some((i) => i.type === 'notice'),
     });
   });
 }
 
-module.exports = { dateKey, monthLabel, monthGrid, groupByDate, monthSummary, pad };
+/** 合併外部校曆（ICS）場次：與站內公告／活動同一套分組，只是多一種 type */
+function mergeExternal(grouped, externalItems) {
+  const map = Object.assign({}, grouped);
+  (externalItems || []).forEach((e) => {
+    const key = e.date;
+    if (!key) return;
+    if (!map[key]) map[key] = [];
+    map[key].push({
+      type: 'school',
+      id: e.id || key + '-' + (e.title || ''),
+      title: e.title,
+      kind: 'SCHOOL',
+      pinned: false,
+      time: e.startTime || '',
+      location: e.location || '',
+    });
+  });
+  Object.keys(map).forEach((k) => {
+    const order = { URGENT: 0, EVENT: 1, SCHOOL: 2, CALENDAR: 3, NORMAL: 4 };
+    map[k].sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9));
+  });
+  return map;
+}
+
+module.exports = { dateKey, monthLabel, monthGrid, groupByDate, groupAll: mergeExternal, mergeExternal, monthSummary, pad };

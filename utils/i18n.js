@@ -37,6 +37,7 @@ const DICT = {
   'cal.emptyDesc': { hant: '有公告或活動的日子會標上圓點', hans: '有公告或活动的日子会标上圆点' },
   'cal.event': { hant: '活動', hans: '活动' },
   'cal.notice': { hant: '公告', hans: '公告' },
+  'cal.school': { hant: '校曆表', hans: '校历表' },
   // 共用
   'common.list': { hant: '列表', hans: '列表' },
   'common.calendar': { hant: '校曆', hans: '校历' },

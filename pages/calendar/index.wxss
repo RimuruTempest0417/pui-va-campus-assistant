@@ -50,6 +50,7 @@
 .cal-dot { width: 10rpx; height: 10rpx; border-radius: 50%; margin: 0 2rpx; }
 .cal-dot--urgent { background: var(--pv-brand); }
 .cal-dot--event { background: var(--pv-tint); }
+.cal-dot--school { background: var(--pv-warning); }
 .cal-dot--notice { background: var(--pv-label-3); }
 .cal-cell--on .cal-dot--notice { background: var(--pv-on-tint-2); }
 .cal-cell--on .cal-dot--event { background: var(--pv-on-tint); }

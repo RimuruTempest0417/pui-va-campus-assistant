@@ -36,6 +36,7 @@
           <view class="cal-dots">
             <text wx:if="{{item.hasUrgent}}" class="cal-dot cal-dot--urgent" />
             <text wx:elif="{{item.hasEvent}}" class="cal-dot cal-dot--event" />
+            <text wx:elif="{{item.hasSchool}}" class="cal-dot cal-dot--school" />
             <text wx:elif="{{item.hasNotice}}" class="cal-dot cal-dot--notice" />
           </view>
         </view>
@@ -52,7 +53,7 @@
         <view wx:for="{{items}}" wx:key="id" class="cal-item" data-type="{{item.type}}" data-id="{{item.id}}" bindtap="openItem"
               hover-class="cal-item--pressed" hover-start-time="0">
           <view class="cal-item__head">
-            <pv-tag text="{{item.type === 'event' ? L.event : (item.kind === 'URGENT' ? L.urgent : item.kind === 'CALENDAR' ? L.calendar : L.notice)}}"
+            <pv-tag text="{{item.type === 'event' ? L.event : item.type === 'school' ? L.school : (item.kind === 'URGENT' ? L.urgent : item.kind === 'CALENDAR' ? L.calendar : L.notice)}}"
                     type="{{item.kind === 'URGENT' ? 'danger' : item.type === 'event' ? 'tint' : 'neutral'}}" />
             <text wx:if="{{item.time}}" class="cal-item__time">{{item.time}}</text>
           </view>

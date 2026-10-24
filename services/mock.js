@@ -652,6 +652,11 @@ module.exports = {
     return Promise.resolve({ items: items, unread: items.filter((n) => !n.isRead).length });
   },
 
+  /** 外部校曆：示範模式沒有外部連結，回空集合（畫面只顯示站內公告與活動） */
+  externalCalendar() {
+    return Promise.resolve({ configured: false, source: 'ics', updatedAt: null, items: [] });
+  },
+
   /** 校曆：由既有示範資料組合（公告＋活動） */
   calendar() {
     const notices = (db().notices || []).filter((n) => !n.expiresAt || n.expiresAt > Date.now());
