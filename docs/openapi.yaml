@@ -260,6 +260,22 @@ paths:
   /items/{id}/claims:
     parameters:
       - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      tags: [items]
+      summary: 查看某件物品的認領申請（發布者本人或 item:review）
+      description: |
+        只有物品發布者本人，或具 item:review 能力（ADMIN 以上）的人看得到。
+        其他人（含老師、STAFF）回 403，避免申請人的特徵描述外流。
+      responses:
+        '200':
+          description: 申請清單（待審在前、同狀態按時間排序）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { : '#/components/schemas/ItemClaim' } }
+        '403': { $ref: '#/components/responses/Forbidden' }
     post:
       tags: [items]
       summary: 申請認領
@@ -286,10 +302,10 @@ paths:
   /claims/{id}:
     patch:
       tags: [items]
-      summary: 審批認領申請（發布者本人或老師以上）
+      summary: 審批認領申請（發布者本人或資訊管理員）
       description: |
         APPROVE 後物品轉為 CLAIMED，同物品其他待審申請自動 REJECTED。
-        需要 JWT；非發布者且非 TEACHER/ADMIN/SUPER_ADMIN 回 403。
+        需要 JWT；非發布者且不具 item:review（ADMIN 以上）回 403 —— 老師與 STAFF 都不能審批。
       parameters:
         - { in: path, name: id, required: true, schema: { type: string }, description: claim id }
       requestBody:
