@@ -11,6 +11,14 @@ const MODULE_ROUTES = {
   notices: { path: '/pages/notices/list/index', ready: true, name: '公告與提示' },
 };
 
+// 管理後台入口卡的副標：依角色寫出他進去真的做得到的事，避免 STAFF 看到「審核認領」這種他打不開的功能
+const ADMIN_SUB = {
+  TEACHER: '發公告 · 建立活動 · 報名名單',
+  STAFF: '排菜單 · 報名名單',
+  ADMIN: '審核認領 · 發公告 · 排菜單 · 名單',
+  SUPER_ADMIN: '審核認領 · 發公告 · 排菜單 · 名單 · 審計',
+};
+
 Page({
   data: {
     navTotal: 0,
@@ -34,6 +42,7 @@ Page({
     showAdmin: false,
     showData: false,
     adminUrl: '',
+    adminSub: '',
     apiBaseText: '',
     // 家長：只在家長身分時才有值（切換子女就在首頁做，不必先點進別的頁）
     parentChildren: [],
@@ -199,7 +208,8 @@ Page({
           parentSummary = null;
         }
       }
-      const staff = ['TEACHER', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1;
+      // 管理後台入口：有後台分頁的角色就看得到（校內職員只有菜單與名單）
+      const staff = ['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1;
       const canSeeData = ['ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1;
       const base = data.apiBase() || '';
       const adminUrl = base.replace(/\/api\/v1\/?$/, '') + '/admin';
@@ -208,6 +218,7 @@ Page({
       this._lastRole = role;
       this.setData({
         showAdmin: staff,
+        adminSub: ADMIN_SUB[role] || '',
         showData: canSeeData,
         adminUrl: adminUrl,
         loading: false,

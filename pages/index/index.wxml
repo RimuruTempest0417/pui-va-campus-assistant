@@ -128,7 +128,7 @@
           hover-class="home__entry--pressed" hover-start-time="0">
       <view class="home__entry-main">
         <text class="home__entry-title">管理後台</text>
-        <text class="home__entry-sub">審核認領 · 發公告 · 排菜單 · 報名名單</text>
+        <text class="home__entry-sub">{{adminSub}}</text>
       </view>
       <text class="home__entry-go">›</text>
     </view>

@@ -19,16 +19,21 @@ const TABS = [
 ];
 
 const ROLE_TABS = {
+  // 校內職員：排菜單＋匯出報名名單。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
+  STAFF: ['menu', 'export'],
   TEACHER: ['notice', 'events'],
   ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'export', 'menu'],
   SUPER_ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'audit', 'export', 'menu'],
 };
 
+// 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
+// level 不能少 —— 下面的「設為 X」按鈕靠 item.level > r.level 判斷，缺了就永遠不顯示。
 const ROLES = [
-  { key: 'PARENT', label: '家長' },
-  { key: 'STUDENT', label: '學生' },
-  { key: 'TEACHER', label: '老師' },
-  { key: 'ADMIN', label: '資訊管理員' },
+  { key: 'PARENT', level: 1, label: '家長' },
+  { key: 'STUDENT', level: 1, label: '學生' },
+  { key: 'TEACHER', level: 2, label: '老師' },
+  { key: 'STAFF', level: 2, label: '校內職員' },
+  { key: 'ADMIN', level: 3, label: '資訊管理員' },
 ];
 
 Page({
@@ -108,14 +113,15 @@ Page({
       user = {};
     }
     const role = user.role || '';
-    if (['TEACHER', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+    // 後台入口＝這個角色至少有一個分頁（TEACHER / STAFF / ADMIN / SUPER_ADMIN）；其他一律踢回登入頁
+    const allowed = ROLE_TABS[role] || [];
+    if (!allowed.length) {
       wx.redirectTo({ url: '/pages/admin/login/index' });
       return;
     }
     this.setData({ role: role, 'menu.date': dateKey() });
 
     // 依能力決定看得到哪些分頁（真正的權限仍在後端）
-    const allowed = ROLE_TABS[role] || ['notice'];
     const tabs = TABS.filter((t) => allowed.indexOf(t.key) !== -1);
     this.setData({ tabs: tabs, tab: tabs[0].key });
     this.loadTab();
@@ -538,7 +544,9 @@ Page({
     try {
       const q = this.data.userQuery;
       const res = await admin.users({ q: q.q || undefined, role: q.role || undefined });
-      this.setData({ users: res.items || [], meLevel: (res.me || {}).level || 0 });
+      // roles 用後端回來的（帶 level 與 label，單一來源）；離線或舊後端才退回本地 ROLES
+      const roles = (res.roles && res.roles.length) ? res.roles : ROLES;
+      this.setData({ users: res.items || [], meLevel: (res.me || {}).level || 0, roles: roles });
     } catch (e) {
       this.setData({ hint: '讀不到使用者：' + (e.message || e.code) });
     }

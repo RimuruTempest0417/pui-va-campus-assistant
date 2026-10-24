@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.25.0-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.26.1-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -27,7 +27,7 @@
 | 午餐與小賣部 | 週菜單（可切上／下週）、午餐與小賣部分區、1–5 星評分、點讚、每週熱門排行 | ✅ 2 頁 | ✅ 一人一評 upsert |
 | 公告與溫馨提示 | 置頂／緊急／校曆分類、詳情、已讀狀態、過期自動隱藏 | ✅ 2 頁 | ✅ 每人各自已讀 |
 | 家長端（綁定子女） | 首頁「我的子女」切換、代報名／取消、子女的報名／認領／未讀公告 | ✅ 1 頁 ＋ 首頁卡 | ✅ 兩道門（role PARENT ＋ parent_links）＋ 與學生共用 `lib/signup.ts` |
-| 校內管理（小程序內建） | 概況、認領、失物、活動、公告、使用者、家長、檢舉、**錯誤**、審計、名單、菜單 | ✅ 12 個分頁 | ✅ 依能力矩陣分權 |
+| 校內管理（小程序內建） | 概況、認領、失物、活動、公告、使用者、家長、檢舉、**錯誤**、審計、名單、菜單；**校內職員（STAFF）登入只看到「菜單」「名單」**，不能開活動、不能發公告 | ✅ 12 個分頁 | ✅ 依能力矩陣分權 |
 | 資料備份（維運） | 全庫匯出成一份 JSON（18 張表）、終端一支指令還原、還原後逐表對帳 | ✅ 網頁後台「下載備份」（只有最高權限看得到） | ✅ `GET /admin/export.json`（`backup:export`）＋`scripts/restore.mjs` |
 | 錯誤日誌（觀測） | 手機端的白屏／閃退／未處理 Promise 自動送上報，後台按出現次數排序、可標記已解決 | ✅ 自動上報（不影響使用者） | ✅ `error_logs` ＋ 3 支端點（`error:read`） |
 
@@ -132,6 +132,7 @@ node scripts/check-data-layer.mjs  # ALL PASS 56/56（固定跑示範資料層�
 - [x] 後端 P0 端點（認領審批、報名行鎖＋候補、菜單評分、公告已讀、上傳簽名）
 - [x] **失物智能匹配**（pg_trgm 加權評分 + 詳情頁「可能是你的東西」）
 - [x] 後端 e2e（真實 Postgres，27 項，含 20 併發超賣壓測）
+- [x] 校內職員（STAFF）後台入口（v0.26.1）：校務處／圖書館帳號登入後只有「菜單」「名單」兩頁，開活動與發公告仍是 403；網頁後台同步
 - [x] 老師端管理後台（W-10）：10 個分頁，含**使用者管理**（建立帳號／改名／改帳號／改密碼／改等級／停用／刪除／權限說明）
 - [x] **家長綁定（P2）＋資料隔離（P4）**：`parent_links` 表＋後台「家長」分頁；家長端四支查詢一律經 `parent-scope` 閘門（`parentId` 取自 JWT、未綁定 403 且訊息與「不存在的人」相同），子女概況／失物／認領都只能看自己的孩子
 - [x] **家長端（P3，v0.23.0）**：首頁「我的子女」切換＋`pages/parent` 代報名／取消（後端 `event:signup:child`，名額與學生共用 `lib/signup.ts`）
