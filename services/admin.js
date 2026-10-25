@@ -151,11 +151,11 @@ module.exports = {
     return http.patch('/admin/notices/' + id, payload);
   },
   deleteEvent(id) {
-    return request.delete('/admin/events/' + id);
+    return http.del('/admin/events/' + id);
   },
 
   deleteItem(id) {
-    return request.delete('/admin/items/' + id);
+    return http.del('/admin/items/' + id);
   },
 
   deleteNotice(id) {

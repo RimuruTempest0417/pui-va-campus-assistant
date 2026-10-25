@@ -776,6 +776,52 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   }
 }
 
+// 22) 請求層的別名與方法名：services/*.js 只能呼叫 utils/request.js 真的有的方法
+//     實測兩種錯都發生過，而且守門、編譯、console 全都不會報：
+//     ①`request.delete(...)` —— 該檔根本沒宣告 request（別名是 http）→ 執行期 `request is not defined`，
+//       後台「刪除活動／刪除失物」按下去直接死，錯誤只會出現在線上錯誤記錄。
+//     ②`http.delete(...)` —— request.js 匯出的是 `del` → `http.delete is not a function`（解除家校通連結）。
+//     這一條同時擋「用了別名卻沒 require」與「叫了不存在的方法」。
+{
+  const reqFile = join(root, 'utils/request.js');
+  let allowed = ['get', 'post', 'patch', 'del'];
+  if (existsSync(reqFile)) {
+    const src = readFileSync(reqFile, 'utf8');
+    const m = src.match(/module\.exports\s*=\s*\{([\s\S]*?)\n\};/);
+    if (m) {
+      const keys = [...m[1].matchAll(/(?:^|\n)\s*([A-Za-z_$][\w$]*)\s*[:(]/g)].map((x) => x[1]);
+      if (keys.length) allowed = keys;
+    }
+  }
+  const walkJs = (dir, out = []) => {
+    if (!existsSync(dir)) return out;
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walkJs(full, out);
+      else if (e.name.endsWith('.js')) out.push(full);
+    }
+    return out;
+  };
+  const VERB = 'get|post|put|patch|del|delete|head';
+  for (const file of walkJs(join(root, 'services')).concat(walkJs(join(root, 'utils')))) {
+    const rel = file.slice(root.length + 1);
+    const src = readFileSync(file, 'utf8');
+    const decls = [...src.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*require\(\s*['"][^'"]*request(?:\.js)?['"]\s*\)/g)].map((m) => m[1]);
+    if (!decls.length) continue;
+    for (const alias of new Set([...decls, 'http', 'request'])) {
+      const re = new RegExp(`\\b${alias}\\.(${VERB})\\s*\\(`, 'g');
+      for (const hit of src.matchAll(re)) {
+        const verb = hit[1];
+        if (!decls.includes(alias)) {
+          errors.push(`${rel} 呼叫了 ${alias}.${verb}(…) 但檔案裡沒有 require utils/request（別名是 ${decls.join('／')}）→ 執行期 ${alias} is not defined`);
+        } else if (!allowed.includes(verb)) {
+          errors.push(`${rel} 呼叫 ${alias}.${verb}(…) 但 utils/request.js 沒有匯出 ${verb}（可用：${allowed.join('／')}）`);
+        }
+      }
+    }
+  }
+}
+
 for (const w of warnings) console.warn(`⚠️  ${w}`);
 if (errors.length) {
   for (const e of errors) console.error(`❌ ${e}`);
