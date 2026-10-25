@@ -34,21 +34,21 @@
                 data-key="{{item.target}}" data-i="{{index}}"
                 bindtap="switchTab" bindtouchstart="ovDown" bindtouchend="ovUp" bindtouchcancel="ovUp">
             <view class="ov-card__top">
-              <text class="ov-card__num">{{item.value}}</text>
+              <text class="ov-card__num ui-num">{{item.value}}</text>
               <text class="ov-card__go">›</text>
             </view>
             <text class="ov-card__label">{{item.label}}</text>
           </view>
         </view>
 
-        <text class="ov-section">{{L.k158}}</text>
+        <text class="ui-section ov-section">{{L.k158}}</text>
         <view class="stat-grid">
-          <view class="stat"><text class="stat__num">{{stats.users}}</text><text class="stat__label">{{L.k04}}</text></view>
-          <view class="stat"><text class="stat__num">{{stats.items.open}}</text><text class="stat__label">{{L.k05}}</text></view>
-          <view class="stat"><text class="stat__num">{{stats.claimsPending}}</text><text class="stat__label">{{L.k06}}</text></view>
-          <view class="stat"><text class="stat__num">{{stats.signups.confirmed}}</text><text class="stat__label">{{L.k07}}</text></view>
-          <view class="stat"><text class="stat__num">{{stats.signups.waitlist}}</text><text class="stat__label">{{L.k08}}</text></view>
-          <view class="stat"><text class="stat__num">{{stats.noticesActive}}</text><text class="stat__label">{{L.k09}}</text></view>
+          <view class="stat"><text class="stat__num ui-num">{{stats.users}}</text><text class="stat__label">{{L.k04}}</text></view>
+          <view class="stat"><text class="stat__num ui-num">{{stats.items.open}}</text><text class="stat__label">{{L.k05}}</text></view>
+          <view class="stat"><text class="stat__num ui-num">{{stats.claimsPending}}</text><text class="stat__label">{{L.k06}}</text></view>
+          <view class="stat"><text class="stat__num ui-num">{{stats.signups.confirmed}}</text><text class="stat__label">{{L.k07}}</text></view>
+          <view class="stat"><text class="stat__num ui-num">{{stats.signups.waitlist}}</text><text class="stat__label">{{L.k08}}</text></view>
+          <view class="stat"><text class="stat__num ui-num">{{stats.noticesActive}}</text><text class="stat__label">{{L.k09}}</text></view>
         </view>
         <pv-card>
           <text class="ui-meta">近 7 天新增失物 {{stats.items.added7d}} 筆｜已認領 {{stats.items.claimed}} 筆｜評分 {{stats.ratings.count}} 則（平均 {{stats.ratings.avg}}）</text>
@@ -135,11 +135,11 @@
       <!-- 發公告 -->
       <block wx:elif="{{tab === 'notice'}}">
         <pv-card>
-          <text class="field__label">{{L.k17}}</text>
+          <text class="ui-section ui-mt-2">{{L.k17}}</text>
           <input class="field__input" value="{{notice.title}}" bindinput="onNoticeTitle" maxlength="120" />
-          <text class="field__label">{{L.k18}}</text>
+          <text class="ui-section ui-mt-2">{{L.k18}}</text>
           <textarea class="field__input field__textarea" value="{{notice.content}}" bindinput="onNoticeContent" maxlength="2000" />
-          <text class="field__label">{{L.k19}}</text>
+          <text class="ui-section ui-mt-2">{{L.k19}}</text>
           <view class="filter-row">
             <view wx:for="{{kinds}}" wx:key="key" class="chip {{notice.kind === item.key ? 'chip--on' : ''}}"
                   data-key="{{item.key}}" bindtap="pickKind">{{item.label}}</view>
@@ -153,7 +153,7 @@
           </view>
         </pv-card>
 
-        <text class="field__label">既有公告（{{noticeList.length}}）</text>
+        <text class="ui-section ui-mt-2">既有公告（{{noticeList.length}}）</text>
         <view wx:if="{{noticeList.length}}" class="ui-list ui-list--grouped">
           <view wx:for="{{noticeList}}" wx:key="id" class="ui-card ui-card--row {{index === noticeList.length - 1 ? 'ui-card--last' : ''}}">
             <view class="ui-row-between">
@@ -173,14 +173,14 @@
       <!-- 活動管理 -->
       <block wx:elif="{{tab === 'events'}}">
         <pv-card>
-          <text class="field__label">{{L.k23}}</text>
+          <text class="ui-section ui-mt-2">{{L.k23}}</text>
           <input class="field__input" value="{{eventForm.title}}" data-field="title" bindinput="onEventField" placeholder="{{L.k24}}" />
           <input class="field__input field__gap" value="{{eventForm.location}}" data-field="location" bindinput="onEventField" placeholder="{{L.k25}}" />
           <input class="field__input field__gap" value="{{eventForm.date}}" data-field="date" bindinput="onEventField" placeholder="{{L.k26}}" />
           <input class="field__input field__gap" value="{{eventForm.capacity}}" data-field="capacity" bindinput="onEventField" placeholder="{{L.k27}}" />
           <input class="field__input field__gap" value="{{eventForm.groups}}" data-field="groups" bindinput="onEventField" placeholder="{{L.k28}}" />
           <view class="ui-row field__gap" bindtap="toggleEvTeams">
-            <text class="field__label">{{teamsEnabled ? '☑' : '☐'}}</text>
+            <text class="ui-section ui-mt-2">{{teamsEnabled ? '☑' : '☐'}}</text>
             <text class="field__hint">{{L.k66}}</text>
           </view>
           <view class="row-actions">
@@ -195,10 +195,10 @@
             <pv-tag text="{{evStats.full ? L.k93 : (evStats.unlimited ? L.k94 : L.k95)}}" type="{{evStats.full ? 'warning' : 'success'}}" />
           </view>
           <view class="stat-row">
-            <view class="stat-cell"><text class="stat-cell__num">{{evStats.signed}}</text><text class="stat-cell__label">{{L.k31}}</text></view>
-            <view class="stat-cell"><text class="stat-cell__num">{{evStats.waitlisted}}</text><text class="stat-cell__label">{{L.k32}}</text></view>
-            <view class="stat-cell"><text class="stat-cell__num">{{evStats.unlimited ? '∞' : evStats.remaining}}</text><text class="stat-cell__label">{{L.k33}}</text></view>
-            <view class="stat-cell"><text class="stat-cell__num">{{evStats.cancelled}}</text><text class="stat-cell__label">{{L.k34}}</text></view>
+            <view class="stat-cell"><text class="stat-cell__num ui-num">{{evStats.signed}}</text><text class="stat-cell__label">{{L.k31}}</text></view>
+            <view class="stat-cell"><text class="stat-cell__num ui-num">{{evStats.waitlisted}}</text><text class="stat-cell__label">{{L.k32}}</text></view>
+            <view class="stat-cell"><text class="stat-cell__num ui-num">{{evStats.unlimited ? '∞' : evStats.remaining}}</text><text class="stat-cell__label">{{L.k33}}</text></view>
+            <view class="stat-cell"><text class="stat-cell__num ui-num">{{evStats.cancelled}}</text><text class="stat-cell__label">{{L.k34}}</text></view>
           </view>
           <text class="ui-meta">近 7 天報名：{{evStats.timeline[0].count}}／{{evStats.timeline[1].count}}／{{evStats.timeline[2].count}}／{{evStats.timeline[3].count}}／{{evStats.timeline[4].count}}／{{evStats.timeline[5].count}}／{{evStats.timeline[6].count}}</text>
           <view wx:if="{{evStats.byGroup.length}}" class="group-stat">
@@ -223,7 +223,7 @@
           <view wx:if="{{ci.active}}" class="ci-box">
             <image class="ci-qr" src="{{ci.qrDataUrl}}" mode="aspectFit" />
             <view class="ci-side">
-              <text class="ci-code">{{ci.code}}</text>
+              <text class="ci-code ui-num">{{ci.code}}</text>
               <text class="ui-meta">已簽到 {{ci.checkedIn}} / 正取 {{ci.signed}}{{ci.rate === null ? '' : '（' + ci.rate + '%）'}}</text>
             </view>
           </view>
@@ -276,7 +276,7 @@
         </pv-card>
 
         <pv-card>
-          <text class="field__label">{{L.k42}}</text>
+          <text class="ui-section ui-mt-2">{{L.k42}}</text>
           <input class="field__input" value="{{userForm.account}}" data-field="account" bindinput="onUserField" placeholder="{{L.k43}}" />
           <input class="field__input field__gap" value="{{userForm.password}}" data-field="password" bindinput="onUserField" password placeholder="{{L.k44}}" />
           <input class="field__input field__gap" value="{{userForm.nickname}}" data-field="nickname" bindinput="onUserField" placeholder="{{L.k45}}" />
@@ -315,13 +315,13 @@
           </view>
           <!-- 編輯表單（一次改名稱／帳號／密碼／等級）-->
           <view wx:if="{{editingId === item.id}}" class="edit-box">
-            <text class="field__label">{{L.k50}}</text>
+            <text class="ui-section ui-mt-2">{{L.k50}}</text>
             <input class="field__input" value="{{editForm.nickname}}" data-field="nickname" bindinput="onEditField" />
-            <text class="field__label">{{L.k51}}</text>
+            <text class="ui-section ui-mt-2">{{L.k51}}</text>
             <input class="field__input" value="{{editForm.account}}" data-field="account" bindinput="onEditField" />
-            <text class="field__label">{{L.k52}}</text>
+            <text class="ui-section ui-mt-2">{{L.k52}}</text>
             <input class="field__input" value="{{editForm.password}}" data-field="password" bindinput="onEditField" password placeholder="{{L.k53}}" />
-            <text class="field__label">{{L.k54}}</text>
+            <text class="ui-section ui-mt-2">{{L.k54}}</text>
             <view class="filter-row">
               <block wx:for="{{roles}}" wx:for-item="r" wx:key="key">
                 <view wx:if="{{item.level > r.level || editForm.role === r.key}}"
@@ -352,7 +352,7 @@
       <!-- 家長綁定（P2）-->
       <block wx:elif="{{tab === 'parents'}}">
         <pv-card>
-          <text class="field__label">{{L.k59}}</text>
+          <text class="ui-section ui-mt-2">{{L.k59}}</text>
           <input class="field__input" value="{{parentForm.parentAccount}}" data-field="parentAccount" bindinput="onParentField" placeholder="{{L.k60}}" />
           <input class="field__input field__gap" value="{{parentForm.studentAccount}}" data-field="studentAccount" bindinput="onParentField" placeholder="{{L.k61}}" />
           <view class="filter-row">
@@ -518,14 +518,14 @@
       <!-- 排菜單 -->
       <block wx:elif="{{tab === 'menu'}}">
         <pv-card>
-          <text class="field__label">{{L.k74}}</text>
+          <text class="ui-section ui-mt-2">{{L.k74}}</text>
           <input class="field__input" value="{{menu.date}}" placeholder="YYYY-MM-DD" bindinput="onMenuDate" />
-          <text class="field__label">{{L.k75}}</text>
+          <text class="ui-section ui-mt-2">{{L.k75}}</text>
           <view class="filter-row">
             <view wx:for="{{meals}}" wx:key="key" class="chip {{menu.mealType === item.key ? 'chip--on' : ''}}"
                   data-key="{{item.key}}" bindtap="pickMeal">{{item.label}}</view>
           </view>
-          <text class="field__label">{{L.k76}}</text>
+          <text class="ui-section ui-mt-2">{{L.k76}}</text>
           <input class="field__input" value="{{menu.names}}" placeholder="{{L.k77}}" bindinput="onMenuNames" />
           <view class="row-actions">
             <pv-button type="filled" loading="{{sending}}" disabled="{{sending}}" bind:tap="saveMenu">{{L.k78}}</pv-button>
@@ -533,7 +533,7 @@
           </view>
         </pv-card>
 
-        <text class="field__label">本週已排（{{menuWeekStart}} 起）</text>
+        <text class="ui-section ui-mt-2">本週已排（{{menuWeekStart}} 起）</text>
         <view wx:if="{{menuEntries.length}}" class="ui-list ui-list--grouped">
           <view wx:for="{{menuEntries}}" wx:key="id" class="signup-row {{index === menuEntries.length - 1 ? 'signup-row--last' : ''}}">
             <text class="signup-row__name">{{item.date}} · {{item.mealType === 'LUNCH' ? L.k122 : L.k123}} · {{item.dishName}}</text>

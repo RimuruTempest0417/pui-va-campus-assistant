@@ -30,16 +30,5 @@
   font-size: var(--pv-fs-subhead);
 }
 
-.codes {
-  display: flex; flex-direction: row; flex-wrap: wrap; gap: var(--pv-sp-1);
-  margin-top: var(--pv-sp-2);
-}
-.codes__item {
-  width: 31%; text-align: center; padding: 10rpx 0;
-  background: var(--pv-fill); border-radius: var(--pv-r-sm);
-  font-size: var(--pv-fs-caption-1); color: var(--pv-label);
-  font-variant-numeric: tabular-nums;
-}
-
 /* 同一張卡裡的多列：用髮絲線分隔，不要每列一張卡 */
 .set-row--sep { border-top: 1rpx solid var(--pv-sep); }

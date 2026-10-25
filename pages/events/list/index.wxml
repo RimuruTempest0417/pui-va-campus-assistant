@@ -34,7 +34,7 @@
 
           <view class="cap">
             <view class="cap__bar"><view class="cap__fill" style="width: {{item.ratio}}%" /></view>
-            <text class="cap__text">{{item.capacityText}}</text>
+            <text class="cap__text ui-num">{{item.capacityText}}</text>
           </view>
         </view>
       </view>

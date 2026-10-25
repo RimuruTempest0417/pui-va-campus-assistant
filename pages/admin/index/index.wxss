@@ -29,7 +29,7 @@
 .ov-card__num { font-size: 44rpx; font-weight: 700; line-height: 1.1; color: var(--pv-tint); }
 .ov-card__go { font-size: var(--pv-fs-footnote); color: var(--pv-label-3); }
 .ov-card__label { font-size: var(--pv-fs-caption-2); color: var(--pv-label-2); margin-top: 6rpx; }
-.ov-section { display: block; font-size: var(--pv-fs-footnote); color: var(--pv-label-2); margin: var(--pv-sp-3) 0 var(--pv-sp-2); }
+.ov-section { margin: var(--pv-sp-3) 0 var(--pv-sp-2); }
 
 .stat-grid { display: flex; flex-direction: row; flex-wrap: wrap; margin-bottom: var(--pv-sp-2); }
 .stat {
@@ -51,7 +51,6 @@
 }
 .chip--on { background: var(--pv-tint-soft); color: var(--pv-tint); font-weight: 600; }
 
-.field__label { display: block; font-size: var(--pv-fs-footnote); color: var(--pv-label-2); margin: var(--pv-sp-2) 0 6rpx; }
 .field__input {
   padding: 18rpx var(--pv-sp-2); background: var(--pv-fill);
   border-radius: var(--pv-r-sm); font-size: var(--pv-fs-body);

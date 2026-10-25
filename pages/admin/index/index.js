@@ -149,7 +149,7 @@ Page({
       k02: i18n.pick("讀取失敗"),
       k03: i18n.pick("重試"),
       k04: i18n.pick("使用者"),
-      k05: i18n.pick("待認領"),
+      k05: i18n.pick("未認領失物"),
       k06: i18n.pick("待審認領"),
       k07: i18n.pick("正取報名"),
       k08: i18n.pick("候補中"),

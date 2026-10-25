@@ -1,4 +1,5 @@
 @import "../../styles/tokens.wxss";
+@import "../../styles/ui.wxss";
 
 .sv-page { height: 100vh; background: var(--pv-bg); }
 .sv-inner { padding: 0 var(--pv-sp-3) var(--pv-sp-6); box-sizing: border-box; }
@@ -26,6 +27,11 @@
   margin-top: 6rpx;
 }
 .sv-sub { margin-top: var(--pv-sp-1); font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+
+/* 數字排版示範（W-46）：同一段數字，上排等寬、下排比例，肉眼即可看出小數點有沒有對齊 */
+.sv-num-row { display: flex; flex-direction: row; margin-top: var(--pv-sp-1); }
+.sv-num { margin-right: var(--pv-sp-4); font-size: var(--pv-fs-title-3); color: var(--pv-label); }
+.sv-num-hint { display: block; margin-top: var(--pv-sp-2); font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
 
 .sv-swatches { display: flex; flex-direction: row; flex-wrap: wrap; }
 .sv-swatch { width: 25%; display: flex; flex-direction: column; align-items: center; margin-bottom: var(--pv-sp-2); }

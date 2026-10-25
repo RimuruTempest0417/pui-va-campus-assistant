@@ -65,11 +65,11 @@
           <text class="ui-meta kid-meta">{{child.student.grade ? child.student.grade : '—'}}{{child.student.className ? ' · ' + child.student.className + L.k25 : ''}}</text>
           <view class="stats">
             <view class="stat">
-              <text class="stat__num">{{signups.length}}</text>
+              <text class="stat__num ui-num">{{signups.length}}</text>
               <text class="stat__label">{{L.k13}}</text>
             </view>
             <view class="stat">
-              <text class="stat__num">{{child.claimCount}}</text>
+              <text class="stat__num ui-num">{{child.claimCount}}</text>
               <text class="stat__label">{{L.k14}}</text>
             </view>
             <view class="stat">

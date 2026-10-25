@@ -28,7 +28,7 @@
         <pv-card>
           <view class="meta-row"><text class="meta-k">{{L.k06}}</text><text class="meta-v">{{ev.timeText}}{{ev.endText ? ' — ' + ev.endText : ''}}</text></view>
           <view class="meta-row"><text class="meta-k">{{L.k07}}</text><text class="meta-v">{{ev.location}}</text></view>
-          <view class="meta-row"><text class="meta-k">{{L.k08}}</text><text class="meta-v">{{ev.capacityText}}</text></view>
+          <view class="meta-row"><text class="meta-k">{{L.k08}}</text><text class="meta-v ui-num">{{ev.capacityText}}</text></view>
           <view class="cap"><view class="cap__bar"><view class="cap__fill" style="width: {{ev.ratio}}%" /></view></view>
           <text wx:if="{{ev.remaining !== null}}" class="ui-meta">{{ev.remaining > 0 ? L.k19 + ev.remaining + L.k20 : L.k21}}</text>
           <view class="meta-row meta-row--action" bindtap="makeShareCard">

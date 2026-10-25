@@ -21,6 +21,18 @@ function setToken(token) {
   else wx.removeStorageSync(config.STORAGE_KEYS.token);
 }
 
+/** 清掉本機登入態（token ＋ 快取的使用者角色／暱稱）。
+ *  只在「本來帶了 token，後端卻回 401」時呼叫 —— 那代表 JWT 過期或被撤銷。
+ *  不清的話畫面會自相矛盾：登入頁說「已登入 巡查／最高權限」、後台卻說「請先登入」。 */
+function dropSession() {
+  setToken('');
+  try {
+    wx.removeStorageSync(config.STORAGE_KEYS.user);
+  } catch (e) {
+    // storage 不可用時只影響本次顯示
+  }
+}
+
 /** GET 參數清洗：把 undefined／null／空字串／字面 "undefined" 全部拿掉 */
 function cleanParams(data) {
   if (!data || typeof data !== 'object') return data;
@@ -124,6 +136,13 @@ function request(method, url, data, options) {
 
   const run = (left) =>
     (transport === 'cloud' ? onceCloud(method, url, data, withAuth) : once(method, url, data, withAuth)).catch((err) => {
+      // 帶了 token 卻回 401 ＝ JWT 過期／被撤銷：清掉本機登入態，回一個使用者看得懂的
+      // SESSION_EXPIRED（否則頁面只顯示「請先登入」，而他明明剛登入過）。
+      // auth:false 的呼叫（登入本身）不會走進來，所以打錯密碼不會把人踢掉。
+      if (withAuth && getToken() && (err.statusCode === 401 || codeOf(err) === 'UNAUTHORIZED')) {
+        dropSession();
+        throw { code: 'SESSION_EXPIRED', message: '', statusCode: 401 };
+      }
       const retryable = ['NETWORK', 'TIMEOUT', 'INTERNAL'].indexOf(codeOf(err)) !== -1;
       if (left > 1 && retryable) return run(left - 1);
       throw err;

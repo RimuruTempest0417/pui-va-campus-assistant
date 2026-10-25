@@ -692,6 +692,56 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   }
 }
 
+// 20) W-46：排版工具類只有一份來源
+//     ①`font-variant-numeric` 只准出現在 styles/ui.wxss 的 .ui-num —— 每頁各寫一份時，
+//       改一處其他頁不會跟；而 Skyline 不認這個屬性時是靜默的（不報錯、不 warn），只能靠守門擋。
+//     ②wxml 用到 ui-section／ui-num 的頁面，它的 wxss 必須 @import styles/ui.wxss，
+//       否則 class 沒有樣式、畫面看起來「改了沒效果」（跟漏 setData 的 L.* 一樣靜默）。
+{
+  const stripCss = (src) => src
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[\s;{}])\/\/[^\n]*/g, '$1');
+  const walkWxss = (dir, out = []) => {
+    if (!existsSync(dir)) return out;
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walkWxss(full, out);
+      else if (e.name.endsWith('.wxss')) out.push(full);
+    }
+    return out;
+  };
+  const uiRel = 'styles/ui.wxss';
+  for (const file of [...walkWxss(join(root, 'pages')), ...walkWxss(join(root, 'components')), ...walkWxss(join(root, 'styles'))]) {
+    const rel = file.slice(root.length + 1);
+    if (rel === uiRel) continue;
+    if (/font-variant-numeric/.test(stripCss(readFileSync(file, 'utf8')))) {
+      errors.push(`${rel} 自己寫了 font-variant-numeric（數字排版只有 ${uiRel} 的 .ui-num 一份來源）`);
+    }
+  }
+  const uiSrc = existsSync(join(root, uiRel)) ? readFileSync(join(root, uiRel), 'utf8') : '';
+  for (const cls of ['.ui-section', '.ui-num']) {
+    if (!uiSrc.includes(cls)) errors.push(`${uiRel} 缺少 ${cls}（區段標題／等寬數字沒有定義，呼叫端會靜默無樣式）`);
+  }
+  const walkWxml = (dir, out = []) => {
+    if (!existsSync(dir)) return out;
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walkWxml(full, out);
+      else if (e.name.endsWith('.wxml')) out.push(full);
+    }
+    return out;
+  };
+  for (const file of walkWxml(join(root, 'pages'))) {
+    const wxml = readFileSync(file, 'utf8');
+    if (!/\bui-(section|num)\b/.test(wxml)) continue;
+    const wxss = file.replace(/\.wxml$/, '.wxss');
+    const src = existsSync(wxss) ? readFileSync(wxss, 'utf8') : '';
+    if (!src.includes(`styles/ui.wxss`)) {
+      errors.push(`${wxss.slice(root.length + 1)} 用到 ui-section／ui-num 但沒有 @import styles/ui.wxss（class 不會生效）`);
+    }
+  }
+}
+
 for (const w of warnings) console.warn(`⚠️  ${w}`);
 if (errors.length) {
   for (const e of errors) console.error(`❌ ${e}`);

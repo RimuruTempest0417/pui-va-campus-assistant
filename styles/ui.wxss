@@ -34,6 +34,20 @@
 .ui-sub { font-size: var(--pv-fs-subhead); color: var(--pv-label-2); }
 .ui-meta { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
 
+/* 卡片內的區段標題（iOS section header）：13pt 次級灰 ＋ 微字距。
+   和 `.pv-group-title` 同一組規格，只差在「沒有上下 padding」——
+   頁面級用 pv-group-title（tokens.wxss），卡片內用這裡，位置由呼叫端用 ui-mt-* 決定。
+   字級／顏色／字距只有一份：--pv-fs-footnote／--pv-label-2／--pv-ls-section。 */
+.ui-section {
+  display: block;
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-label-2);
+  letter-spacing: var(--pv-ls-section);
+}
+/* 會被拿來比大小的數字（統計值、名額、評分、代碼）：等寬數字，小數點與位數才對得齊。
+   唯一來源；頁面 wxss 不得再寫 font-variant-numeric（check-project 第 20 條擋）。 */
+.ui-num { font-variant-numeric: tabular-nums; }
+
 .ui-thumb {
   width: 132rpx; height: 132rpx; border-radius: var(--pv-r-sm);
   background: var(--pv-fill); flex-shrink: 0;
@@ -56,7 +70,7 @@
 /* 表單 */
 .ui-field { padding: var(--pv-sp-2) 0; border-bottom: 1rpx solid var(--pv-sep); }
 .ui-field:last-child { border-bottom: none; }
-.ui-field__label { font-size: var(--pv-fs-subhead); color: var(--pv-label-2); margin-bottom: 6rpx; }
+.ui-field__label { display: block; font-size: var(--pv-fs-footnote); color: var(--pv-label-2); letter-spacing: var(--pv-ls-section); margin-bottom: 6rpx; }
 .ui-input {
   font-size: var(--pv-fs-body); color: var(--pv-label);
   min-height: 64rpx; line-height: 64rpx;

@@ -32,7 +32,7 @@
 
           <pv-card>
             <view wx:if="{{item.lunch.length}}">
-              <view class="sec-title">{{L.k05}}</view>
+              <view class="ui-section sec-title">{{L.k05}}</view>
               <view wx:for="{{item.lunch}}" wx:for-item="dish" wx:key="id" class="dish-row"
                     data-id="{{dish.id}}" bindtap="goDish" hover-class="dish-row--pressed" hover-start-time="0">
                 <view class="dish-row__main">
@@ -40,14 +40,14 @@
                   <text class="ui-meta">{{dish.ratingCount}} 人評分 · 讚 {{dish.likedCount}}{{dish.myScore ? L.k13 + dish.myScore + '★' : ''}}</text>
                 </view>
                 <view class="dish-row__score">
-                  <text class="dish-row__num">{{dish.avgScore || '—'}}</text>
+                  <text class="dish-row__num ui-num">{{dish.avgScore || '—'}}</text>
                   <text class="dish-row__unit">{{L.k06}}</text>
                 </view>
               </view>
             </view>
 
             <view wx:if="{{item.snack.length}}" class="snack-sec">
-              <view class="sec-title">{{L.k07}}</view>
+              <view class="ui-section sec-title">{{L.k07}}</view>
               <view wx:for="{{item.snack}}" wx:for-item="dish" wx:key="id" class="dish-row"
                     data-id="{{dish.id}}" bindtap="goDish" hover-class="dish-row--pressed" hover-start-time="0">
                 <view class="dish-row__main">
@@ -55,7 +55,7 @@
                   <text class="ui-meta">MOP {{dish.price}} · {{dish.ratingCount}} 人評分</text>
                 </view>
                 <view class="dish-row__score">
-                  <text class="dish-row__num">{{dish.avgScore || '—'}}</text>
+                  <text class="dish-row__num ui-num">{{dish.avgScore || '—'}}</text>
                   <text class="dish-row__unit">{{L.k06}}</text>
                 </view>
               </view>

@@ -32,6 +32,21 @@
     </view>
   </pv-card>
 
+  <!-- 數字排版（W-46）-->
+  <view class="pv-group-title">{{L.k40}}</view>
+  <pv-card>
+    <text class="ui-section">{{L.k41}}</text>
+    <view class="sv-num-row">
+      <text id="num-tab-1" class="sv-num ui-num">1111.50</text>
+      <text id="num-tab-2" class="sv-num ui-num">8888.50</text>
+    </view>
+    <view class="sv-num-row">
+      <text id="num-prop-1" class="sv-num">1111.50</text>
+      <text id="num-prop-2" class="sv-num">8888.50</text>
+    </view>
+    <text class="sv-num-hint">{{L.k42}}</text>
+  </pv-card>
+
   <!-- 按鈕 -->
   <view class="pv-group-title">{{L.k05}}</view>
   <pv-card>

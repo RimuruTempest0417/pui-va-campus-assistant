@@ -2,6 +2,7 @@
 const i18n = require('./i18n');
 const TEXT = {
   UNAUTHORIZED: '請先登入',
+  SESSION_EXPIRED: '登入已過期，請重新登入',
   FORBIDDEN: '你沒有這個操作的權限',
   NOT_FOUND: '找不到內容，可能已被刪除',
   VALIDATION_FAILED: '填寫的內容有誤，請檢查後重試',
@@ -32,9 +33,11 @@ function isNetworkish(err) {
   return NETWORK_CODES.indexOf(codeOf(err)) !== -1;
 }
 
-/** 401／UNAUTHORIZED：未登入。讀取類頁面可以當成「訪客」繼續，不用整頁失敗。 */
+/** 401／UNAUTHORIZED：未登入。讀取類頁面可以當成「訪客」繼續，不用整頁失敗。
+ *  SESSION_EXPIRED 也算：那是「本來有登入、但 JWT 過期被清掉」，對頁面而言同樣是訪客。 */
 function isUnauthorized(err) {
-  return codeOf(err) === 'UNAUTHORIZED';
+  const code = codeOf(err);
+  return code === 'UNAUTHORIZED' || code === 'SESSION_EXPIRED';
 }
 
 module.exports = { TEXT, messageOf, codeOf, isNetworkish, isUnauthorized };

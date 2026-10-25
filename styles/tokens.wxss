@@ -58,6 +58,7 @@ page {
   --pv-ls-title: -0.6rpx;
   --pv-ls-body: -0.2rpx;
   --pv-ls-caption: 0.2rpx;
+  --pv-ls-section: 0.5rpx;   /* 區段標題（13pt）≈ 0.02em：小字放寬一點才不會擠成一團 */
 
   /* ── 間距（4pt 網格 → 8rpx 基準）────────── */
   --pv-sp-1: 8rpx;
@@ -93,11 +94,11 @@ page {
 .pv-page { min-height: 100vh; background: var(--pv-bg); padding: var(--pv-sp-3) var(--pv-sp-3) var(--pv-sp-6); box-sizing: border-box; }
 .pv-large-title { font-size: var(--pv-fs-large-title); font-weight: 700; letter-spacing: var(--pv-ls-large-title); line-height: 1.1; }
 .pv-title { font-size: var(--pv-fs-title-2); font-weight: 600; letter-spacing: var(--pv-ls-title); line-height: 1.2; }
-.pv-group-title {                     /* iOS 列表的分組標題 */
+.pv-group-title {                     /* iOS 列表的分組標題（頁面級；卡片內用 .ui-section） */
   font-size: var(--pv-fs-footnote);
   color: var(--pv-label-2);
   padding: var(--pv-sp-3) var(--pv-sp-2) var(--pv-sp-1);
-  letter-spacing: var(--pv-ls-caption);
+  letter-spacing: var(--pv-ls-section);
 }
 .pv-footnote { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); line-height: 1.4; }
 .pv-caption { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); letter-spacing: var(--pv-ls-caption); }
