@@ -383,6 +383,119 @@
         </view>
       </block>
 
+      <!-- 補登成績與出缺席（W-53 第二階段：老師／職員在小程序內就能補，不必回電腦） -->
+      <block wx:elif="{{tab === 'school'}}">
+        <pv-card>
+          <text class="ui-section ui-mt-2">{{L.k163}}</text>
+          <input class="field__input" value="{{scQuery}}" bindinput="onSchoolQuery" bindconfirm="findSchoolStudents" confirm-type="search" placeholder="{{L.k164}}" />
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" loading="{{scBusy}}" disabled="{{scBusy}}" bind:tap="findSchoolStudents">{{L.k165}}</pv-button>
+          </view>
+        </pv-card>
+
+        <view wx:if="{{scHits.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{scHits}}" wx:key="id"
+                class="ui-card ui-card--row {{index === scHits.length - 1 ? 'ui-card--last' : ''}} {{scPressed === index ? 'ov-card--pressed' : ''}}"
+                data-index="{{index}}" data-id="{{item.id}}"
+                bindtap="pickSchoolStudent" bindtouchstart="pressHit" bindtouchend="releaseHit">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.title}}</text>
+              <text class="ui-meta">{{item.account}}</text>
+            </view>
+            <text class="ui-meta">{{item.meta}}</text>
+          </view>
+        </view>
+
+        <pv-card wx:if="{{scPicked}}">
+          <view class="ui-row-between">
+            <text class="ui-title">{{scPicked.title}}</text>
+            <pv-tag text="{{scPicked.account}}" type="neutral" />
+          </view>
+          <text class="ui-meta">{{scPicked.meta}}</text>
+          <view class="filter-row">
+            <view wx:for="{{scModes}}" wx:key="key" class="chip {{scMode === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickSchoolMode">{{item.label}}</view>
+          </view>
+        </pv-card>
+
+        <!-- 成績：補登表單 -->
+        <pv-card wx:if="{{scPicked && scMode === 'grade'}}">
+          <text class="ui-section">{{L.k173}}</text>
+          <input class="field__input" value="{{gForm.courseName}}" data-field="courseName" bindinput="onGradeField" placeholder="{{L.k170}}" />
+          <input class="field__input field__gap" value="{{gForm.testType}}" data-field="testType" bindinput="onGradeField" placeholder="{{L.k171}}" />
+          <input class="field__input field__gap" type="digit" value="{{gForm.score}}" data-field="score" bindinput="onGradeField" placeholder="{{L.k172}}" />
+          <input class="field__input field__gap" value="{{gForm.yearTerm}}" data-field="yearTerm" bindinput="onGradeField" placeholder="{{L.k169}}" />
+          <text class="ui-meta">{{L.k188}}</text>
+          <view class="filter-row">
+            <view wx:for="{{termOptions}}" wx:key="key" class="chip {{gForm.term === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickGradeTerm">{{item.label}}</view>
+          </view>
+          <picker mode="date" value="{{gForm.testDate}}" bindchange="onGradeDate">
+            <view class="field__input field__gap">{{gForm.testDate || L.k187}}</view>
+          </picker>
+          <view class="row-actions">
+            <pv-button type="filled" size="sm" loading="{{scSaving}}" disabled="{{scSaving}}" bind:tap="submitGrade">{{L.k173}}</pv-button>
+          </view>
+        </pv-card>
+
+        <!-- 成績：這位學生既有的紀錄 -->
+        <pv-empty wx:if="{{scPicked && scMode === 'grade' && !scGrades.length}}" title="{{L.k175}}" desc="" />
+        <view wx:if="{{scPicked && scMode === 'grade' && scGrades.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{scGrades}}" wx:key="id" class="ui-card ui-card--row {{index === scGrades.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.title}}</text>
+              <text class="ui-num">{{item.scoreText}}</text>
+            </view>
+            <view class="ui-row-between">
+              <text class="ui-meta">{{item.meta}}</text>
+              <pv-tag text="{{item.manual ? L.k185 : L.k186}}" type="{{item.manual ? 'warning' : 'neutral'}}" />
+            </view>
+            <view wx:if="{{item.manual}}" class="row-actions">
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-title="{{item.title}}" bind:tap="deleteGrade">{{L.k22}}</pv-button>
+            </view>
+          </view>
+        </view>
+
+        <!-- 出缺席：補登表單 -->
+        <pv-card wx:if="{{scPicked && scMode === 'attend'}}">
+          <text class="ui-section">{{L.k174}}</text>
+          <picker mode="date" value="{{aForm.date}}" bindchange="onAttendDate">
+            <view class="field__input">{{aForm.date || L.k187}}</view>
+          </picker>
+          <text class="ui-meta">{{L.k179}}</text>
+          <view class="filter-row">
+            <view wx:for="{{attStatuses}}" wx:key="key" class="chip {{aForm.amStatus === item.key ? 'chip--on' : ''}}"
+                  data-field="am" data-key="{{item.key}}" bindtap="pickAttendStatus">{{item.label}}</view>
+          </view>
+          <text class="ui-meta">{{L.k180}}</text>
+          <view class="filter-row">
+            <view wx:for="{{attStatuses}}" wx:key="key" class="chip {{aForm.pmStatus === item.key ? 'chip--on' : ''}}"
+                  data-field="pm" data-key="{{item.key}}" bindtap="pickAttendStatus">{{item.label}}</view>
+          </view>
+          <input class="field__input field__gap" value="{{aForm.remark}}" bindinput="onAttendRemark" placeholder="{{L.k189}}" />
+          <view class="row-actions">
+            <pv-button type="filled" size="sm" loading="{{scSaving}}" disabled="{{scSaving}}" bind:tap="submitAttend">{{L.k174}}</pv-button>
+          </view>
+        </pv-card>
+
+        <!-- 出缺席：這位學生既有的紀錄 -->
+        <text wx:if="{{scPicked && scMode === 'attend' && scAttend.length}}" class="ui-meta">{{scSummaryText}}</text>
+        <pv-empty wx:if="{{scPicked && scMode === 'attend' && !scAttend.length}}" title="{{L.k176}}" desc="" />
+        <view wx:if="{{scPicked && scMode === 'attend' && scAttend.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{scAttend}}" wx:key="id" class="ui-card ui-card--row {{index === scAttend.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.dateText}}</text>
+              <pv-tag text="{{item.manual ? L.k185 : L.k186}}" type="{{item.manual ? 'warning' : 'neutral'}}" />
+            </view>
+            <text class="ui-meta">{{L.k179}} {{item.amText}} · {{L.k180}} {{item.pmText}}</text>
+            <text wx:if="{{item.remark}}" class="ui-meta">{{item.remark}}</text>
+            <view wx:if="{{item.manual}}" class="row-actions">
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-day="{{item.dateText}}" bind:tap="deleteAttend">{{L.k22}}</pv-button>
+            </view>
+          </view>
+        </view>
+      </block>
+
       <!-- 檢舉 -->
       <block wx:elif="{{tab === 'reports'}}">
         <pv-empty wx:if="{{!reports.length}}" title="{{L.k66}}" desc="" />

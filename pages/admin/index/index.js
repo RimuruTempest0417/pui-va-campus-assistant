@@ -13,6 +13,7 @@ const TABS = [
   { key: 'trash', label: i18n.pick('垃圾桶') },
   { key: 'events', label: i18n.pick('活動') },
   { key: 'notice', label: i18n.pick('公告') },
+  { key: 'school', label: i18n.pick('成績') },
   { key: 'users', label: i18n.pick('使用者') },
   { key: 'parents', label: i18n.pick('家長') },
   { key: 'reports', label: i18n.pick('檢舉') },
@@ -23,12 +24,15 @@ const TABS = [
   { key: 'menu', label: i18n.pick('菜單') },
 ];
 
+// 學段三個固定值（後端 TERMS）：key 必須送原文，簡體下字形相同所以直接用 pick 的結果當 key
+const TERM_KEYS = [i18n.pick('第一段'), i18n.pick('第二段'), i18n.pick('第三段')];
+
 const ROLE_TABS = {
-  // 校內職員：排菜單＋匯出報名名單。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
-  STAFF: ['notice', 'claims', 'menu', 'export'],
-  TEACHER: ['notice', 'events'],
-  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu'],
+  // 校內職員：排菜單＋匯出報名名單＋補登成績。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
+  STAFF: ['notice', 'claims', 'school', 'menu', 'export'],
+  TEACHER: ['notice', 'school', 'events'],
+  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -242,6 +246,33 @@ Page({
       k160: i18n.pick(" · 已鎖定"),
       k161: i18n.pick("解除鎖定"),
       k162: i18n.pick("已解除鎖定"),
+      // W-53 第二階段：小程序內補登成績與出缺席（k163 起固定號，不要重跑遷移腳本）
+      k163: i18n.pick("找學生"),
+      k164: i18n.pick("輸入學號、姓名或班別"),
+      k165: i18n.pick("查詢"),
+      k167: i18n.pick("成績"),
+      k168: i18n.pick("出缺席"),
+      k169: i18n.pick("學年（例如 2026/2027）"),
+      k170: i18n.pick("科目（例如 數學）"),
+      k171: i18n.pick("測驗類型（例如 大測一）"),
+      k172: i18n.pick("分數（可留空）"),
+      k173: i18n.pick("補登成績"),
+      k174: i18n.pick("補登出缺席"),
+      k175: i18n.pick("這位學生還沒有成績資料"),
+      k176: i18n.pick("這位學生還沒有出缺席紀錄"),
+      k177: i18n.pick("先在上面找一位學生"),
+      k178: i18n.pick("找不到符合的學生（只搜尋學生身分，試試完整學號）"),
+      k179: i18n.pick("上午"),
+      k180: i18n.pick("下午"),
+      k181: i18n.pick("正常"),
+      k182: i18n.pick("遲到"),
+      k183: i18n.pick("缺席"),
+      k184: i18n.pick("請假"),
+      k185: i18n.pick("手動"),
+      k186: i18n.pick("同步"),
+      k187: i18n.pick("選擇日期"),
+      k188: i18n.pick("學段"),
+      k189: i18n.pick("備註（可留空）"),
     };
   },
 
@@ -305,6 +336,31 @@ Page({
     ],
     parentForm: { parentAccount: '', studentAccount: '', relation: 'guardian' },
     creatingParent: false,
+    // W-53 第二階段：小程序內補登成績與出缺席（老師／校內職員）
+    scQuery: '',
+    scHits: [],
+    scPressed: -1,
+    scPicked: null,
+    scBusy: false,
+    scSaving: false,
+    scMode: 'grade',
+    scModes: [
+      { key: 'grade', label: i18n.pick('成績') },
+      { key: 'attend', label: i18n.pick('出缺席') },
+    ],
+    scGrades: [],
+    scAttend: [],
+    scSummaryText: '',
+    // 學年／學段沿用最近一筆；term 用 chips（後端 TERMS 三值）
+    gForm: { yearTerm: '', term: '', courseName: '', testType: '', testDate: '', score: '' },
+    aForm: { amStatus: 'normal', pmStatus: 'normal', remark: '' },
+    termOptions: TERM_KEYS.map((t) => ({ key: t, label: t })),
+    attStatuses: [
+      { key: 'normal', label: i18n.pick('正常') },
+      { key: 'late', label: i18n.pick('遲到') },
+      { key: 'absent', label: i18n.pick('缺席') },
+      { key: 'leave', label: i18n.pick('請假') },
+    ],
     roles: ROLES,
     userQuery: { q: '', role: '' },
     meLevel: 0,
@@ -404,6 +460,7 @@ Page({
     else if (t === 'events') p = this.loadEventsAdmin();
     else if (t === 'users') p = this.loadUsers();
     else if (t === 'parents') p = this.loadParents();
+    else if (t === 'school') p = this.loadSchool();
     else if (t === 'reports') p = this.loadReports();
     else if (t === 'errors') p = this.loadErrors();
     else if (t === 'push') p = this.loadPushLogs();
@@ -930,6 +987,280 @@ Page({
           this.loadParents();
         } catch (err) {
           wx.showToast({ title: err.message || i18n.pick('解除失敗'), icon: 'none' });
+        }
+      },
+    });
+  },
+
+  // ───────── W-53 第二階段：補登成績與出缺席 ─────────
+  // 老師／校內職員在小程序內就能補一筆，不必回電腦的網頁後台。
+  // 規則全部在後端：同步來的資料（source=SYNC）不能覆蓋、不能刪，前端只負責把錯誤訊息顯示出來。
+  loadSchool() {
+    const today = dateKey();
+    const patch = {};
+    if (!this.data.gForm.testDate) patch['gForm.testDate'] = today;
+    if (!this.data.aForm.date) patch['aForm.date'] = today;
+    if (Object.keys(patch).length) this.setData(patch);
+    if (this.data.scPicked) return this.loadSchoolData();
+    // 還沒選學生：先列出最近 20 位，老師可以直接點，不必先打字
+    return this.loadSchoolStudents('', true);
+  },
+
+  onSchoolQuery(e) {
+    this.setData({ scQuery: e.detail.value });
+  },
+
+  pressHit(e) {
+    this.setData({ scPressed: Number(e.currentTarget.dataset.index) });
+  },
+
+  releaseHit() {
+    this.setData({ scPressed: -1 });
+  },
+
+  findSchoolStudents() {
+    return this.loadSchoolStudents((this.data.scQuery || '').trim(), false);
+  },
+
+  async loadSchoolStudents(q, quiet) {
+    if (this.data.scBusy) return;
+    this.setData({ scBusy: true });
+    try {
+      const res = await admin.schoolStudents(q);
+      const items = (res.items || []).map((s) => {
+        const cls = (s.grade || '') + (s.className || '');
+        return {
+          id: s.id,
+          account: s.account,
+          title: s.nickname || s.account,
+          meta: cls ? i18n.pick('班別') + ' ' + cls : i18n.pick('沒有班別資料'),
+        };
+      });
+      this.setData({
+        scHits: items,
+        hint: items.length || quiet ? '' : i18n.pick('找不到符合的學生（只搜尋學生身分，試試完整學號）'),
+      });
+    } catch (e) {
+      this.setData({ scHits: [], hint: i18n.pick('讀不到學生名單：') + (e.message || e.code) });
+    } finally {
+      this.setData({ scBusy: false });
+    }
+  },
+
+  pickSchoolStudent(e) {
+    const id = e.currentTarget.dataset.id;
+    const hit = (this.data.scHits || []).filter((s) => s.id === id)[0];
+    if (!hit) return;
+    this.setData({
+      scPicked: hit,
+      scHits: [],
+      scGrades: [],
+      scAttend: [],
+      scSummaryText: '',
+      scPressed: -1,
+      hint: '',
+    });
+    return this.loadSchoolData();
+  },
+
+  pickSchoolMode(e) {
+    this.setData({ scMode: e.currentTarget.dataset.key, hint: '' });
+  },
+
+  async loadSchoolData() {
+    const p = this.data.scPicked;
+    if (!p) {
+      this.setData({ hint: i18n.pick('先在上面找一位學生') });
+      return;
+    }
+    try {
+      const res = await admin.schoolGrades(p.id);
+      const raw = res.items || [];
+      const grades = raw.map((g) => ({
+        id: g.id,
+        manual: !!g.manual,
+        title: g.courseName + ' · ' + g.testType,
+        scoreText: g.score === null || g.score === undefined ? '—' : String(g.score),
+        meta: String(g.testDate).slice(0, 10) + ' · ' + g.yearTerm + ' ' + g.term,
+      }));
+      const patch = { scGrades: grades };
+      // 學年／學段沿用最近一筆，補下一科不用重打
+      if (raw.length && !this.data.gForm.yearTerm) patch['gForm.yearTerm'] = raw[0].yearTerm || '';
+      if (raw.length && !this.data.gForm.term) patch['gForm.term'] = raw[0].term || '';
+      this.setData(patch);
+    } catch (e) {
+      this.setData({ scGrades: [], hint: i18n.pick('讀不到成績：') + (e.message || e.code) });
+    }
+    try {
+      const res = await admin.schoolAttendance(p.id);
+      const rows = (res.items || []).map((a) => ({
+        id: a.id,
+        manual: !!a.manual,
+        dateText: String(a.date).slice(0, 10),
+        amText: this.attText(a.amStatus),
+        pmText: this.attText(a.pmStatus),
+        remark: a.remark || '',
+      }));
+      const sum = res.summary || { total: 0, late: 0, absent: 0 };
+      this.setData({
+        scAttend: rows,
+        scSummaryText:
+          i18n.pick('共 ') + sum.total + i18n.pick(' 天，遲到 ') + sum.late + i18n.pick(' 次，未正常出席 ') + sum.absent + i18n.pick(' 次'),
+      });
+    } catch (e) {
+      this.setData({ scAttend: [], scSummaryText: '', hint: i18n.pick('讀不到出缺席：') + (e.message || e.code) });
+    }
+  },
+
+  attText(key) {
+    const hit = (this.data.attStatuses || []).filter((s) => s.key === key)[0];
+    return hit ? hit.label : key;
+  },
+
+  onGradeField(e) {
+    const patch = {};
+    patch['gForm.' + e.currentTarget.dataset.field] = e.detail.value;
+    this.setData(patch);
+  },
+
+  pickGradeTerm(e) {
+    this.setData({ 'gForm.term': e.currentTarget.dataset.key });
+  },
+
+  onGradeDate(e) {
+    this.setData({ 'gForm.testDate': e.detail.value });
+  },
+
+  async submitGrade() {
+    if (this.data.scSaving) return;
+    const p = this.data.scPicked;
+    if (!p) {
+      wx.showToast({ title: i18n.pick('先在上面找一位學生'), icon: 'none' });
+      return;
+    }
+    const f = this.data.gForm;
+    const yearTerm = (f.yearTerm || '').trim();
+    const courseName = (f.courseName || '').trim();
+    const testType = (f.testType || '').trim();
+    if (!yearTerm || !f.term || !courseName || !testType || !f.testDate) {
+      wx.showToast({ title: i18n.pick('學年、學段、科目、類型、日期都要填'), icon: 'none' });
+      return;
+    }
+    const raw = String(f.score === null || f.score === undefined ? '' : f.score).trim();
+    const score = raw === '' ? null : Number(raw);
+    if (score !== null && (!Number.isFinite(score) || score < 0)) {
+      wx.showToast({ title: i18n.pick('分數要填 0 或以上的數字'), icon: 'none' });
+      return;
+    }
+    this.setData({ scSaving: true });
+    try {
+      await admin.schoolGradeCreate({
+        studentId: p.id,
+        yearTerm: yearTerm,
+        term: f.term,
+        courseName: courseName,
+        testType: testType,
+        testDate: f.testDate,
+        score: score,
+      });
+      wx.showToast({ title: i18n.pick('已補登'), icon: 'success' });
+      this.setData({ 'gForm.courseName': '', 'gForm.testType': '', 'gForm.score': '' });
+      this.loadSchoolData();
+    } catch (e) {
+      // 「這筆是家校通同步的資料」會走這條 —— 原文照顯示，老師才知道要改同步而不是重打
+      wx.showToast({ title: (e && e.message) || i18n.pick('補登失敗'), icon: 'none' });
+    } finally {
+      this.setData({ scSaving: false });
+    }
+  },
+
+  deleteGrade(e) {
+    const id = e.currentTarget.dataset.id;
+    const title = e.currentTarget.dataset.title || i18n.pick('這筆成績');
+    wx.showModal({
+      title: i18n.pick('刪除補登'),
+      content: i18n.pick('確定刪掉「') + title + i18n.pick('」嗎？刪掉學生就看不到了。'),
+      confirmText: i18n.pick('刪除'),
+      success: async (r) => {
+        if (!r.confirm) return;
+        try {
+          await admin.schoolGradeDelete(id);
+          wx.showToast({ title: i18n.pick('已刪除'), icon: 'success' });
+          this.loadSchoolData();
+        } catch (err) {
+          wx.showToast({ title: (err && err.message) || i18n.pick('刪除失敗'), icon: 'none' });
+        }
+      },
+    });
+  },
+
+  onAttendDate(e) {
+    this.setData({ 'aForm.date': e.detail.value });
+  },
+
+  onAttendRemark(e) {
+    this.setData({ 'aForm.remark': e.detail.value });
+  },
+
+  pickAttendStatus(e) {
+    const patch = {};
+    patch[e.currentTarget.dataset.field === 'pm' ? 'aForm.pmStatus' : 'aForm.amStatus'] = e.currentTarget.dataset.key;
+    this.setData(patch);
+  },
+
+  async submitAttend() {
+    if (this.data.scSaving) return;
+    const p = this.data.scPicked;
+    if (!p) {
+      wx.showToast({ title: i18n.pick('先在上面找一位學生'), icon: 'none' });
+      return;
+    }
+    const f = this.data.aForm;
+    const yearTerm = (this.data.gForm.yearTerm || '').trim();
+    if (!f.date) {
+      wx.showToast({ title: i18n.pick('要選日期'), icon: 'none' });
+      return;
+    }
+    if (!yearTerm || !this.data.gForm.term) {
+      wx.showToast({ title: i18n.pick('先在成績那邊填學年與學段（出缺席沿用同一組）'), icon: 'none' });
+      return;
+    }
+    this.setData({ scSaving: true });
+    try {
+      await admin.schoolAttendCreate({
+        studentId: p.id,
+        date: f.date,
+        yearTerm: yearTerm,
+        term: this.data.gForm.term,
+        amStatus: f.amStatus,
+        pmStatus: f.pmStatus,
+        remark: (f.remark || '').trim() || undefined,
+      });
+      wx.showToast({ title: i18n.pick('已補登'), icon: 'success' });
+      this.setData({ 'aForm.remark': '' });
+      this.loadSchoolData();
+    } catch (e) {
+      wx.showToast({ title: (e && e.message) || i18n.pick('補登失敗'), icon: 'none' });
+    } finally {
+      this.setData({ scSaving: false });
+    }
+  },
+
+  deleteAttend(e) {
+    const id = e.currentTarget.dataset.id;
+    const day = e.currentTarget.dataset.day || '';
+    wx.showModal({
+      title: i18n.pick('刪除補登'),
+      content: i18n.pick('確定刪掉 ') + day + i18n.pick(' 這筆出缺席嗎？'),
+      confirmText: i18n.pick('刪除'),
+      success: async (r) => {
+        if (!r.confirm) return;
+        try {
+          await admin.schoolAttendDelete(id);
+          wx.showToast({ title: i18n.pick('已刪除'), icon: 'success' });
+          this.loadSchoolData();
+        } catch (err) {
+          wx.showToast({ title: (err && err.message) || i18n.pick('刪除失敗'), icon: 'none' });
         }
       },
     });

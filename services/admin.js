@@ -176,6 +176,30 @@ module.exports = {
     return http.del('/admin/parents/link/' + id);
   },
 
+  // ── W-53 第二階段：老師／職員在小程序內補登成績與出缺席 ──
+  // 能力是後端的 school:manage；前端只負責把參數送對，規則（同步資料不可覆蓋）在後端。
+  schoolStudents(q) {
+    return http.get('/admin/school/students', q ? { q: q } : {});
+  },
+  schoolGrades(studentId) {
+    return http.get('/admin/school/grades', { studentId: studentId });
+  },
+  schoolGradeCreate(body) {
+    return http.post('/admin/school/grades', body);
+  },
+  schoolGradeDelete(id) {
+    return http.del('/admin/school/grades/' + id);
+  },
+  schoolAttendance(studentId) {
+    return http.get('/admin/school/attendance', { studentId: studentId });
+  },
+  schoolAttendCreate(body) {
+    return http.post('/admin/school/attendance', body);
+  },
+  schoolAttendDelete(id) {
+    return http.del('/admin/school/attendance/' + id);
+  },
+
   // ── W-22 兩步驗證 ──
   twoFactorStatus() {
     return http.get('/admin/2fa');
