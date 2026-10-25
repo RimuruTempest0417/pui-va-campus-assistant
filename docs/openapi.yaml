@@ -698,6 +698,40 @@ paths:
               schema: { $ref: '#/components/schemas/Notice' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /search:
+    get:
+      tags: [search]
+      summary: 全校搜尋（公告／活動／失物；只看得到的人搜得到）
+      description: |
+        可見性規則由各模組自己決定：公告沿用 `visibleNoticeWhere`（排除軟刪除／預約未到／已過期），
+        活動與失物排除軟刪除。失物的聯絡方式（contactValue）一律不回傳。
+        標題命中（score 2）排在只有內文命中（score 1）之前，同分依日期新到舊。
+      parameters:
+        - { in: query, name: q, required: true, schema: { type: string, minLength: 1, maxLength: 50 } }
+        - { in: query, name: types, schema: { type: string, example: notice,event,item }, description: 逗號分隔，預設三類全搜 }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 20, default: 5 }, description: 每一類最多幾筆 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  q: { type: string }
+                  total: { type: integer }
+                  groups:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type: { type: string, enum: [notice, event, item] }
+                        count: { type: integer }
+                        items:
+                          type: array
+                          items: { $ref: '#/components/schemas/SearchHit' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
   /subscriptions:
     post:
       tags: [notices]
@@ -3083,6 +3117,21 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
 
   schemas:
+    SearchHit:
+      type: object
+      description: 搜尋結果的一列（公告／活動／失物共用）
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [notice, event, item] }
+        title: { type: string }
+        snippet: { type: string, description: 命中處前後各約 30 字的摘要；沒有內文時退回地點 }
+        badge:
+          type: string
+          nullable: true
+          description: '公告＝kind（NORMAL／URGENT／CALENDAR）；活動＝status；失物＝「type:status」（LOST:OPEN）'
+        date: { type: string, format: date-time, description: 公告＝發佈時間、活動＝開始時間、失物＝遺失／拾獲時間 }
+        score: { type: integer, description: 標題命中 2、只有內文命中 1 }
+
     ErrorLog:
       type: object
       properties:

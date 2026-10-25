@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.75.0-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.76.0-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -27,6 +27,7 @@
 | 活動前自動提醒 | 活動開始前 24 小時與 1 小時，系統自動通知**已報名（正取）**的同學（站內通知＋訂閱消息），同一階段只發一次、候補與已取消者不收 | 站內通知頁（已存在） | ✅ `/cron/reminders`（`CRON_SECRET` 保護）、e2e 6 項 |
 | 午餐與小賣部 | 週菜單（可切上／下週）、午餐與小賣部分區、1–5 星評分、點讚、每週熱門排行 | ✅ 2 頁 | ✅ 一人一評 upsert |
 | 公告與溫馨提示 | 置頂／緊急／校曆分類、詳情、已讀狀態、過期自動隱藏、**預約發佈（到時間才對外出現，可提前上線）** | ✅ 2 頁 | ✅ 每人各自已讀 |
+| 全校搜尋 | 一支輸入框同時搜**公告／活動／失物**，結果依類別分組、標題命中排最前；**看得到什麼就搜得到什麼**（預約未到、已刪除的都不會出現，失物的聯絡方式不會跟著出去）；最近 5 筆存在自己手機，不傳上伺服器 | ✅ 1 頁（首頁右上角放大鏡） | ✅ `GET /search`（沿用各模組既有的可見性條件）、e2e 9 項 |
 | 家長端（綁定子女） | 首頁「我的子女」切換、代報名／取消、子女的報名／認領／未讀公告 | ✅ 1 頁 ＋ 首頁卡 | ✅ 兩道門（role PARENT ＋ parent_links）＋ 與學生共用 `lib/signup.ts` |
 | 成績與出缺席（家校通） | 家長用自己的家校通帳號連結，同步當前＋上一個學年三學段的成績與出缺席；**家校通掛掉時老師／校務處可手動補登**（小程序後台「成績」分頁與網頁後台「成績與出勤」兩邊都能補，補完學生端立刻看得到並標「手動補登」）；同步來的資料不可覆蓋、不可刪 | ✅ 成績頁 ＋ 後台 1 分頁 | ✅ AES-256-GCM 存帳密、`school:manage` 七支端點、e2e 19 項 |
 | 校內管理（小程序內建） | 概況（**第一屏「本週概況」五張卡：本週新使用者／本週報名／待審認領／未解決錯誤／未領失物，點卡片跳到對應分頁**）、認領、失物、**垃圾桶（誤刪的公告／下架的失物可一鍵還原）**、活動、公告、**成績（補登成績與出缺席）**、使用者、家長、檢舉、**錯誤**、**推送**、審計、名單、菜單；**CSV 批次匯入活動／菜單**（先檢查再匯入、逐列回報）；**校內職員（STAFF）登入只看到「公告」「認領」「成績」「菜單」「名單」**，不能開活動、不能發公告 | ✅ 15 個分頁 | ✅ 依能力矩陣分權 |
@@ -74,9 +75,10 @@
 
 ```
 .
-├── app.js / app.json / app.wxss          # 全局入口（25 個頁面註冊）
+├── app.js / app.json / app.wxss          # 全局入口（26 個頁面註冊）
 ├── pages/
 │   ├── index/                            # 首頁：四模組入口、緊急公告、今日午餐
+│   ├── search/                           # 全校搜尋（公告／活動／失物一次搜）
 │   ├── items/{list,detail,create,mine}/  # 失物招領
 │   ├── events/{list,detail,mine,checkin}/ # 活動與社團（checkin＝現場掃碼簽到）
 │   ├── menu/{index,dish}/                # 午餐與小賣部
@@ -99,8 +101,8 @@
 │   ├── check-i18n.mjs                    # 繁簡介面守門（pick 抽樣／對照表殘留／L.* 供應）
 │   ├── i18n-js-scan.mjs／i18n-wrap-js.mjs # 掃出／包裝頁面 JS 的中文字面值（W-20b 工具）
 │   ├── build-i18n-phrases.py             # 用 opencc tw2sp 重建繁→簡對照表
-│   ├── check-states.mjs                  # 25 頁三態（載入／空／失敗）對照表守門
-│   ├── check-console.mjs                 # 25 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
+│   ├── check-states.mjs                  # 26 頁三態（載入／空／失敗）對照表守門
+│   ├── check-console.mjs                 # 26 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
 │   └── verify-all.mjs                    # 一鍵驗收：上面四支串起來跑完並彙總（失敗貼完整輸出）
 ├── docs/
 │   ├── 01-藍圖與評分對標.md
@@ -131,11 +133,11 @@ node scripts/package.mjs     # → dist/pui-va-campus-assistant-vX.Y.Z.zip
 node scripts/verify-all.mjs        # 4 通過／0 失敗；--no-console 跳過走查、--strict 讓略過也算失敗
 
 # 也可以單獨跑（CI 也會跑）
-node scripts/check-project.mjs     # 25 頁面 / 0 警告
-node scripts/check-openapi.mjs     # 105 條路徑／122 個操作、0 重複鍵（--parity 印出與後端路由表的差）
-node scripts/check-data-layer.mjs  # ALL PASS 93/93（固定跑示範資料層，含 data↔api↔mock 方法對齊）
-node scripts/check-states.mjs      # 25 頁三態全部符合（--table 印出對照表）
-node scripts/check-console.mjs     # 25 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
+node scripts/check-project.mjs     # 26 頁面 / 0 警告
+node scripts/check-openapi.mjs     # 119 條路徑／138 個操作、0 重複鍵（--parity 印出與後端路由表的差）
+node scripts/check-data-layer.mjs  # ALL PASS 101/101（固定跑示範資料層，含 data↔api↔mock 方法對齊）
+node scripts/check-states.mjs      # 26 頁三態全部符合（--table 印出對照表）
+node scripts/check-console.mjs     # 26 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
 ```
 
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄
@@ -166,6 +168,7 @@ node scripts/check-console.mjs     # 25 頁 console 走查：0 error／0 warn（
 
 ## 目前進度
 
+- [x] **找不到就搜一下（v0.76.0）**：以前要找一則舊公告，只能在「公告」裡一頁一頁翻，活動和失物還得各自去翻一遍。現在首頁右上角多一個放大鏡：打「圖書館」三個字，公告、活動、失物一次全部列出來，標題有中的排最前、下面附一句命中處的摘要，點一下就跳到那一筆。搜到的範圍跟你平常看得到的完全一樣 —— 還沒到時間的公告、已經刪掉的東西都搜不到，失物的電話也不會因為搜尋而漏出去。最近搜過的關鍵字會留在自己手機上，下次直接點
 - [x] **公告可以先寫好，明早八點才出現（v0.75.0）**：星期五放學前想通知「下週一升旗改在禮堂」，以前只能現在發（整個週末沒人看）或星期一早上記得手動按。現在後台發公告時可以指定發佈時間：到那個時間之前，學生和家長完全看不到（連網址都打不開），但老師的後台看得到、標成「排程中 · 10/27（一）08:00」；臨時想提前，按一下「立即發佈」就馬上出現。緊急公告不能預約（緊急要現在發才有通知），最多排到 90 天內
 - [x] **東西丟了，別人撿到會通知你（v0.74.0）**：以前只有你主動點開某一筆失物，才看得到「可能是你的東西」。現在你貼出失物之後，只要有人撿到相似的東西（同分類、地點相近、時間接近），通知中心馬上會冒出一則「有人撿到像你的…」，點開就是那筆紀錄，可以直接提出認領。反過來，你撿到東西貼上去，正在找它的人也會被通知 —— 而且不會重複吵同一個人，也不會通知自己
 - [x] **回饋催得動了（v0.73.0）**：上一版開始看得到回覆率，但往往只有一成多 —— 因為老師沒有地方可以催。後台的活動回饋區塊現在多一顆「提醒填回饋」，按一次就提醒那些「有來、但還沒填」的人（沒來的不會被要求評分，已經填過的不會再被打擾，同一場活動 12 小時內也不會重複催），按完就地顯示「已提醒 12 人（跳過 3 人最近催過）」。全部的人都填完、或這場活動沒有人簽到時，這顆按鈕是灰的。網頁後台同一套

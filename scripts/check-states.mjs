@@ -17,6 +17,7 @@ const wantTable = process.argv.includes('--table');
 
 const REQUIRE = {
   'pages/index/index': { loading: true, empty: true, failed: true },
+  'pages/search/index': { loading: true, empty: true, failed: true },
   'pages/items/list/index': { loading: true, empty: true, failed: true },
   'pages/items/detail/index': { loading: true, empty: true, failed: true },
   'pages/items/create/index': { loading: false, empty: false, failed: false, why: '純表單，提交時按鈕 loading' },

@@ -120,6 +120,8 @@ module.exports = {
   rateDish: (...a) => call('rateDish', a),
   topDishes: (...a) => call('topDishes', a),
   listNotices: (...a) => call('listNotices', a),
+  // W-59 全校搜尋（示範模式也搜得到，交付現場斷網時這個功能不能是死的）
+  search: (...a) => call('search', a),
   getNotice: (...a) => call('getNotice', a),
   subscribe: (...a) => call('subscribe', a),
   mySubscriptions: (...a) => call('mySubscriptions', a),

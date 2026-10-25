@@ -737,6 +737,84 @@ module.exports = {
     return Promise.resolve({ items: items, unread: items.filter((n) => !n.isRead).length });
   },
 
+  /**
+   * W-59 全校搜尋（示範層）：規則要與後端 `/search` 一致 ——
+   * 過期公告不算、失物類型與狀態照樣帶出、標題命中排前面、`%`／`_` 當普通字元。
+   * 兩邊結論不一致時，交付現場（只跑示範資料）看到的就會跟線上不一樣。
+   */
+  search(query) {
+    // 呼叫端有兩種寫法：頁面傳字串（data.search('圖書館')），自檢腳本傳物件（{ q, types, limit }）
+    const opts = typeof query === 'string' ? { q: query } : (query || {});
+    const q = String(opts.q || '').trim();
+    const limit = opts.limit || 5;
+    if (!q) return Promise.resolve({ q: '', total: 0, groups: [] });
+    const low = q.toLowerCase();
+    const data = db();
+    const now = Date.now();
+    const wanted = (opts.types || 'notice,event,item').split(',').map((s) => s.trim());
+    const groups = [];
+
+    const hitScore = (title) => (String(title || '').toLowerCase().indexOf(low) !== -1 ? 2 : 1);
+    const snippet = (text, fallback) => {
+      const body = String(text || '').replace(/\s+/g, ' ').trim();
+      if (!body) return fallback || '';
+      const at = body.toLowerCase().indexOf(low);
+      const start = at <= 0 ? 0 : Math.max(0, at - 30);
+      const piece = body.slice(start, start + 90);
+      return (start > 0 ? '…' : '') + piece + (start + 90 < body.length ? '…' : '');
+    };
+    // 摘要要從「真的有命中的欄位」截：失物常是地點命中（圖書館三樓），
+    // 截描述的話使用者看不出這筆為什麼被搜出來（與後端 bestSnippet 同一條規則）
+    const bestSnippet = (fields) => {
+      const hit = fields.filter((f) => String(f || '').toLowerCase().indexOf(low) !== -1)[0];
+      const first = fields.filter((f) => String(f || '').trim())[0];
+      return snippet(hit || first, '');
+    };
+    const byScore = (a, b) => b.score - a.score || String(b.date).localeCompare(String(a.date));
+
+    if (wanted.indexOf('notice') !== -1) {
+      const items = (data.notices || [])
+        .filter((n) => !n.expiresAt || n.expiresAt > now)
+        .filter((n) => String(n.title || '').toLowerCase().indexOf(low) !== -1 || String(n.content || '').toLowerCase().indexOf(low) !== -1)
+        .map((n) => ({
+          id: n.id, type: 'notice', title: n.title, snippet: bestSnippet([n.content]),
+          badge: n.kind, date: new Date(n.publishedAt).toISOString(), score: hitScore(n.title),
+        }))
+        .sort(byScore)
+        .slice(0, limit);
+      groups.push({ type: 'notice', count: items.length, items: items });
+    }
+
+    if (wanted.indexOf('event') !== -1) {
+      const items = (data.events || [])
+        .filter((e) => !e.deletedAt && e.status !== 'DRAFT')
+        .filter((e) => [e.title, e.description, e.location].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((e) => ({
+          id: e.id, type: 'event', title: e.title, snippet: bestSnippet([e.description, e.location]),
+          badge: e.status, date: new Date(e.startAt).toISOString(), score: hitScore(e.title),
+        }))
+        .sort(byScore)
+        .slice(0, limit);
+      groups.push({ type: 'event', count: items.length, items: items });
+    }
+
+    if (wanted.indexOf('item') !== -1) {
+      const items = (data.items || [])
+        .filter((i) => !i.deletedAt)
+        .filter((i) => [i.title, i.description, i.place].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((i) => ({
+          id: i.id, type: 'item', title: i.title, snippet: bestSnippet([i.description, i.place]),
+          badge: i.type + ':' + i.status, date: new Date(i.happenedAt).toISOString(), score: hitScore(i.title),
+        }))
+        .sort(byScore)
+        .slice(0, limit);
+      groups.push({ type: 'item', count: items.length, items: items });
+    }
+
+    const kept = groups.filter((g) => g.count > 0);
+    return Promise.resolve({ q: q, total: kept.reduce((s, g) => s + g.count, 0), groups: kept });
+  },
+
   /** 外部校曆：示範模式沒有外部連結，回空集合（畫面只顯示站內公告與活動） */
   externalCalendar() {
     return Promise.resolve({ configured: false, source: 'ics', updatedAt: null, items: [] });

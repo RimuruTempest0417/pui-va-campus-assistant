@@ -178,6 +178,28 @@ await data.markAllNoticesRead();
 const afterAll = await data.listNotices({});
 check('全部標為已讀', afterAll.unread === 0, `未讀 ${afterAll.unread}`);
 
+// ── W-59 全校搜尋 ──
+// 驗的是「示範層的結論與後端一致」：看得到的才搜得到、標題命中排前面、只有過期公告命中時回空。
+const s1 = await data.search('圖書館');
+check('搜尋：跨類別有結果', s1.total > 0 && s1.groups.length >= 2, s1.groups.map((g) => g.type + '×' + g.count).join(' '));
+const sNotice = s1.groups.filter((g) => g.type === 'notice')[0] || { items: [] };
+check('搜尋：標題命中排最前', (sNotice.items[0] || {}).title === '圖書館新增自習區', (sNotice.items[0] || {}).title || '沒有結果');
+check('搜尋：過期公告不出現在結果', !s1.groups.some((g) => (g.items || []).some((i) => i.id === 'n5')), 'n5 出現在結果裡');
+const s2 = await data.search('繳費');
+check('搜尋：只命中過期公告時回空', s2.total === 0, `total ${s2.total}`);
+const sItem = s1.groups.filter((g) => g.type === 'item')[0] || { items: [] };
+check(
+  '搜尋：摘要取自命中的欄位',
+  (sItem.items[0] || {}).snippet && sItem.items[0].snippet.indexOf('圖書館') !== -1,
+  (sItem.items[0] || {}).snippet || '沒有摘要',
+);
+const s3 = await data.search('   ');
+check('搜尋：空白關鍵字不打後端', s3.total === 0 && s3.groups.length === 0, `groups ${s3.groups.length}`);
+const apiSrcSearch = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+check('搜尋：真 API 走 /search', apiSrcSearch.indexOf("'/search'") !== -1, 'services/api.js');
+
+
+
 
 // ── 介面語言（utils/i18n.js）──
 {

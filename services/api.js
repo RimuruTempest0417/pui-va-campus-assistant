@@ -89,6 +89,10 @@ module.exports = {
   listNotices(query) {
     return http.get('/notices', query);
   },
+  /** W-59 全校搜尋：公告／活動／失物一次搜（可見性規則在後端，前端不重算） */
+  search(q) {
+    return http.get('/search', { q: q });
+  },
   getNotice(id) {
     return http.get('/notices/' + id);
   },
