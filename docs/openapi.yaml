@@ -1406,12 +1406,19 @@ paths:
     get:
       tags: [admin]
       summary: 公告列表（後台）
+      description: |
+        W-58：每列多回 `scheduled`（`publishedAt` 在未來＝排程中，前台看不到）。
+        後台清單**不過濾**未到時間的公告，老師才看得到自己排了什麼。
       security: [{ bearerAuth: [] }]
       responses:
         '200': { description: OK }
     post:
       tags: [admin]
       summary: 發公告（可推送訂閱消息）
+      description: |
+        W-58 預約發佈：帶 `publishedAt`（未來的時間）＝排程，到時間之前公開清單與詳情頁都回 404。
+        限制：**緊急公告（URGENT）不能預約**（422，緊急要立即發才有通知）、最多預約 **90 天**。
+        回應多一個 `scheduled` 布林值讓前端知道是「已發佈」還是「已排程」。
       requestBody:
         required: true
         content:
@@ -1425,6 +1432,11 @@ paths:
                 kind: { type: string, enum: [NORMAL, URGENT, CALENDAR] }
                 isPinned: { type: boolean }
                 push: { type: boolean, description: 是否發訂閱消息 }
+                publishedAt:
+                  type: string
+                  format: date-time
+                  description: 發佈時間；不帶＝立即發佈，帶未來時間＝預約（最多 90 天）
+                expiresAt: { type: string, format: date-time, description: 有效期至（可空） }
       responses:
         '201':
           description: 建立成功
@@ -1432,6 +1444,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Notice' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { description: 欄位驗證失敗（含「緊急公告不能預約」「超過 90 天」） }
 
   /admin/stats:
     get:
@@ -2303,6 +2316,9 @@ paths:
     patch:
       tags: [admin]
       summary: 編輯公告
+      description: |
+        W-58：帶 `publishedAt` 可以把排程中的公告**提前上線**（帶現在的瞬間）或延後。
+        改成未來時間時沿用原本的 `kind` 判斷 —— 緊急公告仍然不能排到未來（422）。
       security: [{ bearerAuth: [] }]
       parameters:
         - in: path
@@ -2321,12 +2337,14 @@ paths:
                 kind: { type: string, enum: [NORMAL, URGENT, CALENDAR] }
                 isPinned: { type: boolean }
                 expiresAt: { type: string, format: date-time, nullable: true }
+                publishedAt: { type: string, format: date-time, description: 改發佈時間（未來＝排程，現在＝立即上線） }
                 version:
                   type: integer
                   description: 'W-42 樂觀鎖：帶回讀到的版本；不符回 409，不帶＝舊客戶端（相容，照樣成功並遞增）'
       responses:
-        '200': { description: 已更新 }
+        '200': { description: 已更新（回應含 scheduled 布林值） }
         '409': { description: '版本衝突（別人先改過），請重新載入後再存' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
     delete:
       tags: [admin]
       summary: 刪除公告
@@ -3250,6 +3268,9 @@ components:
         isPinned: { type: boolean }
         coverImage: { type: string, nullable: true }
         publishedAt: { type: string, format: date-time }
+        scheduled:
+          type: boolean
+          description: 'W-58 後台清單／建立／修改才回：publishedAt 在未來＝排程中（前台看不到）'
         expiresAt: { type: string, format: date-time, nullable: true }
         version:
           type: integer

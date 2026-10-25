@@ -326,6 +326,16 @@ Page({
       k249: i18n.pick("已提醒 "),
       k250: i18n.pick(" 人（跳過 "),
       k251: i18n.pick(" 人最近催過）"),
+      // W-58 預約發佈
+      k252: i18n.pick("發佈時間（留空＝立即發佈）"),
+      k253: i18n.pick("立即發佈"),
+      k254: i18n.pick("排程中"),
+      k255: i18n.pick("選日期"),
+      k256: i18n.pick("取消排程"),
+      k257: i18n.pick("時間"),
+      k258: i18n.pick("已排程"),
+      k259: i18n.pick("已排程："),
+      k260: i18n.pick("已立即發佈"),
     };
   },
 
@@ -357,6 +367,8 @@ Page({
     ],
     trashRows: [],
     trashCounts: { notice: 0, item: 0, all: 0 },
+    // W-58 預約發佈：日期選擇器的下限（今天），避免選到過去的日子
+    today: '',
     events: [],
     ci: null, // 現場簽到面板（老師／管理員）
     attendance: null,
@@ -374,7 +386,7 @@ Page({
     fbCanRemind: false,
     eventId: '',
     signups: [],
-    notice: { title: '', content: '', kind: 'NORMAL', isPinned: false },
+    notice: { title: '', content: '', kind: 'NORMAL', isPinned: false, publishDate: '', publishTime: '' },
     kinds: [
       { key: 'NORMAL', label: i18n.pick('一般') },
       { key: 'CALENDAR', label: i18n.pick('校曆') },
@@ -497,7 +509,7 @@ Page({
       wx.redirectTo({ url: '/pages/admin/login/index' });
       return;
     }
-    this.setData({ role: role, 'menu.date': dateKey() });
+    this.setData({ role: role, 'menu.date': dateKey(), today: dateKey() });
 
     // 依能力決定看得到哪些分頁（真正的權限仍在後端）
     const tabs = TABS.filter((t) => allowed.indexOf(t.key) !== -1);
@@ -676,6 +688,42 @@ Page({
     this.setData({ 'notice.isPinned': e.detail.value });
   },
 
+  // ───────── W-58 預約發佈 ─────────
+  /**
+   * 選了日期就代表「排程」，所以順手補一個預設時間（早上 8 點，校內公告最常見的時段）。
+   * 不讓時間留空：留空的話「當天幾點上線」會變成程式裡的隱藏規則，老師猜不到。
+   */
+  onPublishDate(e) {
+    const date = e.detail.value;
+    this.setData({
+      'notice.publishDate': date,
+      'notice.publishTime': this.data.notice.publishTime || '08:00',
+    });
+  },
+
+  onPublishTime(e) {
+    this.setData({ 'notice.publishTime': e.detail.value });
+  },
+
+  clearSchedule() {
+    this.setData({ 'notice.publishDate': '', 'notice.publishTime': '' });
+  },
+
+  /**
+   * 把「日期＋時間」組成 UTC 時間字串。
+   * 明確寫 `+08:00`：澳門全年 UTC+8、沒有日光節約，直接固定偏移，
+   * 不要用裝置時區推（老師手機若設成別的時區，排程就會提早／延後一小時上線）。
+   * 回空字串＝立即發佈。
+   */
+  publishAtISO() {
+    const n = this.data.notice;
+    if (!n.publishDate) return '';
+    const time = n.publishTime || '08:00';
+    const d = new Date(n.publishDate + 'T' + time + ':00+08:00');
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toISOString();
+  },
+
   async publish() {
     if (this.data.sending) return;
     const n = this.data.notice;
@@ -683,24 +731,50 @@ Page({
       wx.showToast({ title: i18n.pick('標題與內容都要填'), icon: 'none' });
       return;
     }
+    // 排程時間一定要在未來：選到今天已過去的時段，後端會當成「立即發佈」，
+    // 但畫面上寫「排程中」，老師會以為明早才出現 —— 直接擋在這裡。
+    const publishAt = this.publishAtISO();
+    if (n.publishDate && (!publishAt || new Date(publishAt).getTime() <= Date.now())) {
+      wx.showToast({ title: i18n.pick('排程時間已過，請改選未來時間或按立即發佈'), icon: 'none' });
+      return;
+    }
     this.setData({ sending: true });
     try {
-      const res = await admin.createNotice({
+      const payload = {
         title: n.title.trim(),
         content: n.content.trim(),
         kind: n.kind,
         isPinned: n.isPinned,
-      });
+      };
+      if (publishAt) payload.publishedAt = publishAt;
+      const res = await admin.createNotice(payload);
       this.setData({
         'notice.title': '',
         'notice.content': '',
-        hint: i18n.pick('已發布：') + res.title + (res.pushed ? i18n.pick('，已推播 ') + res.pushed + i18n.pick(' 人') : ''),
+        'notice.publishDate': '',
+        'notice.publishTime': '',
+        hint: res.scheduled
+          ? this.data.L.k259 + res.title
+          : i18n.pick('已發布：') + res.title + (res.pushed ? i18n.pick('，已推播 ') + res.pushed + i18n.pick(' 人') : ''),
       });
-      wx.showToast({ title: i18n.pick('已發布'), icon: 'success' });
+      wx.showToast({ title: res.scheduled ? this.data.L.k258 : i18n.pick('已發布'), icon: 'success' });
+      if (res.scheduled) this.loadNoticeList();
     } catch (e) {
       wx.showToast({ title: e.message || i18n.pick('發布失敗'), icon: 'none' });
     } finally {
       this.setData({ sending: false });
+    }
+  },
+
+  /** 排程中的公告可以提前上線（老師臨時決定「現在就讓大家知道」） */
+  async publishNoticeNow(e) {
+    const { id, version } = e.currentTarget.dataset;
+    try {
+      await admin.updateNotice(id, { publishedAt: new Date().toISOString(), version: Number(version) });
+      wx.showToast({ title: this.data.L.k260, icon: 'success' });
+      this.loadNoticeList();
+    } catch (err) {
+      onWriteError(err, () => this.loadNoticeList());
     }
   },
 
@@ -1975,7 +2049,9 @@ Page({
   async loadNoticeList() {
     try {
       const res = await admin.notices();
-      this.setData({ noticeList: res.items || [] });
+      // W-58：排程中的公告要看得見「幾號幾點會上線」，否則老師只能靠記憶
+      const items = (res.items || []).map((n) => Object.assign({}, n, { publishText: dateTimeText(n.publishedAt) }));
+      this.setData({ noticeList: items });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到公告：') + (e.message || e.code) });
     }
