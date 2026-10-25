@@ -146,6 +146,10 @@ paths:
     post:
       tags: [items]
       summary: 發布失物／拾獲
+      description: |
+        建立後會立刻做一次智能配對（規則見 GET /items/{id}/matches），
+        對「另一半」的作者發一則站內通知（kind=ITEM），內容包含吻合原因與該筆紀錄的連結。
+        同一位作者只收一則、不通知自己貼的紀錄；配對失敗不影響建立（仍回 201）。
       requestBody:
         required: true
         content:
@@ -1957,7 +1961,7 @@ paths:
                       type: object
                       properties:
                         id: { type: string }
-                        kind: { type: string, enum: [EVENT, CLAIM, NOTICE, SYSTEM] }
+                        kind: { type: string, enum: [EVENT, CLAIM, NOTICE, ITEM, SYSTEM], description: ITEM＝失物配對主動通知（W-57） }
                         title: { type: string }
                         body: { type: string, nullable: true }
                         link: { type: string, nullable: true }

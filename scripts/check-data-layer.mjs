@@ -348,6 +348,8 @@ check('簽到：我的報名帶簽到時間',
   check('通知：未讀數是數字', typeof list.unread === 'number', String(list.unread));
   const only = await data.notifications({ unreadOnly: true });
   check('通知：只看未讀', only.items.every((x) => !x.readAt), `${only.items.length} 則未讀`);
+  // W-57：示範資料要留一則配對通知，否則示範模式看不到這個功能長什麼樣
+  check('通知：示範資料有配對通知（ITEM）', list.items.some((x) => x.kind === 'ITEM'), `${list.items.filter((x) => x.kind === 'ITEM').length} 則`);
 }
 
 // ── W-29 活動延期／取消要能顯示 ──

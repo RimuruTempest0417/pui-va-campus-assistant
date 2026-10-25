@@ -788,6 +788,8 @@ module.exports = {
   // ── W-34 示範站內通知 ──
   notifications(unreadOnly) {
     const all = [
+      // W-57：貼上失物／拾獲時的主動配對通知（真 API 模式由後端產生；示範模式沒有其他真實使用者，留一則讓你看到長相）
+      { id: 'n4', kind: 'ITEM', title: '有人撿到像你的「黑色雨傘」', body: '疑似與你張貼的「黑色雨傘」相符（同分類、地點相近），地點：圖書館一樓', link: '/pages/items/detail/index?id=i2', readAt: null, createdAt: '2026-10-25T02:10:00.000Z' },
       { id: 'n1', kind: 'EVENT', title: '活動改期：班際籃球賽', body: '原定 11/10 09:00 → 11/17 09:00', link: '/pages/events/detail/index?id=e7', readAt: null, createdAt: '2026-10-24T09:12:00.000Z' },
       { id: 'n2', kind: 'CLAIM', title: '認領已通過', body: '你申請的「黑色雨傘」已審批通過，請到失物招領領取。', link: '/pages/items/detail/index?id=i1', readAt: null, createdAt: '2026-10-23T15:40:00.000Z' },
       { id: 'n3', kind: 'NOTICE', title: '新公告：期中考試安排', body: '教務處已發布期中考試時間表。', link: '/pages/notices/detail/index?id=nt1', readAt: '2026-10-22T08:00:00.000Z', createdAt: '2026-10-22T07:30:00.000Z' },
