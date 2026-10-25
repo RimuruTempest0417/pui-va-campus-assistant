@@ -155,4 +155,14 @@ module.exports = {
   // ── W-43 使用者回報問題 ──
   // 示範模式寫本地並回 demo: true（畫面不會謊報已送出）；真 API 走 /client-errors/report。
   reportIssue: (...a) => call('reportIssue', a),
+
+  // ── 家校通 ──
+  schoolStatus: (...a) => call('schoolStatus', a),
+  schoolLink: (...a) => call('schoolLink', a),
+  schoolUnlink: (...a) => call('schoolUnlink', a),
+  schoolSync: (...a) => call('schoolSync', a),
+  schoolGrades: (...a) => call('schoolGrades', a),
+  schoolAttendance: (...a) => call('schoolAttendance', a),
+  schoolManualGrade: (...a) => call('schoolManualGrade', a),
+  schoolManualAttendance: (...a) => call('schoolManualAttendance', a),
 };

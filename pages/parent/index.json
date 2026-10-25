@@ -6,7 +6,8 @@
     "pv-tag": "/components/pv-tag/index",
     "pv-button": "/components/pv-button/index",
     "pv-empty": "/components/pv-empty/index",
-    "pv-skeleton": "/components/pv-skeleton/index"
+    "pv-skeleton": "/components/pv-skeleton/index",
+    "pv-card": "/components/pv-card/index"
   },
   "navigationBarTitleText": "我的子女"
 }

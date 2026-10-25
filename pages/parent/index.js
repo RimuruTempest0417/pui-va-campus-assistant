@@ -19,6 +19,10 @@ const i18n = require('../../utils/i18n');
 const appearance = require('../../utils/appearance');
 
 Page({
+  goSchool() {
+    wx.navigateTo({ url: '/pages/school/index' });
+  },
+
   labels() {
     return {
       k24: i18n.pick("請稍後再試"),

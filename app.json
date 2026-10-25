@@ -4,6 +4,7 @@
     "pages/settings/index",
     "pages/help/index",
     "pages/notifications/index",
+    "pages/school/index",
     "pages/style-guide/index",
     "pages/dev/api-check/index",
     "pages/items/list/index",
