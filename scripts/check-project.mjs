@@ -742,6 +742,40 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   }
 }
 
+// 21) W-48：inset grouped 清單只有一份來源（styles/ui.wxss 的 .ui-list--grouped）
+//     ①頁面 wxss 不得再自己寫 `.ui-list`／`.ui-list--grouped` 的群組規則（三份真相，改一處另兩處不會跟，
+//       而 Skyline 不認的樣式是靜默的，只能靠守門擋）。
+//     ②wxml 只要用了 `ui-card ui-card--row`，同一個檔案就必須出現 `ui-list ui-list--grouped`，
+//       否則那幾列會退回「每列一張卡」的卡片堆疊（載入骨架最常漏，畫面會在資料回來時跳一下）。
+{
+  const stripCss = (src) => src
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[\s;{}])\/\/[^\n]*/g, '$1');
+  const walk = (dir, ext, out = []) => {
+    if (!existsSync(dir)) return out;
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walk(full, ext, out);
+      else if (e.name.endsWith(ext)) out.push(full);
+    }
+    return out;
+  };
+  for (const file of walk(join(root, 'pages'), '.wxss')) {
+    const rel = file.slice(root.length + 1);
+    const css = stripCss(readFileSync(file, 'utf8'));
+    if (/\.ui-list\b/.test(css)) {
+      errors.push(`${rel} 自己寫了 .ui-list 群組樣式（inset grouped 只有 styles/ui.wxss 的 .ui-list--grouped 一份來源）`);
+    }
+  }
+  for (const file of walk(join(root, 'pages'), '.wxml')) {
+    const wxml = readFileSync(file, 'utf8');
+    if (!/ui-card--row/.test(wxml)) continue;
+    if (!/ui-list ui-list--grouped/.test(wxml)) {
+      errors.push(`${file.slice(root.length + 1)} 用了 ui-card--row 但沒有 ui-list--grouped 容器（會退回每列一張卡的堆疊）`);
+    }
+  }
+}
+
 for (const w of warnings) console.warn(`⚠️  ${w}`);
 if (errors.length) {
   for (const e of errors) console.error(`❌ ${e}`);

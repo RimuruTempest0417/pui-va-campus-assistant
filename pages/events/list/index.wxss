@@ -16,8 +16,5 @@
 .cap__fill { height: 10rpx; background: var(--pv-tint); border-radius: var(--pv-r-pill); }
 .cap__text { margin-left: var(--pv-sp-2); font-size: var(--pv-fs-caption-1); color: var(--pv-label-2); }
 
-/* 去 AI 味（v0.57.0）：列表改成 iOS inset grouped —— 整份是一張卡，項目之間用髮絲線分隔，
-   不要每一個項目各一張卡（那是「卡片堆疊」最明顯的來源）。 */
-.ui-list { background: var(--pv-surface); border-radius: var(--pv-r-lg); overflow: hidden; }
-.ui-list .ui-card--row { margin: 0; border-radius: 0; background: transparent; box-shadow: none; border-bottom: 1rpx solid var(--pv-sep); }
-.ui-list .ui-card--last { border-bottom: 0; }
+/* 列表的 grouped 樣式（整份一張卡＋髮絲線分隔）已在 styles/ui.wxss 的 `.ui-list--grouped`，
+   頁面不要再寫一份同名規則（三份真相改一處另兩處不會跟）。 */

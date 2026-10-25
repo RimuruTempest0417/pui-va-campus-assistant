@@ -9,8 +9,10 @@
       </view>
 
       <block wx:if="{{loading}}">
-        <view class="ui-card ui-card--row {{index === items.length - 1 ? 'ui-card--last' : ''}}"><pv-skeleton rows="2" /></view>
-        <view class="ui-card ui-card--row {{index === items.length - 1 ? 'ui-card--last' : ''}}"><pv-skeleton rows="2" /></view>
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="2" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="2" /></view>
+        </view>
       </block>
 
       <pv-empty wx:elif="{{failed}}" tone="warning" title="{{L.k03}}" desc="{{errorText}}">
@@ -19,7 +21,7 @@
 
       <pv-empty wx:elif="{{!items.length}}" title="{{L.k05}}" desc="{{L.k06}}" />
 
-      <view wx:else class="ui-list">
+      <view wx:else class="ui-list ui-list--grouped">
         <view wx:for="{{items}}" wx:key="id" class="ui-card ui-card--row {{index === items.length - 1 ? 'ui-card--last' : ''}}"
               data-id="{{item.id}}" bindtap="goDetail"
               hover-class="ui-card--pressed" hover-start-time="0">
