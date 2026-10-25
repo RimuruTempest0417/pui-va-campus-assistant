@@ -21,8 +21,10 @@ Page({
       user = {};
     }
     const role = user.role || 'STUDENT';
-    const isStaff = ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'TEACHER'].indexOf(role) >= 0;
-    const defaultTab = role === 'PARENT' ? 'PARENT' : isStaff ? 'TEACHER' : 'STUDENT';
+    const staffRole = ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'TEACHER'].indexOf(role) >= 0;
+    const known = ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'TEACHER', 'PARENT', 'STUDENT'].indexOf(role) >= 0;
+    // 預設就停在自己那個身分；未登入者看「訪客」
+    const defaultTab = known && role !== 'STUDENT' ? role : (known ? 'STUDENT' : 'GUEST');
     this.setData({
       themeClass: appearance.themeClass(),
       L: this.labels(),
@@ -42,10 +44,13 @@ Page({
 
   tabs() {
     return [
+      { key: 'GUEST', label: i18n.pick('訪客') },
       { key: 'STUDENT', label: i18n.pick('學生') },
       { key: 'PARENT', label: i18n.pick('家長') },
       { key: 'TEACHER', label: i18n.pick('老師') },
+      { key: 'STAFF', label: i18n.pick('校內職員') },
       { key: 'ADMIN', label: i18n.pick('資訊管理員') },
+      { key: 'SUPER_ADMIN', label: i18n.pick('最高權限') },
     ];
   },
 
@@ -55,6 +60,21 @@ Page({
 
   sections() {
     return {
+      GUEST: [
+        { q: i18n.pick('沒有登入可以看到什麼？'), a: i18n.pick('可以看公告、校曆、活動列表、菜單與失物列表。要發布失物、報名活動、評分、檢舉或看個人資料，才需要登入。') },
+        { q: i18n.pick('怎麼登入？'), a: i18n.pick('學生與家長用微信一鍵登入（首頁右上角頭像）；教職員用學校給的帳號密碼，在「管理後台」登入頁輸入。') },
+        { q: i18n.pick('為什麼看不到別人的東西？'), a: i18n.pick('這是設計：家長只看得到自己綁定的子女，學生只看得到自己的報名與認領，老師只看得到自己開的活動。') },
+      ],
+      STAFF: [
+        { q: i18n.pick('校內職員可以做什麼？'), a: i18n.pick('可以發公告、審批失物認領、排菜單、匯出報名名單；不能建立活動、不能管理帳號（那兩項屬資訊管理員以上）。') },
+        { q: i18n.pick('怎麼審批認領？'), a: i18n.pick('管理後台 → 認領分頁，看到學生申請後按通過；通過後物品變「已認領」，其他同時申請的會自動拒絕。') },
+        { q: i18n.pick('菜單怎麼排？'), a: i18n.pick('後台 → 菜單分頁，選日期加菜色；一週排好後學生在菜單頁就看到，也可以評分。') },
+      ],
+      SUPER_ADMIN: [
+        { q: i18n.pick('最高權限跟資訊管理員差在哪？'), a: i18n.pick('最高權限多了三件事：指派資訊管理員、看審計紀錄與匯出 CSV、系統設定（含資料備份）。平常操作兩者一樣。') },
+        { q: i18n.pick('怎麼備份資料？'), a: i18n.pick('網頁後台 → 資料分頁「下載備份」會匯出整個資料庫的 JSON；還原要用後端腳本，預設是演練模式，加參數才會真的寫入。') },
+        { q: i18n.pick('忘記密碼或遺失驗證器怎麼辦？'), a: i18n.pick('最高權限可以替低於自己的帳號產生臨時密碼或重設兩步驗證；自己那組如果全丟了，只能由維運在資料庫清除 2FA。') },
+      ],
       STUDENT: [
         { q: i18n.pick('找不到東西怎麼辦？'), a: i18n.pick('首頁 → 失物招領 → 右上「我要發布」，填分類、地點、時間與照片。標題寫清楚（例如「藍色水壺 3F 走廊」），比只寫「水壺」容易被找到。') },
         { q: i18n.pick('我撿到東西呢？'), a: i18n.pick('同一頁發布時把類型選「拾獲」。如果失主看到，他會提出認領；你會在「我的發布」看到申請，按同意即可。') },
