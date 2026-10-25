@@ -3,7 +3,7 @@
 
 .dish-inner { padding: var(--pv-sp-3) var(--pv-sp-3) var(--pv-sp-6); }
 .hero { display: flex; flex-direction: column; align-items: center; padding: var(--pv-sp-3) 0; }
-.hero__icon {
+.hero__icon { font-weight: 700; color: var(--pv-tint); 
   width: 160rpx; height: 160rpx; border-radius: 50%;
   background: var(--pv-warning-soft);
   display: flex; align-items: center; justify-content: center;

@@ -8,11 +8,11 @@
         <view class="ui-card"><pv-skeleton rows="2" /></view>
       </block>
 
-      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k02}}" desc="{{errorText}}">
+      <pv-empty wx:elif="{{failed}}" title="{{L.k02}}" desc="{{errorText}}">
         <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k03}}</pv-button>
       </pv-empty>
 
-      <pv-empty wx:elif="{{!items.length}}" icon="🎟" title="{{L.k04}}" desc="{{L.k05}}">
+      <pv-empty wx:elif="{{!items.length}}" title="{{L.k04}}" desc="{{L.k05}}">
         <pv-button type="tinted" size="sm" bind:tap="goList">{{L.k06}}</pv-button>
       </pv-empty>
 

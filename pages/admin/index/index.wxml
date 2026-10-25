@@ -17,7 +17,7 @@
       </block>
 
       <block wx:elif="{{failed}}">
-        <pv-empty icon="⚠️" title="{{L.k02}}" desc="{{errorText}}">
+        <pv-empty title="{{L.k02}}" desc="{{errorText}}">
           <pv-button size="sm" type="tinted" bind:tap="reloadTab">{{L.k03}}</pv-button>
         </pv-empty>
       </block>
@@ -60,7 +60,7 @@
 
       <!-- 待審認領 -->
       <block wx:elif="{{tab === 'claims'}}">
-        <pv-empty wx:if="{{!claims.length}}" icon="✅" title="{{L.k11}}" desc="{{L.k12}}" />
+        <pv-empty wx:if="{{!claims.length}}" title="{{L.k11}}" desc="{{L.k12}}" />
         <view wx:for="{{claims}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.item.title}}</text>
@@ -111,7 +111,7 @@
           </view>
         </pv-card>
 
-        <pv-empty wx:if="{{!trashRows.length}}" icon="🗑️" title="{{L.k154}}" desc="{{L.k155}}" />
+        <pv-empty wx:if="{{!trashRows.length}}" title="{{L.k154}}" desc="{{L.k155}}" />
 
         <view wx:for="{{trashRows}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
@@ -352,7 +352,7 @@
           </view>
         </pv-card>
 
-        <pv-empty wx:if="{{!parents.length}}" icon="👨‍👩‍👧" title="{{L.k63}}" desc="{{L.k64}}" />
+        <pv-empty wx:if="{{!parents.length}}" title="{{L.k63}}" desc="{{L.k64}}" />
 
         <view wx:for="{{parents}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
@@ -369,7 +369,7 @@
 
       <!-- 檢舉 -->
       <block wx:elif="{{tab === 'reports'}}">
-        <pv-empty wx:if="{{!reports.length}}" icon="🛡" title="{{L.k66}}" desc="" />
+        <pv-empty wx:if="{{!reports.length}}" title="{{L.k66}}" desc="" />
         <view wx:for="{{reports}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.targetType}} · {{item.reason}}</text>
@@ -403,7 +403,7 @@
           </view>
         </pv-card>
 
-        <pv-empty wx:if="{{!errors.length}}" icon="🐞" title="{{errStatus === 'OPEN' ? L.k115 : L.k116}}"
+        <pv-empty wx:if="{{!errors.length}}" title="{{errStatus === 'OPEN' ? L.k115 : L.k116}}"
                   desc="{{L.k70}}" />
 
         <view wx:for="{{errors}}" wx:key="id" class="ui-card">
@@ -453,7 +453,7 @@
           </view>
         </pv-card>
 
-        <pv-empty wx:if="{{!pushLogs.length}}" icon="📨" title="{{L.k140}}" desc="{{L.k141}}" />
+        <pv-empty wx:if="{{!pushLogs.length}}" title="{{L.k140}}" desc="{{L.k141}}" />
 
         <view wx:for="{{pushLogs}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
@@ -474,7 +474,7 @@
             <text class="ui-meta">{{item.target || ''}}</text>
           </view>
         </pv-card>
-        <pv-empty wx:else icon="📜" title="{{L.k71}}" desc="" />
+        <pv-empty wx:else title="{{L.k71}}" desc="" />
       </block>
 
       <!-- 報名名單 -->
@@ -492,7 +492,7 @@
             <pv-button size="sm" type="plain" bind:tap="copySignups">{{L.k72}}</pv-button>
           </view>
         </pv-card>
-        <pv-empty wx:elif="{{eventId}}" icon="🎟" title="{{L.k73}}" desc="" />
+        <pv-empty wx:elif="{{eventId}}" title="{{L.k73}}" desc="" />
       </block>
 
       <!-- 排菜單 -->
@@ -518,7 +518,7 @@
           <text class="signup-row__name">{{item.date}} · {{item.mealType === 'LUNCH' ? L.k122 : L.k123}} · {{item.dishName}}</text>
           <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteMenuEntry">{{L.k79}}</pv-button>
         </view>
-        <pv-empty wx:if="{{!menuEntries.length}}" icon="🍽" title="{{L.k80}}" desc="" />
+        <pv-empty wx:if="{{!menuEntries.length}}" title="{{L.k80}}" desc="" />
       </block>
 
       <!-- 批次匯入（活動／菜單共用同一塊面板） -->

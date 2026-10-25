@@ -102,7 +102,7 @@
   <!-- 空狀態 -->
   <view class="pv-group-title">{{L.k29}}</view>
   <pv-card padded="{{false}}">
-    <pv-empty icon="🔍" title="{{L.k30}}" desc="{{L.k31}}">
+    <pv-empty title="{{L.k30}}" desc="{{L.k31}}">
       <pv-button class="sv-gap__item" type="tinted" size="sm">{{L.k32}}</pv-button>
     </pv-empty>
   </pv-card>

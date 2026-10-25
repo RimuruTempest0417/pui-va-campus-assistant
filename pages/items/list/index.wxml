@@ -14,7 +14,7 @@
       >{{item.label}}</view>
     </view>
     <view class="search">
-      <text class="search__icon">🔍</text>
+      <view class="search__icon"><view class="search__lens" /><view class="search__handle" /></view>
       <input class="search__input" placeholder="{{L.k02}}" placeholder-class="ui-placeholder"
              value="{{keyword}}" bindinput="onKeywordInput" confirm-type="search" bindconfirm="onSearch" />
       <text wx:if="{{keyword}}" class="search__clear" bindtap="onClearKeyword">✕</text>
@@ -28,11 +28,11 @@
     </view>
   </block>
 
-  <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k03}}" desc="{{errorText}}">
+  <pv-empty wx:elif="{{failed}}" title="{{L.k03}}" desc="{{errorText}}">
     <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k04}}</pv-button>
   </pv-empty>
 
-  <pv-empty wx:elif="{{!items.length}}" icon="🔍"
+  <pv-empty wx:elif="{{!items.length}}"
             title="{{keyword ? L.k09 : L.k10}}"
             desc="{{keyword ? L.k11 : L.k12}}">
     <view class="empty-action" bindtap="goCreate">{{L.k05}}</view>
@@ -51,7 +51,7 @@
     >
       <view class="card-row">
         <image wx:if="{{item.cover}}" class="ui-thumb" src="{{item.cover}}" mode="aspectFill" />
-        <view wx:else class="ui-thumb thumb-ph"><text>{{item.type === 'LOST' ? '🔍' : '📦'}}</text></view>
+        <view wx:else class="ui-thumb thumb-ph"><text class="thumb-ph__text">{{item.type === 'LOST' ? '失' : '拾'}}</text></view>
         <view class="card-main">
           <view class="ui-row-between">
             <text class="ui-title card-title">{{item.title}}</text>

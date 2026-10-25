@@ -7,15 +7,15 @@
         <view class="ui-card"><pv-skeleton rows="3" /></view>
       </block>
 
-      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k02}}" desc="{{errorText}}">
+      <pv-empty wx:elif="{{failed}}" title="{{L.k02}}" desc="{{errorText}}">
         <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k03}}</pv-button>
       </pv-empty>
 
-      <pv-empty wx:elif="{{!dish}}" icon="🍽" title="{{L.k04}}" desc="{{L.k05}}" />
+      <pv-empty wx:elif="{{!dish}}" title="{{L.k04}}" desc="{{L.k05}}" />
 
       <block wx:else>
         <view class="hero">
-          <view class="hero__icon">🍽</view>
+          <view class="hero__icon">{{dish.name ? dish.name[0] : ''}}</view>
           <text class="hero__name">{{dish.name}}</text>
           <view class="ui-row hero__tags">
             <pv-tag wx:for="{{dish.tags}}" wx:key="*this" class="hero__tag" text="{{item}}" plain />

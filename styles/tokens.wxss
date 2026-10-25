@@ -70,7 +70,7 @@ page {
   /* ── 圓角（Apple 常用 10/14pt）──────────── */
   --pv-r-sm: 12rpx;
   --pv-r: 20rpx;
-  --pv-r-lg: 28rpx;
+  --pv-r-lg: 20rpx;
   --pv-r-pill: 999rpx;
 
   /* ── 動效（iOS 彈簧曲線的 CSS 近似）──────── */

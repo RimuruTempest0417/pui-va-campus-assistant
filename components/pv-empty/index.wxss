@@ -1,7 +1,18 @@
 @import "../../styles/tokens.wxss";
 
 .pv-empty { display: flex; flex-direction: column; align-items: center; padding: var(--pv-sp-6) var(--pv-sp-4); }
-.pv-empty__icon { font-size: 64rpx; opacity: 0.35; }
-.pv-empty__title { margin-top: var(--pv-sp-2); font-size: var(--pv-fs-headline); font-weight: 600; color: var(--pv-label-2); }
-.pv-empty__desc { margin-top: var(--pv-sp-1); font-size: var(--pv-fs-footnote); color: var(--pv-label-3); text-align: center; line-height: 1.4; }
+
+/* 線性標記：一個 44pt 圓環，警示時內圈填淡紅；不用 emoji，跨平台長得一樣 */
+.pv-empty__mark {
+  position: relative; width: 88rpx; height: 88rpx; border-radius: 50%;
+  border: 2rpx solid var(--pv-sep); display: flex; align-items: center; justify-content: center;
+}
+.pv-empty__mark--warning { border-color: var(--pv-brand); }
+.pv-empty__ring { width: 20rpx; height: 20rpx; border-radius: 50%; background: var(--pv-label-3); opacity: 0.5; }
+.pv-empty__mark--warning .pv-empty__ring { background: var(--pv-brand); opacity: 0.55; }
+.pv-empty__notch { position: absolute; bottom: 16rpx; width: 2rpx; height: 16rpx; background: var(--pv-label-3); opacity: 0.5; }
+.pv-empty__mark--warning .pv-empty__notch { background: var(--pv-brand); opacity: 0.55; }
+
+.pv-empty__title { margin-top: var(--pv-sp-3); font-size: var(--pv-fs-headline); font-weight: 600; color: var(--pv-label-2); }
+.pv-empty__desc { margin-top: var(--pv-sp-1); font-size: var(--pv-fs-footnote); color: var(--pv-label-3); text-align: center; line-height: 1.45; max-width: 520rpx; }
 .pv-empty__action { margin-top: var(--pv-sp-3); }

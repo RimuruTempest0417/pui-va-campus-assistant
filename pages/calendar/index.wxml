@@ -29,7 +29,7 @@
       <view wx:if="{{loading}}" class="ui-card"><pv-skeleton rows="4" /></view>
 
       <view wx:elif="{{failed}}" class="ui-card">
-        <pv-empty icon="⚠️" title="{{L.k01}}" desc="{{errorText}}">
+        <pv-empty title="{{L.k01}}" desc="{{errorText}}">
           <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k02}}</pv-button>
         </pv-empty>
       </view>
@@ -53,7 +53,7 @@
         <text class="cal-day__count">{{items.length ? items.length + L.k04 : ''}}</text>
       </view>
 
-      <pv-empty wx:if="{{!loading && !failed && !items.length}}" icon="📅" title="{{L.empty}}" desc="{{L.emptyDesc}}" />
+      <pv-empty wx:if="{{!loading && !failed && !items.length}}" title="{{L.empty}}" desc="{{L.emptyDesc}}" />
 
       <view wx:elif="{{items.length}}" class="ui-list">
         <view wx:for="{{items}}" wx:key="id" class="cal-item" data-type="{{item.type}}" data-id="{{item.id}}" bindtap="openItem"

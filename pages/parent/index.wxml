@@ -20,7 +20,6 @@
       <!-- 403：帳號不是家長（學生／老師／職員）。這是「這一頁不屬於你」，不是載入失敗 → 不給重試 -->
       <pv-empty
         wx:elif="{{denied}}"
-        icon="👪"
         title="{{L.k02}}"
         desc="{{L.k03}}"
       >
@@ -33,7 +32,6 @@
       <!-- 401：沒登入或登入過期 → 給登入入口 -->
       <pv-empty
         wx:elif="{{guest}}"
-        icon="🔐"
         title="{{L.k06}}"
         desc="{{L.k07}}"
       >
@@ -46,14 +44,13 @@
       <!-- 真的讀不到（斷網／伺服器錯誤）才給重試 -->
       <pv-empty
         wx:elif="{{failed}}"
-        icon="⚠️"
         title="{{L.k09}}"
         desc="{{errorText || L.k24}}"
       >
         <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k10}}</pv-button>
       </pv-empty>
 
-      <pv-empty wx:elif="{{!children.length}}" icon="👪" title="{{L.k11}}" desc="{{L.k12}}" />
+      <pv-empty wx:elif="{{!children.length}}" title="{{L.k11}}" desc="{{L.k12}}" />
 
       <block wx:else>
         <view wx:if="{{tabs.length > 1}}" class="tabs-wrap">
@@ -95,7 +92,7 @@
             </view>
           </view>
         </view>
-        <view wx:else class="ui-card"><pv-empty icon="🎟" title="{{L.k18}}" desc="{{L.k19}}" /></view>
+        <view wx:else class="ui-card"><pv-empty title="{{L.k18}}" desc="{{L.k19}}" /></view>
 
         <view class="pv-group-title">{{L.k20}}</view>
         <view wx:if="{{openEvents.length}}" class="ui-list">
@@ -111,7 +108,7 @@
             </view>
           </view>
         </view>
-        <view wx:else class="ui-card"><pv-empty icon="✅" title="{{L.k22}}" desc="{{L.k23}}" /></view>
+        <view wx:else class="ui-card"><pv-empty title="{{L.k22}}" desc="{{L.k23}}" /></view>
       </block>
     </view>
   </scroll-view>
