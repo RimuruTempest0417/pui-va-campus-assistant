@@ -117,6 +117,20 @@ function seed() {
         teamsEnabled: true,
         description: '按班別分甲乙兩組，報名時請選組別；也可以組隊報名。',
       },
+      // W-64 報名截止：示範資料留一筆「已截止」的活動，一打開就看得到差別
+      {
+        id: 'e8',
+        title: '家長日（報名已截止）',
+        club: '訓導處',
+        location: '禮堂',
+        startAt: now + 168 * h,
+        endAt: now + 170 * h,
+        capacity: 120,
+        signedCount: 96,
+        status: 'PUBLISHED',
+        signupEndAt: now - 12 * h,
+        description: '用來驗證「報名截止時間過了就不能再報名」。',
+      },
     ],
     signups: [], // { id, eventId, userId, status: CONFIRMED|WAITLIST, waitlistPos, createdAt, checkedInAt }
     // W-38 活動附件（示範）：一份連結型、一份檔案型，讓兩種下載行為都看得到
@@ -245,6 +259,10 @@ function signupCore(id, userId, groupKey) {
   const e = data.events.filter((x) => x.id === id)[0];
   if (!e) return Promise.reject({ code: 'NOT_FOUND' });
   if (e.status !== 'PUBLISHED') return Promise.reject({ code: 'VALIDATION_FAILED', message: '這個活動目前沒有開放報名' });
+  // W-64：報名截止後連候補都不收（與後端 lib/signup.ts 同一條規則）
+  if (e.signupEndAt && Number(e.signupEndAt) < Date.now()) {
+    return Promise.reject({ code: 'SIGNUP_CLOSED', message: '這個活動的報名已截止' });
+  }
 
   // 分組：有設組別就一定要選，且必須在名單內（與後端同一規則）
   const groups = e.groups || [];

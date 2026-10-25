@@ -532,6 +532,32 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-64 報名截止（欄位本來就有，重點是「真的擋得住」）──
+{
+  const { decorate: decorateEvent } = require(join(here, '..', 'utils', 'event.js'));
+
+  const closed = await data.signupEvent('e8').then(() => null).catch((e) => e);
+  check('報名截止：截止後報名被擋（SIGNUP_CLOSED）', closed && closed.code === 'SIGNUP_CLOSED', closed ? closed.code : '沒有拒絕');
+
+  const ev8 = decorateEvent(await data.getEvent('e8'));
+  check('報名截止：詳情頁判斷為已截止且有截止時間', ev8.signupClosed === true && !!ev8.signupEndText, `${ev8.signupClosed} / ${ev8.signupEndText}`);
+
+  const ev1 = decorateEvent(await data.getEvent('e1'));
+  check('報名截止：沒設截止的活動不受影響', ev1.signupClosed === false, String(ev1.signupClosed));
+
+  const listClosed = (await data.listEvents({ scope: 'upcoming' })).items.filter((x) => x.id === 'e8').map((x) => decorateEvent(x))[0];
+  check('報名截止：清單也標得出來（列表顯示「報名已截止」）', listClosed && listClosed.signupClosed === true, listClosed ? String(listClosed.signupClosed) : '清單沒有 e8');
+
+  const evWxml2 = readFileSync(join(here, '..', 'pages', 'events', 'detail', 'index.wxml'), 'utf8');
+  const evJs2 = readFileSync(join(here, '..', 'pages', 'events', 'detail', 'index.js'), 'utf8');
+  const adminJs2 = readFileSync(join(here, '..', 'pages', 'admin', 'index', 'index.js'), 'utf8');
+  check(
+    '報名截止：詳情頁顯示截止時間、後台可設定',
+    evWxml2.indexOf('ev.signupEndText') !== -1 && evJs2.indexOf('ev.signupClosed') !== -1 && adminJs2.indexOf('signupEndAt') !== -1,
+    'pages/events/detail + pages/admin/index',
+  );
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

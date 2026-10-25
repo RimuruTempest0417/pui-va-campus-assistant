@@ -40,6 +40,27 @@ for (const f of files) {
     if (!declared) bad.push(`${path.relative(root, f)}：用了 ${alias}，但沒宣告（應該是 ${KNOWN[alias]}）`);
   }
 }
+// 動詞守門：`http.delete(...)` 這種寫法在 utils/request.js 不存在（匯出的是 del）→ 呼叫就炸
+{
+  const reqPath = path.join(root, 'utils/request.js');
+  const reqSrc = fs.readFileSync(reqPath, 'utf8');
+  const exported = new Set(['request']);
+  const m = reqSrc.match(/module\.exports\s*=\s*\{([\s\S]*?)\};/);
+  if (m) {
+    for (const line of m[1].split('\n')) {
+      const k = line.match(/^\s*([A-Za-z_$][\w$]*)\s*[:,]/);
+      if (k) exported.add(k[1]);
+    }
+  }
+  for (const f of files) {
+    const src = fs.readFileSync(f, 'utf8');
+    for (const hit of src.matchAll(/\b(?:http|request)\.([A-Za-z_$][\w$]*)\s*\(/g)) {
+      const verb = hit[1];
+      if (!exported.has(verb)) bad.push(`${path.relative(root, f)}：呼叫 .${verb}()，但 utils/request.js 沒有匯出它（可用：${[...exported].join('／')}）`);
+    }
+  }
+}
+
 if (bad.length) {
   console.error('❌ 別名守門失敗：');
   bad.forEach((b) => console.error('  ' + b));

@@ -91,6 +91,10 @@ Page({
       k79: i18n.pick("請輸入附件名稱，例如：比賽章程"),
       k80: i18n.pick("請貼上檔案連結（https:// 開頭）"),
       k81: i18n.pick("確定刪除這份附件？"),
+      k90: i18n.pick("報名截止"),
+      k91: i18n.pick("報名已截止"),
+      k92: i18n.pick("截止時間 "),
+      k93: i18n.pick("已過報名截止時間，請直接聯絡主辦方"),
     };
   },
 
@@ -187,6 +191,15 @@ Page({
       return { barText: i18n.pick('取消候補'), barType: 'plain', barHint: i18n.pick('候補第 ') + ev.waitlistPos + i18n.pick(' 位'), barDisabled: false };
     }
     if (ev.ended) return { barText: i18n.pick('已結束'), barType: 'tinted', barHint: '', barDisabled: true };
+    // W-64：截止後不再收報名（已報名／候補的人上面的「取消」不受影響）
+    if (ev.signupClosed) {
+      return {
+        barText: i18n.pick('報名已截止'),
+        barType: 'tinted',
+        barHint: ev.signupEndText ? i18n.pick('截止時間 ') + ev.signupEndText : i18n.pick('已過報名截止時間，請直接聯絡主辦方'),
+        barDisabled: true,
+      };
+    }
     if (ev.full) return { barText: i18n.pick('排入候補'), barType: 'tinted', barHint: i18n.pick('名額已滿'), barDisabled: false };
     return { barText: i18n.pick('立即報名'), barType: 'filled', barHint: '', barDisabled: false };
   },

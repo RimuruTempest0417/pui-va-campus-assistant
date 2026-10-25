@@ -336,6 +336,8 @@ Page({
       k258: i18n.pick("已排程"),
       k259: i18n.pick("已排程："),
       k260: i18n.pick("已立即發佈"),
+      k261: i18n.pick("報名截止日（選填，格式 2026-10-30）"),
+      k262: i18n.pick("報名截止要早於活動當天"),
     };
   },
 
@@ -399,7 +401,7 @@ Page({
     menu: { date: '', mealType: 'LUNCH', names: '' },
     menuWeekStart: '',
     menuEntries: [],
-    eventForm: { title: '', date: '', capacity: '20', location: '', groups: '' },
+    eventForm: { title: '', date: '', capacity: '20', location: '', groups: '', signupEnd: '' },
     teamsEnabled: false,
     creatingEvent: false,
     users: [],
@@ -1139,16 +1141,29 @@ Page({
         .split(/[,，、]/)
         .map((x) => x.trim())
         .filter(Boolean);
+      const startAt = new Date(f.date + 'T09:00:00').toISOString();
+      // W-64：截止日選填；選了就設成當天 23:59:59，且一定要早於活動當天
+      let signupEndAt;
+      if (f.signupEnd) {
+        const end = new Date(f.signupEnd + 'T23:59:59');
+        if (isNaN(end.getTime()) || end.getTime() >= new Date(startAt).getTime()) {
+          wx.showToast({ title: i18n.pick('報名截止要早於活動當天'), icon: 'none' });
+          this.setData({ creatingEvent: false });
+          return;
+        }
+        signupEndAt = end.toISOString();
+      }
       await admin.createEvent({
         title: f.title.trim(),
         location: f.location.trim() || undefined,
-        startAt: new Date(f.date + 'T09:00:00').toISOString(),
+        startAt: startAt,
+        signupEndAt: signupEndAt,
         capacity: Number(f.capacity) || 0,
         status: 'PUBLISHED',
         groups: groups.length ? groups : undefined,
         teamsEnabled: this.data.teamsEnabled || undefined,
       });
-      this.setData({ 'eventForm.title': '', 'eventForm.location': '', 'eventForm.groups': '', hint: i18n.pick('活動已建立') });
+      this.setData({ 'eventForm.title': '', 'eventForm.location': '', 'eventForm.groups': '', 'eventForm.signupEnd': '', hint: i18n.pick('活動已建立') });
       wx.showToast({ title: i18n.pick('已建立'), icon: 'success' });
       this.loadEventsAdmin();
     } catch (e) {

@@ -1337,8 +1337,32 @@ paths:
       tags: [admin]
       summary: 建立活動
       security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, startAt]
+              properties:
+                title: { type: string }
+                description: { type: string }
+                location: { type: string }
+                startAt: { type: string, format: date-time }
+                endAt: { type: string, format: date-time }
+                signupEndAt:
+                  type: string
+                  format: date-time
+                  nullable: true
+                  description: 'W-64 報名截止：必須早於 startAt，否則 422；留空＝不設截止'
+                capacity: { type: integer, description: '0 = 不限' }
+                status: { type: string, enum: [DRAFT, PUBLISHED], default: PUBLISHED }
+                groups: { type: array, items: { type: string }, maxItems: 10 }
+                teamsEnabled: { type: boolean }
       responses:
-        '200': { description: OK }
+        '201':
+          description: 建立成功（回 id／title／startAt／signupEndAt…）
+        '422': { $ref: '#/components/responses/ValidationFailed' }
     get:
       tags: [admin]
       summary: 活動清單（匯出 CSV 用，需 event:export）
@@ -2765,6 +2789,11 @@ paths:
                 capacity: { type: integer, description: '0 = 不限' }
                 status: { type: string, enum: [DRAFT, PUBLISHED, CANCELLED, FINISHED] }
                 postpone: { type: boolean, description: '延期：改 startAt 時一起帶，會記下原定時間' }
+                signupEndAt:
+                  type: string
+                  format: date-time
+                  nullable: true
+                  description: 'W-64 報名截止：必須早於 startAt（含等於就 422）；傳 null ＝ 取消截止'
                 teamsEnabled: { type: boolean }
                 version:
                   type: integer
@@ -3298,7 +3327,10 @@ components:
         startAt: { type: string, format: date-time }
         endAt: { type: string, format: date-time, nullable: true }
         signupStartAt: { type: string, format: date-time, nullable: true }
-        signupEndAt: { type: string, format: date-time, nullable: true }
+        signupEndAt: { type: string, format: date-time, nullable: true, description: 'W-64 報名截止：過了就不能報名（連候補都不收）' }
+        signupClosed:
+          type: boolean
+          description: 'W-64 後端算好的「已截止」旗標，前端只顯示不重算'
         capacity: { type: integer, description: '0 = 不限' }
         signedCount: { type: integer }
         status: { type: string, enum: [DRAFT, PUBLISHED, CANCELLED, FINISHED] }

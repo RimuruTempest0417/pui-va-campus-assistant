@@ -29,6 +29,7 @@
             <text class="ui-title ev-title">{{item.title}}</text>
             <pv-tag wx:if="{{item.myLabel}}" text="{{item.myLabel}}" type="{{item.myStatus === 'CONFIRMED' ? 'success' : 'warning'}}" />
             <pv-tag wx:elif="{{item.ended}}" text="{{L.k07}}" />
+            <pv-tag wx:elif="{{item.signupClosed}}" text="{{L.k09}}" />
             <pv-tag wx:elif="{{item.full}}" text="{{L.k08}}" type="danger" />
           </view>
           <text class="ui-meta ev-meta">{{item.club}} · {{item.timeText}}</text>
