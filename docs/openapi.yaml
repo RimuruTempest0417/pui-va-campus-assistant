@@ -2260,6 +2260,84 @@ paths:
       responses:
         '200': { description: 已刪除 }
 
+  /admin/notices/{id}/read-stats:
+    get:
+      tags: [admin]
+      summary: 公告已讀統計（誰看了、誰還沒看；W-54）
+      description: 分母＝未被停用的帳號數（含教職員）。名單各回前 30 位，多的用 truncated 旗標標示。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer, description: 全體未停用帳號數 }
+                  read: { type: integer }
+                  unread: { type: integer }
+                  rate: { type: integer, description: 已讀百分比（四捨五入） }
+                  readers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        nickname: { type: string }
+                        role: { type: string }
+                        readAt: { type: string, format: date-time }
+                  unreadUsers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        nickname: { type: string }
+                        role: { type: string }
+                        grade: { type: string, nullable: true }
+                        className: { type: string, nullable: true }
+                  truncated:
+                    type: object
+                    properties:
+                      readers: { type: boolean }
+                      unread: { type: boolean }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: 找不到這則公告或已經刪除 }
+
+  /admin/notices/{id}/remind:
+    post:
+      tags: [admin]
+      summary: 催讀公告（只通知未讀者；W-54）
+      description: 只對未讀者發站內通知；有訂閱同意且設了 WX_TPL_NOTICE 才加發微信消息。12 小時內同一則公告已催過的帳號會跳過。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  unread: { type: integer, description: 未讀人數 }
+                  inApp: { type: integer, description: 實際發出的站內通知數 }
+                  skipped: { type: integer, description: 12 小時內已催過而跳過的人數 }
+                  wx: { type: integer, description: 加發的微信訂閱消息數 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: 找不到這則公告或已經刪除 }
+        '422': { description: 公告已過期，不需要再催讀 }
+
   /admin/menu/{id}:
     delete:
       tags: [admin]

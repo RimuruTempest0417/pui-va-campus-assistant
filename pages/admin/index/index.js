@@ -295,6 +295,22 @@ Page({
       k221: i18n.pick("檢查完成"),
       k222: i18n.pick("批次補登成績"),
       k223: i18n.pick("先填好上面的學年與學段再貼"),
+      // W-54 公告已讀統計／催讀
+      k224: i18n.pick("已讀"),
+      k225: i18n.pick("未讀名單"),
+      k226: i18n.pick("催讀"),
+      k227: i18n.pick("已看："),
+      k228: i18n.pick("未看："),
+      k229: i18n.pick("（只列前 30 位）"),
+      k230: i18n.pick("（還沒有人看）"),
+      k231: i18n.pick("（全部看過了）"),
+      k232: i18n.pick("已催讀 "),
+      k233: i18n.pick("，跳過最近催過的 "),
+      k234: i18n.pick("讀不到已讀統計"),
+      k235: i18n.pick("催讀公告"),
+      k236: i18n.pick("：只會通知還沒看過的人，已經看過的不會再收到。"),
+      k237: i18n.pick("發送"),
+      k238: i18n.pick("催讀失敗"),
     };
   },
 
@@ -423,6 +439,8 @@ Page({
     pushTplHint: '',
     audit: [],
     noticeList: [],
+    // W-54：展開中的公告已讀統計（null＝沒展開），只放一則避免大表格
+    noticeStats: null,
     showPerms: false,
     abilities: [],
     sending: false,
@@ -1838,6 +1856,61 @@ Page({
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到公告：') + (e.message || e.code) });
     }
+  },
+
+  // ───────── W-54 已讀統計／催讀 ─────────
+  /** 取一則公告的已讀／未讀名單；名單在畫面上只放得下前 30 位，多的用旗標提示 */
+  async loadNoticeStats(id) {
+    try {
+      const s = await admin.noticeReadStats(id);
+      const names = (list) => (list || []).map((u) => u.nickname || i18n.pick('匿名')).join('、').slice(0, 160);
+      this.setData({
+        noticeStats: {
+          id,
+          read: s.read,
+          total: s.total,
+          rate: s.rate,
+          readText: s.read + ' / ' + s.total + '（' + s.rate + '%）',
+          readerText: names(s.readers) || this.data.L.k230,
+          unreadText: names(s.unreadUsers) || this.data.L.k231,
+          moreText: s.truncated && (s.truncated.readers || s.truncated.unread) ? this.data.L.k229 : '',
+        },
+      });
+    } catch (err) {
+      wx.showToast({ title: (err && err.message) || this.data.L.k234, icon: 'none' });
+    }
+  },
+
+  /** 點同一則＝收起，點別則＝換那一則（只展開一份，避免整頁變成一大張表） */
+  async openNoticeStats(e) {
+    const id = e.currentTarget.dataset.id;
+    if (this.data.noticeStats && this.data.noticeStats.id === id) {
+      this.setData({ noticeStats: null });
+      return;
+    }
+    await this.loadNoticeStats(id);
+  },
+
+  remindNotice(e) {
+    const { id, title } = e.currentTarget.dataset;
+    const self = this;
+    wx.showModal({
+      title: self.data.L.k235,
+      content: (title || '') + self.data.L.k236,
+      confirmText: self.data.L.k237,
+      success(res) {
+        if (!res.confirm) return;
+        admin
+          .remindNotice(id)
+          .then((r) => {
+            const more = r.skipped ? self.data.L.k233 + r.skipped + i18n.pick(' 人') : '';
+            wx.showToast({ title: self.data.L.k232 + (r.inApp || 0) + i18n.pick(' 人') + more, icon: 'none' });
+            self.loadNoticeList();
+            if (self.data.noticeStats && self.data.noticeStats.id === id) self.loadNoticeStats(id);
+          })
+          .catch((err) => wx.showToast({ title: (err && err.message) || self.data.L.k238, icon: 'none' }));
+      },
+    });
   },
 
   async removeItem(e) {

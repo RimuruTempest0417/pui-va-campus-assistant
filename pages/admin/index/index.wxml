@@ -156,18 +156,29 @@
 
         <text class="ui-section ui-mt-2">既有公告（{{noticeList.length}}）</text>
         <view wx:if="{{noticeList.length}}" class="ui-list ui-list--grouped">
-          <view wx:for="{{noticeList}}" wx:key="id" class="ui-card ui-card--row {{index === noticeList.length - 1 ? 'ui-card--last' : ''}}">
-            <view class="ui-row-between">
-              <text class="ui-title">{{item.title}}</text>
-              <pv-tag text="{{item.kind === 'URGENT' ? L.k88 : item.kind === 'CALENDAR' ? L.k89 : L.k90}}" type="{{item.kind === 'URGENT' ? 'danger' : 'neutral'}}" />
+          <block wx:for="{{noticeList}}" wx:key="id">
+            <view class="ui-card ui-card--row {{index === noticeList.length - 1 && !(noticeStats && noticeStats.id === item.id) ? 'ui-card--last' : ''}}">
+              <view class="ui-row-between">
+                <text class="ui-title">{{item.title}}</text>
+                <pv-tag text="{{item.kind === 'URGENT' ? L.k88 : item.kind === 'CALENDAR' ? L.k89 : L.k90}}" type="{{item.kind === 'URGENT' ? 'danger' : 'neutral'}}" />
+              </view>
+              <text class="ui-meta">{{L.k224}} {{item.read}} / {{item.total}}</text>
+              <view class="row-actions">
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="openNoticeStats">{{L.k225}}</pv-button>
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" data-title="{{item.title}}" bind:tap="remindNotice">{{L.k226}}</pv-button>
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" data-pinned="{{item.isPinned ? '1' : '0'}}" data-version="{{item.version}}" bind:tap="togglePin">
+                  {{item.isPinned ? L.k91 : L.k92}}
+                </pv-button>
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteNotice">{{L.k22}}</pv-button>
+              </view>
             </view>
-            <view class="row-actions">
-              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-pinned="{{item.isPinned ? '1' : '0'}}" data-version="{{item.version}}" bind:tap="togglePin">
-                {{item.isPinned ? L.k91 : L.k92}}
-              </pv-button>
-              <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteNotice">{{L.k22}}</pv-button>
+            <view wx:if="{{noticeStats && noticeStats.id === item.id}}" class="ui-card ui-card--row {{index === noticeList.length - 1 ? 'ui-card--last' : ''}}">
+              <text class="ui-section">{{L.k224}} {{noticeStats.readText}}</text>
+              <text class="ui-meta">{{L.k227}}{{noticeStats.readerText}}</text>
+              <text class="ui-meta">{{L.k228}}{{noticeStats.unreadText}}</text>
+              <text wx:if="{{noticeStats.moreText}}" class="ui-meta">{{noticeStats.moreText}}</text>
             </view>
-          </view>
+          </block>
         </view>
       </block>
 

@@ -147,6 +147,14 @@ module.exports = {
   notices() {
     return http.get('/admin/notices');
   },
+  /** W-54 已讀統計（誰看了、誰還沒看） */
+  noticeReadStats(id) {
+    return http.get('/admin/notices/' + id + '/read-stats');
+  },
+  /** W-54 催讀：只對未讀者發站內通知（不含已讀者，不騷擾） */
+  remindNotice(id) {
+    return http.post('/admin/notices/' + id + '/remind', {});
+  },
   updateNotice(id, payload) {
     return http.patch('/admin/notices/' + id, payload);
   },
