@@ -42,7 +42,7 @@
     <view
       wx:for="{{items}}"
       wx:key="id"
-      class="ui-card {{pressedId === item.id ? 'ui-card--pressed' : ''}}"
+      class="ui-card ui-card--row {{index === items.length - 1 ? 'ui-card--last' : ''}} {{pressedId === item.id ? 'ui-card--pressed' : ''}}"
       data-id="{{item.id}}"
       bindtouchstart="onItemTouchStart"
       bindtouchend="onItemTouchEnd"
