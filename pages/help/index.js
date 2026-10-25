@@ -9,31 +9,14 @@ Page({
     role: 'STUDENT',
     roleText: '',
     tabs: [],
+    list: [],
     sections: {},
     active: 'STUDENT',
   },
 
   onShow() {
-    let user = {};
-    try {
-      user = wx.getStorageSync(config.STORAGE_KEYS.user) || {};
-    } catch (e) {
-      user = {};
-    }
-    const role = user.role || 'STUDENT';
-    const staffRole = ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'TEACHER'].indexOf(role) >= 0;
-    const known = ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'TEACHER', 'PARENT', 'STUDENT'].indexOf(role) >= 0;
-    // 預設就停在自己那個身分；未登入者看「訪客」
-    const defaultTab = known && role !== 'STUDENT' ? role : (known ? 'STUDENT' : 'GUEST');
-    this.setData({
-      themeClass: appearance.themeClass(),
-      L: this.labels(),
-      role: defaultTab,
-      roleText: roleLabel(role),
-      tabs: this.tabs(),
-      active: this.data.active && this.data.active !== '' ? this.data.active : defaultTab,
-      sections: this.sections(),
-    });
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
+    this.refreshRole();
   },
 
   labels() {
@@ -42,20 +25,46 @@ Page({
     };
   },
 
-  tabs() {
+  /** 讀目前登入角色（storage 由登入流程寫入，鍵名沿用 config.STORAGE_KEYS.user） */
+  refreshRole() {
+    const user = wx.getStorageSync((config.STORAGE_KEYS && config.STORAGE_KEYS.user) || 'pv_user') || {};
+    const role = user.role || 'GUEST';
+    const known = this.allTabs().some((t) => t.key === role);
+    const fixed = known ? role : 'GUEST';
+    this.setData({ role: fixed, roleText: roleLabel(fixed) }, () => {
+      this.applyTab(this.data.active || fixed);
+    });
+  },
+
+  /** 全部身分（由低到高），實際顯示時只留自己這一級或更低 */
+  allTabs() {
     return [
-      { key: 'GUEST', label: i18n.pick('訪客') },
-      { key: 'STUDENT', label: i18n.pick('學生') },
-      { key: 'PARENT', label: i18n.pick('家長') },
-      { key: 'TEACHER', label: i18n.pick('老師') },
-      { key: 'STAFF', label: i18n.pick('校內職員') },
-      { key: 'ADMIN', label: i18n.pick('資訊管理員') },
-      { key: 'SUPER_ADMIN', label: i18n.pick('最高權限') },
+      { key: 'GUEST', label: i18n.pick('訪客'), level: 0 },
+      { key: 'STUDENT', label: i18n.pick('學生'), level: 1 },
+      { key: 'PARENT', label: i18n.pick('家長'), level: 1 },
+      { key: 'TEACHER', label: i18n.pick('老師'), level: 2 },
+      { key: 'STAFF', label: i18n.pick('校內職員'), level: 2 },
+      { key: 'ADMIN', label: i18n.pick('資訊管理員'), level: 3 },
+      { key: 'SUPER_ADMIN', label: i18n.pick('最高權限'), level: 4 },
     ];
   },
 
+  /** 只顯示「目前角色或更低」的說明；未登入只看得到訪客 */
+  tabs() {
+    const role = this.data.role || 'GUEST';
+    const mine = (this.allTabs().find((t) => t.key === role) || { level: 0 }).level;
+    return this.allTabs().filter((t) => t.level <= mine);
+  },
+
+  /** 把當前分頁的 Q&A 攤平成陣列（WXML 不做 sections[active] 這種動態索引） */
+  applyTab(key) {
+    const tabs = this.tabs();
+    const active = tabs.some((t) => t.key === key) ? key : tabs[tabs.length - 1].key;
+    this.setData({ tabs, active, list: this.data.sections[active] || [] });
+  },
+
   pickTab(e) {
-    this.setData({ active: e.currentTarget.dataset.key });
+    this.applyTab(e.currentTarget.dataset.key);
   },
 
   sections() {
