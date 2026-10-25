@@ -3,7 +3,8 @@ const http = require('../utils/request');
 
 module.exports = {
   login(account, password, code) {
-    return http.post('/admin/login', { account: account, password: password, code: code || undefined }, { auth: false });
+    // 學生／家長也用這支（/auth/login）；教職員登入後照樣進後台，由 role 分流
+    return http.post('/auth/password', { account: account, password: password, code: code || undefined }, { auth: false });
   },
   stats() {
     return http.get('/admin/stats');

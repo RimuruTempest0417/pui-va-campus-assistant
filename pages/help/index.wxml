@@ -14,7 +14,7 @@
               data-key="{{item.key}}" catchtap="pickTab">{{item.label}}</view>
       </view>
 
-      <block wx:for="{{sections[active]}}" wx:key="q" wx:for-item="row">
+      <block wx:for="{{list}}" wx:key="q" wx:for-item="row">
         <pv-card>
           <text class="qa__q">{{row.q}}</text>
           <text class="qa__a">{{row.a}}</text>
