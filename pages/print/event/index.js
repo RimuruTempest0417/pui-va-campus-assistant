@@ -90,7 +90,10 @@ Page({
   },
 
   setState(state, errorText) {
-    this.setData({ loading: false, failed: true, state, errorText: errorText || '' });
+    // guest／denied／demo 是「這頁不屬於你」或「示範模式」，不是載入失敗：
+    // 讓畫面上的「重試」只出現在真的壞掉時（走查腳本也才不會把它算成 failed）
+    const soft = state === 'guest' || state === 'denied' || state === 'demo';
+    this.setData({ loading: false, failed: !soft, state, errorText: errorText || '' });
   },
 
   async load() {

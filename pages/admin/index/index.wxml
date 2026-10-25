@@ -204,6 +204,7 @@
           <input class="field__input field__gap" value="{{eventForm.date}}" data-field="date" bindinput="onEventField" placeholder="{{L.k26}}" />
           <input class="field__input field__gap" value="{{eventForm.capacity}}" data-field="capacity" bindinput="onEventField" placeholder="{{L.k27}}" />
           <input class="field__input field__gap" value="{{eventForm.groups}}" data-field="groups" bindinput="onEventField" placeholder="{{L.k28}}" />
+          <input class="field__input field__gap" value="{{eventForm.signupEnd}}" data-field="signupEnd" bindinput="onEventField" placeholder="{{L.k261}}" />
           <view class="ui-row field__gap" bindtap="toggleEvTeams">
             <text class="ui-section ui-mt-2">{{teamsEnabled ? '☑' : '☐'}}</text>
             <text class="field__hint">{{L.k201}}</text>

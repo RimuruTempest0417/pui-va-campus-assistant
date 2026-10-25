@@ -21,7 +21,7 @@
           <text class="ev-head__title">{{ev.title}}</text>
           <view class="ui-row ev-head__tags">
             <pv-tag class="ev-tag" text="{{ev.club}}" type="tint" plain />
-            <pv-tag class="ev-tag" text="{{ev.ended ? L.k16 : (ev.full ? L.k17 : L.k18)}}" type="{{ev.ended ? 'neutral' : (ev.full ? 'danger' : 'success')}}" />
+            <pv-tag class="ev-tag" text="{{ev.ended ? L.k16 : (ev.signupClosed ? L.k91 : (ev.full ? L.k17 : L.k18))}}" type="{{(ev.ended || ev.signupClosed) ? 'neutral' : (ev.full ? 'danger' : 'success')}}" />
           </view>
         </view>
 
@@ -29,6 +29,8 @@
           <view class="meta-row"><text class="meta-k">{{L.k06}}</text><text class="meta-v">{{ev.timeText}}{{ev.endText ? ' — ' + ev.endText : ''}}</text></view>
           <view class="meta-row"><text class="meta-k">{{L.k07}}</text><text class="meta-v">{{ev.location}}</text></view>
           <view class="meta-row"><text class="meta-k">{{L.k08}}</text><text class="meta-v ui-num">{{ev.capacityText}}</text></view>
+          <!-- W-64 報名截止：沒設就不佔一行，設了才顯示 -->
+          <view wx:if="{{ev.signupEndText}}" class="meta-row"><text class="meta-k">{{L.k90}}</text><text class="meta-v">{{ev.signupEndText}}</text></view>
           <view class="cap"><view class="cap__bar"><view class="cap__fill" style="width: {{ev.ratio}}%" /></view></view>
           <text wx:if="{{ev.remaining !== null}}" class="ui-meta">{{ev.remaining > 0 ? L.k19 + ev.remaining + L.k20 : L.k21}}</text>
           <view class="meta-row meta-row--action" bindtap="makeShareCard">

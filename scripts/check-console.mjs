@@ -108,7 +108,7 @@ const PROBE = [
   '    if (Array.isArray(v)) n += v.length;',
   '    else if (v && typeof v === "object") n += Object.keys(v).length;',
   '  }',
-  '  return JSON.stringify({ route: (p && p.route) || "", n: n, failed: !!d.failed, loading: !!d.loading });',
+  '  return JSON.stringify({ route: (p && p.route) || "", n: n, failed: !!d.failed, loading: !!d.loading, state: d.state || "", err: (d.errorText || "").slice(0, 80), needLogin: !!d.needLogin });',
   '}',
 ].join('\n');
 
@@ -139,6 +139,8 @@ const QUERY = {
   'pages/events/detail/index': entries.event ? `id=${entries.event}` : '',
   'pages/notices/detail/index': entries.notice ? `id=${entries.notice}` : '',
   'pages/menu/dish/index': entries.dish ? `id=${entries.dish}` : '',
+  // 列印版活動名單沒有 id 就一定是「找不到這個活動」，那不是 bug → 走查時帶真實 id
+  'pages/print/event/index': entries.event ? `id=${entries.event}` : '',
 };
 
 const rows = [];
@@ -172,7 +174,7 @@ for (const page of pages) {
       else problems.push(`${page} [error] ${e.text}`);
     }
     if (warnFails) for (const w of warns) problems.push(`${page} [warn] ${w.text}`);
-    if (probe.failed) notices.push(`${page}：頁面進 failed 狀態（console 沒紅，但是載入失敗）`);
+    if (probe.failed) notices.push(`${page}：頁面進 failed 狀態（state=${probe.state || "-"}｜${probe.err || "沒有錯誤文字"}）`);
     else if (probe.loading) notices.push(`${page}：${settle}ms 後仍在 loading`);
     else if (probe.route === undefined) notices.push(`${page}：探針沒讀到頁面資料（automator 沒接上）`);
   } catch (err) {
@@ -190,7 +192,7 @@ for (const r of rows) {
   const flags = [];
   if (r.crashed) flags.push('工具層失敗');
   if (r.q) flags.push(`query ${r.q}`);
-  if (p.failed) flags.push('failed=true');
+  if (p.failed) flags.push(`failed=true${p.state ? ' state=' + p.state : ''}${p.err ? ' 「' + p.err + '」' : ''}${p.needLogin ? ' needLogin' : ''}`);
   if (p.loading) flags.push('仍在 loading');
   if (!r.crashed && !p.loading && p.n === 0 && !p.failed) flags.push('內容 0 筆（空狀態）');
   const content = p.n === undefined ? '-' : p.n;

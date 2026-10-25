@@ -88,6 +88,13 @@ Page({
         await this.loadAll();
       }
     } catch (e) {
+      // token 過期／失效：清掉並回到「請先登入」，不要讓使用者以為是系統壞了
+      const code = (e && e.code) || '';
+      if (code === 'UNAUTHORIZED' || code === 'UNAUTHENTICATED' || (e && e.statusCode === 401)) {
+        try { request.setToken(''); } catch (err) { /* 清不掉也不影響畫面 */ }
+        this.setData({ loading: false, needLogin: true, failed: false });
+        return;
+      }
       const msg = data.messageOf(e);
       this.setData({ loading: false, failed: true, errorText: msg });
       // 上報到後端錯誤記錄，這樣「載入失敗」不會只剩畫面上四個字（我隔天查得到真正原因）
