@@ -329,6 +329,8 @@ function cancelCore(id, userId) {
   return Promise.resolve({ cancelled: true, promoted: promoted ? promoted.id : null });
 }
 
+let schoolLinked = false;
+
 module.exports = {
   reset() {
     const fresh = seed();
@@ -979,14 +981,16 @@ module.exports = {
   },
 
   // ── 家校通（示範資料）──
+  // 注意：不能用 this.xxx 存狀態 —— data.js 是把方法拆出來呼叫的，this 會是 null
+  // （2026-10-25 走查抓到：Cannot read properties of null (reading '__schoolLinked')）
   schoolStatus() {
-    return Promise.resolve({ linked: !!this.__schoolLinked, studentNo: this.__schoolLinked ? '3201301037' : null, className: '高二丙', lastSyncAt: this.__schoolLinked ? new Date().toISOString() : null, lastError: null, cryptoReady: true });
+    return Promise.resolve({ linked: schoolLinked, studentNo: schoolLinked ? '3201301037' : null, className: '高二丙', lastSyncAt: schoolLinked ? new Date().toISOString() : null, lastError: null, cryptoReady: true });
   },
   schoolLink(account) {
-    this.__schoolLinked = true;
+    schoolLinked = true;
     return Promise.resolve({ linked: true, studentNo: account });
   },
-  schoolUnlink() { this.__schoolLinked = false; return Promise.resolve({ linked: false }); },
+  schoolUnlink() { schoolLinked = false; return Promise.resolve({ linked: false }); },
   schoolSync() { return Promise.resolve({ ok: true, grades: 6, attendance: 35 }); },
   schoolGrades() {
     return Promise.resolve({
