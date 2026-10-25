@@ -18,6 +18,9 @@
 .g-course { display: block; font-size: var(--pv-fs-subhead); font-weight: 600; color: var(--pv-label); }
 .g-meta { display: block; margin-top: 4rpx; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
 .g-score { font-size: var(--pv-fs-title-3); font-weight: 700; color: var(--pv-tint); }
+/* v0.68.0 手動補登標記：老師在後台補的資料要看得出來源，不能和家校通同步的混在一起 */
+.g-manual { display: inline-block; margin-top: 6rpx; padding: 0 var(--pv-sp-1); font-size: var(--pv-fs-caption-2); line-height: 1.6; color: var(--pv-label-3); border: 1rpx solid var(--pv-sep); border-radius: var(--pv-r-sm); }
+.a-manual { flex-shrink: 0; margin-right: var(--pv-sp-1); font-size: var(--pv-fs-caption-2); color: var(--pv-label-3); }
 
 .sch-sum { display: flex; flex-direction: row; gap: var(--pv-sp-2); margin-bottom: var(--pv-sp-2); }
 .sch-sum__cell { flex: 1; text-align: center; }
