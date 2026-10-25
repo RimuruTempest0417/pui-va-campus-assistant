@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 7;
+const SEED_VERSION = 8;
 
 const weekUtil = require('../utils/week');
 
@@ -113,6 +113,11 @@ function seed() {
       },
     ],
     signups: [], // { id, eventId, userId, status: CONFIRMED|WAITLIST, waitlistPos, createdAt, checkedInAt }
+    // W-38 活動附件（示範）：一份連結型、一份檔案型，讓兩種下載行為都看得到
+    attachments: [
+      { id: 'a1', eventId: 'e1', name: '校運會報名表（PDF）', url: 'https://www.puiva.edu.mo/', size: null, type: 'link', createdAt: now - 20 * h },
+      { id: 'a2', eventId: 'e1', name: '二號操場位置圖', url: 'https://www.puiva.edu.mo/', size: 512000, type: 'pdf', createdAt: now - 18 * h },
+    ],
     // 示範用的「老師已開簽到」狀態：e1 的碼固定在 246810，方便自檢腳本與手動演示
     checkin: { eventId: 'e1', code: '246810', active: true },
     // 家長示範資料：後端是 parent_links，這裡只放兩筆「已綁定的子女」，
@@ -211,6 +216,17 @@ function waitlistCount(data, eventId) {
 function childOf(data, studentId) {
   const list = (data.parent && data.parent.children) || [];
   return list.filter((x) => x.studentId === studentId)[0] || null;
+}
+
+/** W-38 附件：只回這個活動的，並複製一份（呼叫端改到也不會污染示範資料） */
+function attachmentsOf(data, eventId) {
+  return (data.attachments || []).filter((a) => a.eventId === eventId).map((a) => Object.assign({}, a));
+}
+
+/** 誰看得到「新增／刪除附件」：與後端同一條規則（能開活動的才有），示範身分是學生就不給 */
+function canManageAttachmentsFor(data) {
+  const role = (data.user && data.user.role) || 'STUDENT';
+  return ['TEACHER', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) >= 0;
 }
 
 /**
@@ -413,7 +429,52 @@ module.exports = {
     const data = db();
     const e = data.events.filter((x) => x.id === id)[0];
     if (!e) return Promise.reject({ code: 'NOT_FOUND' });
-    return Promise.resolve(Object.assign({}, e, { mySignup: mineFor(data, id) }));
+    return Promise.resolve(
+      Object.assign({}, e, {
+        mySignup: mineFor(data, id),
+        attachments: attachmentsOf(data, id),
+        canManageAttachments: canManageAttachmentsFor(data),
+      }),
+    );
+  },
+
+  /** W-38 新增附件（示範模式：寫進 storage，重開詳情頁還在） */
+  addEventAttachment(eventId, payload) {
+    const data = db();
+    const p = payload || {};
+    const name = String(p.name || '').trim();
+    const url = String(p.url || '').trim();
+    if (!name) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請填寫附件名稱' });
+    if (!/^https?:\/\/\S+$/i.test(url)) return Promise.reject({ code: 'VALIDATION_FAILED', message: '只接受 http(s) 連結' });
+    const mine = (data.attachments || []).filter((a) => a.eventId === eventId);
+    if (mine.length >= 10) return Promise.reject({ code: 'VALIDATION_FAILED', message: '一個活動最多 10 份附件，先刪掉舊的再加' });
+    data.attachments = data.attachments || [];
+    const row = {
+      id: 'a' + (data.attachments.length + 1) + '-' + Date.now(),
+      eventId,
+      name,
+      url,
+      size: typeof p.size === 'number' ? p.size : null,
+      type: p.type || 'link',
+      createdAt: Date.now(),
+    };
+    data.attachments.push(row);
+    save(data);
+    return Promise.resolve(Object.assign({}, row));
+  },
+
+  deleteEventAttachment(eventId, attachmentId) {
+    const data = db();
+    const before = (data.attachments || []).length;
+    data.attachments = (data.attachments || []).filter((a) => !(a.id === attachmentId && a.eventId === eventId));
+    if (data.attachments.length === before) return Promise.reject({ code: 'NOT_FOUND' });
+    save(data);
+    return Promise.resolve({ ok: true });
+  },
+
+  /** 示範模式沒有物件存儲：照實拒絕，不要回一個假簽名 */
+  signUpload() {
+    return Promise.reject({ code: 'UPLOAD_NOT_CONFIGURED', message: '示範模式不支援檔案上傳，請改用「貼上連結」' });
   },
 
   signupEvent(id, groupKey) {

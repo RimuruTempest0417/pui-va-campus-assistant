@@ -9,6 +9,33 @@ const i18n = require('../../../utils/i18n');
 
 const appearance = require('../../../utils/appearance');
 
+/** W-38 附件的型別顯示（後端只存原始值，怎麼講給人看是前端的事） */
+function kindText(type) {
+  // 這幾個是縮寫，不必翻；只有中文那兩個要走 i18n（在呼叫時取，模組載入時取會鎖死在當下語言）
+  if (type === 'pdf') return 'PDF';
+  if (type === 'doc' || type === 'docx') return 'Word';
+  if (type === 'xls' || type === 'xlsx') return 'Excel';
+  if (type === 'ppt' || type === 'pptx') return 'PPT';
+  if (type === 'zip') return 'ZIP';
+  if (type === 'ics') return i18n.pick('日曆');
+  return i18n.pick('連結');
+}
+
+function sizeText(n) {
+  if (typeof n !== 'number' || n <= 0) return '';
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return Math.round(n / 1024) + ' KB';
+  return Math.round((n / 1024 / 1024) * 10) / 10 + ' MB';
+}
+
+function decorateAttachments(list) {
+  return (list || []).map((a) => {
+    const kind = kindText(a.type);
+    const size = sizeText(a.size);
+    return Object.assign({}, a, { kindText: kind, metaText: size ? kind + ' · ' + size : kind });
+  });
+}
+
 Page({
   labels() {
     return {
@@ -51,6 +78,18 @@ Page({
       k13: i18n.pick("去簽到"),
       k14: i18n.pick("檢舉"),
       k15: i18n.pick("檢舉這則內容"),
+      k70: i18n.pick("附件"),
+      k71: i18n.pick("新增附件"),
+      k72: i18n.pick("尚未開通檔案上傳"),
+      k73: i18n.pick("刪除"),
+      k74: i18n.pick("已複製連結，可用瀏覽器開啟"),
+      k75: i18n.pick("下載失敗，請稍後再試"),
+      k76: i18n.pick("這份附件要用瀏覽器開啟，已複製連結"),
+      k77: i18n.pick("貼上連結"),
+      k78: i18n.pick("從聊天記錄選檔（需開通檔案上傳）"),
+      k79: i18n.pick("請輸入附件名稱，例如：比賽章程"),
+      k80: i18n.pick("請貼上檔案連結（https:// 開頭）"),
+      k81: i18n.pick("確定刪除這份附件？"),
     };
   },
 
@@ -76,6 +115,7 @@ Page({
     barDisabled: false,
     groups: [],
     pickedGroup: '',
+    attachments: [],
   },
 
   onLoad(query) {
@@ -98,6 +138,7 @@ Page({
             canFeedback: !!(ev.ended && (ev.myStatus === 'CONFIRMED' || (ev.mySignup && ev.mySignup.status === 'CONFIRMED'))),
             groups: ev.groups || [],
             pickedGroup: ev.myGroupKey || '',
+            attachments: decorateAttachments(ev.attachments),
           },
           this.barFor(ev),
         ),
@@ -114,8 +155,9 @@ Page({
     canFeedback: false,
     teams: [],
     pickedTeamCode: '',
-        pickedGroup: '',
-        failed: codeOf(e) !== 'NOT_FOUND',
+    pickedGroup: '',
+    attachments: [],
+    failed: codeOf(e) !== 'NOT_FOUND',
         errorText: data.messageOf(e),
       });
     }
@@ -258,6 +300,158 @@ Page({
           fail: () => wx.showToast({ title: i18n.pick('產生失敗'), icon: 'none' }),
         });
       });
+  },
+
+  // ── W-38 活動附件 ──
+  /** 附件只有老師看得到管理入口（後端 canManageAttachments 已算好，這裡不重複判斷） */
+  openAttachment(e) {
+    const id = e.currentTarget.dataset.id;
+    const row = (this.data.attachments || []).filter((a) => a.id === id)[0];
+    if (!row) return;
+
+    // 連結型／ICS：小程序沒有瀏覽器，直接複製讓他自己貼
+    if (!row.type || row.type === 'link' || row.type === 'ics' || row.type === 'zip') {
+      wx.setClipboardData({
+        data: row.url,
+        success: () => wx.showToast({ title: this.data.L.k74, icon: 'none' }),
+      });
+      return;
+    }
+
+    wx.showLoading({ title: i18n.pick('下載中'), mask: true });
+    wx.downloadFile({
+      url: row.url,
+      success: (r) => {
+        wx.hideLoading();
+        if (r.statusCode !== 200) {
+          wx.setClipboardData({ data: row.url });
+          return wx.showToast({ title: this.data.L.k76, icon: 'none' });
+        }
+        wx.openDocument({
+          filePath: r.tempFilePath,
+          showMenu: true,
+          fail: () => {
+            wx.setClipboardData({ data: row.url });
+            wx.showToast({ title: this.data.L.k76, icon: 'none' });
+          },
+        });
+      },
+      fail: () => {
+        wx.hideLoading();
+        wx.showToast({ title: this.data.L.k75, icon: 'none' });
+      },
+    });
+  },
+
+  addAttachment() {
+    wx.showActionSheet({
+      itemList: [this.data.L.k77, this.data.L.k78],
+      success: (r) => {
+        if (r.tapIndex === 0) this.addByLink();
+        else this.addByFile();
+      },
+    });
+  },
+
+  addByLink() {
+    wx.showModal({
+      title: this.data.L.k71,
+      editable: true,
+      placeholderText: this.data.L.k79,
+      success: (r1) => {
+        if (!r1.confirm) return;
+        const name = String(r1.content || '').trim();
+        if (!name) return wx.showToast({ title: this.data.L.k79, icon: 'none' });
+        wx.showModal({
+          title: name,
+          editable: true,
+          placeholderText: this.data.L.k80,
+          success: (r2) => {
+            if (!r2.confirm) return;
+            const url = String(r2.content || '').trim();
+            if (!/^https?:\/\/\S+$/i.test(url)) return wx.showToast({ title: this.data.L.k80, icon: 'none' });
+            this.saveAttachment({ name: name, url: url, type: 'link' });
+          },
+        });
+      },
+    });
+  },
+
+  /** 選檔上傳：先在後端取簽名。COS 未開通時後端回 UPLOAD_NOT_CONFIGURED —— 照實提示，不假成功 */
+  addByFile() {
+    wx.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      success: (r) => {
+        const f = (r.tempFiles || [])[0];
+        if (!f) return;
+        const ext = (String(f.name || '').split('.').pop() || '').toLowerCase();
+        data
+          .signUpload('event', ext)
+          .then((sig) => {
+            wx.uploadFile({
+              url: sig.host,
+              filePath: f.path,
+              name: 'file',
+              formData: Object.assign(
+                { key: sig.key, policy: sig.policy, signature: sig.signature, 'q-sign-algorithm': 'sha1', 'q-ak': sig.secretId || '' },
+                sig.fields || {},
+              ),
+              success: (up) => {
+                if (up.statusCode !== 204 && up.statusCode !== 200) {
+                  return wx.showToast({ title: this.data.L.k75, icon: 'none' });
+                }
+                this.saveAttachment({
+                  name: f.name,
+                  url: sig.url,
+                  size: f.size,
+                  type: /^(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|ics)$/.test(ext) ? ext : 'pdf',
+                });
+              },
+              fail: () => wx.showToast({ title: this.data.L.k75, icon: 'none' }),
+            });
+          })
+          .catch((e) => {
+            // 未開通就走這條：明講「尚未開通檔案上傳」，並引導改用貼連結
+            wx.showModal({
+              title: this.data.L.k72,
+              content: data.messageOf(e),
+              confirmText: this.data.L.k77,
+              success: (m) => {
+                if (m.confirm) this.addByLink();
+              },
+            });
+          });
+      },
+    });
+  },
+
+  saveAttachment(payload) {
+    return data
+      .addEventAttachment(this.id, payload)
+      .then(() => {
+        wx.showToast({ title: i18n.pick('已新增'), icon: 'success' });
+        return this.load();
+      })
+      .catch((e) => wx.showToast({ title: data.messageOf(e), icon: 'none' }));
+  },
+
+  removeAttachment(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title: this.data.L.k73,
+      content: this.data.L.k81,
+      success: (r) => {
+        if (!r.confirm) return;
+        data
+          .deleteEventAttachment(this.id, id)
+          .then(() => {
+            wx.showToast({ title: i18n.pick('已刪除'), icon: 'success' });
+            return this.load();
+          })
+          .catch((err) => wx.showToast({ title: data.messageOf(err), icon: 'none' }));
+      },
+    });
   },
 
   loadTeams() {

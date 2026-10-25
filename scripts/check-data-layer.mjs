@@ -433,6 +433,64 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-38 活動附件 ──
+// 驗收要點：老師加得了、學生看得到但改不了、COS 沒開通要明確報而不是假成功。
+{
+  const ev = await data.getEvent('e1');
+  check('附件：詳情頁帶附件清單', (ev.attachments || []).length === 2, `${(ev.attachments || []).length} 份`);
+  check(
+    '附件：連結與檔案兩種都示範得到',
+    (ev.attachments || []).some((a) => a.type === 'link') && (ev.attachments || []).some((a) => a.type === 'pdf'),
+    (ev.attachments || []).map((a) => a.type).join('/'),
+  );
+  check('附件：示範身分是學生 → 不給管理入口', ev.canManageAttachments === false, String(ev.canManageAttachments));
+
+  const added = await data
+    .addEventAttachment('e1', { name: '自我檢查附件', url: 'https://www.puiva.edu.mo/', type: 'link' })
+    .catch((e) => e);
+  check('附件：新增後寫進示範資料', added && added.id, added && added.id ? added.name : JSON.stringify(added));
+
+  const afterAdd = await data.getEvent('e1');
+  check('附件：重新讀取還在（不是只在記憶體）', (afterAdd.attachments || []).length === 3, `${(afterAdd.attachments || []).length} 份`);
+
+  const badUrl = await data
+    .addEventAttachment('e1', { name: '壞連結', url: 'javascript:alert(1)' })
+    .then(() => false)
+    .catch(() => true);
+  check('附件：非 http(s) 連結被拒', badUrl, badUrl);
+
+  await data.deleteEventAttachment('e1', added.id).catch(() => null);
+  const afterDel = await data.getEvent('e1');
+  check('附件：刪除後清單回到兩份', (afterDel.attachments || []).length === 2, `${(afterDel.attachments || []).length} 份`);
+
+  const sign = await data.signUpload('event', 'pdf').then(() => null).catch((e) => e);
+  check(
+    '附件：COS 未開通時明確報未開通（不假成功）',
+    sign && sign.code === 'UPLOAD_NOT_CONFIGURED',
+    sign ? sign.code : '沒有拒絕',
+  );
+
+  // 第五層：畫面入口（沒有入口等於功能沒做）
+  const evWxml = readFileSync(join(here, '..', 'pages', 'events', 'detail', 'index.wxml'), 'utf8');
+  const evJs = readFileSync(join(here, '..', 'pages', 'events', 'detail', 'index.js'), 'utf8');
+  check(
+    '附件：詳情頁有入口（開檔＋新增＋刪除）',
+    evWxml.indexOf('bindtap="openAttachment"') !== -1 &&
+      evWxml.indexOf('bindtap="addAttachment"') !== -1 &&
+      evWxml.indexOf('catchtap="removeAttachment"') !== -1 &&
+      evJs.indexOf('openAttachment(') !== -1 &&
+      evJs.indexOf('addAttachment(') !== -1 &&
+      evJs.indexOf('removeAttachment(') !== -1,
+    'pages/events/detail',
+  );
+  const apiSrc2 = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  check(
+    '附件：真 API 走 /events/:id/attachments',
+    apiSrc2.indexOf("'/events/' + eventId + '/attachments'") !== -1 && apiSrc2.indexOf("'/uploads/signature'") !== -1,
+    'services/api.js',
+  );
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {
