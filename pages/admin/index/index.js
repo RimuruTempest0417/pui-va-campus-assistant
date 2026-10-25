@@ -1393,6 +1393,26 @@ Page({
     }
   },
 
+  async removeItem(e) {
+    const { id, title } = e.currentTarget.dataset;
+    const key = 'it-' + id;
+    if (this._pendingDelete !== key) {
+      this._pendingDelete = key;
+      wx.showToast({ title: i18n.pick('再按一次刪除「') + (title || '') + i18n.pick('」'), icon: 'none', duration: 2500 });
+      setTimeout(() => { if (this._pendingDelete === key) this._pendingDelete = ''; }, 4000);
+      return;
+    }
+    this._pendingDelete = '';
+    try {
+      await adminApi.deleteItem(id);
+      wx.showToast({ title: i18n.pick('已移到垃圾桶'), icon: 'success' });
+      this.loadItems();
+      this.loadTrash();
+    } catch (err) {
+      wx.showToast({ title: data.messageOf(err), icon: 'none' });
+    }
+  },
+
   async removeEvent(e) {
     const { id, title } = e.currentTarget.dataset;
     const key = 'ev-' + id;
