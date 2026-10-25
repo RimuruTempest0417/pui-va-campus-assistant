@@ -5,6 +5,10 @@
     <view class="school-inner">
       <pv-skeleton wx:if="{{loading}}" rows="{{4}}" />
 
+      <pv-empty wx:elif="{{failed}}" title="{{L.failTitle}}" desc="{{errorText || L.failHint}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.retry}}</pv-button>
+      </pv-empty>
+
       <block wx:else>
         <!-- 未連結：輸入自己的家校通帳密 -->
         <pv-card wx:if="{{!linked}}">

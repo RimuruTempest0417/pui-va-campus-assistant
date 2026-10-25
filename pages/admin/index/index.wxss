@@ -34,10 +34,10 @@
 .stat-grid { display: flex; flex-direction: row; flex-wrap: wrap; margin-bottom: var(--pv-sp-2); }
 .stat {
   width: 31%; margin: 0 1% var(--pv-sp-2) 0;
-  background: var(--pv-brand-soft); border-radius: var(--pv-r-sm);
+  background: var(--pv-fill); border-radius: var(--pv-r-sm);
   padding: var(--pv-sp-2); display: flex; flex-direction: column;
 }
-.stat__num { font-size: 40rpx; font-weight: 700; color: var(--pv-brand-strong); }
+.stat__num { font-size: 40rpx; font-weight: 700; color: var(--pv-label); }
 .stat__label { font-size: var(--pv-fs-caption-2); color: var(--pv-label-2); }
 
 .row-actions { display: flex; flex-direction: row; margin-top: var(--pv-sp-2);
