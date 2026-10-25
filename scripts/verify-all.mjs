@@ -35,6 +35,7 @@ const STEPS = [
   { key: 'i18n', label: '繁簡介面', script: 'check-i18n.mjs', args: [], highlight: /✅ 繁簡介面檢查通過[^\n]*/ },
   // console 走查要對齊「0 error／0 warn」的驗收標準，所以預設把 warn 也算不通過
   { key: 'console', label: 'console 走查', script: 'check-console.mjs', args: ['--warn'], needsIde: true, highlight: /console 走查：[^\n]*/ },
+  { key: 'edu', label: '教育版同步', script: 'check-edu-sync.cjs', args: [] },
 ];
 
 function tail(text, lines = 120) {
