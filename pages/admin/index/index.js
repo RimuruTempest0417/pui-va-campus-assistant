@@ -1408,7 +1408,7 @@ Page({
       this.loadItems();
       this.loadTrash();
     } catch (err) {
-      wx.showToast({ title: data.messageOf(err), icon: 'none' });
+      wx.showToast({ title: (err && err.message) || i18n.pick('刪除失敗'), icon: 'none' });
     }
   },
 
@@ -1427,7 +1427,7 @@ Page({
           wx.showToast({ title: i18n.pick('已刪除'), icon: 'success' });
           self.refresh && self.refresh();
         } catch (err) {
-          wx.showToast({ title: data.messageOf ? data.messageOf(err) : i18n.pick('刪除失敗'), icon: 'none' });
+          wx.showToast({ title: (err && err.message) || i18n.pick('刪除失敗'), icon: 'none' });
         }
       },
     });
