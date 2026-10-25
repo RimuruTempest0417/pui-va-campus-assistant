@@ -96,6 +96,7 @@
             <view class="row-actions">
               <pv-button wx:if="{{item.deletedAt}}" size="sm" type="plain" data-id="{{item.id}}" data-act="RESTORE" bind:tap="moderate">{{L.k15}}</pv-button>
               <pv-button wx:else size="sm" type="plain" data-id="{{item.id}}" data-act="REMOVE" bind:tap="moderate">{{L.k16}}</pv-button>
+              <pv-button wx:if="{{!item.deletedAt}}" size="sm" type="plain" data-id="{{item.id}}" data-title="{{item.title}}" bind:tap="removeItem">{{L.k22}}</pv-button>
             </view>
           </view>
         </view>
