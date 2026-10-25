@@ -18,6 +18,6 @@ for (const role of ['GUEST','STUDENT','PARENT','TEACHER','STAFF','ADMIN','SUPER_
 }
 
 const bad = lines.filter((l) => /Q&A: 0/.test(l));
-if (bad.length) { console.error('❌ 有身分的使用說明是空的：\n' + bad.join('\n')); process.exit(1); }
+if (bad.length) { console.error('❌ 有身分的使用說明是空的：\n' + bad.join('\n')); process.exitCode = 1; }
 lines.forEach((l) => console.log(l));
 console.log('✅ 使用說明守門通過（每個身分都有分頁與內容）');
