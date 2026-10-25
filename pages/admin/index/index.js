@@ -2123,7 +2123,7 @@ Page({
     }
     this._pendingDelete = '';
     try {
-      await adminApi.deleteItem(id);
+      await admin.deleteItem(id);
       wx.showToast({ title: i18n.pick('已移到垃圾桶'), icon: 'success' });
       this.loadItems();
       this.loadTrash();
@@ -2143,7 +2143,7 @@ Page({
       success: async (res) => {
         if (!res.confirm) return;
         try {
-          await adminApi.deleteEvent(id);
+          await admin.deleteEvent(id);
           wx.showToast({ title: i18n.pick('已刪除'), icon: 'success' });
           self.refresh && self.refresh();
         } catch (err) {
