@@ -9,18 +9,20 @@
       </view>
 
       <block wx:if="{{loading}}">
-        <view class="ui-card"><pv-skeleton rows="2" /></view>
-        <view class="ui-card"><pv-skeleton rows="2" /></view>
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="2" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="2" /></view>
+        </view>
       </block>
 
-      <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k03}}" desc="{{errorText}}">
+      <pv-empty wx:elif="{{failed}}" tone="warning" title="{{L.k03}}" desc="{{errorText}}">
         <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k04}}</pv-button>
       </pv-empty>
 
-      <pv-empty wx:elif="{{!items.length}}" icon="🎪" title="{{L.k05}}" desc="{{L.k06}}" />
+      <pv-empty wx:elif="{{!items.length}}" title="{{L.k05}}" desc="{{L.k06}}" />
 
-      <view wx:else class="ui-list">
-        <view wx:for="{{items}}" wx:key="id" class="ui-card"
+      <view wx:else class="ui-list ui-list--grouped">
+        <view wx:for="{{items}}" wx:key="id" class="ui-card ui-card--row {{index === items.length - 1 ? 'ui-card--last' : ''}}"
               data-id="{{item.id}}" bindtap="goDetail"
               hover-class="ui-card--pressed" hover-start-time="0">
           <view class="ui-row-between">
@@ -34,7 +36,7 @@
 
           <view class="cap">
             <view class="cap__bar"><view class="cap__fill" style="width: {{item.ratio}}%" /></view>
-            <text class="cap__text">{{item.capacityText}}</text>
+            <text class="cap__text ui-num">{{item.capacityText}}</text>
           </view>
         </view>
       </view>

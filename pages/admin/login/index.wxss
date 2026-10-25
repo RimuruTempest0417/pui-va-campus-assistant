@@ -5,7 +5,6 @@
 .login-head { margin-bottom: var(--pv-sp-3); }
 .login-title { display: block; font-size: var(--pv-fs-title-1); font-weight: 700; letter-spacing: var(--pv-ls-title); }
 .field { margin-bottom: var(--pv-sp-2); }
-.field__label { display: block; font-size: var(--pv-fs-footnote); color: var(--pv-label-2); margin-bottom: 6rpx; }
 .field__input {
   padding: 20rpx var(--pv-sp-3);
   background: var(--pv-fill);

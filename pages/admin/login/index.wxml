@@ -25,17 +25,17 @@
              （Skyline 下自訂組件偶發收不到 tap／受控 input 值不同步，兩者都會讓「登入」看起來沒反應） -->
         <form bindsubmit="onSubmit">
           <view class="field">
-            <text class="field__label">{{L.k05}}</text>
+            <text class="ui-field__label">{{L.k05}}</text>
             <input class="field__input" name="account" value="{{account}}" placeholder="{{L.k06}}" bindinput="onAccount" />
           </view>
           <view class="field">
-            <text class="field__label">{{L.k07}}</text>
+            <text class="ui-field__label">{{L.k07}}</text>
             <input class="field__input" name="password" value="{{password}}" password placeholder="{{L.k08}}"
                    bindinput="onPassword" bindconfirm="submit" confirm-type="done" />
           </view>
 
           <view wx:if="{{needCode}}" class="field">
-            <text class="field__label">{{L.k12}}</text>
+            <text class="ui-field__label">{{L.k12}}</text>
             <input class="field__input" name="code" value="{{code}}" type="number" maxlength="6"
                    placeholder="{{L.k13}}" bindinput="onCode" />
           </view>

@@ -38,17 +38,18 @@
   <pv-card>
     <pv-button type="tinted" block bind:tap="resetDemo">{{L.k09}}</pv-button>
   </pv-card>
-  <view class="pv-caption" id="result-line">{{resultLine}}</view>
-
-    </view>
-  </scroll-view>
-</view>  <view class="ui-card">
+  <!-- 介面語言（原本被放在 scroll-view 外面，會壓在頁面底部蓋住內容） -->
+  <pv-card>
     <text class="dev-label">{{localeTitle}}</text>
     <view class="dev-chips">
       <view wx:for="{{locales}}" wx:key="key" class="dev-chip {{locale === item.key ? 'dev-chip--on' : ''}}"
             data-loc="{{item.key}}" bindtap="setLocale">{{item.label}}</view>
     </view>
     <text class="dev-hint">{{L.k10}}</text>
-  </view>
+  </pv-card>
 
+  <view class="pv-caption" id="result-line">{{resultLine}}</view>
 
+    </view>
+  </scroll-view>
+</view>

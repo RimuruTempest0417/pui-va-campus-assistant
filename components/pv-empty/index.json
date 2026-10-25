@@ -1,3 +1,6 @@
 {
-  "component": true
+  "component": true,
+  "usingComponents": {
+    "pv-icon": "/components/pv-icon/index"
+  }
 }

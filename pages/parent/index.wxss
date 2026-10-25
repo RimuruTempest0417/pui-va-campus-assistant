@@ -21,5 +21,8 @@
 .row-actions { display: flex; flex-direction: row; justify-content: flex-end; margin-top: var(--pv-sp-2); }
 .row-btn { margin-left: var(--pv-sp-2); }
 
-.state-actions { display: flex; flex-direction: row; align-items: center; justify-content: center; }
+.state-actions { display: flex; flex-direction: row; align-items: center; justify-content: center;
+  gap: var(--pv-sp-2);
+  flex-wrap: wrap;
+}
 .state-actions__next { margin-left: var(--pv-sp-2); }

@@ -27,13 +27,13 @@
       </block>
 
       <block wx:elif="{{failed}}">
-        <pv-empty icon="⚠️" title="{{L.failed}}" desc="{{errorText}}">
+        <pv-empty title="{{L.failed}}" desc="{{errorText}}">
           <pv-button size="sm" type="tinted" bind:tap="retry">{{L.retry}}</pv-button>
         </pv-empty>
       </block>
 
       <block wx:elif="{{!rows.length}}">
-        <pv-empty icon="🗒" title="{{L.empty}}" desc="{{L.emptySub}}" />
+        <pv-empty title="{{L.empty}}" desc="{{L.emptySub}}" />
       </block>
 
       <block wx:else>

@@ -6,11 +6,11 @@
     <view class="ui-card ui-mt-2"><pv-skeleton rows="3" avatar /></view>
   </block>
 
-  <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k02}}" desc="{{errorText}}">
+  <pv-empty wx:elif="{{failed}}" title="{{L.k02}}" desc="{{errorText}}">
     <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k03}}</pv-button>
   </pv-empty>
 
-  <pv-empty wx:elif="{{!item}}" icon="🕳" title="{{L.k04}}" desc="{{L.k05}}" />
+  <pv-empty wx:elif="{{!item}}" title="{{L.k04}}" desc="{{L.k05}}" />
 
   <block wx:else>
     <swiper class="gallery" indicator-dots="{{item.images.length > 1}}" indicator-active-color="{{theme.onTint}}">
@@ -19,7 +19,7 @@
       </swiper-item>
       <swiper-item wx:if="{{!item.images.length}}">
         <view class="gallery__placeholder">
-          <text class="gallery__ph-icon">{{item.type === 'LOST' ? '🔍' : '📦'}}</text>
+          <text class="gallery__ph-icon">{{item.type === 'LOST' ? '失' : '拾'}}</text>
           <text class="ui-meta">{{L.k06}}</text>
         </view>
       </swiper-item>

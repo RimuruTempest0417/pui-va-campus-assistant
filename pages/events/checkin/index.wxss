@@ -35,5 +35,8 @@
 }
 .ci-done__title { margin-top: var(--pv-sp-2); font-size: var(--pv-fs-title-3); font-weight: 600; }
 .ci-done__ev { margin: 8rpx 0 6rpx; font-size: var(--pv-fs-body); color: var(--pv-label-2); }
-.ci-actions { display: flex; flex-direction: row; margin-top: var(--pv-sp-3); }
+.ci-actions { display: flex; flex-direction: row; margin-top: var(--pv-sp-3);
+  gap: var(--pv-sp-2);
+  flex-wrap: wrap;
+}
 .ci-actions pv-button { margin-right: var(--pv-sp-2); }

@@ -82,7 +82,7 @@
         </pv-card>
       </block>
 
-      <!-- 通知 -->
+      <!-- 通知／使用說明／回報問題：合成一張卡（同類「去看／去做」的入口） -->
       <pv-card>
         <view class="set-row" bindtap="goNotifications">
           <view class="set-row__main">
@@ -91,22 +91,15 @@
           </view>
           <text class="set-row__chev">›</text>
         </view>
-      </pv-card>
-
-      <!-- 使用說明 -->
-      <pv-card>
-        <view class="set-row" bindtap="goHelp">
+        <view class="set-row set-row--sep" bindtap="goHelp">
           <view class="set-row__main">
             <text class="set-row__title">{{L.k49}}</text>
             <text class="set-row__sub">{{L.k50}}</text>
           </view>
           <text class="set-row__chev">›</text>
         </view>
-      </pv-card>
-
-      <!-- 回報問題（W-43）：按鈕沒反應、畫面怪這類不會拋錯，只能由使用者自己講 -->
-      <pv-card>
-        <view class="set-row" bindtap="reportIssue">
+        <!-- 回報問題（W-43）：按鈕沒反應、畫面怪這類不會拋錯，只能由使用者自己講 -->
+        <view class="set-row set-row--sep" bindtap="reportIssue">
           <view class="set-row__main">
             <text class="set-row__title">{{L.k53}}</text>
             <text class="set-row__sub">{{L.k54}}</text>

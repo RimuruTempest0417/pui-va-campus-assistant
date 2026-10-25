@@ -1,0 +1,60 @@
+@import "../../styles/tokens.wxss";
+
+/* 線性圖標（v0.60.0，W-47）
+   規格：24px 網格、描邊恆為 2rpx、單色、無填滿。內部幾何全用百分比定位，
+   所以 size 一改就等比縮放，線寬不會跟著變粗變細（四宮格的圖標與 26rpx 的鈴鐺看起來同一套筆)。
+
+   顏色：--ico 由 tone 決定（見下），元素只讀 var(--ico)。深色模式不必另寫規則 ——
+   --pv-label-2／--pv-label-3／--pv-tint 在 .theme-dark 已經被覆寫，var 會跟著換。 */
+.pv-icon {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  --ico: var(--pv-label-2);
+}
+.pv-icon--default { --ico: var(--pv-label-2); }
+.pv-icon--muted { --ico: var(--pv-label-3); }
+.pv-icon--tint { --ico: var(--pv-tint); }
+.pv-icon--on-tint { --ico: var(--pv-on-tint); }
+.pv-icon--brand { --ico: var(--pv-brand); }
+
+/* 所有線條共用：2rpx、圓頭、盒模型吃 border */
+.pv-icon view { box-sizing: border-box; }
+
+/* 失物招領：置物箱 */
+.i-lid, .i-body { position: absolute; border: 2rpx solid var(--ico); border-radius: 3rpx; }
+.i-lid { top: 24%; left: 8%; width: 84%; height: 16%; }
+.i-body { top: 44%; left: 16%; width: 68%; height: 34%; }
+
+/* 活動：日曆 */
+.i-frame { position: absolute; top: 24%; left: 14%; width: 72%; height: 64%; border: 2rpx solid var(--ico); border-radius: 4rpx; }
+.i-head { position: absolute; top: 40%; left: 14%; width: 72%; height: 2rpx; background: var(--ico); }
+.i-tick { position: absolute; top: 16%; width: 2rpx; height: 12%; background: var(--ico); border-radius: 2rpx; }
+.i-tick--l { left: 32%; }
+.i-tick--r { left: 66%; }
+
+/* 菜單：餐碗（碗沿＋半圓碗身） */
+.i-rim { position: absolute; top: 26%; left: 6%; width: 88%; height: 2rpx; background: var(--ico); border-radius: 2rpx; }
+.i-bowl { position: absolute; top: 32%; left: 15%; width: 70%; height: 38%; border: 2rpx solid var(--ico); border-top-width: 0; border-radius: 0 0 50% 50%; }
+
+/* 公告：文件三行（末行短，讀起來才像文字） */
+.i-doc { position: absolute; top: 12%; left: 24%; width: 52%; height: 76%; border: 2rpx solid var(--ico); border-radius: 3rpx; }
+.i-line { position: absolute; left: 34%; width: 32%; height: 2rpx; background: var(--ico); border-radius: 2rpx; }
+.i-line--1 { top: 32%; }
+.i-line--2 { top: 47%; }
+.i-line--3 { top: 62%; width: 18%; }
+
+/* 鈴鐺：鐘身＋底橫條 */
+.i-dome { position: absolute; top: 14%; left: 24%; width: 52%; height: 44%; border: 2rpx solid var(--ico); border-bottom-width: 0; border-radius: 50% 50% 10% 10%; }
+.i-clap { position: absolute; bottom: 22%; left: 16%; width: 68%; height: 2rpx; background: var(--ico); border-radius: 2rpx; }
+
+/* 搜尋：圓環＋45° 斜柄 */
+.i-lens { position: absolute; top: 8%; left: 8%; width: 60%; height: 60%; border: 2rpx solid var(--ico); border-radius: 50%; }
+.i-handle { position: absolute; top: 72%; left: 60%; width: 32%; height: 2rpx; background: var(--ico); border-radius: 2rpx; transform: rotate(45deg); }
+
+/* 空狀態：空托盤（外框＋中線） */
+.i-tray { position: absolute; top: 28%; left: 12%; width: 76%; height: 46%; border: 2rpx solid var(--ico); border-radius: 4rpx; }
+.i-tray-line { position: absolute; top: 50%; left: 12%; width: 76%; height: 2rpx; background: var(--ico); }
+
+/* 右箭頭：旋轉的兩條邊（只畫 border-top + border-right） */
+.i-chev { position: absolute; top: 34%; left: 36%; width: 26%; height: 26%; border-top: 2rpx solid var(--ico); border-right: 2rpx solid var(--ico); transform: rotate(45deg); }

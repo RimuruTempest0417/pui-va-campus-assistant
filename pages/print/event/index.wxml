@@ -9,31 +9,31 @@
       </block>
 
       <block wx:elif="{{state === 'guest'}}">
-        <pv-empty icon="🔒" title="{{L.loginFirst}}" desc="{{L.loginSub}}">
+        <pv-empty title="{{L.loginFirst}}" desc="{{L.loginSub}}">
           <pv-button size="sm" type="filled" bind:tap="goLogin">{{L.goLogin}}</pv-button>
         </pv-empty>
       </block>
 
       <block wx:elif="{{state === 'denied'}}">
-        <pv-empty icon="⛔" title="{{L.denied}}" desc="{{L.deniedSub}}" />
+        <pv-empty title="{{L.denied}}" desc="{{L.deniedSub}}" />
       </block>
 
       <block wx:elif="{{state === 'demo'}}">
-        <pv-empty icon="🗂" title="{{L.demoHint}}" desc="{{L.emptySub}}" />
+        <pv-empty title="{{L.demoHint}}" desc="{{L.emptySub}}" />
       </block>
 
       <block wx:elif="{{state === 'notfound'}}">
-        <pv-empty icon="❓" title="{{L.notFound}}" desc="{{errorText}}" />
+        <pv-empty title="{{L.notFound}}" desc="{{errorText}}" />
       </block>
 
       <block wx:elif="{{failed}}">
-        <pv-empty icon="⚠️" title="{{L.failed}}" desc="{{errorText}}">
+        <pv-empty title="{{L.failed}}" desc="{{errorText}}">
           <pv-button size="sm" type="tinted" bind:tap="retry">{{L.retry}}</pv-button>
         </pv-empty>
       </block>
 
       <block wx:elif="{{!rows.length}}">
-        <pv-empty icon="🗒" title="{{L.empty}}" desc="{{L.emptySub}}" />
+        <pv-empty title="{{L.empty}}" desc="{{L.emptySub}}" />
       </block>
 
       <block wx:else>

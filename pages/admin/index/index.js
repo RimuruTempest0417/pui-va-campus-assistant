@@ -149,7 +149,7 @@ Page({
       k02: i18n.pick("讀取失敗"),
       k03: i18n.pick("重試"),
       k04: i18n.pick("使用者"),
-      k05: i18n.pick("待認領"),
+      k05: i18n.pick("未認領失物"),
       k06: i18n.pick("待審認領"),
       k07: i18n.pick("正取報名"),
       k08: i18n.pick("候補中"),
@@ -1390,6 +1390,26 @@ Page({
       this.setData({ noticeList: res.items || [] });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到公告：') + (e.message || e.code) });
+    }
+  },
+
+  async removeEvent(e) {
+    const { id, title } = e.currentTarget.dataset;
+    const key = 'ev-' + id;
+    if (this._pendingDelete !== key) {
+      this._pendingDelete = key;
+      wx.showToast({ title: i18n.pick('再按一次刪除「') + (title || '') + i18n.pick('」'), icon: 'none', duration: 2500 });
+      setTimeout(() => { if (this._pendingDelete === key) this._pendingDelete = ''; }, 4000);
+      return;
+    }
+    this._pendingDelete = '';
+    try {
+      await adminApi.deleteEvent(id);
+      wx.showToast({ title: i18n.pick('已移到垃圾桶'), icon: 'success' });
+      this.loadEventsAdmin();
+      this.loadTrash();
+    } catch (err) {
+      wx.showToast({ title: data.messageOf(err), icon: 'none' });
     }
   },
 

@@ -1,0 +1,54 @@
+<view class="pv-icon pv-icon--{{tone}}" style="width: {{size}}rpx; height: {{size}}rpx;">
+
+  <!-- 失物招領：置物箱（上蓋＋箱身） -->
+  <block wx:if="{{name === 'items'}}">
+    <view class="i-lid" />
+    <view class="i-body" />
+  </block>
+
+  <!-- 活動：日曆 -->
+  <block wx:elif="{{name === 'events'}}">
+    <view class="i-tick i-tick--l" />
+    <view class="i-tick i-tick--r" />
+    <view class="i-frame" />
+    <view class="i-head" />
+  </block>
+
+  <!-- 菜單：餐碗 -->
+  <block wx:elif="{{name === 'menu'}}">
+    <view class="i-rim" />
+    <view class="i-bowl" />
+  </block>
+
+  <!-- 公告：文件三行 -->
+  <block wx:elif="{{name === 'notices'}}">
+    <view class="i-doc" />
+    <view class="i-line i-line--1" />
+    <view class="i-line i-line--2" />
+    <view class="i-line i-line--3" />
+  </block>
+
+  <!-- 通知：鈴鐺 -->
+  <block wx:elif="{{name === 'bell'}}">
+    <view class="i-dome" />
+    <view class="i-clap" />
+  </block>
+
+  <!-- 搜尋：圓環＋斜柄 -->
+  <block wx:elif="{{name === 'search'}}">
+    <view class="i-lens" />
+    <view class="i-handle" />
+  </block>
+
+  <!-- 空狀態：空托盤 -->
+  <block wx:elif="{{name === 'inbox'}}">
+    <view class="i-tray" />
+    <view class="i-tray-line" />
+  </block>
+
+  <!-- 右箭頭 -->
+  <block wx:elif="{{name === 'chevron'}}">
+    <view class="i-chev" />
+  </block>
+
+</view>

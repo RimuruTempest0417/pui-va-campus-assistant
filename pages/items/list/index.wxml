@@ -14,7 +14,7 @@
       >{{item.label}}</view>
     </view>
     <view class="search">
-      <text class="search__icon">🔍</text>
+      <pv-icon class="search__icon" name="search" size="28" tone="muted" />
       <input class="search__input" placeholder="{{L.k02}}" placeholder-class="ui-placeholder"
              value="{{keyword}}" bindinput="onKeywordInput" confirm-type="search" bindconfirm="onSearch" />
       <text wx:if="{{keyword}}" class="search__clear" bindtap="onClearKeyword">✕</text>
@@ -22,27 +22,27 @@
   </view>
 
   <block wx:if="{{loading}}">
-    <view class="ui-list">
-      <view class="ui-card"><pv-skeleton rows="2" /></view>
-      <view class="ui-card"><pv-skeleton rows="2" /></view>
+    <view class="ui-list ui-list--grouped">
+      <view class="ui-card ui-card--row"><pv-skeleton rows="2" /></view>
+      <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="2" /></view>
     </view>
   </block>
 
-  <pv-empty wx:elif="{{failed}}" icon="⚠️" title="{{L.k03}}" desc="{{errorText}}">
+  <pv-empty wx:elif="{{failed}}" title="{{L.k03}}" desc="{{errorText}}">
     <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k04}}</pv-button>
   </pv-empty>
 
-  <pv-empty wx:elif="{{!items.length}}" icon="🔍"
+  <pv-empty wx:elif="{{!items.length}}"
             title="{{keyword ? L.k09 : L.k10}}"
             desc="{{keyword ? L.k11 : L.k12}}">
     <view class="empty-action" bindtap="goCreate">{{L.k05}}</view>
   </pv-empty>
 
-  <view wx:else class="ui-list">
+  <view wx:else class="ui-list ui-list--grouped">
     <view
       wx:for="{{items}}"
       wx:key="id"
-      class="ui-card {{pressedId === item.id ? 'ui-card--pressed' : ''}}"
+      class="ui-card ui-card--row {{index === items.length - 1 ? 'ui-card--last' : ''}} {{pressedId === item.id ? 'ui-card--pressed' : ''}}"
       data-id="{{item.id}}"
       bindtouchstart="onItemTouchStart"
       bindtouchend="onItemTouchEnd"
@@ -51,7 +51,7 @@
     >
       <view class="card-row">
         <image wx:if="{{item.cover}}" class="ui-thumb" src="{{item.cover}}" mode="aspectFill" />
-        <view wx:else class="ui-thumb thumb-ph"><text>{{item.type === 'LOST' ? '🔍' : '📦'}}</text></view>
+        <view wx:else class="ui-thumb thumb-ph"><text class="thumb-ph__text">{{item.type === 'LOST' ? '失' : '拾'}}</text></view>
         <view class="card-main">
           <view class="ui-row-between">
             <text class="ui-title card-title">{{item.title}}</text>
@@ -62,10 +62,10 @@
         </view>
       </view>
     </view>
-    <view class="list-foot">
-      <text wx:if="{{loadingMore}}">{{L.k06}}</text>
-      <text wx:elif="{{!hasMore}}">{{L.k07}}</text>
-    </view>
+  </view>
+  <view class="list-foot">
+    <text wx:if="{{loadingMore}}">{{L.k06}}</text>
+    <text wx:elif="{{!hasMore}}">{{L.k07}}</text>
   </view>
 
   

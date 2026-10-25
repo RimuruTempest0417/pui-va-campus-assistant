@@ -11,7 +11,7 @@
       <pv-skeleton wx:if="{{loading}}" rows="{{4}}" />
 
       <block wx:elif="{{failed}}">
-        <pv-empty icon="⚠️" title="{{L.readFail}}" desc="{{errorText}}">
+        <pv-empty title="{{L.readFail}}" desc="{{errorText}}">
           <pv-button size="sm" type="tinted" bind:tap="retry">{{L.retry}}</pv-button>
         </pv-empty>
       </block>

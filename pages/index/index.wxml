@@ -11,7 +11,7 @@
     <view class="home__right">
       <pv-tag wx:if="{{isDemo}}" text="{{L.demoTag}}" type="tint" plain />
       <view class="home__bell" bindtap="goNotifications" hover-class="home__avatar--pressed" hover-start-time="0">
-        <text class="home__bell-icon">🔔</text>
+        <pv-icon name="bell" size="28" tone="default" />
         <view wx:if="{{unread > 0}}" class="home__bell-dot">{{unread > 99 ? '99+' : unread}}</view>
       </view>
       <view class="home__avatar" bindtap="goAccount" hover-class="home__avatar--pressed" hover-start-time="0">
@@ -37,7 +37,7 @@
 
   <!-- 失敗 -->
   <pv-card wx:elif="{{failed}}">
-    <pv-empty icon="⚠️" title="{{L.failed}}" desc="{{L.failedDesc}}：{{apiBaseText}}">
+    <pv-empty tone="warning" title="{{L.failed}}" desc="{{L.failedDesc}}：{{apiBaseText}}">
       <view class="home__retry" bindtap="onRetry">{{L.k01}}</view>
       <view class="home__retry home__retry--plain" bindtap="goDev">{{L.k02}}</view>
     </pv-empty>
@@ -72,13 +72,13 @@
         bindtouchcancel="onCellTouchEnd"
         bindtap="onTapModule"
       >
-        <view class="grid__icon grid__icon--{{item.tone}}"><text>{{item.icon}}</text></view>
+        <view class="grid__icon grid__icon--solid"><pv-icon name="{{item.key}}" size="44" tone="tint" /></view>
         <text class="grid__label">{{item.label}}</text>
         <text class="grid__sub">{{item.sub}}</text>
       </view>
     </view>
 
-    <!-- 今日午餐 -->
+    <!-- 今日午餐 ＋ 小賣部（合成一張卡，內部用小標題與髮絲線分組） -->
     <view class="pv-group-title">{{L.k03}}</view>
     <pv-card>
       <block wx:if="{{lunch && lunch.length}}">
@@ -93,16 +93,15 @@
           </view>
         </view>
       </block>
-      <pv-empty wx:else icon="🍽" title="{{L.k05}}" desc="{{L.k06}}" />
-    </pv-card>
+      <pv-empty wx:else title="{{L.k05}}" desc="{{L.k06}}" />
 
-    <!-- 小賣部 -->
-    <view wx:if="{{snack && snack.length}}" class="pv-group-title">{{L.k07}}</view>
-    <pv-card wx:if="{{snack && snack.length}}">
-      <view wx:for="{{snack}}" wx:key="id" class="dish dish--snack">
-        <text class="dish__name">{{item.name}}</text>
-        <text class="dish__price">MOP {{item.price}}</text>
-      </view>
+      <block wx:if="{{snack && snack.length}}">
+        <view class="dish-section">{{L.k07}}</view>
+        <view wx:for="{{snack}}" wx:key="id" class="dish dish--snack">
+          <text class="dish__name">{{item.name}}</text>
+          <text class="dish__price">MOP {{item.price}}</text>
+        </view>
+      </block>
     </pv-card>
 
     <!-- 家長：我的子女（首頁直接切換，代報名在下一頁）-->

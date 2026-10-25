@@ -8,11 +8,11 @@
         <text class="help-head__sub">下面是依身分整理的操作說明；切到其他身分可以看到別人的流程。</text>
       </view>
 
-      <scroll-view class="help-tabs" scroll-x enable-flex show-scrollbar="{{false}}">
+      <view class="help-tabs">
         <view wx:for="{{tabs}}" wx:key="key"
               class="help-tab {{active === item.key ? 'help-tab--on' : ''}}"
               data-key="{{item.key}}" catchtap="pickTab">{{item.label}}</view>
-      </scroll-view>
+      </view>
 
       <block wx:for="{{sections[active]}}" wx:key="q" wx:for-item="row">
         <pv-card>
