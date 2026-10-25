@@ -620,6 +620,78 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   }
 }
 
+// 19) W-44：services/*.js 的 module.exports 第一層 key 不得重複
+//     物件字面值後面那份會靜默蓋掉前面那份：兩份內容若開始分岔（有人只改上面那份），
+//     行為會悄悄退回舊版，而 console、編譯、資料層自檢全都不會報 —— 這是「靜默降級」的另一種形狀。
+//     第 17 條只掃 `key: value` 的 data／labels()；這裡要另外認方法簡寫 `foo() {}`，
+//     所以用「depth 1 遇到 `(` 也算一個 key」的走法，而不是直接沿用 topKeys。
+{
+  const stripSvc = (src) => {
+    let out = '';
+    let i = 0;
+    while (i < src.length) {
+      const c = src[i];
+      const n = src[i + 1];
+      if (c === '/' && n === '/') { while (i < src.length && src[i] !== '\n') { out += ' '; i += 1; } continue; }
+      if (c === '/' && n === '*') {
+        while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) { out += ' '; i += 1; }
+        out += '  '; i += 2; continue;
+      }
+      if (c === '"' || c === "'" || c === '`') {
+        const q = c; out += ' '; i += 1;
+        while (i < src.length && src[i] !== q) { out += ' '; i += src[i] === '\\' ? 2 : 1; }
+        out += ' '; i += 1; continue;
+      }
+      out += c; i += 1;
+    }
+    return out;
+  };
+  // 走 module.exports = { … }，收 depth 1 的 key（`a: 1`、`a() {}`、`async a() {}` 都算）
+  // 只認「成員開頭」的識別字（expecting 旗標）：`login: (...a) => call('login', a)` 這種箭頭函式值
+  // 裡的 `call(` 不是 key，第一版沒擋就是 40 條誤報（data.js 每個轉接方法都會中）。
+  const exportKeys = (code, openAt) => {
+    const keys = [];
+    let depth = 0;
+    let seg = '';
+    let expecting = true;
+    for (let i = openAt; i < code.length; i += 1) {
+      const ch = code[i];
+      if (ch === '{' || ch === '(' || ch === '[') {
+        if (depth === 1 && ch === '(' && expecting && seg) keys.push({ key: seg, at: i });
+        if (depth === 1 && ch === '(') expecting = false;
+        depth += 1; seg = ''; continue;
+      }
+      if (ch === '}' || ch === ')' || ch === ']') { depth -= 1; if (depth === 0) break; seg = ''; continue; }
+      if (depth === 1 && ch === ',') { expecting = true; seg = ''; continue; }
+      if (depth !== 1) continue;
+      if (ch === ':' && seg && expecting) { keys.push({ key: seg, at: i }); expecting = false; seg = ''; continue; }
+      if (ch === '=' || ch === ':') { expecting = false; seg = ''; continue; }
+      if (/[A-Za-z0-9_$]/.test(ch)) { if (expecting) seg += ch; continue; }
+      seg = '';
+    }
+    return keys;
+  };
+  const svcDir = join(root, 'services');
+  const svcFiles = existsSync(svcDir)
+    ? readdirSync(svcDir, { withFileTypes: true }).filter((e) => e.isFile() && e.name.endsWith('.js')).map((e) => join(svcDir, e.name))
+    : [];
+  for (const file of svcFiles) {
+    const code = stripSvc(readFileSync(file, 'utf8'));
+    const m = /module\.exports\s*=\s*\{/.exec(code);
+    if (!m) continue;
+    const openAt = m.index + m[0].length - 1;
+    const seen = new Map();
+    for (const { key, at } of exportKeys(code, openAt)) {
+      if (seen.has(key)) {
+        const line = code.slice(0, at).split('\n').length;
+        errors.push(`${file.slice(root.length + 1)}:${line} 的 module.exports 裡「${key}()」重複定義（後面的會靜默蓋掉前面的，只改上面那份就等於白改）`);
+      } else {
+        seen.set(key, at);
+      }
+    }
+  }
+}
+
 for (const w of warnings) console.warn(`⚠️  ${w}`);
 if (errors.length) {
   for (const e of errors) console.error(`❌ ${e}`);
