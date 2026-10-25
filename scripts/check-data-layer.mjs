@@ -4,6 +4,7 @@
 // CI 也會跑這支：node scripts/check-data-layer.mjs
 
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -390,6 +391,46 @@ check('簽到：我的報名帶簽到時間',
   check('列印：每頁列數由紙高推算', per === 28, String(per));
   const tsv = print.toTsv(['A', 'B'], [['x\ty', 'z\nw']]);
   check('列印：表格文字清掉跳字', tsv.split('\n').length === 2 && tsv.indexOf('\t\n') === -1, JSON.stringify(tsv));
+}
+
+// ── W-43 使用者手動回報問題 ──
+// 驗收要求「前端有一條回報路徑」：只做後端端點不算，畫面點不到就等於沒做。
+// 這裡同時驗四層的最後兩層（data.js 入口＋示範模式寫得進去）與第五層的靜態證據
+// （api.js 真的打 /client-errors/report）；第一層（設定頁按鈕）由 check-project 的
+// 「WXML 用到的 handler 必須在頁面 JS 存在」擋住。
+{
+  const settingsSrc = readFileSync(join(here, '..', 'pages', 'settings', 'index.js'), 'utf8');
+  const settingsWxml = readFileSync(join(here, '..', 'pages', 'settings', 'index.wxml'), 'utf8');
+  check(
+    '回報問題：設定頁有入口',
+    settingsWxml.indexOf('bindtap="reportIssue"') !== -1 && settingsSrc.indexOf('reportIssue()') !== -1,
+    'pages/settings',
+  );
+
+  check('回報問題：data.js 有入口', typeof data.reportIssue === 'function', typeof data.reportIssue);
+
+  const first = await data.reportIssue({ message: '自我檢查回報', route: 'pages/settings/index' }).catch((e) => e);
+  check(
+    '回報問題：示範模式寫本地並標明 demo',
+    first && first.ok === true && first.demo === true,
+    JSON.stringify(first),
+  );
+
+  const second = await data.reportIssue({ message: '自我檢查回報', route: 'pages/settings/index' }).catch((e) => e);
+  check('回報問題：送兩次都有記錄（不靜默吞掉）', second && second.id !== first.id, `${first.id} → ${second && second.id}`);
+
+  const rejected = await data
+    .reportIssue({ message: '   ' })
+    .then(() => false)
+    .catch(() => true);
+  check('回報問題：空訊息被拒', rejected, rejected);
+
+  const apiSrc = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  check(
+    '回報問題：真 API 走 /client-errors/report',
+    apiSrc.indexOf("'/client-errors/report'") !== -1,
+    'services/api.js',
+  );
 }
 
 // ── 輸出 ──

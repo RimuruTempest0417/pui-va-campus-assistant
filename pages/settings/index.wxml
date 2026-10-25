@@ -104,6 +104,17 @@
         </view>
       </pv-card>
 
+      <!-- 回報問題（W-43）：按鈕沒反應、畫面怪這類不會拋錯，只能由使用者自己講 -->
+      <pv-card>
+        <view class="set-row" bindtap="reportIssue">
+          <view class="set-row__main">
+            <text class="set-row__title">{{L.k53}}</text>
+            <text class="set-row__sub">{{L.k54}}</text>
+          </view>
+          <text class="set-row__chev">›</text>
+        </view>
+      </pv-card>
+
       <!-- 關於 -->
       <text class="set-group">{{L.k13}}</text>
       <pv-card>

@@ -30,6 +30,34 @@ function deviceInfo() {
   }
 }
 
+/**
+ * 手動回報要用的裝置資料（W-43）。
+ *
+ * 自動上報有堆疊可看，使用者回報只有一句話，所以「哪一頁、什麼機型、什麼系統」是
+ * 唯一能重現問題的線索。取不到就給空字串，不要編造。
+ */
+function devicePayload() {
+  const base = deviceInfo();
+  let model = '';
+  let system = '';
+  try {
+    const info = wx.getDeviceInfo ? wx.getDeviceInfo() : wx.getSystemInfoSync();
+    model = info.model || info.brand || '';
+    system = info.system || '';
+  } catch (e) {
+    model = '';
+    system = '';
+  }
+  return {
+    route: currentRoute(),
+    platform: base.platform,
+    sdkVersion: base.sdkVersion,
+    appVersion: appVersion(),
+    model: model,
+    system: system,
+  };
+}
+
 function appVersion() {
   try {
     const acc = wx.getAccountInfoSync ? wx.getAccountInfoSync() : null;
@@ -95,4 +123,4 @@ function resetSent() {
   Object.keys(sent).forEach((k) => delete sent[k]);
 }
 
-module.exports = { reportError, resetSent };
+module.exports = { reportError, resetSent, devicePayload };

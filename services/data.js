@@ -146,4 +146,8 @@ module.exports = {
   // ── W-30 組隊 ──
   eventTeams: (...a) => call('eventTeams', a),
   createTeam: (...a) => call('createTeam', a),
+
+  // ── W-43 使用者回報問題 ──
+  // 示範模式寫本地並回 demo: true（畫面不會謊報已送出）；真 API 走 /client-errors/report。
+  reportIssue: (...a) => call('reportIssue', a),
 };
