@@ -42,6 +42,7 @@ Page({
     snack: null,
     updatedAt: '',
     pressedKey: '',
+    searchPressed: false,
     urgentPressed: false,
     showAdmin: false,
     showData: false,
@@ -143,6 +144,19 @@ Page({
 
   goNotifications() {
     wx.navigateTo({ url: '/pages/notifications/index' });
+  },
+
+  /** W-59 全校搜尋：右上角放大鏡（不放在宮格裡，避免首屏可點元素再 +1） */
+  goSearch() {
+    wx.navigateTo({ url: '/pages/search/index' });
+  },
+
+  onSearchTouchStart() {
+    this.setData({ searchPressed: true });
+  },
+
+  onSearchTouchEnd() {
+    this.setData({ searchPressed: false });
   },
 
   goAccount() {

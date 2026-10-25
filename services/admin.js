@@ -37,6 +37,14 @@ module.exports = {
   eventStats(eventId) {
     return http.get('/events/' + eventId + '/stats');
   },
+  // W-55：回饋統計（平均分／回覆率／星等分佈／最近留言）
+  feedbackStats(eventId) {
+    return http.get('/admin/events/' + eventId + '/feedback-stats');
+  },
+  // W-56：催填回饋（只催已簽到且還沒填的人，12 小時內不重複）
+  remindFeedback(eventId) {
+    return http.post('/admin/events/' + eventId + '/feedback-remind', {});
+  },
   batchSignups(eventId, action, ids) {
     return http.patch('/admin/events/' + eventId + '/signups/batch', { action: action, ids: ids });
   },
@@ -147,15 +155,23 @@ module.exports = {
   notices() {
     return http.get('/admin/notices');
   },
+  /** W-54 已讀統計（誰看了、誰還沒看） */
+  noticeReadStats(id) {
+    return http.get('/admin/notices/' + id + '/read-stats');
+  },
+  /** W-54 催讀：只對未讀者發站內通知（不含已讀者，不騷擾） */
+  remindNotice(id) {
+    return http.post('/admin/notices/' + id + '/remind', {});
+  },
   updateNotice(id, payload) {
     return http.patch('/admin/notices/' + id, payload);
   },
   deleteEvent(id) {
-    return request.delete('/admin/events/' + id);
+    return http.del('/admin/events/' + id);
   },
 
   deleteItem(id) {
-    return request.delete('/admin/items/' + id);
+    return http.del('/admin/items/' + id);
   },
 
   deleteNotice(id) {
@@ -174,6 +190,37 @@ module.exports = {
   },
   unlinkParent(id) {
     return http.del('/admin/parents/link/' + id);
+  },
+
+  // ── W-53 第二階段：老師／職員在小程序內補登成績與出缺席 ──
+  // 能力是後端的 school:manage；前端只負責把參數送對，規則（同步資料不可覆蓋）在後端。
+  schoolStudents(q) {
+    return http.get('/admin/school/students', q ? { q: q } : {});
+  },
+  schoolGrades(studentId) {
+    return http.get('/admin/school/grades', { studentId: studentId });
+  },
+  schoolGradeCreate(body) {
+    return http.post('/admin/school/grades', body);
+  },
+  // 批次匯入：dryRun 只驗不寫（與活動／菜單匯入同一套語意）
+  schoolGradeBatch(body) {
+    return http.post('/admin/school/grades/batch', body);
+  },
+  schoolGradeTemplate() {
+    return http.get('/admin/school/grades/template');
+  },
+  schoolGradeDelete(id) {
+    return http.del('/admin/school/grades/' + id);
+  },
+  schoolAttendance(studentId) {
+    return http.get('/admin/school/attendance', { studentId: studentId });
+  },
+  schoolAttendCreate(body) {
+    return http.post('/admin/school/attendance', body);
+  },
+  schoolAttendDelete(id) {
+    return http.del('/admin/school/attendance/' + id);
   },
 
   // ── W-22 兩步驗證 ──

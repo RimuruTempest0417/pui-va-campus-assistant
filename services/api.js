@@ -32,6 +32,9 @@ module.exports = {
   claimItem(id) {
     return http.post('/items/' + id + '/claims', {});
   },
+  myClaims() {
+    return http.get('/my/claims');
+  },
   listEvents(query) {
     return http.get('/events', query);
   },
@@ -88,6 +91,10 @@ module.exports = {
   },
   listNotices(query) {
     return http.get('/notices', query);
+  },
+  /** W-59 全校搜尋：公告／活動／失物一次搜（可見性規則在後端，前端不重算） */
+  search(q) {
+    return http.get('/search', { q: q });
   },
   getNotice(id) {
     return http.get('/notices/' + id);
@@ -161,7 +168,7 @@ module.exports = {
   // ── 家校通（W-50/51/52）──
   schoolStatus() { return http.get('/school/status'); },
   schoolLink(account, password) { return http.post('/school/link', { account, password }); },
-  schoolUnlink() { return http.delete('/school/link'); },
+  schoolUnlink() { return http.del('/school/link'); },
   schoolSync(yearTerms) { return http.post('/school/sync', yearTerms ? { yearTerms } : {}); },
   schoolGrades(q) { return http.get('/school/grades', q || {}); },
   schoolAttendance(q) { return http.get('/school/attendance', q || {}); },

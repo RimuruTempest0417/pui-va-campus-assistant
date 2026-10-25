@@ -1,0 +1,92 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.title}}" back="{{true}}" />
+
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="search-inner">
+      <!-- 搜尋框：原生 input（Skyline 下自訂組件的受控 input 偶發不回寫） -->
+      <view class="sbox">
+        <pv-icon name="search" size="32" tone="muted" />
+        <input
+          class="sbox__input"
+          value="{{keyword}}"
+          placeholder="{{L.placeholder}}"
+          placeholder-class="ui-placeholder"
+          confirm-type="search"
+          bindinput="onInput"
+          bindconfirm="onConfirm"
+        />
+        <view wx:if="{{hasKeyword}}" class="sbox__clear" bindtap="onClear">
+          <text class="sbox__clear-x">✕</text>
+        </view>
+      </view>
+
+      <!-- 還沒輸入：提示 ＋ 最近搜尋 -->
+      <block wx:if="{{!hasKeyword}}">
+        <pv-empty title="{{L.hintTitle}}" desc="{{L.hintDesc}}" />
+        <view wx:if="{{recent.length}}" class="recent">
+          <view class="recent__head">
+            <text class="ui-section">{{L.recent}}</text>
+            <text class="recent__clear" bindtap="clearRecent">{{L.clearRecent}}</text>
+          </view>
+          <view class="chips">
+            <view
+              wx:for="{{recent}}"
+              wx:key="*this"
+              class="chip"
+              data-word="{{item}}"
+              bindtap="tapRecent"
+            >{{item}}</view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:elif="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="2" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="2" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{failed}}" tone="warning" title="{{L.failed}}" desc="{{errorText}}">
+        <view class="retry"><pv-button type="tinted" size="sm" bind:tap="retry">{{L.retry}}</pv-button></view>
+      </pv-empty>
+
+      <pv-empty wx:elif="{{!total}}" title="{{L.emptyTitle}}" desc="{{L.emptyDesc}}" />
+
+      <block wx:else>
+        <view class="sum"><text class="ui-section">{{summaryText}}</text></view>
+
+        <view wx:for="{{groups}}" wx:for-item="group" wx:key="type" class="grp">
+          <view class="grp__head">
+            <text class="ui-section">{{group.typeLabel}}</text>
+            <text class="grp__count ui-num">{{group.count}}</text>
+          </view>
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{group.items}}"
+              wx:for-item="row"
+              wx:for-index="idx"
+              wx:key="id"
+              class="ui-card ui-card--row {{idx === group.items.length - 1 ? 'ui-card--last' : ''}} {{pressedId === row.id ? 'ui-card--pressed' : ''}}"
+              data-id="{{row.id}}"
+              data-type="{{row.type}}"
+              bindtouchstart="onRowTouchStart"
+              bindtouchend="onRowTouchEnd"
+              bindtouchcancel="onRowTouchEnd"
+              bindtap="goRow"
+            >
+              <view class="hit">
+                <view class="hit__head">
+                  <text class="hit__title">{{row.title}}</text>
+                  <pv-tag wx:if="{{row.badgeLabel}}" class="hit__badge" text="{{row.badgeLabel}}" type="{{row.badgeTag}}" />
+                </view>
+                <text wx:if="{{row.snippet}}" class="hit__snippet">{{row.snippet}}</text>
+                <text class="hit__meta">{{row.metaText}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+</view>

@@ -1,5 +1,5 @@
 const data = require('../../../services/data');
-const { decorate } = require('../../../utils/item');
+const { decorate, decorateClaim } = require('../../../utils/item');
 
 const i18n = require('../../../utils/i18n');
 
@@ -18,28 +18,58 @@ Page({
       k07: i18n.pick("標記已認領"),
       k08: i18n.pick("標記已完成"),
       k09: i18n.pick("查看"),
+      k11: i18n.pick("我申請的"),
+      k12: i18n.pick("你還沒申請過認領"),
+      k13: i18n.pick("看到別人的失物或拾獲，可以在詳情頁按「我要認領」"),
+      k14: i18n.pick("申請於"),
+      k15: i18n.pick("處理於"),
     };
   },
 
   data: {
-    themeClass: appearance.themeClass(), loading: true, items: [], failed: false, errorText: '' },
+    themeClass: appearance.themeClass(), scope: 'mine', tabs: [],
+    loading: true, items: [], claims: [], failed: false, errorText: '' },
 
   onLoad() {
+    this.setData({ tabs: this.tabList() });
     this.load();
   },
 
   onShow() {
-    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
+    this.setData({ L: this.labels(), tabs: this.tabList(), themeClass: appearance.themeClass() });
     if (this._loadedOnce) this.load();
     this._loadedOnce = true;
   },
 
+  // 標籤要在 onShow 重算：在設定頁切成簡體再回來，onLoad 不會再跑
+  tabList() {
+    return [
+      { key: 'mine', label: i18n.pick('我的發布') },
+      { key: 'claims', label: i18n.pick('我申請的') },
+    ];
+  },
+
+  onScopeChange(e) {
+    const scope = e.detail.key;
+    if (scope === this.data.scope) return;
+    this.setData({ scope: scope, loading: true, failed: false, errorText: '' });
+    this.load();
+  },
+
   async load() {
     try {
+      if (this.data.scope === 'claims') {
+        const res = await data.myClaims();
+        this.setData({
+          loading: false, failed: false, errorText: '',
+          claims: (res.items || []).map(decorateClaim),
+        });
+        return;
+      }
       const res = await data.myItems();
       this.setData({ loading: false, failed: false, errorText: '', items: (res.items || []).map(decorate) });
     } catch (e) {
-      this.setData({ loading: false, failed: true, errorText: data.messageOf(e), items: [] });
+      this.setData({ loading: false, failed: true, errorText: data.messageOf(e), items: [], claims: [] });
     }
   },
 

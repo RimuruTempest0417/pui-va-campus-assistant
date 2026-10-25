@@ -166,7 +166,9 @@
 .kids__go { font-size: var(--pv-fs-subhead); color: var(--pv-tint); }
 
 /* W-34 通知鈴鐺（未讀紅點） */
-.home__bell { position: relative; width: 64rpx; height: 64rpx; margin-right: var(--pv-sp-2); display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--pv-fill); }
+.home__bell { position: relative; width: 64rpx; height: 64rpx; margin-right: var(--pv-sp-2); display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--pv-fill); transition: transform var(--pv-dur-release) var(--pv-ease), opacity var(--pv-dur-release) var(--pv-ease); }
+/* 按下回饋（v0.76.0）：Skyline 的 hover-class 不可靠，改用 touch 事件自設 pressed —— 60ms 按下、180ms 放開 */
+.home__bell--pressed { transform: scale(0.96); opacity: 0.88; transition-duration: var(--pv-dur-press); }
 /* v0.60.0：鐘身改由 pv-icon 畫（name="bell"），這裡只留外圈與紅點 */
 .home__bell-dot { position: absolute; top: -4rpx; right: -4rpx; min-width: 30rpx; height: 30rpx; padding: 0 8rpx; border-radius: var(--pv-r-pill); background: var(--pv-danger); color: var(--pv-on-tint); font-size: 18rpx; line-height: 30rpx; text-align: center; }
 

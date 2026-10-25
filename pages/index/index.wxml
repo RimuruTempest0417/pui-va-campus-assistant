@@ -10,6 +10,9 @@
     </view>
     <view class="home__right">
       <pv-tag wx:if="{{isDemo}}" text="{{L.demoTag}}" type="tint" plain />
+      <view class="home__bell {{searchPressed ? 'home__bell--pressed' : ''}}" bindtouchstart="onSearchTouchStart" bindtouchend="onSearchTouchEnd" bindtouchcancel="onSearchTouchEnd" bindtap="goSearch">
+        <pv-icon name="search" size="28" tone="default" />
+      </view>
       <view class="home__bell" bindtap="goNotifications" hover-class="home__avatar--pressed" hover-start-time="0">
         <pv-icon name="bell" size="28" tone="default" />
         <view wx:if="{{unread > 0}}" class="home__bell-dot">{{unread > 99 ? '99+' : unread}}</view>

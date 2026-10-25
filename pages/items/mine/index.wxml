@@ -2,6 +2,10 @@
   <pv-navbar title="{{L.k01}}" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="mine-inner">
+      <view class="mine-tabs">
+        <pv-tabs tabs="{{tabs}}" current="{{scope}}" bind:change="onScopeChange" />
+      </view>
+
       <block wx:if="{{loading}}">
         <view class="ui-card"><pv-skeleton rows="2" /></view>
         <view class="ui-card"><pv-skeleton rows="2" /></view>
@@ -11,26 +15,42 @@
         <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k03}}</pv-button>
       </pv-empty>
 
-      <pv-empty wx:elif="{{!items.length}}" title="{{L.k04}}"
-            desc="{{L.k05}}">
-    <pv-button type="tinted" size="sm" bind:tap="goCreate">{{L.k06}}</pv-button>
-  </pv-empty>
+      <block wx:elif="{{scope === 'claims'}}">
+        <pv-empty wx:if="{{!claims.length}}" title="{{L.k12}}" desc="{{L.k13}}" />
 
-  <view wx:else class="ui-list">
-    <view wx:for="{{items}}" wx:key="id" class="ui-card">
-      <view class="ui-row-between">
-        <text class="ui-title">{{item.title}}</text>
-        <pv-tag text="{{item.statusLabel}}" type="{{item.statusTag}}" />
-      </view>
-      <text class="ui-meta mine-meta">{{item.typeLabel}} · {{item.categoryName || L.k10}} · {{item.place}} · {{item.timeText}}</text>
-      <view class="mine-actions">
-        <pv-button class="mine-btn" wx:if="{{item.status === 'OPEN'}}" type="tinted" size="sm" data-id="{{item.id}}" data-next="CLAIMED" bind:tap="advance">{{L.k07}}</pv-button>
-        <pv-button class="mine-btn" wx:if="{{item.status === 'CLAIMED'}}" type="filled" size="sm" data-id="{{item.id}}" data-next="CLOSED" bind:tap="advance">{{L.k08}}</pv-button>
-        <pv-button wx:if="{{item.status !== 'CLOSED'}}" type="plain" size="sm" data-id="{{item.id}}" bind:tap="goDetail">{{L.k09}}</pv-button>
-      </view>
-    </view>
-  </view>
+        <view wx:else class="ui-list">
+          <view wx:for="{{claims}}" wx:key="id" class="ui-card" data-id="{{item.itemId}}" bindtap="goDetail">
+            <view class="ui-row-between">
+              <text class="ui-title mine-title">{{item.itemTitle}}</text>
+              <pv-tag text="{{item.statusLabel}}" type="{{item.statusTag}}" />
+            </view>
+            <text class="ui-meta mine-meta">{{item.typeLabel}} · {{item.categoryName || L.k10}} · {{item.place}}</text>
+            <text class="ui-meta mine-meta">{{L.k14}} {{item.appliedText}}</text>
+            <text wx:if="{{item.handled}}" class="ui-meta mine-meta">{{L.k15}} {{item.handledText}}</text>
+          </view>
+        </view>
+      </block>
 
+      <block wx:else>
+        <pv-empty wx:if="{{!items.length}}" title="{{L.k04}}" desc="{{L.k05}}">
+          <pv-button type="tinted" size="sm" bind:tap="goCreate">{{L.k06}}</pv-button>
+        </pv-empty>
+
+        <view wx:else class="ui-list">
+          <view wx:for="{{items}}" wx:key="id" class="ui-card">
+            <view class="ui-row-between">
+              <text class="ui-title mine-title">{{item.title}}</text>
+              <pv-tag text="{{item.statusLabel}}" type="{{item.statusTag}}" />
+            </view>
+            <text class="ui-meta mine-meta">{{item.typeLabel}} · {{item.categoryName || L.k10}} · {{item.place}} · {{item.timeText}}</text>
+            <view class="mine-actions">
+              <pv-button class="mine-btn" wx:if="{{item.status === 'OPEN'}}" type="tinted" size="sm" data-id="{{item.id}}" data-next="CLAIMED" bind:tap="advance">{{L.k07}}</pv-button>
+              <pv-button class="mine-btn" wx:if="{{item.status === 'CLAIMED'}}" type="filled" size="sm" data-id="{{item.id}}" data-next="CLOSED" bind:tap="advance">{{L.k08}}</pv-button>
+              <pv-button wx:if="{{item.status !== 'CLOSED'}}" type="plain" size="sm" data-id="{{item.id}}" bind:tap="goDetail">{{L.k09}}</pv-button>
+            </view>
+          </view>
+        </view>
+      </block>
     </view>
   </scroll-view>
 </view>

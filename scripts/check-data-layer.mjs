@@ -60,14 +60,31 @@ check('型別篩選', found.items.every((i) => i.type === 'FOUND'), `FOUND ${fou
 const search = await data.listItems({ q: '測試地點' });
 check('關鍵字搜尋', search.items.length === 1, `命中 ${search.items.length} 筆`);
 
-await data.claimItem(created.id);
+// 認領：用別人貼的示範物品（i7 藍色保溫瓶），不能用自己剛發布的那筆 ——
+// 後端本來就禁止認領自己的物品，自檢如果拿自己建的來試，等於在驗一條不存在的路徑。
+const claimBefore = await data.myClaims();
+await data.claimItem('i7');
 let claimErr = '';
 try {
-  await data.claimItem(created.id);
+  await data.claimItem('i7');
 } catch (e) {
   claimErr = e.code;
 }
 check('重複認領被擋', claimErr === 'ALREADY_CLAIMED', claimErr || '沒有擋下');
+
+let ownClaimErr = '';
+try {
+  await data.claimItem(created.id);
+} catch (e) {
+  ownClaimErr = e.code;
+}
+check('不能認領自己發布的物品', ownClaimErr === 'VALIDATION_FAILED', ownClaimErr || '沒有擋下');
+
+const claimList = await data.myClaims();
+check('我的認領有資料', claimList.items.length === claimBefore.items.length + 1, `${claimList.items.length} 筆`);
+check('我的認領帶物品摘要', claimList.items[0] && claimList.items[0].item && claimList.items[0].item.title === '藍色保溫瓶', claimList.items[0] ? claimList.items[0].item.title : '空');
+check('我的認領狀態為待審核', claimList.items[0] && claimList.items[0].status === 'PENDING', claimList.items[0] ? claimList.items[0].status : '空');
+check('我的認領依申請時間新到舊', claimList.items.every((c, i) => i === 0 || claimList.items[i - 1].createdAt >= c.createdAt), `${claimList.items.length} 筆`);
 
 // 滿額 → 進候補（不是丟錯，而是回傳 WAITLIST 並帶候補位置）
 const fullRec = await data.signupEvent('e2'); // 名額 20 / 已報 20
@@ -177,6 +194,28 @@ check('打開公告即已讀', n2.isRead === true && afterOpen.unread < noticesA
 await data.markAllNoticesRead();
 const afterAll = await data.listNotices({});
 check('全部標為已讀', afterAll.unread === 0, `未讀 ${afterAll.unread}`);
+
+// ── W-59 全校搜尋 ──
+// 驗的是「示範層的結論與後端一致」：看得到的才搜得到、標題命中排前面、只有過期公告命中時回空。
+const s1 = await data.search('圖書館');
+check('搜尋：跨類別有結果', s1.total > 0 && s1.groups.length >= 2, s1.groups.map((g) => g.type + '×' + g.count).join(' '));
+const sNotice = s1.groups.filter((g) => g.type === 'notice')[0] || { items: [] };
+check('搜尋：標題命中排最前', (sNotice.items[0] || {}).title === '圖書館新增自習區', (sNotice.items[0] || {}).title || '沒有結果');
+check('搜尋：過期公告不出現在結果', !s1.groups.some((g) => (g.items || []).some((i) => i.id === 'n5')), 'n5 出現在結果裡');
+const s2 = await data.search('繳費');
+check('搜尋：只命中過期公告時回空', s2.total === 0, `total ${s2.total}`);
+const sItem = s1.groups.filter((g) => g.type === 'item')[0] || { items: [] };
+check(
+  '搜尋：摘要取自命中的欄位',
+  (sItem.items[0] || {}).snippet && sItem.items[0].snippet.indexOf('圖書館') !== -1,
+  (sItem.items[0] || {}).snippet || '沒有摘要',
+);
+const s3 = await data.search('   ');
+check('搜尋：空白關鍵字不打後端', s3.total === 0 && s3.groups.length === 0, `groups ${s3.groups.length}`);
+const apiSrcSearch = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+check('搜尋：真 API 走 /search', apiSrcSearch.indexOf("'/search'") !== -1, 'services/api.js');
+
+
 
 
 // ── 介面語言（utils/i18n.js）──
@@ -348,6 +387,8 @@ check('簽到：我的報名帶簽到時間',
   check('通知：未讀數是數字', typeof list.unread === 'number', String(list.unread));
   const only = await data.notifications({ unreadOnly: true });
   check('通知：只看未讀', only.items.every((x) => !x.readAt), `${only.items.length} 則未讀`);
+  // W-57：示範資料要留一則配對通知，否則示範模式看不到這個功能長什麼樣
+  check('通知：示範資料有配對通知（ITEM）', list.items.some((x) => x.kind === 'ITEM'), `${list.items.filter((x) => x.kind === 'ITEM').length} 則`);
 }
 
 // ── W-29 活動延期／取消要能顯示 ──

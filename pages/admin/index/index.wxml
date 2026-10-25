@@ -149,6 +149,17 @@
             <text class="ui-meta">{{L.k20}}</text>
             <switch checked="{{notice.isPinned}}" bindchange="onPinned" color="{{theme.tint}}" />
           </view>
+          <!-- W-58 預約發佈：選日期＝排程，選了才出現時間 -->
+          <text class="ui-section ui-mt-2">{{L.k252}}</text>
+          <view class="filter-row">
+            <picker mode="date" value="{{notice.publishDate}}" start="{{today}}" bindchange="onPublishDate">
+              <view class="chip {{notice.publishDate ? 'chip--on' : ''}}">{{notice.publishDate || L.k255}}</view>
+            </picker>
+            <picker wx:if="{{notice.publishDate}}" mode="time" value="{{notice.publishTime}}" bindchange="onPublishTime">
+              <view class="chip chip--on">{{notice.publishTime}}</view>
+            </picker>
+            <view wx:if="{{notice.publishDate}}" class="chip" bindtap="clearSchedule">{{L.k256}}</view>
+          </view>
           <view class="row-actions">
             <pv-button type="filled" loading="{{sending}}" disabled="{{sending}}" bind:tap="publish">{{L.k21}}</pv-button>
           </view>
@@ -156,18 +167,31 @@
 
         <text class="ui-section ui-mt-2">既有公告（{{noticeList.length}}）</text>
         <view wx:if="{{noticeList.length}}" class="ui-list ui-list--grouped">
-          <view wx:for="{{noticeList}}" wx:key="id" class="ui-card ui-card--row {{index === noticeList.length - 1 ? 'ui-card--last' : ''}}">
-            <view class="ui-row-between">
-              <text class="ui-title">{{item.title}}</text>
-              <pv-tag text="{{item.kind === 'URGENT' ? L.k88 : item.kind === 'CALENDAR' ? L.k89 : L.k90}}" type="{{item.kind === 'URGENT' ? 'danger' : 'neutral'}}" />
+          <block wx:for="{{noticeList}}" wx:key="id">
+            <view class="ui-card ui-card--row {{index === noticeList.length - 1 && !(noticeStats && noticeStats.id === item.id) ? 'ui-card--last' : ''}}">
+              <view class="ui-row-between">
+                <text class="ui-title">{{item.title}}</text>
+                <pv-tag text="{{item.kind === 'URGENT' ? L.k88 : item.kind === 'CALENDAR' ? L.k89 : L.k90}}" type="{{item.kind === 'URGENT' ? 'danger' : 'neutral'}}" />
+              </view>
+              <text wx:if="{{item.scheduled}}" class="ui-meta">{{L.k254}} {{item.publishText}}</text>
+              <text class="ui-meta">{{L.k224}} {{item.read}} / {{item.total}}</text>
+              <view class="row-actions">
+                <pv-button wx:if="{{item.scheduled}}" size="sm" type="plain" data-id="{{item.id}}" data-version="{{item.version}}" bind:tap="publishNoticeNow">{{L.k253}}</pv-button>
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="openNoticeStats">{{L.k225}}</pv-button>
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" data-title="{{item.title}}" bind:tap="remindNotice">{{L.k226}}</pv-button>
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" data-pinned="{{item.isPinned ? '1' : '0'}}" data-version="{{item.version}}" bind:tap="togglePin">
+                  {{item.isPinned ? L.k91 : L.k92}}
+                </pv-button>
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteNotice">{{L.k22}}</pv-button>
+              </view>
             </view>
-            <view class="row-actions">
-              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-pinned="{{item.isPinned ? '1' : '0'}}" data-version="{{item.version}}" bind:tap="togglePin">
-                {{item.isPinned ? L.k91 : L.k92}}
-              </pv-button>
-              <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteNotice">{{L.k22}}</pv-button>
+            <view wx:if="{{noticeStats && noticeStats.id === item.id}}" class="ui-card ui-card--row {{index === noticeList.length - 1 ? 'ui-card--last' : ''}}">
+              <text class="ui-section">{{L.k224}} {{noticeStats.readText}}</text>
+              <text class="ui-meta">{{L.k227}}{{noticeStats.readerText}}</text>
+              <text class="ui-meta">{{L.k228}}{{noticeStats.unreadText}}</text>
+              <text wx:if="{{noticeStats.moreText}}" class="ui-meta">{{noticeStats.moreText}}</text>
             </view>
-          </view>
+          </block>
         </view>
       </block>
 
@@ -209,6 +233,21 @@
             </view>
           </view>
           <text class="ui-meta">出席率 {{evStats.attendanceRate}}%（已簽到 {{evStats.checkedIn}}／正取 {{evStats.signed}}）</text>
+
+          <!-- W-55 活動回饋統計：與報名統計同一張卡，不另開一張 -->
+          <view class="fb-box">
+            <text class="ui-meta fb-box__line">{{fbFailed ? L.k247 : fbLine}}</text>
+            <text wx:if="{{fbDistLine}}" class="ui-meta fb-box__line">{{fbDistLine}}</text>
+            <view wx:for="{{fbRecent}}" wx:key="id" class="fb-item">
+              <text class="fb-item__stars">{{item.stars}}</text>
+              <text class="fb-item__text">{{item.text}}</text>
+            </view>
+            <!-- W-56 催填回饋：只催已簽到且還沒填的人；按完就地顯示結果 -->
+            <view class="fb-box__actions">
+              <pv-button size="sm" type="plain" loading="{{fbReminding}}" disabled="{{fbReminding || !fbCanRemind}}" bind:tap="remindFeedback">{{L.k248}}</pv-button>
+              <text wx:if="{{fbRemindText}}" class="ui-meta fb-box__hint">{{fbRemindText}}</text>
+            </view>
+          </view>
 
           <view class="row-actions">
             <pv-button size="sm" type="filled" bind:tap="promoteAll" disabled="{{evStats.waitlisted === 0}}">{{L.k35}}</pv-button>
@@ -378,6 +417,149 @@
             <text class="ui-meta">子女：{{item.student.nickname || item.student.account}}（{{item.student.grade || ''}}{{item.student.className || ''}} · {{item.student.account}}）</text>
             <view class="row-actions">
               <pv-button size="sm" type="plain" data-id="{{item.id}}" data-name="{{item.student.nickname || item.student.account}}" bind:tap="unbindParent">{{L.k65}}</pv-button>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <!-- 補登成績與出缺席（W-53 第二階段：老師／職員在小程序內就能補，不必回電腦） -->
+      <block wx:elif="{{tab === 'school'}}">
+        <pv-card>
+          <text class="ui-section ui-mt-2">{{L.k163}}</text>
+          <input class="field__input" value="{{scQuery}}" bindinput="onSchoolQuery" bindconfirm="findSchoolStudents" confirm-type="search" placeholder="{{L.k164}}" />
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" loading="{{scBusy}}" disabled="{{scBusy}}" bind:tap="findSchoolStudents">{{L.k165}}</pv-button>
+          </view>
+        </pv-card>
+
+        <view wx:if="{{scHits.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{scHits}}" wx:key="id"
+                class="ui-card ui-card--row {{index === scHits.length - 1 ? 'ui-card--last' : ''}} {{scPressed === index ? 'ov-card--pressed' : ''}}"
+                data-index="{{index}}" data-id="{{item.id}}"
+                bindtap="pickSchoolStudent" bindtouchstart="pressHit" bindtouchend="releaseHit">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.title}}</text>
+              <text class="ui-meta">{{item.account}}</text>
+            </view>
+            <text class="ui-meta">{{item.meta}}</text>
+          </view>
+        </view>
+
+        <pv-card wx:if="{{scPicked}}">
+          <view class="ui-row-between">
+            <text class="ui-title">{{scPicked.title}}</text>
+            <pv-tag text="{{scPicked.account}}" type="neutral" />
+          </view>
+          <text class="ui-meta">{{scPicked.meta}}</text>
+          <view class="filter-row">
+            <view wx:for="{{scModes}}" wx:key="key" class="chip {{scMode === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickSchoolMode">{{item.label}}</view>
+          </view>
+        </pv-card>
+
+        <!-- 成績：補登表單 -->
+        <pv-card wx:if="{{scPicked && scMode === 'grade'}}">
+          <text class="ui-section">{{L.k173}}</text>
+          <input class="field__input" value="{{gForm.courseName}}" data-field="courseName" bindinput="onGradeField" placeholder="{{L.k170}}" />
+          <input class="field__input field__gap" value="{{gForm.testType}}" data-field="testType" bindinput="onGradeField" placeholder="{{L.k171}}" />
+          <input class="field__input field__gap" type="digit" value="{{gForm.score}}" data-field="score" bindinput="onGradeField" placeholder="{{L.k172}}" />
+          <input class="field__input field__gap" value="{{gForm.yearTerm}}" data-field="yearTerm" bindinput="onGradeField" placeholder="{{L.k169}}" />
+          <text class="ui-meta">{{L.k188}}</text>
+          <view class="filter-row">
+            <view wx:for="{{termOptions}}" wx:key="key" class="chip {{gForm.term === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickGradeTerm">{{item.label}}</view>
+          </view>
+          <picker mode="date" value="{{gForm.testDate}}" bindchange="onGradeDate">
+            <view class="field__input field__gap">{{gForm.testDate || L.k187}}</view>
+          </picker>
+          <view class="row-actions">
+            <pv-button type="filled" size="sm" loading="{{scSaving}}" disabled="{{scSaving}}" bind:tap="submitGrade">{{L.k173}}</pv-button>
+            <pv-button size="sm" type="plain" bind:tap="toggleGradeBatch">{{L.k202}}</pv-button>
+          </view>
+        </pv-card>
+
+        <!-- 批次匯入成績（一次貼多筆「科目,類型,日期,分數」；先檢查再匯入） -->
+        <pv-card wx:if="{{scPicked && scMode === 'grade' && gBatchOpen}}">
+          <view class="ui-row-between">
+            <text class="ui-section">{{L.k222}}</text>
+            <pv-button size="sm" type="plain" bind:tap="toggleGradeBatch">{{L.k203}}</pv-button>
+          </view>
+          <text class="ui-meta">{{L.k204}}</text>
+          <text wx:if="{{!gForm.yearTerm || !gForm.term}}" class="ui-meta">{{L.k223}}</text>
+          <textarea
+            class="field__input field__textarea field__gap"
+            value="{{gBatchText}}"
+            bindinput="onGradeBatchText"
+            maxlength="-1"
+            placeholder="數學,大測一,2026-10-09,85"
+          />
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" bind:tap="fillGradeBatchTemplate">{{L.k206}}</pv-button>
+            <pv-button size="sm" type="plain" loading="{{gBatchBusy}}" disabled="{{gBatchBusy}}" bind:tap="checkGradeBatch">{{L.k207}}</pv-button>
+            <pv-button size="sm" type="filled" loading="{{gBatchBusy}}" disabled="{{gBatchBusy || !gBatchChecked}}" bind:tap="confirmGradeBatch">{{L.k208}}</pv-button>
+          </view>
+          <view wx:if="{{gBatchResult}}">
+            <text class="ui-meta imp-sum">{{L.k215}}{{gBatchResult.total}}{{L.k216}}{{gBatchResult.success}}{{L.k217}}{{gBatchResult.failed}}</text>
+            <view wx:for="{{gBatchResult.rows}}" wx:key="line" class="imp-row">
+              <text class="imp-row__line">{{L.k218}}{{item.line}}{{L.k219}}</text>
+              <text class="imp-row__msg {{item.ok ? 'imp-row__msg--ok' : 'imp-row__msg--bad'}}">{{item.message}}{{item.label ? '：' + item.label : ''}}</text>
+            </view>
+          </view>
+        </pv-card>
+
+        <!-- 成績：這位學生既有的紀錄 -->
+        <pv-empty wx:if="{{scPicked && scMode === 'grade' && !scGrades.length}}" title="{{L.k175}}" desc="" />
+        <view wx:if="{{scPicked && scMode === 'grade' && scGrades.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{scGrades}}" wx:key="id" class="ui-card ui-card--row {{index === scGrades.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.title}}</text>
+              <text class="ui-num">{{item.scoreText}}</text>
+            </view>
+            <view class="ui-row-between">
+              <text class="ui-meta">{{item.meta}}</text>
+              <pv-tag text="{{item.manual ? L.k185 : L.k186}}" type="{{item.manual ? 'warning' : 'neutral'}}" />
+            </view>
+            <view wx:if="{{item.manual}}" class="row-actions">
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-title="{{item.title}}" bind:tap="deleteGrade">{{L.k22}}</pv-button>
+            </view>
+          </view>
+        </view>
+
+        <!-- 出缺席：補登表單 -->
+        <pv-card wx:if="{{scPicked && scMode === 'attend'}}">
+          <text class="ui-section">{{L.k174}}</text>
+          <picker mode="date" value="{{aForm.date}}" bindchange="onAttendDate">
+            <view class="field__input">{{aForm.date || L.k187}}</view>
+          </picker>
+          <text class="ui-meta">{{L.k179}}</text>
+          <view class="filter-row">
+            <view wx:for="{{attStatuses}}" wx:key="key" class="chip {{aForm.amStatus === item.key ? 'chip--on' : ''}}"
+                  data-field="am" data-key="{{item.key}}" bindtap="pickAttendStatus">{{item.label}}</view>
+          </view>
+          <text class="ui-meta">{{L.k180}}</text>
+          <view class="filter-row">
+            <view wx:for="{{attStatuses}}" wx:key="key" class="chip {{aForm.pmStatus === item.key ? 'chip--on' : ''}}"
+                  data-field="pm" data-key="{{item.key}}" bindtap="pickAttendStatus">{{item.label}}</view>
+          </view>
+          <input class="field__input field__gap" value="{{aForm.remark}}" bindinput="onAttendRemark" placeholder="{{L.k189}}" />
+          <view class="row-actions">
+            <pv-button type="filled" size="sm" loading="{{scSaving}}" disabled="{{scSaving}}" bind:tap="submitAttend">{{L.k174}}</pv-button>
+          </view>
+        </pv-card>
+
+        <!-- 出缺席：這位學生既有的紀錄 -->
+        <text wx:if="{{scPicked && scMode === 'attend' && scAttend.length}}" class="ui-meta">{{scSummaryText}}</text>
+        <pv-empty wx:if="{{scPicked && scMode === 'attend' && !scAttend.length}}" title="{{L.k176}}" desc="" />
+        <view wx:if="{{scPicked && scMode === 'attend' && scAttend.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{scAttend}}" wx:key="id" class="ui-card ui-card--row {{index === scAttend.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.dateText}}</text>
+              <pv-tag text="{{item.manual ? L.k185 : L.k186}}" type="{{item.manual ? 'warning' : 'neutral'}}" />
+            </view>
+            <text class="ui-meta">{{L.k179}} {{item.amText}} · {{L.k180}} {{item.pmText}}</text>
+            <text wx:if="{{item.remark}}" class="ui-meta">{{item.remark}}</text>
+            <view wx:if="{{item.manual}}" class="row-actions">
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-day="{{item.dateText}}" bind:tap="deleteAttend">{{L.k22}}</pv-button>
             </view>
           </view>
         </view>

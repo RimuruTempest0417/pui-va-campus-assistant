@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 8;
+const SEED_VERSION = 9;
 
 const weekUtil = require('../utils/week');
 
@@ -77,6 +77,12 @@ function seed() {
       { id: 'i5', type: 'FOUND', title: '灰色外套', place: '體育館', status: 'OPEN', categoryKey: 'clothes', categoryName: '衣物', happenedAt: now - 8 * h, description: '尺寸 M，左袖有校徽。', images: [], author: { nickname: '吳同學' }, contactType: 'inApp', viewCount: 17 },
       { id: 'i7', type: 'FOUND', title: '藍色保溫瓶', place: '圖書館三樓', status: 'OPEN', categoryKey: 'daily', categoryName: '日用品', happenedAt: now - 3 * h, description: '瓶身有貼紙，瓶蓋是白色的。', images: [], author: { nickname: '何同學' }, contactType: 'inApp', viewCount: 6 },
       { id: 'i6', type: 'LOST', title: '計算機（Casio fx-991）', place: '三樓自習室', status: 'OPEN', categoryKey: 'phone', categoryName: '電子產品', happenedAt: now - 12 * h, description: '背面貼了姓名貼。', images: [], author: { nickname: '鄭同學' }, contactType: 'inApp', viewCount: 22 },
+    ],
+    // 示範層的認領申請：三種狀態各一筆，讓「我申請的」一打開就看得懂差別
+    claims: [
+      { id: 'c1', itemId: 'i2', status: 'PENDING', createdAt: now - 6 * h, handledAt: null, message: '卡套背面有我的學號' },
+      { id: 'c2', itemId: 'i3', status: 'APPROVED', createdAt: now - 30 * h, handledAt: now - 24 * h, message: '耳機盒側邊有卡通貼紙' },
+      { id: 'c3', itemId: 'i4', status: 'REJECTED', createdAt: now - 60 * h, handledAt: now - 55 * h, message: '不確定是不是我的' },
     ],
     events: [
       { id: 'e1', title: '校運會報名', club: '體育組', location: '二號操場', startAt: now + 24 * h, endAt: now + 27 * h,
@@ -403,10 +409,43 @@ module.exports = {
     const data = db();
     const item = data.items.filter((i) => i.id === id)[0];
     if (!item) return Promise.reject({ code: 'NOT_FOUND' });
-    if (item.status !== 'OPEN') return Promise.reject({ code: 'ALREADY_CLAIMED' });
-    item.status = 'CLAIMED';
+    // 與後端同一套規則：不能認領自己的、同一件只能申請一次、已結束的不能申請
+    if ((item.author && item.author.nickname === data.user.nickname) || item.isMine) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '不能認領自己發布的物品' });
+    }
+    const existed = (data.claims || []).filter((c) => c.itemId === id)[0];
+    if (existed) return Promise.reject({ code: 'ALREADY_CLAIMED', message: '你已經申請過，請等待對方回應' });
+    if (item.status === 'CLOSED') return Promise.reject({ code: 'VALIDATION_FAILED', message: '這件物品已結束' });
+    if (item.status === 'CLAIMED') return Promise.reject({ code: 'ALREADY_CLAIMED', message: '這件物品已被認領' });
+
+    const claim = { id: 'c-' + id + '-' + Date.now(), itemId: id, status: 'PENDING', createdAt: Date.now(), handledAt: null, message: '' };
+    data.claims = (data.claims || []).concat([claim]);
+    if (item.status === 'OPEN') item.status = 'MATCHED';
     save(data);
-    return Promise.resolve(Object.assign({}, item));
+    return Promise.resolve(Object.assign({}, claim));
+  },
+
+  myClaims() {
+    const data = db();
+    const rows = (data.claims || [])
+      .map((c) => {
+        const item = data.items.filter((i) => i.id === c.itemId)[0];
+        if (!item) return null; // 物品被刪掉就不再顯示（與後端一致）
+        return Object.assign({}, c, {
+          item: {
+            id: item.id,
+            title: item.title,
+            type: item.type,
+            status: item.status,
+            place: item.place,
+            happenedAt: item.happenedAt,
+            categoryName: item.categoryName || null,
+          },
+        });
+      })
+      .filter((x) => x)
+      .sort((a, b) => b.createdAt - a.createdAt);
+    return Promise.resolve({ items: rows });
   },
 
   // ── 活動 ──
@@ -737,6 +776,84 @@ module.exports = {
     return Promise.resolve({ items: items, unread: items.filter((n) => !n.isRead).length });
   },
 
+  /**
+   * W-59 全校搜尋（示範層）：規則要與後端 `/search` 一致 ——
+   * 過期公告不算、失物類型與狀態照樣帶出、標題命中排前面、`%`／`_` 當普通字元。
+   * 兩邊結論不一致時，交付現場（只跑示範資料）看到的就會跟線上不一樣。
+   */
+  search(query) {
+    // 呼叫端有兩種寫法：頁面傳字串（data.search('圖書館')），自檢腳本傳物件（{ q, types, limit }）
+    const opts = typeof query === 'string' ? { q: query } : (query || {});
+    const q = String(opts.q || '').trim();
+    const limit = opts.limit || 5;
+    if (!q) return Promise.resolve({ q: '', total: 0, groups: [] });
+    const low = q.toLowerCase();
+    const data = db();
+    const now = Date.now();
+    const wanted = (opts.types || 'notice,event,item').split(',').map((s) => s.trim());
+    const groups = [];
+
+    const hitScore = (title) => (String(title || '').toLowerCase().indexOf(low) !== -1 ? 2 : 1);
+    const snippet = (text, fallback) => {
+      const body = String(text || '').replace(/\s+/g, ' ').trim();
+      if (!body) return fallback || '';
+      const at = body.toLowerCase().indexOf(low);
+      const start = at <= 0 ? 0 : Math.max(0, at - 30);
+      const piece = body.slice(start, start + 90);
+      return (start > 0 ? '…' : '') + piece + (start + 90 < body.length ? '…' : '');
+    };
+    // 摘要要從「真的有命中的欄位」截：失物常是地點命中（圖書館三樓），
+    // 截描述的話使用者看不出這筆為什麼被搜出來（與後端 bestSnippet 同一條規則）
+    const bestSnippet = (fields) => {
+      const hit = fields.filter((f) => String(f || '').toLowerCase().indexOf(low) !== -1)[0];
+      const first = fields.filter((f) => String(f || '').trim())[0];
+      return snippet(hit || first, '');
+    };
+    const byScore = (a, b) => b.score - a.score || String(b.date).localeCompare(String(a.date));
+
+    if (wanted.indexOf('notice') !== -1) {
+      const items = (data.notices || [])
+        .filter((n) => !n.expiresAt || n.expiresAt > now)
+        .filter((n) => String(n.title || '').toLowerCase().indexOf(low) !== -1 || String(n.content || '').toLowerCase().indexOf(low) !== -1)
+        .map((n) => ({
+          id: n.id, type: 'notice', title: n.title, snippet: bestSnippet([n.content]),
+          badge: n.kind, date: new Date(n.publishedAt).toISOString(), score: hitScore(n.title),
+        }))
+        .sort(byScore)
+        .slice(0, limit);
+      groups.push({ type: 'notice', count: items.length, items: items });
+    }
+
+    if (wanted.indexOf('event') !== -1) {
+      const items = (data.events || [])
+        .filter((e) => !e.deletedAt && e.status !== 'DRAFT')
+        .filter((e) => [e.title, e.description, e.location].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((e) => ({
+          id: e.id, type: 'event', title: e.title, snippet: bestSnippet([e.description, e.location]),
+          badge: e.status, date: new Date(e.startAt).toISOString(), score: hitScore(e.title),
+        }))
+        .sort(byScore)
+        .slice(0, limit);
+      groups.push({ type: 'event', count: items.length, items: items });
+    }
+
+    if (wanted.indexOf('item') !== -1) {
+      const items = (data.items || [])
+        .filter((i) => !i.deletedAt)
+        .filter((i) => [i.title, i.description, i.place].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((i) => ({
+          id: i.id, type: 'item', title: i.title, snippet: bestSnippet([i.description, i.place]),
+          badge: i.type + ':' + i.status, date: new Date(i.happenedAt).toISOString(), score: hitScore(i.title),
+        }))
+        .sort(byScore)
+        .slice(0, limit);
+      groups.push({ type: 'item', count: items.length, items: items });
+    }
+
+    const kept = groups.filter((g) => g.count > 0);
+    return Promise.resolve({ q: q, total: kept.reduce((s, g) => s + g.count, 0), groups: kept });
+  },
+
   /** 外部校曆：示範模式沒有外部連結，回空集合（畫面只顯示站內公告與活動） */
   externalCalendar() {
     return Promise.resolve({ configured: false, source: 'ics', updatedAt: null, items: [] });
@@ -788,6 +905,8 @@ module.exports = {
   // ── W-34 示範站內通知 ──
   notifications(unreadOnly) {
     const all = [
+      // W-57：貼上失物／拾獲時的主動配對通知（真 API 模式由後端產生；示範模式沒有其他真實使用者，留一則讓你看到長相）
+      { id: 'n4', kind: 'ITEM', title: '有人撿到像你的「黑色雨傘」', body: '疑似與你張貼的「黑色雨傘」相符（同分類、地點相近），地點：圖書館一樓', link: '/pages/items/detail/index?id=i2', readAt: null, createdAt: '2026-10-25T02:10:00.000Z' },
       { id: 'n1', kind: 'EVENT', title: '活動改期：班際籃球賽', body: '原定 11/10 09:00 → 11/17 09:00', link: '/pages/events/detail/index?id=e7', readAt: null, createdAt: '2026-10-24T09:12:00.000Z' },
       { id: 'n2', kind: 'CLAIM', title: '認領已通過', body: '你申請的「黑色雨傘」已審批通過，請到失物招領領取。', link: '/pages/items/detail/index?id=i1', readAt: null, createdAt: '2026-10-23T15:40:00.000Z' },
       { id: 'n3', kind: 'NOTICE', title: '新公告：期中考試安排', body: '教務處已發布期中考試時間表。', link: '/pages/notices/detail/index?id=nt1', readAt: '2026-10-22T08:00:00.000Z', createdAt: '2026-10-22T07:30:00.000Z' },

@@ -1,7 +1,10 @@
 @import "../../../styles/tokens.wxss";
 @import "../../../styles/ui.wxss";
 
+.mine-tabs { margin-bottom: var(--pv-sp-2); }
 .mine-meta { margin-top: 6rpx; display: block; }
+/* 標題可壓縮、右邊膠囊不能被壓扁（flex:1 會把靠右的小標籤吃光） */
+.mine-title { flex: 1; min-width: 0; margin-right: var(--pv-sp-2); }
 .mine-actions { display: flex; flex-direction: row; margin-top: var(--pv-sp-2);
   gap: var(--pv-sp-2);
   flex-wrap: wrap;

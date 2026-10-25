@@ -45,6 +45,7 @@ Page({
       emptyGrades: i18n.pick('還沒有成績資料，按「立即同步」抓取'),
       emptyAttend: i18n.pick('還沒有出缺席資料'),
       manual: i18n.pick('同步不到？可以在後台手動輸入，或請老師代為補登。'),
+      manualTag: i18n.pick('手動補登'),
       needCreds: i18n.pick('請填帳號與密碼'),
       syncFail: i18n.pick('同步失敗'),
       syncedPrefix: i18n.pick('已同步 '),
@@ -100,10 +101,11 @@ Page({
   async loadAll() {
     try {
       const [g, a] = await Promise.all([data.schoolGrades(), data.schoolAttendance()]);
-      const grades = (g.items || []).map((x) => ({ ...x, dateText: (x.testDate || '').slice(0, 10), scoreText: x.score === null || x.score === undefined ? '—' : String(x.score) }));
+      const grades = (g.items || []).map((x) => ({ ...x, dateText: (x.testDate || '').slice(0, 10), scoreText: x.score === null || x.score === undefined ? '—' : String(x.score), manual: x.source === 'MANUAL' }));
       const attendance = (a.items || []).map((x) => ({
         ...x,
         dateText: (x.date || '').slice(0, 10),
+        manual: x.source === 'MANUAL',
         statusText: x.amStatus === 'late' || x.isAmLate ? i18n.pick('遲到') : (x.amStatus === 'leave' ? i18n.pick('請假') : (x.amStatus === 'absent' ? i18n.pick('缺席') : i18n.pick('出席'))),
         tone: x.amStatus === 'leave' ? 'warning' : (x.amStatus === 'absent' ? 'danger' : (x.isAmLate ? 'warning' : 'success')),
       }));

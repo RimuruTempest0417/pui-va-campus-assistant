@@ -52,6 +52,42 @@ paths:
                   user: { $ref: '#/components/schemas/User' }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  /auth/password:
+    post:
+      tags: [auth]
+      security: []
+      summary: 帳號密碼登入（學生／家長／教職員共用；不檢查後台能力）
+      description: |
+        `/auth/login` 是微訊 code 換 token；`/admin/login` 只收有後台能力的角色。
+        學生與家長沒有後台能力，在那裡永遠登不進去，所以改走這一支。
+        帳號就是 `User.openid` 欄位（由後台建立或設定密碼）。
+        帳號不存在與密碼錯誤回同一個訊息，避免探測；連續失敗會鎖一段時間。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account, password]
+              properties:
+                account: { type: string, description: 學號／職員帳號 }
+                password: { type: string }
+                code: { type: string, description: '已開兩步驗證時必填：6 位數或備用碼' }
+      responses:
+        '200':
+          description: 登入成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  role: { type: string, enum: [SUPER_ADMIN, ADMIN, STAFF, TEACHER, PARENT, STUDENT] }
+                  nickname: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
   /auth/me:
     get:
       tags: [auth]
@@ -110,6 +146,10 @@ paths:
     post:
       tags: [items]
       summary: 發布失物／拾獲
+      description: |
+        建立後會立刻做一次智能配對（規則見 GET /items/{id}/matches），
+        對「另一半」的作者發一則站內通知（kind=ITEM），內容包含吻合原因與該筆紀錄的連結。
+        同一位作者只收一則、不通知自己貼的紀錄；配對失敗不影響建立（仍回 201）。
       requestBody:
         required: true
         content:
@@ -139,6 +179,43 @@ paths:
                   items:
                     type: array
                     items: { $ref: '#/components/schemas/LostItem' }
+
+  /my/claims:
+    get:
+      tags: [items]
+      summary: 我的認領申請（申請人自己看進度）
+      description: |
+        只回 JWT 本人的申請（claimantId 由 token 決定，不接受前端傳 id），
+        新到舊、最多 50 筆；物品被軟刪除的不再出現。
+        status：PENDING 待審核／APPROVED 已通過／REJECTED 未通過，handledAt 為處理時間。
+      responses:
+        '200':
+          description: 我的申請清單（附物品摘要）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+                        createdAt: { type: string, format: date-time }
+                        handledAt: { type: string, format: date-time, nullable: true }
+                        item:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            title: { type: string }
+                            type: { type: string, enum: [LOST, FOUND] }
+                            status: { type: string, enum: [OPEN, MATCHED, CLAIMED, CLOSED] }
+                            place: { type: string }
+                            happenedAt: { type: string, format: date-time }
+                            categoryName: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /categories:
     get:
@@ -658,6 +735,40 @@ paths:
               schema: { $ref: '#/components/schemas/Notice' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /search:
+    get:
+      tags: [search]
+      summary: 全校搜尋（公告／活動／失物；只看得到的人搜得到）
+      description: |
+        可見性規則由各模組自己決定：公告沿用 `visibleNoticeWhere`（排除軟刪除／預約未到／已過期），
+        活動與失物排除軟刪除。失物的聯絡方式（contactValue）一律不回傳。
+        標題命中（score 2）排在只有內文命中（score 1）之前，同分依日期新到舊。
+      parameters:
+        - { in: query, name: q, required: true, schema: { type: string, minLength: 1, maxLength: 50 } }
+        - { in: query, name: types, schema: { type: string, example: notice,event,item }, description: 逗號分隔，預設三類全搜 }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 20, default: 5 }, description: 每一類最多幾筆 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  q: { type: string }
+                  total: { type: integer }
+                  groups:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type: { type: string, enum: [notice, event, item] }
+                        count: { type: integer }
+                        items:
+                          type: array
+                          items: { $ref: '#/components/schemas/SearchHit' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
   /subscriptions:
     post:
       tags: [notices]
@@ -919,6 +1030,222 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /admin/school/students:
+    get:
+      tags: [school]
+      summary: 找學生（補登成績／出缺席用，需 school:manage）
+      parameters:
+        - { in: query, name: q, schema: { type: string }, description: 學號／姓名／班別關鍵字 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        account: { type: string, description: 學號（User.openid） }
+                        nickname: { type: string, nullable: true }
+                        grade: { type: string, nullable: true }
+                        className: { type: string, nullable: true }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/school/grades:
+    get:
+      tags: [school]
+      summary: 某位學生的成績（需 school:manage）
+      parameters:
+        - { in: query, name: studentId, required: true, schema: { type: string } }
+        - { in: query, name: yearTerm, schema: { type: string } }
+        - { in: query, name: term, schema: { type: string } }
+      responses:
+        '200':
+          description: OK（每筆帶 manual 旗標，只有 manual=true 可以刪）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  student: { type: object }
+                  items: { type: array, items: { type: object } }
+                  years: { type: array, items: { type: string } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [school]
+      summary: 補登／修改一筆成績（需 school:manage，source=MANUAL）
+      description: |
+        同一個（學生＋學年＋學段＋科目＋類型＋日期）再送一次就是「改」，不會多一筆。
+        該鍵若已是家校通同步的資料（source=SYNC）→ 409，手動不能覆蓋學校系統的真相。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId, yearTerm, term, courseName, testType, testDate]
+              properties:
+                studentId: { type: string }
+                yearTerm: { type: string, maxLength: 16 }
+                term: { type: string, maxLength: 8 }
+                courseName: { type: string, maxLength: 48 }
+                testType: { type: string, maxLength: 24 }
+                testDate: { type: string, format: date }
+                score: { type: number, nullable: true, description: 留空＝未評分 }
+                content: { type: string, maxLength: 200 }
+                className: { type: string, maxLength: 24, description: 不帶就用學生自己的班別 }
+      responses:
+        '201': { description: 已新增（source=MANUAL） }
+        '200': { description: 已更新同一筆 }
+        '409': { description: 這筆是同步資料，不能手動覆蓋 }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/school/grades/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    delete:
+      tags: [school]
+      summary: 刪除手動補登的成績（需 school:manage）
+      description: 只有 source=MANUAL 可以刪；同步來的回 422（要修就等下一次同步）。
+      responses:
+        '200': { description: 已刪除 }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/school/grades/batch:
+    post:
+      tags: [school]
+      summary: 批次補登成績（一次貼多筆，需 school:manage）
+      description: |
+        一行一筆「科目,類型,日期,分數」（第五欄說明可留空），有表頭也能認。
+        逐列回報：好的先寫、壞的把行號與原因帶回去；`dryRun=true` 只驗不寫（前端先預覽再確認）。
+        日期一律存 UTC 午夜（與單筆補登、家校通同步三條寫入路徑一致）。
+        同步來的資料（source=SYNC）在預覽階段就標紅，不會被覆蓋；同一份內容裡重複的列標「重複」。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId, yearTerm, term, text]
+              properties:
+                studentId: { type: string }
+                yearTerm: { type: string, maxLength: 16 }
+                term: { type: string, maxLength: 8 }
+                text: { type: string, maxLength: 20000, description: 一行一筆，逗號分隔 }
+                dryRun: { type: boolean, default: false }
+      responses:
+        '200':
+          description: OK（逐列結果）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dryRun: { type: boolean }
+                  total: { type: integer }
+                  success: { type: integer }
+                  failed: { type: integer }
+                  rows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        line: { type: integer }
+                        ok: { type: boolean }
+                        message: { type: string }
+                        label: { type: string }
+                        action: { type: string, enum: [create, update] }
+                        id: { type: string }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/school/grades/template:
+    get:
+      tags: [school]
+      summary: 批次補登的範本內容（需 school:manage）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/school/attendance:
+    get:
+      tags: [school]
+      summary: 某位學生的出缺席（需 school:manage）
+      parameters:
+        - { in: query, name: studentId, required: true, schema: { type: string } }
+        - { in: query, name: yearTerm, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  student: { type: object }
+                  items: { type: array, items: { type: object } }
+                  summary:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      late: { type: integer }
+                      absent: { type: integer }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [school]
+      summary: 補登／修改一天的出缺席（需 school:manage，source=MANUAL）
+      description: 同一（學生＋日期）再送一次就是「改」；同步來的資料回 409。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId, date, yearTerm, term]
+              properties:
+                studentId: { type: string }
+                date: { type: string, format: date }
+                yearTerm: { type: string, maxLength: 16 }
+                term: { type: string, maxLength: 8 }
+                amStatus: { type: string, enum: [normal, late, absent, leave], default: normal }
+                pmStatus: { type: string, enum: [normal, late, absent, leave], default: normal }
+                remark: { type: string, maxLength: 200 }
+      responses:
+        '201': { description: 已新增（source=MANUAL） }
+        '200': { description: 已更新同一天 }
+        '409': { description: 這天是同步資料，不能手動覆蓋 }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/school/attendance/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    delete:
+      tags: [school]
+      summary: 刪除手動補登的出缺席（需 school:manage）
+      responses:
+        '200': { description: 已刪除 }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /uploads/signature:
     post:
       tags: [uploads]
@@ -1150,12 +1477,19 @@ paths:
     get:
       tags: [admin]
       summary: 公告列表（後台）
+      description: |
+        W-58：每列多回 `scheduled`（`publishedAt` 在未來＝排程中，前台看不到）。
+        後台清單**不過濾**未到時間的公告，老師才看得到自己排了什麼。
       security: [{ bearerAuth: [] }]
       responses:
         '200': { description: OK }
     post:
       tags: [admin]
       summary: 發公告（可推送訂閱消息）
+      description: |
+        W-58 預約發佈：帶 `publishedAt`（未來的時間）＝排程，到時間之前公開清單與詳情頁都回 404。
+        限制：**緊急公告（URGENT）不能預約**（422，緊急要立即發才有通知）、最多預約 **90 天**。
+        回應多一個 `scheduled` 布林值讓前端知道是「已發佈」還是「已排程」。
       requestBody:
         required: true
         content:
@@ -1169,6 +1503,11 @@ paths:
                 kind: { type: string, enum: [NORMAL, URGENT, CALENDAR] }
                 isPinned: { type: boolean }
                 push: { type: boolean, description: 是否發訂閱消息 }
+                publishedAt:
+                  type: string
+                  format: date-time
+                  description: 發佈時間；不帶＝立即發佈，帶未來時間＝預約（最多 90 天）
+                expiresAt: { type: string, format: date-time, description: 有效期至（可空） }
       responses:
         '201':
           description: 建立成功
@@ -1176,6 +1515,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Notice' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { description: 欄位驗證失敗（含「緊急公告不能預約」「超過 90 天」） }
 
   /admin/stats:
     get:
@@ -1336,6 +1676,81 @@ paths:
             text/csv:
               schema: { type: string }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/events/{id}/feedback-stats:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      tags: [admin]
+      summary: 活動回饋統計（平均分／回覆率／星等分佈／最近留言；需 event:create，老師只能看自己開的活動）
+      description: |
+        沒有回饋時 `avgRating` 與 `rate` 回 **null**（不是 0，否則會被讀成「大家都給 0 分」）；
+        回覆率的分母是「正取且已簽到」的 `attended`，`attended = 0` 時 `rate` 也是 null（不除以零）。
+        `distribution` 固定 5 筆（1–5 星，含 0）。
+      responses:
+        '200':
+          description: 回饋統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eventId: { type: string }
+                  title: { type: string }
+                  count: { type: integer, description: 回饋份數 }
+                  avgRating: { type: number, nullable: true, description: 1 位小數；0 份時 null }
+                  attended: { type: integer, description: 分母：正取且已簽到 }
+                  signed: { type: integer, description: 正取總數（僅供顯示，不是分母） }
+                  rate: { type: integer, nullable: true, description: 回覆率百分比；count 或 attended 為 0 時 null }
+                  distribution:
+                    type: array
+                    description: 1–5 星各幾人，固定 5 筆
+                    items:
+                      type: object
+                      properties:
+                        stars: { type: integer }
+                        count: { type: integer }
+                  recent:
+                    type: array
+                    description: 最近 5 條（新到舊）
+                    items:
+                      type: object
+                      properties:
+                        rating: { type: integer }
+                        comment: { type: string, nullable: true }
+                        nickname: { type: string }
+                        createdAt: { type: string, format: date-time }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/events/{id}/feedback-remind:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    post:
+      tags: [admin]
+      summary: 催填回饋（只催「正取＋已簽到＋還沒填」的人；需 event:create，老師只能催自己開的活動）
+      description: |
+        活動結束後提醒出席者補填回饋（站內通知一定有，微信訂閱消息只在對方按過允許時加發）。
+        四條規則：① 沒簽到的人不催（沒來的人不該被要求評分，分母與 feedback-stats 的 `attended` 一致）；
+        ② 已填回饋的人不催；③ 活動還沒結束回 422（回饋本身還沒開放）；
+        ④ 同一活動 12 小時內催過的帳號跳過（靠 PushLog 判斷），老師連點兩下不會發兩輪。
+      responses:
+        '200':
+          description: 催填結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  eligible: { type: integer, description: 應被提醒的人數（正取＋已簽到＋未填） }
+                  reminded: { type: integer, description: 這次實際發出的人數 }
+                  skipped: { type: integer, description: 12 小時內催過而跳過的人數 }
+                  inApp: { type: integer, description: 站內通知送出數（與 reminded 相同，供兩套 UI 讀） }
+                  wx: { type: integer, description: 微信訂閱消息成功數 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /client-errors:
     post:
@@ -1630,7 +2045,7 @@ paths:
                       type: object
                       properties:
                         id: { type: string }
-                        kind: { type: string, enum: [EVENT, CLAIM, NOTICE, SYSTEM] }
+                        kind: { type: string, enum: [EVENT, CLAIM, NOTICE, ITEM, SYSTEM], description: ITEM＝失物配對主動通知（W-57） }
                         title: { type: string }
                         body: { type: string, nullable: true }
                         link: { type: string, nullable: true }
@@ -1909,6 +2324,34 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /admin/trash/{type}/{id}:
+    delete:
+      tags: [admin]
+      summary: 永久刪除（資源回收桶裡的「刪除」；需要 trash:manage = ADMIN 以上）
+      description: |
+        只刪 `deletedAt` 不為 null 的那筆（還在架上的資料用下架／軟刪除端點）。
+        失物會先清掉認領申請與圖片，公告先清已讀紀錄，否則外鍵會擋。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: type, required: true, schema: { type: string, enum: [notice, item, event] } }
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已永久刪除
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  purged: { type: boolean }
+                  type: { type: string }
+                  id: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
   /admin/trash/restore:
     post:
       tags: [admin]
@@ -1944,6 +2387,9 @@ paths:
     patch:
       tags: [admin]
       summary: 編輯公告
+      description: |
+        W-58：帶 `publishedAt` 可以把排程中的公告**提前上線**（帶現在的瞬間）或延後。
+        改成未來時間時沿用原本的 `kind` 判斷 —— 緊急公告仍然不能排到未來（422）。
       security: [{ bearerAuth: [] }]
       parameters:
         - in: path
@@ -1962,12 +2408,14 @@ paths:
                 kind: { type: string, enum: [NORMAL, URGENT, CALENDAR] }
                 isPinned: { type: boolean }
                 expiresAt: { type: string, format: date-time, nullable: true }
+                publishedAt: { type: string, format: date-time, description: 改發佈時間（未來＝排程，現在＝立即上線） }
                 version:
                   type: integer
                   description: 'W-42 樂觀鎖：帶回讀到的版本；不符回 409，不帶＝舊客戶端（相容，照樣成功並遞增）'
       responses:
-        '200': { description: 已更新 }
+        '200': { description: 已更新（回應含 scheduled 布林值） }
         '409': { description: '版本衝突（別人先改過），請重新載入後再存' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
     delete:
       tags: [admin]
       summary: 刪除公告
@@ -1979,6 +2427,84 @@ paths:
           schema: { type: string }
       responses:
         '200': { description: 已刪除 }
+
+  /admin/notices/{id}/read-stats:
+    get:
+      tags: [admin]
+      summary: 公告已讀統計（誰看了、誰還沒看；W-54）
+      description: 分母＝未被停用的帳號數（含教職員）。名單各回前 30 位，多的用 truncated 旗標標示。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer, description: 全體未停用帳號數 }
+                  read: { type: integer }
+                  unread: { type: integer }
+                  rate: { type: integer, description: 已讀百分比（四捨五入） }
+                  readers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        nickname: { type: string }
+                        role: { type: string }
+                        readAt: { type: string, format: date-time }
+                  unreadUsers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        nickname: { type: string }
+                        role: { type: string }
+                        grade: { type: string, nullable: true }
+                        className: { type: string, nullable: true }
+                  truncated:
+                    type: object
+                    properties:
+                      readers: { type: boolean }
+                      unread: { type: boolean }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: 找不到這則公告或已經刪除 }
+
+  /admin/notices/{id}/remind:
+    post:
+      tags: [admin]
+      summary: 催讀公告（只通知未讀者；W-54）
+      description: 只對未讀者發站內通知；有訂閱同意且設了 WX_TPL_NOTICE 才加發微信消息。12 小時內同一則公告已催過的帳號會跳過。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  unread: { type: integer, description: 未讀人數 }
+                  inApp: { type: integer, description: 實際發出的站內通知數 }
+                  skipped: { type: integer, description: 12 小時內已催過而跳過的人數 }
+                  wx: { type: integer, description: 加發的微信訂閱消息數 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: 找不到這則公告或已經刪除 }
+        '422': { description: 公告已過期，不需要再催讀 }
 
   /admin/menu/{id}:
     delete:
@@ -2628,6 +3154,21 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
 
   schemas:
+    SearchHit:
+      type: object
+      description: 搜尋結果的一列（公告／活動／失物共用）
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [notice, event, item] }
+        title: { type: string }
+        snippet: { type: string, description: 命中處前後各約 30 字的摘要；沒有內文時退回地點 }
+        badge:
+          type: string
+          nullable: true
+          description: '公告＝kind（NORMAL／URGENT／CALENDAR）；活動＝status；失物＝「type:status」（LOST:OPEN）'
+        date: { type: string, format: date-time, description: 公告＝發佈時間、活動＝開始時間、失物＝遺失／拾獲時間 }
+        score: { type: integer, description: 標題命中 2、只有內文命中 1 }
+
     ErrorLog:
       type: object
       properties:
@@ -2813,6 +3354,9 @@ components:
         isPinned: { type: boolean }
         coverImage: { type: string, nullable: true }
         publishedAt: { type: string, format: date-time }
+        scheduled:
+          type: boolean
+          description: 'W-58 後台清單／建立／修改才回：publishedAt 在未來＝排程中（前台看不到）'
         expiresAt: { type: string, format: date-time, nullable: true }
         version:
           type: integer

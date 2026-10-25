@@ -44,6 +44,7 @@
                 <view class="g-main">
                   <text class="g-course">{{item.courseName}}</text>
                   <text class="g-meta">{{item.term}} · {{item.testType}} · {{item.dateText}}</text>
+                  <text wx:if="{{item.manual}}" class="g-manual">{{L.manualTag}}</text>
                 </view>
                 <text class="g-score ui-num">{{item.scoreText}}</text>
               </view>
@@ -61,6 +62,7 @@
               <view wx:for="{{attendance}}" wx:key="id" class="a-row">
                 <text class="a-date ui-num">{{item.dateText}}</text>
                 <text class="a-time">{{item.amIn || '—'}} / {{item.pmOut || '—'}}</text>
+                <text wx:if="{{item.manual}}" class="a-manual">{{L.manualTag}}</text>
                 <pv-tag text="{{item.statusText}}" type="{{item.tone}}" />
               </view>
             </pv-card>
