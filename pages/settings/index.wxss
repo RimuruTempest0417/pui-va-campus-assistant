@@ -1,9 +1,11 @@
 @import "../../styles/tokens.wxss";
 @import "../../styles/ui.wxss";
 
-.set-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+.set-inner { display: flex; flex-direction: column; gap: var(--pv-sp-2); padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+/* 卡片間距交給 gap，避免「上一張卡」與「下一個群組標題」黏在一起 */
+.set-inner pv-card { display: block; margin: 0; }
 .set-group {
-  display: block; margin: var(--pv-sp-3) 0 var(--pv-sp-1) var(--pv-sp-1);
+  display: block; margin: var(--pv-sp-2) 0 0 var(--pv-sp-1);
   font-size: var(--pv-fs-footnote); color: var(--pv-label-3); letter-spacing: 0.02em;
 }
 .set-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: var(--pv-sp-2) 0; }

@@ -258,6 +258,7 @@
               <pv-button size="sm" type="plain" data-id="{{item.id}}" data-status="{{item.status}}" data-version="{{item.version}}" bind:tap="toggleEventStatus">
                 {{item.status === 'CANCELLED' ? L.k109 : L.k110}}
               </pv-button>
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-title="{{item.title}}" bind:tap="removeEvent">{{L.k22}}</pv-button>
             </view>
           </view>
         </view>

@@ -149,6 +149,14 @@ module.exports = {
   updateNotice(id, payload) {
     return http.patch('/admin/notices/' + id, payload);
   },
+  deleteEvent(id) {
+    return request.delete('/admin/events/' + id);
+  },
+
+  deleteItem(id) {
+    return request.delete('/admin/items/' + id);
+  },
+
   deleteNotice(id) {
     return http.del('/admin/notices/' + id);
   },
