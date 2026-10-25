@@ -32,7 +32,7 @@ Page({
     const known = this.allTabs().some((t) => t.key === role);
     const fixed = known ? role : 'GUEST';
     this.setData({ role: fixed, roleText: roleLabel(fixed) }, () => {
-      this.applyTab(this.data.active || fixed);
+      this.applyTab(fixed);
     });
   },
 
@@ -60,7 +60,8 @@ Page({
   applyTab(key) {
     const tabs = this.tabs();
     const active = tabs.some((t) => t.key === key) ? key : tabs[tabs.length - 1].key;
-    this.setData({ tabs, active, list: this.data.sections[active] || [] });
+    const all = this.sections() || {};
+    this.setData({ tabs, active, list: all[active] || [] });
   },
 
   pickTab(e) {
