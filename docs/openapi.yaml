@@ -1364,12 +1364,61 @@ paths:
                   throttled: { type: boolean }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
+  /client-errors/report:
+    post:
+      tags: [admin]
+      summary: 使用者手動回報問題（W-43；匿名可用，kind=USER_REPORT、level=WARN）
+      description: |
+        「按鈕沒反應」「畫面怪」這類沒有拋錯的問題，學生在設定頁按「回報問題」寫一句話送上來。
+        與 POST /client-errors 共用同一套節流（每 IP 每分鐘 20 則）與聚合規則：
+        同一句話＋同一頁面只留一列並累加 count，所以連按 5 次不會灌爆後台。
+        指紋前面加 `report|`，因此「使用者說有問題」不會跟同一頁真的拋出的錯誤混在同一列。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, minLength: 2, maxLength: 300, description: 使用者自己寫的一句話描述 }
+                route: { type: string, maxLength: 200, description: 回報時所在的頁面，例如 pages/events/detail/index }
+                platform: { type: string, maxLength: 32, description: ios / android / devtools }
+                sdkVersion: { type: string, maxLength: 32, description: 微信基礎庫版本 }
+                appVersion: { type: string, maxLength: 32 }
+                model: { type: string, maxLength: 64, description: 機型，例如 iPhone 15（重現問題的唯一線索） }
+                system: { type: string, maxLength: 64, description: 系統版本，例如 iOS 18.1 }
+      responses:
+        '201':
+          description: 已建立（或累加）一筆使用者回報
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  id: { type: string }
+                  count: { type: integer }
+                  kind: { type: string, enum: [USER_REPORT] }
+        '202':
+          description: 超過每 IP 每分鐘 20 則，靜默丟掉並回 throttled true（上報失敗不該製造第二個錯誤）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  throttled: { type: boolean }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
   /admin/errors:
     get:
       tags: [admin]
       summary: 錯誤日誌（預設按出現次數排序，需要 error:read = ADMIN 以上）
       parameters:
         - { in: query, name: status, schema: { type: string, enum: [OPEN, RESOLVED] } }
+        - { in: query, name: kind, schema: { type: string, enum: [CLIENT_ERROR, USER_REPORT] }, description: 留空＝全部；USER_REPORT 只看使用者手動回報 }
         - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
       responses:
         '200':
@@ -1389,6 +1438,7 @@ paths:
                       total: { type: integer, description: 所有錯誤的累計出現次數 }
                       kinds: { type: integer, description: 錯誤種類數 }
                       last24h: { type: integer }
+                      userReports: { type: integer, description: 待處理的使用者手動回報筆數 }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
@@ -2306,6 +2356,10 @@ components:
         platform: { type: string, nullable: true }
         sdkVersion: { type: string, nullable: true }
         appVersion: { type: string, nullable: true }
+        kind: { type: string, enum: [CLIENT_ERROR, USER_REPORT], description: 自動上報 or 使用者手動回報（W-43） }
+        level: { type: string, enum: [ERROR, WARN] }
+        model: { type: string, nullable: true, description: 機型（使用者回報時才有） }
+        system: { type: string, nullable: true, description: 系統版本（使用者回報時才有） }
         userId: { type: string, nullable: true, description: 有 JWT 才有；匿名上報為 null }
         count: { type: integer, description: 出現次數（列表排序依據） }
         status: { type: string, enum: [OPEN, RESOLVED] }

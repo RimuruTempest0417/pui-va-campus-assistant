@@ -388,11 +388,15 @@
         <pv-card>
           <view class="ui-row-between">
             <text class="ui-title">待處理 {{errSummary.open || 0}} 種</text>
-            <text class="ui-meta">近 24 小時 {{errSummary.last24h || 0}} 次 · 累計 {{errSummary.total || 0}} 次</text>
+            <text class="ui-meta">近 24 小時 {{errSummary.last24h || 0}} 次 · 累計 {{errSummary.total || 0}} 次 · 使用者回報 {{errSummary.userReports || 0}} 件</text>
           </view>
           <view class="filter-row">
             <view wx:for="{{errFilters}}" wx:key="key" class="chip {{errStatus === item.key ? 'chip--on' : ''}}"
                   data-key="{{item.key}}" bindtap="pickErrStatus">{{item.label}}</view>
+          </view>
+          <view class="filter-row">
+            <view wx:for="{{errKindFilters}}" wx:key="key" class="chip {{errKind === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickErrKind">{{item.label}}</view>
           </view>
           <view class="row-actions">
             <pv-button size="sm" type="plain" bind:tap="cleanupErrors">{{L.k131}}</pv-button>
@@ -407,7 +411,11 @@
             <text class="ui-title">{{item.message}}</text>
             <pv-tag text="{{item.count}} 次" type="{{item.status === 'OPEN' ? 'warning' : 'neutral'}}" />
           </view>
+          <view class="row-actions">
+            <pv-tag text="{{item.kindText}}" type="{{item.isUserReport ? 'tint' : 'neutral'}}" />
+          </view>
           <text class="ui-meta">{{item.route || L.k117}}{{item.platform ? ' · ' + item.platform : ''}}</text>
+          <text wx:if="{{item.deviceText}}" class="ui-meta">{{item.deviceText}}</text>
           <text class="ui-meta">最近 {{item.seenText}} · 首次 {{item.firstSeenText}}</text>
           <view class="row-actions" wx:if="{{item.similarText}}">
             <pv-tag text="{{item.similarText}}" type="neutral" />

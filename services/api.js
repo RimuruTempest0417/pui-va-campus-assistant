@@ -139,4 +139,10 @@ module.exports = {
   createTeam(eventId, name) {
     return request.post('/events/' + eventId + '/teams', { name });
   },
+
+  // ── W-43 使用者手動回報問題 ──
+  // 走既有的 client-errors 家族（不是新的一組端點）：同一套節流、聚合與後台分頁。
+  reportIssue(payload) {
+    return request.post('/client-errors/report', payload);
+  },
 };

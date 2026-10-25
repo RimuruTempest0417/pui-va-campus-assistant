@@ -841,4 +841,15 @@ module.exports = {
     this.__teams.push({ id: 't' + this.__teams.length, eventId, name, code, mine: true, members: 1 });
     return Promise.resolve({ id: 't', name, code });
   },
+
+  // ── W-43 使用者回報（示範模式）：寫進本地，不假裝送到後端 ──
+  // 回傳 demo: true，畫面才能老實說「示範模式沒有送出」，而不是彈一個假的「已送出」。
+  reportIssue(payload) {
+    const p = payload || {};
+    const text = String(p.message || '').trim().slice(0, 300);
+    if (text.length < 2) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請簡短描述你遇到的問題' });
+    this.__reports = this.__reports || [];
+    this.__reports.push({ id: 'r' + this.__reports.length, message: text, route: p.route || '', at: new Date().toISOString() });
+    return Promise.resolve({ ok: true, demo: true, id: 'r' + (this.__reports.length - 1), count: 1 });
+  },
 };

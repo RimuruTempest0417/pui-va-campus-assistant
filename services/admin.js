@@ -115,8 +115,8 @@ module.exports = {
     return http.get('/admin/permissions');
   },
   // 錯誤日誌：手機上沒人看得到的白屏／閃退會送到這裡，按出現次數排序
-  errors(status) {
-    return http.get('/admin/errors', { status: status || '', limit: 50 });
+  errors(status, kind) {
+    return http.get('/admin/errors', { status: status || '', kind: kind || '', limit: 50 });
   },
   setErrorStatus(id, action) {
     return http.patch('/admin/errors/' + id, { action: action });

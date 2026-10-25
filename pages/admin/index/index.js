@@ -314,11 +314,18 @@ Page({
     reports: [],
     errors: [],
     errStatus: 'OPEN',
+    errKind: '',
     errFilters: [
       { key: 'OPEN', label: i18n.pick('待處理') },
       { key: 'RESOLVED', label: i18n.pick('已解決') },
     ],
-    errSummary: { open: 0, total: 0, kinds: 0, last24h: 0 },
+    // 來源篩選（W-43）：使用者自己回報的問題跟程式拋的錯混在一起時，修的人分不出輕重
+    errKindFilters: [
+      { key: '', label: i18n.pick('全部') },
+      { key: 'USER_REPORT', label: i18n.pick('使用者回報') },
+      { key: 'CLIENT_ERROR', label: i18n.pick('自動上報') },
+    ],
+    errSummary: { open: 0, total: 0, kinds: 0, last24h: 0, userReports: 0 },
     // 推送紀錄（W-37）
     pushLogs: [],
     pushOk: 'all',
@@ -1136,13 +1143,17 @@ Page({
   // ───────── 錯誤日誌（用戶端上報）─────────
   async loadErrors() {
     try {
-      const res = await admin.errors(this.data.errStatus);
+      const res = await admin.errors(this.data.errStatus, this.data.errKind);
       const summary = res.summary || {};
       this.setData({
         errors: (res.items || []).map((e) =>
           Object.assign({}, e, {
             seenText: fromNow(e.lastSeenAt),
             firstSeenText: fromNow(e.firstSeenAt),
+            isUserReport: e.kind === 'USER_REPORT',
+            kindText: e.kind === 'USER_REPORT' ? i18n.pick('使用者回報') : i18n.pick('自動上報'),
+            // 使用者回報沒有堆疊，機型與系統就是唯一的重現線索
+            deviceText: [e.model, e.system].filter(Boolean).join(' · '),
             // 「同類」＝同一句話（不限頁面）。指紋含頁面，所以同一支 API 在不同頁出錯會拆成好幾列
             similarText: e.similar > 1 ? i18n.pick('同類 ') + e.similar + i18n.pick(' 筆') : '',
           }),
@@ -1317,6 +1328,11 @@ Page({
 
   pickErrStatus(e) {
     this.setData({ errStatus: e.currentTarget.dataset.key });
+    this.loadErrors();
+  },
+
+  pickErrKind(e) {
+    this.setData({ errKind: e.currentTarget.dataset.key });
     this.loadErrors();
   },
 
