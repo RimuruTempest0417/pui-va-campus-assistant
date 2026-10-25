@@ -6,6 +6,7 @@ Page({
   data: {
     themeClass: appearance.themeClass(),
     loading: true,
+    needLogin: false,
     failed: false,
     errorText: '',
     linked: false,
@@ -53,18 +54,31 @@ Page({
       late: i18n.pick('遲到'),
       absent: i18n.pick('缺席／請假'),
       failTitle: i18n.pick('載入失敗'),
+      needLoginTitle: i18n.pick('請先登入'),
+      needLoginHint: i18n.pick('成績與出缺席要對應到你自己的帳號，所以要先登入。'),
+      goLogin: i18n.pick('去登入'),
       failHint: i18n.pick('請稍後再試'),
       retry: i18n.pick('重試'),
     };
   },
 
   /** 失敗卡的「重試」：重新讀連結狀態與資料 */
+  goLogin() {
+    wx.navigateTo({ url: '/pages/admin/login/index' });
+  },
+
   retry() {
     this.setData({ loading: true, failed: false, errorText: '' });
     this.init();
   },
 
   async init() {
+    // 沒登入就不要打 API（否則只會看到「載入失敗」，看不出其實是沒登入）
+    const request = require('../../utils/request');
+    if (!request.getToken()) {
+      this.setData({ loading: false, needLogin: true });
+      return;
+    }
     try {
       const st = await data.schoolStatus();
       this.setData({ status: st, loading: false, failed: false });
@@ -73,7 +87,13 @@ Page({
         await this.loadAll();
       }
     } catch (e) {
-      this.setData({ loading: false, failed: true, errorText: data.messageOf(e) });
+      const msg = data.messageOf(e);
+      this.setData({ loading: false, failed: true, errorText: msg });
+      // 上報到後端錯誤記錄，這樣「載入失敗」不會只剩畫面上四個字（我隔天查得到真正原因）
+      try {
+        const reporter = require('../../utils/reporter');
+        if (reporter && reporter.reportError) reporter.reportError('[school.init] ' + msg);
+      } catch (err) { /* 上報失敗不影響畫面 */ }
     }
   },
 
