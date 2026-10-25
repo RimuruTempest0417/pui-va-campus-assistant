@@ -61,16 +61,18 @@
       <!-- 待審認領 -->
       <block wx:elif="{{tab === 'claims'}}">
         <pv-empty wx:if="{{!claims.length}}" title="{{L.k11}}" desc="{{L.k12}}" />
-        <view wx:for="{{claims}}" wx:key="id" class="ui-card">
-          <view class="ui-row-between">
-            <text class="ui-title">{{item.item.title}}</text>
-            <pv-tag text="{{item.item.place}}" plain />
-          </view>
-          <text class="ui-meta">申請人：{{item.claimant.nickname}} {{item.claimant.className || ''}}</text>
-          <text wx:if="{{item.message}}" class="ui-meta">特徵：{{item.message}}</text>
-          <view class="row-actions">
-            <pv-button size="sm" type="filled" data-id="{{item.id}}" data-ok="1" bind:tap="review">{{L.k13}}</pv-button>
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-ok="0" bind:tap="review">{{L.k14}}</pv-button>
+        <view wx:if="{{claims.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{claims}}" wx:key="id" class="ui-card ui-card--row {{index === claims.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.item.title}}</text>
+              <pv-tag text="{{item.item.place}}" plain />
+            </view>
+            <text class="ui-meta">申請人：{{item.claimant.nickname}} {{item.claimant.className || ''}}</text>
+            <text wx:if="{{item.message}}" class="ui-meta">特徵：{{item.message}}</text>
+            <view class="row-actions">
+              <pv-button size="sm" type="filled" data-id="{{item.id}}" data-ok="1" bind:tap="review">{{L.k13}}</pv-button>
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-ok="0" bind:tap="review">{{L.k14}}</pv-button>
+            </view>
           </view>
         </view>
       </block>
@@ -84,15 +86,17 @@
         <view class="row-actions">
           <pv-button size="sm" type="plain" data-kind="items" bind:tap="openPrint">{{L.k126}}</pv-button>
         </view>
-        <view wx:for="{{items}}" wx:key="id" class="ui-card">
-          <view class="ui-row-between">
-            <text class="ui-title">{{item.title}}</text>
-            <pv-tag text="{{item.deletedAt ? L.k85 : item.status}}" type="{{item.deletedAt ? 'danger' : 'neutral'}}" />
-          </view>
-          <text class="ui-meta">{{item.type === 'FOUND' ? L.k86 : L.k87}} · {{item.place}} · {{item.author.nickname}} · 申請 {{item._count.claims}}</text>
-          <view class="row-actions">
-            <pv-button wx:if="{{item.deletedAt}}" size="sm" type="plain" data-id="{{item.id}}" data-act="RESTORE" bind:tap="moderate">{{L.k15}}</pv-button>
-            <pv-button wx:else size="sm" type="plain" data-id="{{item.id}}" data-act="REMOVE" bind:tap="moderate">{{L.k16}}</pv-button>
+        <view wx:if="{{items.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{items}}" wx:key="id" class="ui-card ui-card--row {{index === items.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.title}}</text>
+              <pv-tag text="{{item.deletedAt ? L.k85 : item.status}}" type="{{item.deletedAt ? 'danger' : 'neutral'}}" />
+            </view>
+            <text class="ui-meta">{{item.type === 'FOUND' ? L.k86 : L.k87}} · {{item.place}} · {{item.author.nickname}} · 申請 {{item._count.claims}}</text>
+            <view class="row-actions">
+              <pv-button wx:if="{{item.deletedAt}}" size="sm" type="plain" data-id="{{item.id}}" data-act="RESTORE" bind:tap="moderate">{{L.k15}}</pv-button>
+              <pv-button wx:else size="sm" type="plain" data-id="{{item.id}}" data-act="REMOVE" bind:tap="moderate">{{L.k16}}</pv-button>
+            </view>
           </view>
         </view>
       </block>
@@ -113,15 +117,17 @@
 
         <pv-empty wx:if="{{!trashRows.length}}" title="{{L.k154}}" desc="{{L.k155}}" />
 
-        <view wx:for="{{trashRows}}" wx:key="id" class="ui-card">
-          <view class="ui-row-between">
-            <text class="ui-title">{{item.title}}</text>
-            <pv-tag text="{{item.typeText}}" type="neutral" />
-          </view>
-          <text class="ui-meta">{{item.subText}} · {{L.k151}} {{item.timeText}}</text>
-          <text class="ui-meta">{{L.k152}} {{item.deleterText}}</text>
-          <view class="row-actions">
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-type="{{item.type}}" data-title="{{item.title}}" bind:tap="restoreTrash">{{L.k153}}</pv-button>
+        <view wx:if="{{trashRows.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{trashRows}}" wx:key="id" class="ui-card ui-card--row {{index === trashRows.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.title}}</text>
+              <pv-tag text="{{item.typeText}}" type="neutral" />
+            </view>
+            <text class="ui-meta">{{item.subText}} · {{L.k151}} {{item.timeText}}</text>
+            <text class="ui-meta">{{L.k152}} {{item.deleterText}}</text>
+            <view class="row-actions">
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-type="{{item.type}}" data-title="{{item.title}}" bind:tap="restoreTrash">{{L.k153}}</pv-button>
+            </view>
           </view>
         </view>
       </block>
@@ -148,16 +154,18 @@
         </pv-card>
 
         <text class="field__label">既有公告（{{noticeList.length}}）</text>
-        <view wx:for="{{noticeList}}" wx:key="id" class="ui-card">
-          <view class="ui-row-between">
-            <text class="ui-title">{{item.title}}</text>
-            <pv-tag text="{{item.kind === 'URGENT' ? L.k88 : item.kind === 'CALENDAR' ? L.k89 : L.k90}}" type="{{item.kind === 'URGENT' ? 'danger' : 'neutral'}}" />
-          </view>
-          <view class="row-actions">
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-pinned="{{item.isPinned ? '1' : '0'}}" data-version="{{item.version}}" bind:tap="togglePin">
-              {{item.isPinned ? L.k91 : L.k92}}
-            </pv-button>
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteNotice">{{L.k22}}</pv-button>
+        <view wx:if="{{noticeList.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{noticeList}}" wx:key="id" class="ui-card ui-card--row {{index === noticeList.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.title}}</text>
+              <pv-tag text="{{item.kind === 'URGENT' ? L.k88 : item.kind === 'CALENDAR' ? L.k89 : L.k90}}" type="{{item.kind === 'URGENT' ? 'danger' : 'neutral'}}" />
+            </view>
+            <view class="row-actions">
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-pinned="{{item.isPinned ? '1' : '0'}}" data-version="{{item.version}}" bind:tap="togglePin">
+                {{item.isPinned ? L.k91 : L.k92}}
+              </pv-button>
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteNotice">{{L.k22}}</pv-button>
+            </view>
           </view>
         </view>
       </block>
@@ -236,19 +244,21 @@
           </view>
         </pv-card>
 
-        <view wx:for="{{events}}" wx:key="id" class="ui-card">
-          <view class="ui-row-between">
-            <text class="ui-title">{{item.title}}</text>
-            <pv-tag text="{{item.status === 'CANCELLED' ? L.k106 : item.status === 'PUBLISHED' ? L.k107 : item.status}}" type="{{item.status === 'CANCELLED' ? 'danger' : 'success'}}" />
-          </view>
-          <text class="ui-meta">{{item.signedCount}}/{{item.capacity || L.k108}} 人</text>
-          <view class="row-actions">
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventStats">{{L.k39}}</pv-button>
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventCheckin">{{L.k40}}</pv-button>
-            <pv-button size="sm" type="plain" data-kind="event" data-id="{{item.id}}" bind:tap="openPrint">{{L.k127}}</pv-button>
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-status="{{item.status}}" data-version="{{item.version}}" bind:tap="toggleEventStatus">
-              {{item.status === 'CANCELLED' ? L.k109 : L.k110}}
-            </pv-button>
+        <view wx:if="{{events.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{events}}" wx:key="id" class="ui-card ui-card--row {{index === events.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.title}}</text>
+              <pv-tag text="{{item.status === 'CANCELLED' ? L.k106 : item.status === 'PUBLISHED' ? L.k107 : item.status}}" type="{{item.status === 'CANCELLED' ? 'danger' : 'success'}}" />
+            </view>
+            <text class="ui-meta">{{item.signedCount}}/{{item.capacity || L.k108}} 人</text>
+            <view class="row-actions">
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventStats">{{L.k39}}</pv-button>
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventCheckin">{{L.k40}}</pv-button>
+              <pv-button size="sm" type="plain" data-kind="event" data-id="{{item.id}}" bind:tap="openPrint">{{L.k127}}</pv-button>
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-status="{{item.status}}" data-version="{{item.version}}" bind:tap="toggleEventStatus">
+                {{item.status === 'CANCELLED' ? L.k109 : L.k110}}
+              </pv-button>
+            </view>
           </view>
         </view>
       </block>
@@ -289,7 +299,8 @@
                 data-role="{{item.key}}" bindtap="filterUsers">{{item.label}}</view>
         </view>
 
-        <view wx:for="{{users}}" wx:key="id" class="ui-card">
+        <view wx:if="{{users.length}}" class="ui-list ui-list--grouped">
+        <view wx:for="{{users}}" wx:key="id" class="ui-card ui-card--row {{index === users.length - 1 ? 'ui-card--last' : ''}}">
           <view class="ui-row-between">
             <text class="ui-title">{{item.nickname || item.openid}}</text>
             <pv-tag text="{{item.role}} Lv{{item.level}}" type="{{(item.bannedAt || item.locked) ? 'danger' : 'neutral'}}" />
@@ -335,6 +346,7 @@
           </view>
           <text wx:else class="ui-meta">{{L.k58}}</text>
         </view>
+        </view>
       </block>
 
       <!-- 家長綁定（P2）-->
@@ -354,15 +366,17 @@
 
         <pv-empty wx:if="{{!parents.length}}" title="{{L.k63}}" desc="{{L.k64}}" />
 
-        <view wx:for="{{parents}}" wx:key="id" class="ui-card">
-          <view class="ui-row-between">
-            <text class="ui-title">{{item.parent.nickname || item.parent.account}}</text>
-            <pv-tag text="{{item.relationLabel}}" type="neutral" />
-          </view>
-          <text class="ui-meta">家長帳號 {{item.parent.account}}</text>
-          <text class="ui-meta">子女：{{item.student.nickname || item.student.account}}（{{item.student.grade || ''}}{{item.student.className || ''}} · {{item.student.account}}）</text>
-          <view class="row-actions">
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-name="{{item.student.nickname || item.student.account}}" bind:tap="unbindParent">{{L.k65}}</pv-button>
+        <view wx:if="{{parents.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{parents}}" wx:key="id" class="ui-card ui-card--row {{index === parents.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.parent.nickname || item.parent.account}}</text>
+              <pv-tag text="{{item.relationLabel}}" type="neutral" />
+            </view>
+            <text class="ui-meta">家長帳號 {{item.parent.account}}</text>
+            <text class="ui-meta">子女：{{item.student.nickname || item.student.account}}（{{item.student.grade || ''}}{{item.student.className || ''}} · {{item.student.account}}）</text>
+            <view class="row-actions">
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-name="{{item.student.nickname || item.student.account}}" bind:tap="unbindParent">{{L.k65}}</pv-button>
+            </view>
           </view>
         </view>
       </block>
@@ -370,15 +384,17 @@
       <!-- 檢舉 -->
       <block wx:elif="{{tab === 'reports'}}">
         <pv-empty wx:if="{{!reports.length}}" title="{{L.k66}}" desc="" />
-        <view wx:for="{{reports}}" wx:key="id" class="ui-card">
-          <view class="ui-row-between">
-            <text class="ui-title">{{item.targetType}} · {{item.reason}}</text>
-            <pv-tag text="{{L.k67}}" type="warning" />
-          </view>
-          <text class="ui-meta">檢舉人：{{item.reporter.nickname || L.k114}}</text>
-          <view class="row-actions">
-            <pv-button size="sm" type="filled" data-id="{{item.id}}" data-action="RESOLVE" bind:tap="handleReport">{{L.k68}}</pv-button>
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-action="DISMISS" bind:tap="handleReport">{{L.k69}}</pv-button>
+        <view wx:if="{{reports.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{reports}}" wx:key="id" class="ui-card ui-card--row {{index === reports.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.targetType}} · {{item.reason}}</text>
+              <pv-tag text="{{L.k67}}" type="warning" />
+            </view>
+            <text class="ui-meta">檢舉人：{{item.reporter.nickname || L.k114}}</text>
+            <view class="row-actions">
+              <pv-button size="sm" type="filled" data-id="{{item.id}}" data-action="RESOLVE" bind:tap="handleReport">{{L.k68}}</pv-button>
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-action="DISMISS" bind:tap="handleReport">{{L.k69}}</pv-button>
+            </view>
           </view>
         </view>
       </block>
@@ -406,26 +422,28 @@
         <pv-empty wx:if="{{!errors.length}}" title="{{errStatus === 'OPEN' ? L.k115 : L.k116}}"
                   desc="{{L.k70}}" />
 
-        <view wx:for="{{errors}}" wx:key="id" class="ui-card">
-          <view class="ui-row-between">
-            <text class="ui-title">{{item.message}}</text>
-            <pv-tag text="{{item.count}} 次" type="{{item.status === 'OPEN' ? 'warning' : 'neutral'}}" />
-          </view>
-          <view class="row-actions">
-            <pv-tag text="{{item.kindText}}" type="{{item.isUserReport ? 'tint' : 'neutral'}}" />
-          </view>
-          <text class="ui-meta">{{item.route || L.k117}}{{item.platform ? ' · ' + item.platform : ''}}</text>
-          <text wx:if="{{item.deviceText}}" class="ui-meta">{{item.deviceText}}</text>
-          <text class="ui-meta">最近 {{item.seenText}} · 首次 {{item.firstSeenText}}</text>
-          <view class="row-actions" wx:if="{{item.similarText}}">
-            <pv-tag text="{{item.similarText}}" type="neutral" />
-          </view>
-          <view class="row-actions">
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-action="{{item.status === 'OPEN' ? 'RESOLVE' : 'REOPEN'}}" bind:tap="toggleErrStatus">
-              {{item.status === 'OPEN' ? L.k118 : L.k119}}
-            </pv-button>
-            <pv-button wx:if="{{item.similar > 1 && item.status === 'OPEN'}}" size="sm" type="plain"
-                       data-message="{{item.message}}" bind:tap="resolveSimilarErr">{{L.k128}}</pv-button>
+        <view wx:if="{{errors.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{errors}}" wx:key="id" class="ui-card ui-card--row {{index === errors.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.message}}</text>
+              <pv-tag text="{{item.count}} 次" type="{{item.status === 'OPEN' ? 'warning' : 'neutral'}}" />
+            </view>
+            <view class="row-actions">
+              <pv-tag text="{{item.kindText}}" type="{{item.isUserReport ? 'tint' : 'neutral'}}" />
+            </view>
+            <text class="ui-meta">{{item.route || L.k117}}{{item.platform ? ' · ' + item.platform : ''}}</text>
+            <text wx:if="{{item.deviceText}}" class="ui-meta">{{item.deviceText}}</text>
+            <text class="ui-meta">最近 {{item.seenText}} · 首次 {{item.firstSeenText}}</text>
+            <view class="row-actions" wx:if="{{item.similarText}}">
+              <pv-tag text="{{item.similarText}}" type="neutral" />
+            </view>
+            <view class="row-actions">
+              <pv-button size="sm" type="plain" data-id="{{item.id}}" data-action="{{item.status === 'OPEN' ? 'RESOLVE' : 'REOPEN'}}" bind:tap="toggleErrStatus">
+                {{item.status === 'OPEN' ? L.k118 : L.k119}}
+              </pv-button>
+              <pv-button wx:if="{{item.similar > 1 && item.status === 'OPEN'}}" size="sm" type="plain"
+                         data-message="{{item.message}}" bind:tap="resolveSimilarErr">{{L.k128}}</pv-button>
+            </view>
           </view>
         </view>
       </block>
@@ -455,14 +473,16 @@
 
         <pv-empty wx:if="{{!pushLogs.length}}" title="{{L.k140}}" desc="{{L.k141}}" />
 
-        <view wx:for="{{pushLogs}}" wx:key="id" class="ui-card">
-          <view class="ui-row-between">
-            <text class="ui-title">{{item.titleText}}</text>
-            <pv-tag text="{{item.resultText}}" type="{{item.ok ? 'neutral' : 'warning'}}" />
+        <view wx:if="{{pushLogs.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{pushLogs}}" wx:key="id" class="ui-card ui-card--row {{index === pushLogs.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.titleText}}</text>
+              <pv-tag text="{{item.resultText}}" type="{{item.ok ? 'neutral' : 'warning'}}" />
+            </view>
+            <text class="ui-meta">{{item.nameText}}{{item.roleText ? ' · ' + item.roleText : ''}}</text>
+            <text class="ui-meta">{{item.channelText}}{{item.sceneText ? ' · ' + item.sceneText : ''}} · {{item.timeText}}</text>
+            <text wx:if="{{!item.ok}}" class="ui-meta">{{L.k143}}{{item.errorText}}</text>
           </view>
-          <text class="ui-meta">{{item.nameText}}{{item.roleText ? ' · ' + item.roleText : ''}}</text>
-          <text class="ui-meta">{{item.channelText}}{{item.sceneText ? ' · ' + item.sceneText : ''}} · {{item.timeText}}</text>
-          <text wx:if="{{!item.ok}}" class="ui-meta">{{L.k143}}{{item.errorText}}</text>
         </view>
       </block>
 
@@ -514,9 +534,11 @@
         </pv-card>
 
         <text class="field__label">本週已排（{{menuWeekStart}} 起）</text>
-        <view wx:for="{{menuEntries}}" wx:key="id" class="signup-row">
-          <text class="signup-row__name">{{item.date}} · {{item.mealType === 'LUNCH' ? L.k122 : L.k123}} · {{item.dishName}}</text>
-          <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteMenuEntry">{{L.k79}}</pv-button>
+        <view wx:if="{{menuEntries.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{menuEntries}}" wx:key="id" class="signup-row {{index === menuEntries.length - 1 ? 'signup-row--last' : ''}}">
+            <text class="signup-row__name">{{item.date}} · {{item.mealType === 'LUNCH' ? L.k122 : L.k123}} · {{item.dishName}}</text>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteMenuEntry">{{L.k79}}</pv-button>
+          </view>
         </view>
         <pv-empty wx:if="{{!menuEntries.length}}" title="{{L.k80}}" desc="" />
       </block>

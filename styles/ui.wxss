@@ -3,6 +3,16 @@
 .ui-page--withbar { padding-bottom: 260rpx; }
 
 .ui-list { margin-top: var(--pv-sp-2); }
+
+/* inset grouped 清單（v0.57.0 起的標準做法）：整份是「一張卡」，列與列之間用 1rpx 髮絲線分隔，
+   不要每一列各一張卡 —— 那是「卡片堆疊」最明顯的來源。
+   用法：<view class="ui-list ui-list--grouped"> 內放 <view class="ui-card ui-card--row">，
+   最後一列再加 ui-card--last（去掉最後一條線）。 */
+.ui-list--grouped { background: var(--pv-surface); border-radius: var(--pv-r-lg); overflow: hidden; }
+.ui-list--grouped .ui-card--row { margin: 0; border-radius: 0; background: transparent; box-shadow: none; border-bottom: 1rpx solid var(--pv-sep); }
+.ui-list--grouped .ui-card--last { border-bottom: 0; }
+.ui-list--grouped .signup-row { padding: 20rpx var(--pv-sp-3); }
+.ui-list--grouped .signup-row--last { border-bottom: 0; }
 .ui-card {
   background: var(--pv-surface);
   border-radius: var(--pv-r-lg);
