@@ -159,12 +159,12 @@ module.exports = {
   },
 
   // ── 家校通（W-50/51/52）──
-  schoolStatus() { return request.get('/school/status'); },
-  schoolLink(account, password) { return request.post('/school/link', { account, password }); },
-  schoolUnlink() { return request.delete('/school/link'); },
-  schoolSync(yearTerms) { return request.post('/school/sync', yearTerms ? { yearTerms } : {}); },
-  schoolGrades(q) { return request.get('/school/grades', q || {}); },
-  schoolAttendance(q) { return request.get('/school/attendance', q || {}); },
-  schoolManualGrade(body) { return request.post('/school/manual/grades', body); },
-  schoolManualAttendance(body) { return request.post('/school/manual/attendance', body); },
+  schoolStatus() { return http.get('/school/status'); },
+  schoolLink(account, password) { return http.post('/school/link', { account, password }); },
+  schoolUnlink() { return http.delete('/school/link'); },
+  schoolSync(yearTerms) { return http.post('/school/sync', yearTerms ? { yearTerms } : {}); },
+  schoolGrades(q) { return http.get('/school/grades', q || {}); },
+  schoolAttendance(q) { return http.get('/school/attendance', q || {}); },
+  schoolManualGrade(body) { return http.post('/school/manual/grades', body); },
+  schoolManualAttendance(body) { return http.post('/school/manual/attendance', body); },
 };

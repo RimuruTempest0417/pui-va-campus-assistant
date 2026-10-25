@@ -3,7 +3,6 @@
 
 .school { min-height: 100vh; background: var(--pv-bg); }
 .school-inner { display: flex; flex-direction: column; gap: var(--pv-sp-2); padding: var(--pv-sp-3) var(--pv-sp-3) 72rpx; }
-.school-inner pv-card { display: block; margin: 0; }
 
 .sch-title { display: block; font-size: var(--pv-fs-callout); font-weight: 600; color: var(--pv-label); }
 .sch-hint { display: block; margin-top: 8rpx; font-size: var(--pv-fs-footnote); color: var(--pv-label-3); line-height: 1.5; }
