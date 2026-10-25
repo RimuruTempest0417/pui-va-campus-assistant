@@ -41,6 +41,10 @@ module.exports = {
   feedbackStats(eventId) {
     return http.get('/admin/events/' + eventId + '/feedback-stats');
   },
+  // W-56：催填回饋（只催已簽到且還沒填的人，12 小時內不重複）
+  remindFeedback(eventId) {
+    return http.post('/admin/events/' + eventId + '/feedback-remind', {});
+  },
   batchSignups(eventId, action, ids) {
     return http.patch('/admin/events/' + eventId + '/signups/batch', { action: action, ids: ids });
   },

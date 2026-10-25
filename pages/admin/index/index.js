@@ -321,6 +321,11 @@ Page({
       k245: i18n.pick("星等分佈 "),
       k246: i18n.pick("（只評分，沒留言）"),
       k247: i18n.pick("讀不到回饋統計"),
+      // W-56 催填回饋
+      k248: i18n.pick("提醒填回饋"),
+      k249: i18n.pick("已提醒 "),
+      k250: i18n.pick(" 人（跳過 "),
+      k251: i18n.pick(" 人最近催過）"),
     };
   },
 
@@ -363,6 +368,10 @@ Page({
     fbDistLine: '',
     fbRecent: [],
     fbFailed: false,
+    // W-56：催填回饋的結果提示（空白＝還沒按過）
+    fbRemindText: '',
+    fbReminding: false,
+    fbCanRemind: false,
     eventId: '',
     signups: [],
     notice: { title: '', content: '', kind: 'NORMAL', isPinned: false },
@@ -808,6 +817,9 @@ Page({
         fbDistLine: view.fbDistLine,
         fbRecent: view.fbRecent,
         fbFailed: !fb,
+        // 催填只在「有人出席、且還沒全部填完」時才有意義（回覆率 100% 或沒人出席都 disabled）
+        fbCanRemind: !!fb && (fb.attended || 0) > 0 && fb.rate !== 100,
+        fbRemindText: '',
       });
     } catch (err) {
       wx.showToast({ title: err.message || i18n.pick('讀不到統計'), icon: 'none' });
@@ -815,7 +827,53 @@ Page({
   },
 
   closeEventStats() {
-    this.setData({ evStats: null, eventId: '', fbStats: null, fbLine: '', fbDistLine: '', fbRecent: [], fbFailed: false });
+    this.setData({
+      evStats: null,
+      eventId: '',
+      fbStats: null,
+      fbLine: '',
+      fbDistLine: '',
+      fbRecent: [],
+      fbFailed: false,
+      fbCanRemind: false,
+      fbRemindText: '',
+      fbReminding: false,
+    });
+  },
+
+  /**
+   * W-56 催填回饋：一次按鈕打完「站內通知＋有訂閱的人再加微信」。
+   * 按完就地更新提示（不重開卡片），並且重抓回饋統計 —— 催的時候可能剛好有人填了，
+   * 回覆率沒跟著變，老師會以為「按了沒反應」。
+   */
+  async remindFeedback() {
+    const id = this.data.eventId;
+    if (!id || this.data.fbReminding) return;
+    const L = this.data.L || {};
+    this.setData({ fbReminding: true });
+    try {
+      const res = await admin.remindFeedback(id);
+      this.setData({
+        fbReminding: false,
+        fbRemindText:
+          (L.k249 || '') + (res.reminded || 0) + (L.k250 || '') + (res.skipped || 0) + (L.k251 || ''),
+      });
+      const fb = await admin.feedbackStats(id).catch(() => null);
+      if (fb) {
+        const view = this.fbView(fb);
+        this.setData({
+          fbStats: fb,
+          fbLine: view.fbLine,
+          fbDistLine: view.fbDistLine,
+          fbRecent: view.fbRecent,
+          fbFailed: false,
+          fbCanRemind: (fb.attended || 0) > 0 && fb.rate !== 100,
+        });
+      }
+    } catch (err) {
+      this.setData({ fbReminding: false });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
+    }
   },
 
   async promoteAll() {

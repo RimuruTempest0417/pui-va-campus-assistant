@@ -229,6 +229,11 @@
               <text class="fb-item__stars">{{item.stars}}</text>
               <text class="fb-item__text">{{item.text}}</text>
             </view>
+            <!-- W-56 催填回饋：只催已簽到且還沒填的人；按完就地顯示結果 -->
+            <view class="fb-box__actions">
+              <pv-button size="sm" type="plain" loading="{{fbReminding}}" disabled="{{fbReminding || !fbCanRemind}}" bind:tap="remindFeedback">{{L.k248}}</pv-button>
+              <text wx:if="{{fbRemindText}}" class="ui-meta fb-box__hint">{{fbRemindText}}</text>
+            </view>
           </view>
 
           <view class="row-actions">

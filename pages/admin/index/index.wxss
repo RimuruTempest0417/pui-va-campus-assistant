@@ -124,6 +124,12 @@
 .fb-item:last-child { border-bottom: none; }
 .fb-item__stars { flex-shrink: 0; width: 130rpx; font-size: var(--pv-fs-footnote); color: var(--pv-accent); letter-spacing: 1rpx; }
 .fb-item__text { flex: 1; min-width: 0; font-size: var(--pv-fs-footnote); line-height: 1.45; color: var(--pv-label-2); }
+/* W-56 催填回饋：按鈕與結果提示同一列，窄屏自動換行（gap 一律用 sp-2，不靠 margin 穿透組件） */
+.fb-box__actions {
+  display: flex; flex-direction: row; align-items: center; flex-wrap: wrap;
+  gap: var(--pv-sp-2); margin-top: var(--pv-sp-2);
+}
+.fb-box__hint { flex: 1; min-width: 0; color: var(--pv-label-2); }
 
 /* 批次匯入（活動／菜單）：逐列結果像 iOS 的清單，成功用主字色、失敗才用警示色 */
 .imp-hint { display: block; margin-top: var(--pv-sp-1); line-height: 1.45; }

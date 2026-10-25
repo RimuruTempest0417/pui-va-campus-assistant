@@ -1635,6 +1635,35 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /admin/events/{id}/feedback-remind:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    post:
+      tags: [admin]
+      summary: 催填回饋（只催「正取＋已簽到＋還沒填」的人；需 event:create，老師只能催自己開的活動）
+      description: |
+        活動結束後提醒出席者補填回饋（站內通知一定有，微信訂閱消息只在對方按過允許時加發）。
+        四條規則：① 沒簽到的人不催（沒來的人不該被要求評分，分母與 feedback-stats 的 `attended` 一致）；
+        ② 已填回饋的人不催；③ 活動還沒結束回 422（回饋本身還沒開放）；
+        ④ 同一活動 12 小時內催過的帳號跳過（靠 PushLog 判斷），老師連點兩下不會發兩輪。
+      responses:
+        '200':
+          description: 催填結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  eligible: { type: integer, description: 應被提醒的人數（正取＋已簽到＋未填） }
+                  reminded: { type: integer, description: 這次實際發出的人數 }
+                  skipped: { type: integer, description: 12 小時內催過而跳過的人數 }
+                  inApp: { type: integer, description: 站內通知送出數（與 reminded 相同，供兩套 UI 讀） }
+                  wx: { type: integer, description: 微信訂閱消息成功數 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
   /client-errors:
     post:
       tags: [admin]
