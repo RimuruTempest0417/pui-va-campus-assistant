@@ -187,6 +187,13 @@ module.exports = {
   schoolGradeCreate(body) {
     return http.post('/admin/school/grades', body);
   },
+  // 批次匯入：dryRun 只驗不寫（與活動／菜單匯入同一套語意）
+  schoolGradeBatch(body) {
+    return http.post('/admin/school/grades/batch', body);
+  },
+  schoolGradeTemplate() {
+    return http.get('/admin/school/grades/template');
+  },
   schoolGradeDelete(id) {
     return http.del('/admin/school/grades/' + id);
   },

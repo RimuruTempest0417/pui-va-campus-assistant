@@ -273,6 +273,28 @@ Page({
       k187: i18n.pick("選擇日期"),
       k188: i18n.pick("學段"),
       k189: i18n.pick("備註（可留空）"),
+      k202: i18n.pick("批次匯入"),
+      k203: i18n.pick("收起"),
+      k204: i18n.pick("一行一筆：科目,類型,日期,分數（說明可留空）。學年與學段用上面的設定"),
+      k205: i18n.pick("貼上或從聊天記錄選 CSV"),
+      k206: i18n.pick("填入範本"),
+      k207: i18n.pick("先檢查"),
+      k208: i18n.pick("確認匯入"),
+      k209: i18n.pick("請先按「先檢查」"),
+      k210: i18n.pick("先貼上要補的內容"),
+      k211: i18n.pick("先填好學年與學段"),
+      k212: i18n.pick("已補登 "),
+      k213: i18n.pick(" 筆"),
+      k214: i18n.pick("讀不到範本"),
+      k215: i18n.pick("共 "),
+      k216: i18n.pick(" 列：可寫入 "),
+      k217: i18n.pick("｜有問題 "),
+      k218: i18n.pick("第 "),
+      k219: i18n.pick(" 列"),
+      k220: i18n.pick("匯入失敗"),
+      k221: i18n.pick("檢查完成"),
+      k222: i18n.pick("批次補登成績"),
+      k223: i18n.pick("先填好上面的學年與學段再貼"),
     };
   },
 
@@ -351,6 +373,12 @@ Page({
     scGrades: [],
     scAttend: [],
     scSummaryText: '',
+    // W-53 最後一段：批次匯入成績（一次貼多筆，先檢查再匯入）
+    gBatchOpen: false,
+    gBatchText: '',
+    gBatchResult: null,
+    gBatchChecked: false,
+    gBatchBusy: false,
     // 學年／學段沿用最近一筆；term 用 chips（後端 TERMS 三值）
     gForm: { yearTerm: '', term: '', courseName: '', testType: '', testDate: '', score: '' },
     aForm: { amStatus: 'normal', pmStatus: 'normal', remark: '' },
@@ -1171,6 +1199,95 @@ Page({
       wx.showToast({ title: (e && e.message) || i18n.pick('補登失敗'), icon: 'none' });
     } finally {
       this.setData({ scSaving: false });
+    }
+  },
+
+  /* ── 批次匯入成績（一次貼多筆：科目,類型,日期,分數）── */
+
+  toggleGradeBatch() {
+    this.setData({ gBatchOpen: !this.data.gBatchOpen, gBatchResult: null, gBatchChecked: false });
+  },
+
+  onGradeBatchText(e) {
+    // 改了內容就要重新檢查，不能拿舊的預覽直接匯入
+    this.setData({ gBatchText: e.detail.value, gBatchChecked: false });
+  },
+
+  async fillGradeBatchTemplate() {
+    try {
+      const res = await admin.schoolGradeTemplate();
+      this.setData({ gBatchText: (res && res.text) || '', gBatchResult: null, gBatchChecked: false });
+    } catch (e) {
+      wx.showToast({ title: (e && e.message) || i18n.pick('讀不到範本'), icon: 'none' });
+    }
+  },
+
+  checkGradeBatch() {
+    return this.runGradeBatch(true);
+  },
+
+  confirmGradeBatch() {
+    if (!this.data.gBatchChecked) {
+      wx.showToast({ title: i18n.pick('請先按「先檢查」'), icon: 'none' });
+      return Promise.resolve();
+    }
+    return this.runGradeBatch(false);
+  },
+
+  async runGradeBatch(dryRun) {
+    const p = this.data.scPicked;
+    if (!p) {
+      wx.showToast({ title: i18n.pick('先在上面找一位學生'), icon: 'none' });
+      return;
+    }
+    const text = (this.data.gBatchText || '').trim();
+    if (!text) {
+      wx.showToast({ title: i18n.pick('先貼上要補的內容'), icon: 'none' });
+      return;
+    }
+    const yearTerm = (this.data.gForm.yearTerm || '').trim();
+    const term = this.data.gForm.term;
+    if (!yearTerm || !term) {
+      wx.showToast({ title: i18n.pick('先填好學年與學段'), icon: 'none' });
+      return;
+    }
+    if (this.data.gBatchBusy) return;
+    this.setData({ gBatchBusy: true });
+    try {
+      const res = await admin.schoolGradeBatch({
+        studentId: p.id,
+        yearTerm: yearTerm,
+        term: term,
+        text: text,
+        dryRun: !!dryRun,
+      });
+      const rows = (res.rows || []).map((r) => ({
+        line: r.line,
+        ok: !!r.ok,
+        label: r.label || '',
+        message: r.message || '',
+      }));
+      this.setData({
+        gBatchResult: {
+          total: res.total,
+          success: res.success,
+          failed: res.failed,
+          rows: rows,
+        },
+        // 只有「檢查過而且至少有一列寫得進去」才放行確認匯入
+        gBatchChecked: !!dryRun && res.success > 0,
+      });
+      wx.showToast({
+        title: dryRun
+          ? i18n.pick('檢查完成')
+          : i18n.pick('已補登 ') + res.success + i18n.pick(' 筆'),
+        icon: 'none',
+      });
+      if (!dryRun) this.loadSchoolData();
+    } catch (e) {
+      wx.showToast({ title: (e && e.message) || i18n.pick('匯入失敗'), icon: 'none' });
+    } finally {
+      this.setData({ gBatchBusy: false });
     }
   },
 

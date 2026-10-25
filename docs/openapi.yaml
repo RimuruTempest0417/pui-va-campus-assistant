@@ -1045,6 +1045,69 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /admin/school/grades/batch:
+    post:
+      tags: [school]
+      summary: 批次補登成績（一次貼多筆，需 school:manage）
+      description: |
+        一行一筆「科目,類型,日期,分數」（第五欄說明可留空），有表頭也能認。
+        逐列回報：好的先寫、壞的把行號與原因帶回去；`dryRun=true` 只驗不寫（前端先預覽再確認）。
+        日期一律存 UTC 午夜（與單筆補登、家校通同步三條寫入路徑一致）。
+        同步來的資料（source=SYNC）在預覽階段就標紅，不會被覆蓋；同一份內容裡重複的列標「重複」。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId, yearTerm, term, text]
+              properties:
+                studentId: { type: string }
+                yearTerm: { type: string, maxLength: 16 }
+                term: { type: string, maxLength: 8 }
+                text: { type: string, maxLength: 20000, description: 一行一筆，逗號分隔 }
+                dryRun: { type: boolean, default: false }
+      responses:
+        '200':
+          description: OK（逐列結果）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dryRun: { type: boolean }
+                  total: { type: integer }
+                  success: { type: integer }
+                  failed: { type: integer }
+                  rows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        line: { type: integer }
+                        ok: { type: boolean }
+                        message: { type: string }
+                        label: { type: string }
+                        action: { type: string, enum: [create, update] }
+                        id: { type: string }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/school/grades/template:
+    get:
+      tags: [school]
+      summary: 批次補登的範本內容（需 school:manage）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /admin/school/attendance:
     get:
       tags: [school]
