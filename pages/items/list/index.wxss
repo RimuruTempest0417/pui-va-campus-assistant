@@ -22,7 +22,6 @@
   height: 76rpx;
   margin: var(--pv-sp-2) 0 var(--pv-sp-1);
 }
-.search__icon { font-size: 26rpx; margin-right: 8rpx; opacity: 0.5; }
 .search__input { flex: 1; font-size: var(--pv-fs-subhead); }
 .search__clear { color: var(--pv-label-3); padding: 0 6rpx; font-size: 24rpx; }
 
@@ -46,10 +45,9 @@
   box-shadow: 0 8rpx 24rpx var(--pv-shadow-tint);
 }
 
-/* 搜尋圖示改為線性放大鏡（不用 emoji，跨機型一致） */
-.search__icon { position: relative; width: 28rpx; height: 28rpx; }
-.search__lens { position: absolute; top: 2rpx; left: 2rpx; width: 16rpx; height: 16rpx; border: 2rpx solid var(--pv-label-3); border-radius: 50%; }
-.search__handle { position: absolute; right: 2rpx; bottom: 4rpx; width: 10rpx; height: 2rpx; background: var(--pv-label-3); transform: rotate(45deg); }
+/* 搜尋圖示改為線性放大鏡（不用 emoji，跨機型一致）。v0.60.0 起圖標本體由 pv-icon 畫，
+   這裡只留宿主節點的外距，避免「形狀定義在頁面、顏色定義在組件」兩份真相。 */
+.search__icon { margin-right: 8rpx; }
 .thumb-ph__text { font-size: var(--pv-fs-footnote); color: var(--pv-label-3); }
 
 /* 去 AI 味（v0.57.0）：列表改成 iOS inset grouped —— 整份是一張卡，項目之間用髮絲線分隔，

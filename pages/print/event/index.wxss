@@ -1,2 +1,5 @@
 @import "../../../styles/tokens.wxss";
 @import "../../../styles/print.wxss";
+
+/* 列印頁工具列：按鈕之間要分開（使用者回報擠在一起） */
+.toolbar__btns { display: flex; flex-direction: row; gap: var(--pv-sp-2); }

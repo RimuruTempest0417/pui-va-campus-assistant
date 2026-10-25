@@ -40,7 +40,10 @@
 .stat__num { font-size: 40rpx; font-weight: 700; color: var(--pv-brand-strong); }
 .stat__label { font-size: var(--pv-fs-caption-2); color: var(--pv-label-2); }
 
-.row-actions { display: flex; flex-direction: row; margin-top: var(--pv-sp-2); }
+.row-actions { display: flex; flex-direction: row; margin-top: var(--pv-sp-2);
+  gap: var(--pv-sp-2);
+  flex-wrap: wrap;
+}
 .row-actions pv-button { margin-right: var(--pv-sp-2); }
 
 .filter-row { display: flex; flex-direction: row; flex-wrap: wrap; margin: var(--pv-sp-1) 0; }

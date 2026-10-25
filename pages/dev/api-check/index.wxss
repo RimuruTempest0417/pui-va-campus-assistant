@@ -1,3 +1,5 @@
+.check-inner { display: flex; flex-direction: column; gap: var(--pv-sp-2); padding: var(--pv-sp-3) var(--pv-sp-3) 72rpx; }
+.check-inner pv-card { display: block; margin: 0; }
 @import "../../../styles/tokens.wxss";
 
 .checks { margin: var(--pv-sp-3) 0; background: var(--pv-surface); border-radius: var(--pv-r-lg); overflow: hidden; }

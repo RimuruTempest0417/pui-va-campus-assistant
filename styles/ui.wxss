@@ -22,7 +22,9 @@
 }
 .ui-card--pressed { transform: scale(0.985); transition-duration: var(--pv-dur-press); }
 
-.ui-row { display: flex; flex-direction: row; align-items: center; }
+.ui-row { display: flex; flex-direction: row; align-items: center;   gap: var(--pv-sp-2);
+  flex-wrap: wrap;
+}
 .ui-row-between { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
 .ui-gap-1 { margin-right: var(--pv-sp-1); }
 .ui-gap-2 { margin-right: var(--pv-sp-2); }

@@ -9,7 +9,8 @@
     "pv-skeleton": "/components/pv-skeleton/index",
     "pv-tabs": "/components/pv-tabs/index",
     "pv-navbar": "/components/pv-navbar/index",
-    "pv-button": "/components/pv-button/index"
+    "pv-button": "/components/pv-button/index",
+    "pv-icon": "/components/pv-icon/index"
   },
   "navigationStyle": "custom"
 }

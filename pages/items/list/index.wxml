@@ -14,7 +14,7 @@
       >{{item.label}}</view>
     </view>
     <view class="search">
-      <view class="search__icon"><view class="search__lens" /><view class="search__handle" /></view>
+      <pv-icon class="search__icon" name="search" size="28" tone="muted" />
       <input class="search__input" placeholder="{{L.k02}}" placeholder-class="ui-placeholder"
              value="{{keyword}}" bindinput="onKeywordInput" confirm-type="search" bindconfirm="onSearch" />
       <text wx:if="{{keyword}}" class="search__clear" bindtap="onClearKeyword">✕</text>

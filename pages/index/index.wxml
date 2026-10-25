@@ -11,7 +11,7 @@
     <view class="home__right">
       <pv-tag wx:if="{{isDemo}}" text="{{L.demoTag}}" type="tint" plain />
       <view class="home__bell" bindtap="goNotifications" hover-class="home__avatar--pressed" hover-start-time="0">
-        <view class="home__bell-icon"><view class="home__bell-dome" /><view class="home__bell-clap" /></view>
+        <pv-icon name="bell" size="28" tone="default" />
         <view wx:if="{{unread > 0}}" class="home__bell-dot">{{unread > 99 ? '99+' : unread}}</view>
       </view>
       <view class="home__avatar" bindtap="goAccount" hover-class="home__avatar--pressed" hover-start-time="0">
@@ -72,7 +72,7 @@
         bindtouchcancel="onCellTouchEnd"
         bindtap="onTapModule"
       >
-        <view class="grid__icon grid__icon--{{item.tone}}"><text>{{item.icon}}</text></view>
+        <view class="grid__icon grid__icon--solid"><pv-icon name="{{item.key}}" size="44" tone="tint" /></view>
         <text class="grid__label">{{item.label}}</text>
         <text class="grid__sub">{{item.sub}}</text>
       </view>

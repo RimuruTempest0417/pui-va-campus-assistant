@@ -2,19 +2,21 @@
 @import "../../styles/ui.wxss";
 
 .help { min-height: 100vh; background: var(--pv-bg); }
-.help-inner { padding: var(--pv-sp-3) var(--pv-sp-3) var(--pv-sp-6); }
-.help-head { margin-bottom: var(--pv-sp-3); }
+.help-inner { display: flex; flex-direction: column; gap: var(--pv-sp-3); padding: var(--pv-sp-2) var(--pv-sp-3) 72rpx; }
+/* 自訂組件宿主節點：間距交給 gap，不要讓卡片自己再撐 margin */
+.help-inner pv-card { display: block; margin: 0; }
+.help-head { margin-bottom: 0; }
 .help-head__title { display: block; font-size: var(--pv-fs-title-3); font-weight: 700; }
-.help-head__sub { display: block; margin-top: 6rpx; font-size: var(--pv-fs-footnote); color: var(--pv-label-3); line-height: 1.5; }
+.help-head__sub { display: block; margin-top: 8rpx; font-size: var(--pv-fs-footnote); color: var(--pv-label-3); line-height: 1.5; }
 
-.help-tabs { display: flex; flex-direction: row; height: 84rpx; margin-bottom: var(--pv-sp-2); }
+.help-tabs { display: flex; flex-direction: row; align-items: center; height: 72rpx; margin-bottom: 0; }
 .help-tab {
   flex-shrink: 0; margin-right: var(--pv-sp-1); padding: 0 var(--pv-sp-3);
-  line-height: 68rpx; border-radius: var(--pv-r-pill);
+  height: 64rpx; line-height: 64rpx; border-radius: var(--pv-r-pill);
   background: var(--pv-fill); color: var(--pv-label-2); font-size: var(--pv-fs-subhead);
 }
 .help-tab--on { background: var(--pv-tint); color: var(--pv-on-tint); font-weight: 600; }
 
 .qa__q { display: block; font-size: var(--pv-fs-callout); font-weight: 600; color: var(--pv-label); }
 .qa__a { display: block; margin-top: 8rpx; font-size: var(--pv-fs-subhead); color: var(--pv-label-2); line-height: 1.6; }
-.help-foot { display: block; margin-top: var(--pv-sp-4); text-align: center; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+.help-foot { display: block; margin-top: var(--pv-sp-2); text-align: center; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }

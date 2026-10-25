@@ -225,11 +225,12 @@ Page({
       const days = menu.days || [];
       const todayMenu = days.find((d) => d.date === todayKey) || days[0] || null;
 
+      // v0.60.0：icon 欄位拿掉 —— 四宮格改用 pv-icon（name 就是 key），不再用單字當圖標
       const modules = [
-        { key: 'items', icon: i18n.pick('失'), label: i18n.t('home.module.items'), sub: items.total + ' ' + i18n.t('home.unit.items'), tone: 'solid' },
-        { key: 'events', icon: i18n.pick('活'), label: i18n.t('home.module.events'), sub: (events.items || []).length + ' ' + i18n.t('home.unit.events'), tone: 'solid' },
-        { key: 'menu', icon: i18n.pick('餐'), label: i18n.t('home.module.menu'), sub: todayMenu ? (todayMenu.lunch || []).length + ' ' + i18n.t('home.unit.dishes') : '—', tone: 'solid' },
-        { key: 'notices', icon: i18n.pick('告'), label: i18n.t('home.module.notices'), sub: notices.unread ? notices.unread + ' ' + i18n.t('home.unread') : (notices.items || []).length + ' ' + i18n.t('home.unit.notices'), tone: 'solid' },
+        { key: 'items', label: i18n.t('home.module.items'), sub: items.total + ' ' + i18n.t('home.unit.items') },
+        { key: 'events', label: i18n.t('home.module.events'), sub: (events.items || []).length + ' ' + i18n.t('home.unit.events') },
+        { key: 'menu', label: i18n.t('home.module.menu'), sub: todayMenu ? (todayMenu.lunch || []).length + ' ' + i18n.t('home.unit.dishes') : '—' },
+        { key: 'notices', label: i18n.t('home.module.notices'), sub: notices.unread ? notices.unread + ' ' + i18n.t('home.unread') : (notices.items || []).length + ' ' + i18n.t('home.unit.notices') },
       ];
 
       const role = (me && me.role) || '';
