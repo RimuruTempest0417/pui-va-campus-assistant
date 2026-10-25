@@ -11,6 +11,16 @@
     refresher-triggered="{{refreshing}}"
     bindrefresherrefresh="onRefresh"
   >
+    <pv-card>
+      <view class="set-row" bindtap="goSchool">
+        <view class="set-row__main">
+          <text class="set-row__title">成績與出缺席</text>
+          <text class="set-row__sub">用你自己的家校通帳號讀取（加密儲存，可隨時解除）</text>
+        </view>
+        <text class="set-row__chev">›</text>
+      </view>
+    </pv-card>
+
     <view class="parent-inner">
       <block wx:if="{{loading}}">
         <view class="ui-card"><pv-skeleton rows="2" /></view>

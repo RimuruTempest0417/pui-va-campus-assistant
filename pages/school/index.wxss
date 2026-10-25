@@ -1,0 +1,30 @@
+@import "../../styles/tokens.wxss";
+@import "../../styles/ui.wxss";
+
+.school { min-height: 100vh; background: var(--pv-bg); }
+.school-inner { display: flex; flex-direction: column; gap: var(--pv-sp-2); padding: var(--pv-sp-3) var(--pv-sp-3) 72rpx; }
+.school-inner pv-card { display: block; margin: 0; }
+
+.sch-title { display: block; font-size: var(--pv-fs-callout); font-weight: 600; color: var(--pv-label); }
+.sch-hint { display: block; margin-top: 8rpx; font-size: var(--pv-fs-footnote); color: var(--pv-label-3); line-height: 1.5; }
+.sch-input { margin-top: var(--pv-sp-2); padding: 18rpx var(--pv-sp-2); border-radius: var(--pv-r-sm); background: var(--pv-fill); font-size: var(--pv-fs-subhead); color: var(--pv-label); }
+.sch-actions { display: flex; flex-direction: row; flex-wrap: wrap; gap: var(--pv-sp-2); margin-top: var(--pv-sp-3); }
+
+.sch-tabs { display: flex; flex-direction: row; gap: 12rpx; }
+.sch-tab { flex: 1; text-align: center; height: 64rpx; line-height: 64rpx; border-radius: var(--pv-r-sm); background: var(--pv-fill); color: var(--pv-label-2); font-size: var(--pv-fs-subhead); }
+.sch-tab--on { background: var(--pv-tint); color: var(--pv-on-tint); font-weight: 600; }
+
+.g-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: var(--pv-sp-2) 0; border-bottom: 1rpx solid var(--pv-sep); }
+.g-main { flex: 1; min-width: 0; }
+.g-course { display: block; font-size: var(--pv-fs-subhead); font-weight: 600; color: var(--pv-label); }
+.g-meta { display: block; margin-top: 4rpx; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+.g-score { font-size: var(--pv-fs-title-3); font-weight: 700; color: var(--pv-tint); }
+
+.sch-sum { display: flex; flex-direction: row; gap: var(--pv-sp-2); margin-bottom: var(--pv-sp-2); }
+.sch-sum__cell { flex: 1; text-align: center; }
+.sch-sum__num { display: block; font-size: var(--pv-fs-title-3); font-weight: 700; color: var(--pv-label); }
+.sch-sum__label { display: block; margin-top: 4rpx; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+
+.a-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: var(--pv-sp-2) 0; border-bottom: 1rpx solid var(--pv-sep); }
+.a-date { font-size: var(--pv-fs-subhead); color: var(--pv-label); }
+.a-time { flex: 1; margin-left: var(--pv-sp-2); font-size: var(--pv-fs-footnote); color: var(--pv-label-3); }

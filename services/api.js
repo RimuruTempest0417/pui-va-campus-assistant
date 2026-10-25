@@ -157,4 +157,14 @@ module.exports = {
   reportIssue(payload) {
     return http.post('/client-errors/report', payload);
   },
+
+  // ── 家校通（W-50/51/52）──
+  schoolStatus() { return request.get('/school/status'); },
+  schoolLink(account, password) { return request.post('/school/link', { account, password }); },
+  schoolUnlink() { return request.delete('/school/link'); },
+  schoolSync(yearTerms) { return request.post('/school/sync', yearTerms ? { yearTerms } : {}); },
+  schoolGrades(q) { return request.get('/school/grades', q || {}); },
+  schoolAttendance(q) { return request.get('/school/attendance', q || {}); },
+  schoolManualGrade(body) { return request.post('/school/manual/grades', body); },
+  schoolManualAttendance(body) { return request.post('/school/manual/attendance', body); },
 };

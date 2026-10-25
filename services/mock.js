@@ -840,4 +840,36 @@ module.exports = {
     this.__reports.push({ id: 'r' + this.__reports.length, message: text, route: p.route || '', at: new Date().toISOString() });
     return Promise.resolve({ ok: true, demo: true, id: 'r' + (this.__reports.length - 1), count: 1 });
   },
+
+  // ── 家校通（示範資料）──
+  schoolStatus() {
+    return Promise.resolve({ linked: !!this.__schoolLinked, studentNo: this.__schoolLinked ? '3201301037' : null, className: '高二丙', lastSyncAt: this.__schoolLinked ? new Date().toISOString() : null, lastError: null, cryptoReady: true });
+  },
+  schoolLink(account) {
+    this.__schoolLinked = true;
+    return Promise.resolve({ linked: true, studentNo: account });
+  },
+  schoolUnlink() { this.__schoolLinked = false; return Promise.resolve({ linked: false }); },
+  schoolSync() { return Promise.resolve({ ok: true, grades: 6, attendance: 35 }); },
+  schoolGrades() {
+    return Promise.resolve({
+      years: ['2026/2027', '2025/2026'],
+      items: [
+        { id: 'g1', yearTerm: '2026/2027', term: '第一段', courseName: '化學', content: '原子結構及元素周期表', testType: '大測一', testDate: '2026-10-09', score: 100.5 },
+        { id: 'g2', yearTerm: '2026/2027', term: '第一段', courseName: '數學', content: '函數與圖像', testType: '大測一', testDate: '2026-10-10', score: 86 },
+        { id: 'g3', yearTerm: '2026/2027', term: '第一段', courseName: '中文', content: '閱讀理解', testType: '小測', testDate: '2026-10-12', score: 78 },
+      ],
+    });
+  },
+  schoolAttendance() {
+    const items = [
+      { id: 'a1', date: '2026-10-23', amIn: '08:16:06', pmOut: '16:32:32', isAmLate: false, isPmLate: false, amStatus: 'normal', pmStatus: 'normal', remark: null },
+      { id: 'a2', date: '2026-10-22', amIn: '08:32:10', pmOut: '16:30:02', isAmLate: true, isPmLate: false, amStatus: 'late', pmStatus: 'normal', remark: '交通延誤' },
+      { id: 'a3', date: '2026-10-21', amIn: '', pmOut: '', isAmLate: false, isPmLate: false, amStatus: 'leave', pmStatus: 'leave', remark: '病假' },
+    ];
+    return Promise.resolve({ items, summary: { total: items.length, late: 1, absent: 1 } });
+  },
+
+  schoolManualGrade(body) { return Promise.resolve({ ...body, id: 'gm', source: 'MANUAL' }); },
+  schoolManualAttendance(body) { return Promise.resolve({ ...body, id: 'am', source: 'MANUAL' }); },
 };
