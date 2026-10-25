@@ -52,6 +52,42 @@ paths:
                   user: { $ref: '#/components/schemas/User' }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  /auth/password:
+    post:
+      tags: [auth]
+      security: []
+      summary: 帳號密碼登入（學生／家長／教職員共用；不檢查後台能力）
+      description: |
+        `/auth/login` 是微訊 code 換 token；`/admin/login` 只收有後台能力的角色。
+        學生與家長沒有後台能力，在那裡永遠登不進去，所以改走這一支。
+        帳號就是 `User.openid` 欄位（由後台建立或設定密碼）。
+        帳號不存在與密碼錯誤回同一個訊息，避免探測；連續失敗會鎖一段時間。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account, password]
+              properties:
+                account: { type: string, description: 學號／職員帳號 }
+                password: { type: string }
+                code: { type: string, description: '已開兩步驗證時必填：6 位數或備用碼' }
+      responses:
+        '200':
+          description: 登入成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  role: { type: string, enum: [SUPER_ADMIN, ADMIN, STAFF, TEACHER, PARENT, STUDENT] }
+                  nickname: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
   /auth/me:
     get:
       tags: [auth]
@@ -1908,6 +1944,34 @@ paths:
                       all: { type: integer }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/trash/{type}/{id}:
+    delete:
+      tags: [admin]
+      summary: 永久刪除（資源回收桶裡的「刪除」；需要 trash:manage = ADMIN 以上）
+      description: |
+        只刪 `deletedAt` 不為 null 的那筆（還在架上的資料用下架／軟刪除端點）。
+        失物會先清掉認領申請與圖片，公告先清已讀紀錄，否則外鍵會擋。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: type, required: true, schema: { type: string, enum: [notice, item, event] } }
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已永久刪除
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  purged: { type: boolean }
+                  type: { type: string }
+                  id: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/trash/restore:
     post:

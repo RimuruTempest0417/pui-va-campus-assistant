@@ -161,7 +161,7 @@ module.exports = {
   // ── 家校通（W-50/51/52）──
   schoolStatus() { return http.get('/school/status'); },
   schoolLink(account, password) { return http.post('/school/link', { account, password }); },
-  schoolUnlink() { return http.delete('/school/link'); },
+  schoolUnlink() { return http.del('/school/link'); },
   schoolSync(yearTerms) { return http.post('/school/sync', yearTerms ? { yearTerms } : {}); },
   schoolGrades(q) { return http.get('/school/grades', q || {}); },
   schoolAttendance(q) { return http.get('/school/attendance', q || {}); },
