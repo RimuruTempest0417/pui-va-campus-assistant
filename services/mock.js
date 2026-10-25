@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 8;
+const SEED_VERSION = 9;
 
 const weekUtil = require('../utils/week');
 
@@ -77,6 +77,12 @@ function seed() {
       { id: 'i5', type: 'FOUND', title: '灰色外套', place: '體育館', status: 'OPEN', categoryKey: 'clothes', categoryName: '衣物', happenedAt: now - 8 * h, description: '尺寸 M，左袖有校徽。', images: [], author: { nickname: '吳同學' }, contactType: 'inApp', viewCount: 17 },
       { id: 'i7', type: 'FOUND', title: '藍色保溫瓶', place: '圖書館三樓', status: 'OPEN', categoryKey: 'daily', categoryName: '日用品', happenedAt: now - 3 * h, description: '瓶身有貼紙，瓶蓋是白色的。', images: [], author: { nickname: '何同學' }, contactType: 'inApp', viewCount: 6 },
       { id: 'i6', type: 'LOST', title: '計算機（Casio fx-991）', place: '三樓自習室', status: 'OPEN', categoryKey: 'phone', categoryName: '電子產品', happenedAt: now - 12 * h, description: '背面貼了姓名貼。', images: [], author: { nickname: '鄭同學' }, contactType: 'inApp', viewCount: 22 },
+    ],
+    // 示範層的認領申請：三種狀態各一筆，讓「我申請的」一打開就看得懂差別
+    claims: [
+      { id: 'c1', itemId: 'i2', status: 'PENDING', createdAt: now - 6 * h, handledAt: null, message: '卡套背面有我的學號' },
+      { id: 'c2', itemId: 'i3', status: 'APPROVED', createdAt: now - 30 * h, handledAt: now - 24 * h, message: '耳機盒側邊有卡通貼紙' },
+      { id: 'c3', itemId: 'i4', status: 'REJECTED', createdAt: now - 60 * h, handledAt: now - 55 * h, message: '不確定是不是我的' },
     ],
     events: [
       { id: 'e1', title: '校運會報名', club: '體育組', location: '二號操場', startAt: now + 24 * h, endAt: now + 27 * h,
@@ -403,10 +409,43 @@ module.exports = {
     const data = db();
     const item = data.items.filter((i) => i.id === id)[0];
     if (!item) return Promise.reject({ code: 'NOT_FOUND' });
-    if (item.status !== 'OPEN') return Promise.reject({ code: 'ALREADY_CLAIMED' });
-    item.status = 'CLAIMED';
+    // 與後端同一套規則：不能認領自己的、同一件只能申請一次、已結束的不能申請
+    if ((item.author && item.author.nickname === data.user.nickname) || item.isMine) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '不能認領自己發布的物品' });
+    }
+    const existed = (data.claims || []).filter((c) => c.itemId === id)[0];
+    if (existed) return Promise.reject({ code: 'ALREADY_CLAIMED', message: '你已經申請過，請等待對方回應' });
+    if (item.status === 'CLOSED') return Promise.reject({ code: 'VALIDATION_FAILED', message: '這件物品已結束' });
+    if (item.status === 'CLAIMED') return Promise.reject({ code: 'ALREADY_CLAIMED', message: '這件物品已被認領' });
+
+    const claim = { id: 'c-' + id + '-' + Date.now(), itemId: id, status: 'PENDING', createdAt: Date.now(), handledAt: null, message: '' };
+    data.claims = (data.claims || []).concat([claim]);
+    if (item.status === 'OPEN') item.status = 'MATCHED';
     save(data);
-    return Promise.resolve(Object.assign({}, item));
+    return Promise.resolve(Object.assign({}, claim));
+  },
+
+  myClaims() {
+    const data = db();
+    const rows = (data.claims || [])
+      .map((c) => {
+        const item = data.items.filter((i) => i.id === c.itemId)[0];
+        if (!item) return null; // 物品被刪掉就不再顯示（與後端一致）
+        return Object.assign({}, c, {
+          item: {
+            id: item.id,
+            title: item.title,
+            type: item.type,
+            status: item.status,
+            place: item.place,
+            happenedAt: item.happenedAt,
+            categoryName: item.categoryName || null,
+          },
+        });
+      })
+      .filter((x) => x)
+      .sort((a, b) => b.createdAt - a.createdAt);
+    return Promise.resolve({ items: rows });
   },
 
   // ── 活動 ──

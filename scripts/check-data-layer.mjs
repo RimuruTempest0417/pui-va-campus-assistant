@@ -60,14 +60,31 @@ check('型別篩選', found.items.every((i) => i.type === 'FOUND'), `FOUND ${fou
 const search = await data.listItems({ q: '測試地點' });
 check('關鍵字搜尋', search.items.length === 1, `命中 ${search.items.length} 筆`);
 
-await data.claimItem(created.id);
+// 認領：用別人貼的示範物品（i7 藍色保溫瓶），不能用自己剛發布的那筆 ——
+// 後端本來就禁止認領自己的物品，自檢如果拿自己建的來試，等於在驗一條不存在的路徑。
+const claimBefore = await data.myClaims();
+await data.claimItem('i7');
 let claimErr = '';
 try {
-  await data.claimItem(created.id);
+  await data.claimItem('i7');
 } catch (e) {
   claimErr = e.code;
 }
 check('重複認領被擋', claimErr === 'ALREADY_CLAIMED', claimErr || '沒有擋下');
+
+let ownClaimErr = '';
+try {
+  await data.claimItem(created.id);
+} catch (e) {
+  ownClaimErr = e.code;
+}
+check('不能認領自己發布的物品', ownClaimErr === 'VALIDATION_FAILED', ownClaimErr || '沒有擋下');
+
+const claimList = await data.myClaims();
+check('我的認領有資料', claimList.items.length === claimBefore.items.length + 1, `${claimList.items.length} 筆`);
+check('我的認領帶物品摘要', claimList.items[0] && claimList.items[0].item && claimList.items[0].item.title === '藍色保溫瓶', claimList.items[0] ? claimList.items[0].item.title : '空');
+check('我的認領狀態為待審核', claimList.items[0] && claimList.items[0].status === 'PENDING', claimList.items[0] ? claimList.items[0].status : '空');
+check('我的認領依申請時間新到舊', claimList.items.every((c, i) => i === 0 || claimList.items[i - 1].createdAt >= c.createdAt), `${claimList.items.length} 筆`);
 
 // 滿額 → 進候補（不是丟錯，而是回傳 WAITLIST 並帶候補位置）
 const fullRec = await data.signupEvent('e2'); // 名額 20 / 已報 20

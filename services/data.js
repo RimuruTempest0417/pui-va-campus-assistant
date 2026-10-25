@@ -103,6 +103,7 @@ module.exports = {
   updateItemStatus: (...a) => call('updateItemStatus', a),
   categories: (...a) => call('categories', a),
   claimItem: (...a) => call('claimItem', a),
+  myClaims: (...a) => call('myClaims', a),
   matches: (...a) => call('matches', a),
   listEvents: (...a) => call('listEvents', a),
   signupEvent: (...a) => call('signupEvent', a),

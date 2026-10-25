@@ -32,6 +32,9 @@ module.exports = {
   claimItem(id) {
     return http.post('/items/' + id + '/claims', {});
   },
+  myClaims() {
+    return http.get('/my/claims');
+  },
   listEvents(query) {
     return http.get('/events', query);
   },

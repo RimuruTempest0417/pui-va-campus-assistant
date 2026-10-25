@@ -180,6 +180,43 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/LostItem' }
 
+  /my/claims:
+    get:
+      tags: [items]
+      summary: 我的認領申請（申請人自己看進度）
+      description: |
+        只回 JWT 本人的申請（claimantId 由 token 決定，不接受前端傳 id），
+        新到舊、最多 50 筆；物品被軟刪除的不再出現。
+        status：PENDING 待審核／APPROVED 已通過／REJECTED 未通過，handledAt 為處理時間。
+      responses:
+        '200':
+          description: 我的申請清單（附物品摘要）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+                        createdAt: { type: string, format: date-time }
+                        handledAt: { type: string, format: date-time, nullable: true }
+                        item:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            title: { type: string }
+                            type: { type: string, enum: [LOST, FOUND] }
+                            status: { type: string, enum: [OPEN, MATCHED, CLAIMED, CLOSED] }
+                            place: { type: string }
+                            happenedAt: { type: string, format: date-time }
+                            categoryName: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
   /categories:
     get:
       tags: [items]
