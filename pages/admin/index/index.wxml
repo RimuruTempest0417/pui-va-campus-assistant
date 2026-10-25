@@ -221,6 +221,16 @@
           </view>
           <text class="ui-meta">出席率 {{evStats.attendanceRate}}%（已簽到 {{evStats.checkedIn}}／正取 {{evStats.signed}}）</text>
 
+          <!-- W-55 活動回饋統計：與報名統計同一張卡，不另開一張 -->
+          <view class="fb-box">
+            <text class="ui-meta fb-box__line">{{fbFailed ? L.k247 : fbLine}}</text>
+            <text wx:if="{{fbDistLine}}" class="ui-meta fb-box__line">{{fbDistLine}}</text>
+            <view wx:for="{{fbRecent}}" wx:key="id" class="fb-item">
+              <text class="fb-item__stars">{{item.stars}}</text>
+              <text class="fb-item__text">{{item.text}}</text>
+            </view>
+          </view>
+
           <view class="row-actions">
             <pv-button size="sm" type="filled" bind:tap="promoteAll" disabled="{{evStats.waitlisted === 0}}">{{L.k35}}</pv-button>
             <pv-button size="sm" type="plain" bind:tap="closeEventStats">{{L.k36}}</pv-button>

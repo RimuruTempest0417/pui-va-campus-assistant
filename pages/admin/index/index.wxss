@@ -114,6 +114,17 @@
 }
 .group-stat__name { font-size: var(--pv-fs-subhead); font-weight: 600; color: var(--pv-label); }
 
+/* W-55 回饋統計：與報名統計同一張卡，用一段細分隔線開頭，不再多包一層卡片 */
+.fb-box { margin-top: var(--pv-sp-2); padding-top: var(--pv-sp-2); border-top: 1rpx solid var(--pv-sep); }
+.fb-box__line { display: block; line-height: 1.45; }
+.fb-item {
+  display: flex; flex-direction: row; align-items: flex-start;
+  padding: var(--pv-sp-1) 0; border-bottom: 1rpx solid var(--pv-sep);
+}
+.fb-item:last-child { border-bottom: none; }
+.fb-item__stars { flex-shrink: 0; width: 130rpx; font-size: var(--pv-fs-footnote); color: var(--pv-accent); letter-spacing: 1rpx; }
+.fb-item__text { flex: 1; min-width: 0; font-size: var(--pv-fs-footnote); line-height: 1.45; color: var(--pv-label-2); }
+
 /* 批次匯入（活動／菜單）：逐列結果像 iOS 的清單，成功用主字色、失敗才用警示色 */
 .imp-hint { display: block; margin-top: var(--pv-sp-1); line-height: 1.45; }
 .imp-sum { display: block; margin-top: var(--pv-sp-2); }

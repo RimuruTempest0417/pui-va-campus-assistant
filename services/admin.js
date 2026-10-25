@@ -37,6 +37,10 @@ module.exports = {
   eventStats(eventId) {
     return http.get('/events/' + eventId + '/stats');
   },
+  // W-55：回饋統計（平均分／回覆率／星等分佈／最近留言）
+  feedbackStats(eventId) {
+    return http.get('/admin/events/' + eventId + '/feedback-stats');
+  },
   batchSignups(eventId, action, ids) {
     return http.patch('/admin/events/' + eventId + '/signups/batch', { action: action, ids: ids });
   },

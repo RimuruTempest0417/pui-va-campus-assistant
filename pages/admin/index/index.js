@@ -311,6 +311,16 @@ Page({
       k236: i18n.pick("：只會通知還沒看過的人，已經看過的不會再收到。"),
       k237: i18n.pick("發送"),
       k238: i18n.pick("催讀失敗"),
+      // W-55 活動回饋統計
+      k239: i18n.pick("還沒有人回饋"),
+      k240: i18n.pick("回覆率 "),
+      k241: i18n.pick("回覆率 —（還沒有人簽到）"),
+      k242: i18n.pick("回饋 "),
+      k243: i18n.pick(" 份 · 平均 "),
+      k244: i18n.pick(" 星 · "),
+      k245: i18n.pick("星等分佈 "),
+      k246: i18n.pick("（只評分，沒留言）"),
+      k247: i18n.pick("讀不到回饋統計"),
     };
   },
 
@@ -347,6 +357,12 @@ Page({
     attendance: null,
     ciSending: false,
     evStats: null,
+    // W-55：活動回饋統計（與 evStats 同一張卡，不另開一張）
+    fbStats: null,
+    fbLine: '',
+    fbDistLine: '',
+    fbRecent: [],
+    fbFailed: false,
     eventId: '',
     signups: [],
     notice: { title: '', content: '', kind: 'NORMAL', isPinned: false },
@@ -739,18 +755,67 @@ Page({
   },
 
   // ───────── 活動管理 ─────────
+  /**
+   * W-55：把回饋統計整理成畫面要用的三行。
+   * 一律在這裡算好（WXML 不做運算）；0 份回饋顯示「還沒有人回饋」而不是「0 星」，
+   * 沒人簽到時回覆率顯示「—」而不是 0%（否則看起來像「大家都沒填」）。
+   */
+  fbView(s) {
+    const L = this.data.L || {};
+    if (!s || !s.count) {
+      return { fbLine: L.k239 || '', fbDistLine: '', fbRecent: [], fbFailed: false };
+    }
+    const rateText =
+      s.rate === null || s.rate === undefined ? L.k241 || '' : (L.k240 || '') + s.rate + '%';
+    const dist = (s.distribution || [])
+      .slice()
+      .sort((a, b) => b.stars - a.stars)
+      .map((d) => d.stars + '★ ' + d.count)
+      .join('　');
+    const recent = (s.recent || []).slice(0, 3).map((r, i) => ({
+      id: 'fb' + i,
+      stars: '★★★★★'.slice(0, r.rating || 0),
+      text: (r.nickname ? r.nickname + '：' : '') + (r.comment || L.k246 || ''),
+    }));
+    return {
+      fbLine:
+        (L.k242 || '') +
+        s.count +
+        (L.k243 || '') +
+        Number(s.avgRating || 0).toFixed(1) +
+        (L.k244 || '') +
+        rateText,
+      fbDistLine: (L.k245 || '') + dist,
+      fbRecent: recent,
+      fbFailed: false,
+    };
+  },
+
   async loadEventStats(e) {
     const id = e.currentTarget.dataset.id;
     try {
-      const s = await admin.eventStats(id);
-      this.setData({ evStats: s, eventId: id });
+      const [s, fb] = await Promise.all([
+        admin.eventStats(id),
+        // 回饋統計失敗不該把整張統計卡打成錯誤：報名數字照樣要看得到
+        admin.feedbackStats(id).catch(() => null),
+      ]);
+      const view = this.fbView(fb);
+      this.setData({
+        evStats: s,
+        eventId: id,
+        fbStats: fb,
+        fbLine: view.fbLine,
+        fbDistLine: view.fbDistLine,
+        fbRecent: view.fbRecent,
+        fbFailed: !fb,
+      });
     } catch (err) {
       wx.showToast({ title: err.message || i18n.pick('讀不到統計'), icon: 'none' });
     }
   },
 
   closeEventStats() {
-    this.setData({ evStats: null, eventId: '' });
+    this.setData({ evStats: null, eventId: '', fbStats: null, fbLine: '', fbDistLine: '', fbRecent: [], fbFailed: false });
   },
 
   async promoteAll() {
