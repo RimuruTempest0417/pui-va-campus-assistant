@@ -31,6 +31,10 @@
           <view class="meta-row"><text class="meta-k">{{L.k08}}</text><text class="meta-v">{{ev.capacityText}}</text></view>
           <view class="cap"><view class="cap__bar"><view class="cap__fill" style="width: {{ev.ratio}}%" /></view></view>
           <text wx:if="{{ev.remaining !== null}}" class="ui-meta">{{ev.remaining > 0 ? L.k19 + ev.remaining + L.k20 : L.k21}}</text>
+          <view class="meta-row meta-row--action" bindtap="makeShareCard">
+            <text class="meta-k">{{L.k60}}</text>
+            <text class="meta-v meta-v--link">{{L.k67}}</text>
+          </view>
         </pv-card>
 
         <view class="pv-group-title">{{L.k09}}</view>
@@ -120,10 +124,6 @@
           </block>
         </view>
 
-        <!-- W-32 分享卡 -->
-        <view class="share-card" bindtap="makeShareCard">
-          <text class="share-card__text">{{L.k60}}</text>
-        </view>
         <canvas type="2d" id="shareCanvas" class="share-canvas" />
       </block>
     </view>

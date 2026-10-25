@@ -226,10 +226,10 @@ Page({
       const todayMenu = days.find((d) => d.date === todayKey) || days[0] || null;
 
       const modules = [
-        { key: 'items', icon: '🔍', label: i18n.t('home.module.items'), sub: items.total + ' ' + i18n.t('home.unit.items'), tone: 'tint' },
-        { key: 'events', icon: '🎪', label: i18n.t('home.module.events'), sub: (events.items || []).length + ' ' + i18n.t('home.unit.events'), tone: 'brand' },
-        { key: 'menu', icon: '🍚', label: i18n.t('home.module.menu'), sub: todayMenu ? (todayMenu.lunch || []).length + ' ' + i18n.t('home.unit.dishes') : '—', tone: 'warning' },
-        { key: 'notices', icon: '📢', label: i18n.t('home.module.notices'), sub: notices.unread ? notices.unread + ' ' + i18n.t('home.unread') : (notices.items || []).length + ' ' + i18n.t('home.unit.notices'), tone: 'success' },
+        { key: 'items', icon: i18n.pick('失'), label: i18n.t('home.module.items'), sub: items.total + ' ' + i18n.t('home.unit.items'), tone: 'solid' },
+        { key: 'events', icon: i18n.pick('活'), label: i18n.t('home.module.events'), sub: (events.items || []).length + ' ' + i18n.t('home.unit.events'), tone: 'solid' },
+        { key: 'menu', icon: i18n.pick('餐'), label: i18n.t('home.module.menu'), sub: todayMenu ? (todayMenu.lunch || []).length + ' ' + i18n.t('home.unit.dishes') : '—', tone: 'solid' },
+        { key: 'notices', icon: i18n.pick('告'), label: i18n.t('home.module.notices'), sub: notices.unread ? notices.unread + ' ' + i18n.t('home.unread') : (notices.items || []).length + ' ' + i18n.t('home.unit.notices'), tone: 'solid' },
       ];
 
       const role = (me && me.role) || '';

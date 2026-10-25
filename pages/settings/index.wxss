@@ -40,3 +40,6 @@
   font-size: var(--pv-fs-caption-1); color: var(--pv-label);
   font-variant-numeric: tabular-nums;
 }
+
+/* 同一張卡裡的多列：用髮絲線分隔，不要每列一張卡 */
+.set-row--sep { border-top: 1rpx solid var(--pv-sep); }

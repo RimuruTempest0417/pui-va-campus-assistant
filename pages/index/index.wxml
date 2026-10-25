@@ -78,7 +78,7 @@
       </view>
     </view>
 
-    <!-- 今日午餐 -->
+    <!-- 今日午餐 ＋ 小賣部（合成一張卡，內部用小標題與髮絲線分組） -->
     <view class="pv-group-title">{{L.k03}}</view>
     <pv-card>
       <block wx:if="{{lunch && lunch.length}}">
@@ -94,15 +94,14 @@
         </view>
       </block>
       <pv-empty wx:else title="{{L.k05}}" desc="{{L.k06}}" />
-    </pv-card>
 
-    <!-- 小賣部 -->
-    <view wx:if="{{snack && snack.length}}" class="pv-group-title">{{L.k07}}</view>
-    <pv-card wx:if="{{snack && snack.length}}">
-      <view wx:for="{{snack}}" wx:key="id" class="dish dish--snack">
-        <text class="dish__name">{{item.name}}</text>
-        <text class="dish__price">MOP {{item.price}}</text>
-      </view>
+      <block wx:if="{{snack && snack.length}}">
+        <view class="dish-section">{{L.k07}}</view>
+        <view wx:for="{{snack}}" wx:key="id" class="dish dish--snack">
+          <text class="dish__name">{{item.name}}</text>
+          <text class="dish__price">MOP {{item.price}}</text>
+        </view>
+      </block>
     </pv-card>
 
     <!-- 家長：我的子女（首頁直接切換，代報名在下一頁）-->
