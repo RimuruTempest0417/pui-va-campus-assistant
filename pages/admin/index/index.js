@@ -212,6 +212,7 @@ Page({
       k64: i18n.pick("上方填家長帳號與學生學號即可建立"),
       k65: i18n.pick("解除綁定"),
       k66: i18n.pick("沒有待處理檢舉"),
+      k201: i18n.pick("開放組隊報名（隊長建隊拿 6 碼邀請碼）"),
       k67: i18n.pick("待處理"),
       k68: i18n.pick("成立並下架"),
       k69: i18n.pick("駁回"),
@@ -921,7 +922,6 @@ Page({
       title: i18n.pick('解除綁定'),
       content: i18n.pick('確定要解除與 ') + name + i18n.pick(' 的綁定？解除後家長就看不到這個孩子的資料。'),
       confirmText: i18n.pick('解除'),
-      confirmColor: theme.danger,
       success: async (r) => {
         if (!r.confirm) return;
         try {
@@ -1082,7 +1082,6 @@ Page({
     wx.showModal({
       title: i18n.pick('刪除帳號'),
       content: i18n.pick('刪除 ') + account + i18n.pick('？相關的認領／報名紀錄會一併清除。'),
-      confirmColor: theme.danger,
       success(res) {
         if (!res.confirm) return;
         admin
@@ -1264,7 +1263,7 @@ Page({
     const self = this;
     wx.showModal({
       title: i18n.pick('還原這筆內容'),
-      content: title ? i18n.pick('「') + title + i18n.pick('」會立刻恢復顯示，確定嗎？') : i18n.pick('還原後會立刻恢復顯示，確定嗎？'),
+      content: title ? title + i18n.pick('」會立刻恢復顯示，確定嗎？') : i18n.pick('還原後會立刻恢復顯示，確定嗎？'),
       success(res) {
         if (!res.confirm) return;
         admin
@@ -1414,23 +1413,24 @@ Page({
   },
 
   async removeEvent(e) {
-    const { id, title } = e.currentTarget.dataset;
-    const key = 'ev-' + id;
-    if (this._pendingDelete !== key) {
-      this._pendingDelete = key;
-      wx.showToast({ title: i18n.pick('再按一次刪除「') + (title || '') + i18n.pick('」'), icon: 'none', duration: 2500 });
-      setTimeout(() => { if (this._pendingDelete === key) this._pendingDelete = ''; }, 4000);
-      return;
-    }
-    this._pendingDelete = '';
-    try {
-      await adminApi.deleteEvent(id);
-      wx.showToast({ title: i18n.pick('已移到垃圾桶'), icon: 'success' });
-      this.loadEventsAdmin();
-      this.loadTrash();
-    } catch (err) {
-      wx.showToast({ title: data.messageOf(err), icon: 'none' });
-    }
+    const id = e.currentTarget.dataset.id;
+    const title = e.currentTarget.dataset.title || '';
+    const self = this;
+    wx.showModal({
+      title: i18n.pick('刪除活動'),
+      content: title + i18n.pick('會移到垃圾桶，可以再還原。'),
+      confirmText: i18n.pick('刪除'),
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await adminApi.deleteEvent(id);
+          wx.showToast({ title: i18n.pick('已刪除'), icon: 'success' });
+          self.refresh && self.refresh();
+        } catch (err) {
+          wx.showToast({ title: data.messageOf ? data.messageOf(err) : i18n.pick('刪除失敗'), icon: 'none' });
+        }
+      },
+    });
   },
 
   async deleteNotice(e) {

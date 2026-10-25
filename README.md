@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.64.0-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.66.0-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -73,7 +73,7 @@
 
 ```
 .
-├── app.js / app.json / app.wxss          # 全局入口（24 個頁面註冊）
+├── app.js / app.json / app.wxss          # 全局入口（25 個頁面註冊）
 ├── pages/
 │   ├── index/                            # 首頁：四模組入口、緊急公告、今日午餐
 │   ├── items/{list,detail,create,mine}/  # 失物招領
@@ -94,12 +94,12 @@
 ├── scripts/
 │   ├── check-project.mjs                 # 結構／WXSS／白屏守門
 │   ├── check-openapi.mjs                 # API 契約守門（重複鍵／可解析／操作數；--parity 對後端路由）
-│   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，77 項）
+│   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，93 項）
 │   ├── check-i18n.mjs                    # 繁簡介面守門（pick 抽樣／對照表殘留／L.* 供應）
 │   ├── i18n-js-scan.mjs／i18n-wrap-js.mjs # 掃出／包裝頁面 JS 的中文字面值（W-20b 工具）
 │   ├── build-i18n-phrases.py             # 用 opencc tw2sp 重建繁→簡對照表
-│   ├── check-states.mjs                  # 24 頁三態（載入／空／失敗）對照表守門
-│   ├── check-console.mjs                 # 24 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
+│   ├── check-states.mjs                  # 25 頁三態（載入／空／失敗）對照表守門
+│   ├── check-console.mjs                 # 25 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
 │   └── verify-all.mjs                    # 一鍵驗收：上面四支串起來跑完並彙總（失敗貼完整輸出）
 ├── docs/
 │   ├── 01-藍圖與評分對標.md
@@ -130,11 +130,11 @@ node scripts/package.mjs     # → dist/pui-va-campus-assistant-vX.Y.Z.zip
 node scripts/verify-all.mjs        # 4 通過／0 失敗；--no-console 跳過走查、--strict 讓略過也算失敗
 
 # 也可以單獨跑（CI 也會跑）
-node scripts/check-project.mjs     # 24 頁面 / 0 警告
-node scripts/check-openapi.mjs     # 92 條路徑／108 個操作、0 重複鍵（--parity 印出與後端路由表的差）
-node scripts/check-data-layer.mjs  # ALL PASS 77/77（固定跑示範資料層，含 data↔api↔mock 方法對齊）
-node scripts/check-states.mjs      # 24 頁三態全部符合（--table 印出對照表）
-node scripts/check-console.mjs     # 24 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
+node scripts/check-project.mjs     # 25 頁面 / 0 警告
+node scripts/check-openapi.mjs     # 105 條路徑／122 個操作、0 重複鍵（--parity 印出與後端路由表的差）
+node scripts/check-data-layer.mjs  # ALL PASS 93/93（固定跑示範資料層，含 data↔api↔mock 方法對齊）
+node scripts/check-states.mjs      # 25 頁三態全部符合（--table 印出對照表）
+node scripts/check-console.mjs     # 25 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
 ```
 
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄

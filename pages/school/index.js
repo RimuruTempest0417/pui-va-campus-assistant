@@ -6,6 +6,8 @@ Page({
   data: {
     themeClass: appearance.themeClass(),
     loading: true,
+    failed: false,
+    errorText: '',
     linked: false,
     tab: 'grades',
     account: '',
@@ -16,7 +18,6 @@ Page({
     grades: [],
     attendance: [],
     summary: { total: 0, late: 0, absent: 0 },
-    error: '',
   },
 
   onLoad() {
@@ -51,19 +52,28 @@ Page({
       total: i18n.pick('上課日'),
       late: i18n.pick('遲到'),
       absent: i18n.pick('缺席／請假'),
+      failTitle: i18n.pick('載入失敗'),
+      failHint: i18n.pick('請稍後再試'),
+      retry: i18n.pick('重試'),
     };
+  },
+
+  /** 失敗卡的「重試」：重新讀連結狀態與資料 */
+  retry() {
+    this.setData({ loading: true, failed: false, errorText: '' });
+    this.init();
   },
 
   async init() {
     try {
       const st = await data.schoolStatus();
-      this.setData({ status: st, loading: false });
+      this.setData({ status: st, loading: false, failed: false });
       if (st && st.linked) {
         this.setData({ linked: true });
         await this.loadAll();
       }
     } catch (e) {
-      this.setData({ loading: false, error: data.messageOf(e) });
+      this.setData({ loading: false, failed: true, errorText: data.messageOf(e) });
     }
   },
 
@@ -79,7 +89,7 @@ Page({
       }));
       this.setData({ grades, attendance, summary: (a && a.summary) || { total: 0, late: 0, absent: 0 } });
     } catch (e) {
-      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+      this.setData({ failed: true, errorText: data.messageOf(e) });
     }
   },
 

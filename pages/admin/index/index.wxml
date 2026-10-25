@@ -182,7 +182,7 @@
           <input class="field__input field__gap" value="{{eventForm.groups}}" data-field="groups" bindinput="onEventField" placeholder="{{L.k28}}" />
           <view class="ui-row field__gap" bindtap="toggleEvTeams">
             <text class="ui-section ui-mt-2">{{teamsEnabled ? '☑' : '☐'}}</text>
-            <text class="field__hint">{{L.k66}}</text>
+            <text class="field__hint">{{L.k201}}</text>
           </view>
           <view class="row-actions">
             <pv-button type="filled" size="sm" loading="{{creatingEvent}}" disabled="{{creatingEvent}}" bind:tap="createEvent">{{L.k29}}</pv-button>

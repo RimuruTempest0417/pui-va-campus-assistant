@@ -10,7 +10,7 @@ page {
   --pv-tint-pressed: #5a31a6;
   --pv-tint-soft: #f0eafb;
   --pv-brand: #c8102e;              /* 培華紅：校徽用色，保留給身份識別與緊急 */
-  --pv-brand-strong: #a00d24;       /* 培華紅深階：後台統計數字（白底對比 7.6:1） */
+  --pv-brand-strong: #a00d24;       /* 培華紅深階：緊急公告／破壞性操作文字（後台統計卡已改中性，W-49） */
   --pv-brand-soft: #fcebec;
   --pv-danger: #d70015;             /* iOS systemRed：破壞性操作 */
   --pv-warning: #b25000;            /* iOS systemOrange（深） */

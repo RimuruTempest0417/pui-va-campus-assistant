@@ -19,6 +19,7 @@ tags:
   - name: notices
   - name: uploads
   - name: parents
+  - name: school
   - name: admin
 
 security:
@@ -2356,6 +2357,241 @@ paths:
         '200': { description: 同 GET }
         '401': { description: 密鑰不正確或沒有帶 }
         '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+
+  # ── 家校通整合（W-50／W-51／W-52） ──
+  # 每個家庭用自己的家校通帳號；任何端點都不回傳帳密，只回「已連結／上次同步／錯誤」。
+  /school/status:
+    get:
+      tags: [school]
+      summary: 連結狀態（不外洩帳密）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 連結狀態
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  linked: { type: boolean }
+                  studentNo: { type: string, nullable: true }
+                  studentName: { type: string, nullable: true }
+                  className: { type: string, nullable: true }
+                  lastSyncAt: { type: string, format: date-time, nullable: true }
+                  lastError: { type: string, nullable: true, description: 上次同步失敗原因（成功時清空） }
+                  cryptoReady: { type: boolean, description: 後端是否已設定 SCHOOL_CRED_KEY }
+        '401': { description: 未登入 }
+
+  /school/link:
+    post:
+      tags: [school]
+      summary: 建立連結（先真的登入家校通一次，成功才加密儲存帳密）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account, password]
+              properties:
+                account: { type: string, minLength: 3, maxLength: 64 }
+                password: { type: string, minLength: 4, maxLength: 128 }
+      responses:
+        '200':
+          description: 已連結
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  linked: { type: boolean }
+                  studentNo: { type: string }
+                  verifiedAt: { type: string, format: date-time }
+        '401': { description: 家校通帳號或密碼不正確 }
+        '501': { description: 後端未設定 SCHOOL_CRED_KEY（SCHOOL_CRED_NOT_CONFIGURED，改用「手動輸入」） }
+    delete:
+      tags: [school]
+      summary: 解除連結（帳密一起刪掉，已同步的成績與出缺席保留）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 已解除
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  linked: { type: boolean }
+        '401': { description: 未登入 }
+
+  /school/sync:
+    post:
+      tags: [school]
+      summary: 立即同步（預設當前學年＋上一個學年；手動觸發與排程共用）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                yearTerms:
+                  type: array
+                  maxItems: 6
+                  description: 指定學年（不帶就抓當前＋上一個學年）
+                  items: { type: string, maxLength: 16 }
+      responses:
+        '200':
+          description: 同步結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  yearTerms:
+                    type: array
+                    items: { type: string }
+                  grades: { type: integer, description: 寫入的成績筆數 }
+                  attendance: { type: integer, description: 寫入的出缺席筆數 }
+                  syncedAt: { type: string, format: date-time }
+        '401': { description: 家校通帳號或密碼已失效，請重新連結 }
+        '422': { description: 尚未連結家校通 }
+        '501': { description: 後端未設定 SCHOOL_CRED_KEY }
+
+  /school/grades:
+    get:
+      tags: [school]
+      summary: 自己的成績（最多 500 筆）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: yearTerm
+          schema: { type: string, maxLength: 16 }
+        - in: query
+          name: term
+          schema: { type: string, maxLength: 8 }
+      responses:
+        '200':
+          description: 成績清單與可用學年
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        yearTerm: { type: string }
+                        term: { type: string }
+                        className: { type: string, nullable: true }
+                        courseName: { type: string }
+                        content: { type: string, nullable: true }
+                        testType: { type: string, description: 測驗／考試等 }
+                        testDate: { type: string, format: date-time }
+                        score: { type: number, nullable: true }
+                        source: { type: string, enum: [SYNC, MANUAL] }
+                  years:
+                    type: array
+                    items: { type: string }
+        '401': { description: 未登入 }
+
+  /school/attendance:
+    get:
+      tags: [school]
+      summary: 自己的出缺席（最多 500 筆，附統計）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: yearTerm
+          schema: { type: string, maxLength: 16 }
+        - in: query
+          name: term
+          schema: { type: string, maxLength: 8 }
+      responses:
+        '200':
+          description: 出缺席清單與統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        date: { type: string, format: date-time }
+                        yearTerm: { type: string }
+                        term: { type: string }
+                        amStatus: { type: string, enum: [normal, late, absent, leave] }
+                        pmStatus: { type: string, enum: [normal, late, absent, leave] }
+                        isAmLate: { type: boolean }
+                        isPmLate: { type: boolean }
+                        remark: { type: string, nullable: true }
+                        source: { type: string, enum: [SYNC, MANUAL] }
+                  summary:
+                    type: object
+                    properties:
+                      total: { type: integer, description: 上課日數 }
+                      late: { type: integer }
+                      absent: { type: integer }
+        '401': { description: 未登入 }
+
+  /school/manual/grades:
+    post:
+      tags: [school]
+      summary: 手動補登成績（學校站掛掉或帳密失效時的後備，同一筆重送即覆蓋）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [yearTerm, term, courseName, testType, testDate]
+              properties:
+                yearTerm: { type: string, minLength: 4, maxLength: 16 }
+                term: { type: string, minLength: 1, maxLength: 8 }
+                courseName: { type: string, minLength: 1, maxLength: 48 }
+                testType: { type: string, minLength: 1, maxLength: 24 }
+                testDate: { type: string, format: date-time }
+                score: { type: number, minimum: 0, maximum: 1000, nullable: true }
+                content: { type: string, maxLength: 200 }
+      responses:
+        '200': { description: 寫入後的成績資料 }
+        '401': { description: 未登入 }
+        '422': { description: 參數不合法 }
+
+  /school/manual/attendance:
+    post:
+      tags: [school]
+      summary: 手動補登出缺席（同一日期重送即覆蓋）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date, yearTerm, term]
+              properties:
+                date: { type: string, format: date-time }
+                yearTerm: { type: string, minLength: 4, maxLength: 16 }
+                term: { type: string, minLength: 1, maxLength: 8 }
+                amStatus: { type: string, enum: [normal, late, absent, leave], default: normal }
+                pmStatus: { type: string, enum: [normal, late, absent, leave], default: normal }
+                remark: { type: string, maxLength: 200 }
+      responses:
+        '200': { description: 寫入後的出缺席資料 }
+        '401': { description: 未登入 }
+        '422': { description: 參數不合法 }
 
 components:
   securitySchemes:

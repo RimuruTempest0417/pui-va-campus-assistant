@@ -40,6 +40,7 @@ const REQUIRE = {
   'pages/print/event/index': { loading: true, empty: true, failed: true },
   'pages/notifications/index': { loading: true, empty: true, failed: true },
   'pages/help/index': { loading: false, empty: false, failed: false, why: '站內說明，內容寫死沒有網路載入' },
+  'pages/school/index': { loading: true, empty: true, failed: true },
 };
 
 const DETECT = {
