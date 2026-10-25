@@ -38,6 +38,23 @@
           <text class="ui-body">{{ev.description || L.k22}}</text>
         </pv-card>
 
+        <!-- W-38 活動附件（章程／場地圖）：點一下直接開或複製連結 -->
+        <block wx:if="{{attachments.length}}">
+          <view class="pv-group-title">{{L.k70}}</view>
+          <pv-card>
+            <view wx:for="{{attachments}}" wx:key="id" class="att-row" data-id="{{item.id}}" bindtap="openAttachment">
+              <view class="att-main">
+                <text class="att-name">{{item.name}}</text>
+                <text class="att-meta">{{item.metaText}}</text>
+              </view>
+              <text wx:if="{{ev.canManageAttachments}}" class="att-del" data-id="{{item.id}}" catchtap="removeAttachment">{{L.k73}}</text>
+            </view>
+          </pv-card>
+        </block>
+        <view wx:if="{{ev.canManageAttachments}}" class="att-add" bindtap="addAttachment">
+          <text class="att-add__text">{{L.k71}}</text>
+        </view>
+
         <pv-card wx:if="{{groups.length}}">
           <text class="group-title">{{L.k10}}</text>
           <view class="group-chips">
