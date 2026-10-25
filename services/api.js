@@ -38,7 +38,7 @@ module.exports = {
   getEvent(id) {
     return http.get('/events/' + id);
   },
-  signupEvent(eventId, groupKey) {
+  signupEvent(eventId, groupKey, teamCode) {
     return http.post('/events/' + eventId + '/signup', groupKey ? { groupKey: groupKey } : {});
   },
   cancelSignup(eventId) {
@@ -111,5 +111,50 @@ module.exports = {
     ]).then(function (res) {
       return { notices: (res[0] && res[0].items) || [], events: (res[1] && res[1].items) || [] };
     });
+  },
+
+  // ── W-34 站內通知 ──
+  notifications(unreadOnly) {
+    return http.get('/notifications', unreadOnly ? { unreadOnly: '1' } : {});
+  },
+  notificationsUnread() {
+    return http.get('/notifications/unread-count');
+  },
+  readNotifications(id) {
+    return http.patch('/notifications/read', id ? { id } : {});
+  },
+
+  // ── W-31 活動回饋 ──
+  eventFeedback(eventId) {
+    return http.get('/events/' + eventId + '/feedback');
+  },
+  submitFeedback(eventId, rating, comment) {
+    return http.post('/events/' + eventId + '/feedback', { rating, comment });
+  },
+
+  // ── W-30 組隊 ──
+  eventTeams(eventId) {
+    return http.get('/events/' + eventId + '/teams');
+  },
+  createTeam(eventId, name) {
+    return http.post('/events/' + eventId + '/teams', { name });
+  },
+
+  // ── W-38 活動附件（清單跟著 /events/:id 一起回，這裡只補寫入兩支）──
+  addEventAttachment(eventId, payload) {
+    return http.post('/events/' + eventId + '/attachments', payload);
+  },
+  deleteEventAttachment(eventId, attachmentId) {
+    return http.del('/events/' + eventId + '/attachments/' + attachmentId);
+  },
+  /** COS 直傳簽名：未開通時後端回 UPLOAD_NOT_CONFIGURED，前端照實提示，不要假成功 */
+  signUpload(purpose, ext) {
+    return http.post('/uploads/signature', { purpose: purpose, ext: ext });
+  },
+
+  // ── W-43 使用者手動回報問題 ──
+  // 走既有的 client-errors 家族（不是新的一組端點）：同一套節流、聚合與後台分頁。
+  reportIssue(payload) {
+    return http.post('/client-errors/report', payload);
   },
 };

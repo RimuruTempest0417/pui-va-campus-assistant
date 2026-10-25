@@ -41,23 +41,49 @@ export function stripComments(src) {
   return out;
 }
 
-/** 找出所有含中文的單／雙引號字串（不含模板字串，模板字串另由掃描器回報） */
+/**
+ * 找出所有含中文的單／雙引號字串（不含模板字串，模板字串另由掃描器回報）
+ * 用手寫掃描取代正則：大檔案（i18n 對照表）用 /g 正則會爆 call stack。
+ */
 export function chineseLiterals(code) {
   const hits = [];
-  const re = /'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)"/g;
-  for (const m of code.matchAll(re)) {
-    const text = m[1] !== undefined ? m[1] : m[2];
-    if (!CJK.test(text)) continue;
-    const start = m.index;
-    const before = code.slice(Math.max(0, start - 20), start);
-    if (/i18n\.pick\(\s*$/.test(before)) continue;
-    hits.push({ index: start, text, raw: m[0], before });
+  let i = 0;
+  const n = code.length;
+  while (i < n) {
+    const c = code[i];
+    if (c === '/' && code[i + 1] === '/') { while (i < n && code[i] !== '\n') i += 1; continue; }
+    if (c === '/' && code[i + 1] === '*') { i += 2; while (i < n && !(code[i] === '*' && code[i + 1] === '/')) i += 1; i += 2; continue; }
+    if (c !== "'" && c !== '"') { i += 1; continue; }
+    const quote = c;
+    const start = i;
+    let j = i + 1;
+    let text = '';
+    let closed = false;
+    while (j < n) {
+      const d = code[j];
+      if (d === '\\') { text += code[j + 1] ?? ''; j += 2; continue; }
+      if (d === quote) { closed = true; break; }
+      if (d === '\n') break;
+      text += d;
+      j += 1;
+    }
+    if (!closed) { i += 1; continue; }
+    if (CJK.test(text)) {
+      const before = code.slice(Math.max(0, start - 20), start);
+      if (!/i18n\.pick\(\s*$/.test(before)) {
+        hits.push({ index: start, text, raw: code.slice(start, j + 1), before });
+      }
+    }
+    i = j + 1;
   }
   return hits;
 }
 
+const SKIP = new Set(['i18n-phrases.js']);
+
 function walk(dir, acc = []) {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (SKIP.has(e.name)) continue;
     if (SKIP_DIRS.has(e.name)) continue;
     const p = join(dir, e.name);
     if (e.isDirectory()) walk(p, acc);

@@ -24,6 +24,24 @@
 
       <!-- 概況 -->
       <block wx:elif="{{tab === 'stats'}}">
+        <view class="ov-head">
+          <text class="ov-head__title">{{L.k157}}</text>
+          <text class="ov-head__hint">{{L.k159}}</text>
+        </view>
+        <view class="ov-grid">
+          <view wx:for="{{ovCards}}" wx:key="key"
+                class="ov-card {{ovPressed === index ? 'ov-card--pressed' : ''}}"
+                data-key="{{item.target}}" data-i="{{index}}"
+                bindtap="switchTab" bindtouchstart="ovDown" bindtouchend="ovUp" bindtouchcancel="ovUp">
+            <view class="ov-card__top">
+              <text class="ov-card__num">{{item.value}}</text>
+              <text class="ov-card__go">›</text>
+            </view>
+            <text class="ov-card__label">{{item.label}}</text>
+          </view>
+        </view>
+
+        <text class="ov-section">{{L.k158}}</text>
         <view class="stat-grid">
           <view class="stat"><text class="stat__num">{{stats.users}}</text><text class="stat__label">{{L.k04}}</text></view>
           <view class="stat"><text class="stat__num">{{stats.items.open}}</text><text class="stat__label">{{L.k05}}</text></view>
@@ -63,6 +81,9 @@
           <view wx:for="{{statusFilters}}" wx:key="key" class="chip {{itemStatus === item.key ? 'chip--on' : ''}}"
                 data-key="{{item.key}}" bindtap="filterItems">{{item.label}}</view>
         </view>
+        <view class="row-actions">
+          <pv-button size="sm" type="plain" data-kind="items" bind:tap="openPrint">{{L.k126}}</pv-button>
+        </view>
         <view wx:for="{{items}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.title}}</text>
@@ -72,6 +93,35 @@
           <view class="row-actions">
             <pv-button wx:if="{{item.deletedAt}}" size="sm" type="plain" data-id="{{item.id}}" data-act="RESTORE" bind:tap="moderate">{{L.k15}}</pv-button>
             <pv-button wx:else size="sm" type="plain" data-id="{{item.id}}" data-act="REMOVE" bind:tap="moderate">{{L.k16}}</pv-button>
+          </view>
+        </view>
+      </block>
+
+      <!-- 資源回收桶（W-40） -->
+      <block wx:elif="{{tab === 'trash'}}">
+        <pv-card>
+          <view class="ui-row-between">
+            <text class="ui-title">{{L.k145}}</text>
+            <text class="ui-meta">{{L.k147}} {{trashCounts.notice}} {{L.k150}} · {{L.k148}} {{trashCounts.item}} {{L.k150}} · {{L.k149}} {{trashCounts.all}} {{L.k150}}</text>
+          </view>
+          <text class="ui-meta">{{L.k146}}</text>
+          <view class="filter-row">
+            <view wx:for="{{trashFilters}}" wx:key="key" class="chip {{trashType === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickTrashType">{{item.label}}</view>
+          </view>
+        </pv-card>
+
+        <pv-empty wx:if="{{!trashRows.length}}" icon="🗑️" title="{{L.k154}}" desc="{{L.k155}}" />
+
+        <view wx:for="{{trashRows}}" wx:key="id" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{item.title}}</text>
+            <pv-tag text="{{item.typeText}}" type="neutral" />
+          </view>
+          <text class="ui-meta">{{item.subText}} · {{L.k151}} {{item.timeText}}</text>
+          <text class="ui-meta">{{L.k152}} {{item.deleterText}}</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-type="{{item.type}}" data-title="{{item.title}}" bind:tap="restoreTrash">{{L.k153}}</pv-button>
           </view>
         </view>
       </block>
@@ -104,7 +154,7 @@
             <pv-tag text="{{item.kind === 'URGENT' ? L.k88 : item.kind === 'CALENDAR' ? L.k89 : L.k90}}" type="{{item.kind === 'URGENT' ? 'danger' : 'neutral'}}" />
           </view>
           <view class="row-actions">
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-pinned="{{item.isPinned ? '1' : '0'}}" bind:tap="togglePin">
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-pinned="{{item.isPinned ? '1' : '0'}}" data-version="{{item.version}}" bind:tap="togglePin">
               {{item.isPinned ? L.k91 : L.k92}}
             </pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="deleteNotice">{{L.k22}}</pv-button>
@@ -121,6 +171,10 @@
           <input class="field__input field__gap" value="{{eventForm.date}}" data-field="date" bindinput="onEventField" placeholder="{{L.k26}}" />
           <input class="field__input field__gap" value="{{eventForm.capacity}}" data-field="capacity" bindinput="onEventField" placeholder="{{L.k27}}" />
           <input class="field__input field__gap" value="{{eventForm.groups}}" data-field="groups" bindinput="onEventField" placeholder="{{L.k28}}" />
+          <view class="ui-row field__gap" bindtap="toggleEvTeams">
+            <text class="field__label">{{teamsEnabled ? '☑' : '☐'}}</text>
+            <text class="field__hint">{{L.k66}}</text>
+          </view>
           <view class="row-actions">
             <pv-button type="filled" size="sm" loading="{{creatingEvent}}" disabled="{{creatingEvent}}" bind:tap="createEvent">{{L.k29}}</pv-button>
             <pv-button size="sm" type="plain" data-type="events" bind:tap="openImport">{{L.k30}}</pv-button>
@@ -191,7 +245,8 @@
           <view class="row-actions">
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventStats">{{L.k39}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="loadEventCheckin">{{L.k40}}</pv-button>
-            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-status="{{item.status}}" bind:tap="toggleEventStatus">
+            <pv-button size="sm" type="plain" data-kind="event" data-id="{{item.id}}" bind:tap="openPrint">{{L.k127}}</pv-button>
+            <pv-button size="sm" type="plain" data-id="{{item.id}}" data-status="{{item.status}}" data-version="{{item.version}}" bind:tap="toggleEventStatus">
               {{item.status === 'CANCELLED' ? L.k109 : L.k110}}
             </pv-button>
           </view>
@@ -237,9 +292,9 @@
         <view wx:for="{{users}}" wx:key="id" class="ui-card">
           <view class="ui-row-between">
             <text class="ui-title">{{item.nickname || item.openid}}</text>
-            <pv-tag text="{{item.role}} Lv{{item.level}}" type="{{item.bannedAt ? 'danger' : 'neutral'}}" />
+            <pv-tag text="{{item.role}} Lv{{item.level}}" type="{{(item.bannedAt || item.locked) ? 'danger' : 'neutral'}}" />
           </view>
-          <text class="ui-meta">{{item.openid}}{{item.bannedAt ? L.k111 : ''}}{{item.lastLoginAt ? L.k112 + item.lastLoginAt : ''}}</text>
+          <text class="ui-meta">{{item.openid}}{{item.bannedAt ? L.k111 : ''}}{{item.locked ? L.k160 : ''}}{{item.lastLoginText ? L.k112 + item.lastLoginText : ''}}</text>
 
           <view wx:if="{{item.canManage}}" class="row-actions">
             <block wx:for="{{roles}}" wx:for-item="r" wx:key="key">
@@ -272,6 +327,7 @@
           <view wx:if="{{item.canManage}}" class="row-actions">
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="startEdit">{{L.k56}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="resetPassword">{{L.k57}}</pv-button>
+            <pv-button wx:if="{{item.locked}}" size="sm" type="plain" data-id="{{item.id}}" bind:tap="unlockUser">{{L.k161}}</pv-button>
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-banned="{{item.bannedAt ? '1' : '0'}}" bind:tap="toggleBan">
               {{item.bannedAt ? L.k109 : L.k113}}
             </pv-button>
@@ -332,11 +388,18 @@
         <pv-card>
           <view class="ui-row-between">
             <text class="ui-title">待處理 {{errSummary.open || 0}} 種</text>
-            <text class="ui-meta">近 24 小時 {{errSummary.last24h || 0}} 次 · 累計 {{errSummary.total || 0}} 次</text>
+            <text class="ui-meta">近 24 小時 {{errSummary.last24h || 0}} 次 · 累計 {{errSummary.total || 0}} 次 · 使用者回報 {{errSummary.userReports || 0}} 件</text>
           </view>
           <view class="filter-row">
             <view wx:for="{{errFilters}}" wx:key="key" class="chip {{errStatus === item.key ? 'chip--on' : ''}}"
                   data-key="{{item.key}}" bindtap="pickErrStatus">{{item.label}}</view>
+          </view>
+          <view class="filter-row">
+            <view wx:for="{{errKindFilters}}" wx:key="key" class="chip {{errKind === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickErrKind">{{item.label}}</view>
+          </view>
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" bind:tap="cleanupErrors">{{L.k131}}</pv-button>
           </view>
         </pv-card>
 
@@ -348,13 +411,58 @@
             <text class="ui-title">{{item.message}}</text>
             <pv-tag text="{{item.count}} 次" type="{{item.status === 'OPEN' ? 'warning' : 'neutral'}}" />
           </view>
+          <view class="row-actions">
+            <pv-tag text="{{item.kindText}}" type="{{item.isUserReport ? 'tint' : 'neutral'}}" />
+          </view>
           <text class="ui-meta">{{item.route || L.k117}}{{item.platform ? ' · ' + item.platform : ''}}</text>
+          <text wx:if="{{item.deviceText}}" class="ui-meta">{{item.deviceText}}</text>
           <text class="ui-meta">最近 {{item.seenText}} · 首次 {{item.firstSeenText}}</text>
+          <view class="row-actions" wx:if="{{item.similarText}}">
+            <pv-tag text="{{item.similarText}}" type="neutral" />
+          </view>
           <view class="row-actions">
             <pv-button size="sm" type="plain" data-id="{{item.id}}" data-action="{{item.status === 'OPEN' ? 'RESOLVE' : 'REOPEN'}}" bind:tap="toggleErrStatus">
               {{item.status === 'OPEN' ? L.k118 : L.k119}}
             </pv-button>
+            <pv-button wx:if="{{item.similar > 1 && item.status === 'OPEN'}}" size="sm" type="plain"
+                       data-message="{{item.message}}" bind:tap="resolveSimilarErr">{{L.k128}}</pv-button>
           </view>
+        </view>
+      </block>
+
+      <!-- 推送紀錄（W-37） -->
+      <block wx:elif="{{tab === 'push'}}">
+        <pv-card>
+          <view class="ui-row-between">
+            <text class="ui-title">{{L.k132}}</text>
+            <text class="ui-meta">{{L.k133}} {{pushSummary.total || 0}}</text>
+          </view>
+          <view class="ui-row-between">
+            <text class="ui-meta">{{L.k134}} {{pushSummary.ok || 0}} · {{L.k135}} {{pushSummary.failed || 0}}</text>
+            <text class="ui-meta">{{L.k136}} {{pushSummary.last24h || 0}}</text>
+          </view>
+          <text class="ui-meta">{{pushTplHint}}</text>
+          <view class="filter-row">
+            <view wx:for="{{pushFilters}}" wx:key="key" class="chip {{pushOk === item.key ? 'chip--on' : ''}}"
+                  data-key="{{item.key}}" bindtap="pickPushOk">{{item.label}}</view>
+          </view>
+          <view class="filter-row">
+            <view class="chip {{pushChannel === '' ? 'chip--on' : ''}}" data-key="" bindtap="pickPushChannel">{{L.k137}}</view>
+            <view class="chip {{pushChannel === 'INAPP' ? 'chip--on' : ''}}" data-key="INAPP" bindtap="pickPushChannel">{{L.k138}}</view>
+            <view class="chip {{pushChannel === 'WX' ? 'chip--on' : ''}}" data-key="WX" bindtap="pickPushChannel">{{L.k139}}</view>
+          </view>
+        </pv-card>
+
+        <pv-empty wx:if="{{!pushLogs.length}}" icon="📨" title="{{L.k140}}" desc="{{L.k141}}" />
+
+        <view wx:for="{{pushLogs}}" wx:key="id" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{item.titleText}}</text>
+            <pv-tag text="{{item.resultText}}" type="{{item.ok ? 'neutral' : 'warning'}}" />
+          </view>
+          <text class="ui-meta">{{item.nameText}}{{item.roleText ? ' · ' + item.roleText : ''}}</text>
+          <text class="ui-meta">{{item.channelText}}{{item.sceneText ? ' · ' + item.sceneText : ''}} · {{item.timeText}}</text>
+          <text wx:if="{{!item.ok}}" class="ui-meta">{{L.k143}}{{item.errorText}}</text>
         </view>
       </block>
 

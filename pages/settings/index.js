@@ -5,16 +5,11 @@ const request = require('../../utils/request');
 const config = require('../../config/config');
 const roleLabel = require('../../utils/role').label;
 const adminApi = require('../../services/admin');
+const reporter = require('../../utils/reporter');
 
 Page({
   labels() {
     return {
-      k01: i18n.pick("安全"),
-      k02: i18n.pick("兩步驗證"),
-      k03: i18n.pick("開啟（產生密鑰）"),
-      k04: i18n.pick("複製密鑰"),
-      k05: i18n.pick("輸入驗證器上的 6 位數字"),
-      k06: i18n.pick("輸入登入密碼以關閉"),
       k17: i18n.pick("已登入"),
       k18: i18n.pick(" · 示範模式"),
       k19: i18n.pick("離線示範資料"),
@@ -54,8 +49,12 @@ Page({
       k46: i18n.pick("我已保存"),
       k47: i18n.pick("未開啟（請在網頁後台設定）"),
       k48: i18n.pick("複製設定網址"),
+      k51: i18n.pick("通知"),
+      k52: i18n.pick("報名、候補、認領、活動改期的提醒"),
       k49: i18n.pick("使用說明"),
       k50: i18n.pick("依身分看操作步驟（學生／家長／老師／管理員）"),
+      k53: i18n.pick("回報問題"),
+      k54: i18n.pick("按鈕沒反應、畫面怪，寫一句話告訴管理員"),
 
     };
   },
@@ -207,8 +206,66 @@ Page({
     }
   },
 
+  goNotifications() {
+    wx.navigateTo({ url: '/pages/notifications/index' });
+  },
+
   goHelp() {
     wx.navigateTo({ url: '/pages/help/index' });
+  },
+
+  /**
+   * 回報問題（W-43）
+   *
+   * 「按鈕沒反應」這類問題不會拋錯，`app.onError` 收不到，只能讓使用者自己寫一句話。
+   * 兩個刻意的地方：
+   * ① 離線示範模式直接講明「不會送出」而不是假裝成功 —— 靜默降級會讓人分不清真假；
+   * ② 失敗訊息帶錯誤碼與實際打的位址，否則是「回報失敗」四個字，誰都查不下去。
+   */
+  reportIssue() {
+    if (this.data.isDemo) {
+      wx.showModal({
+        title: i18n.pick('目前是離線示範'),
+        content: i18n.pick('示範模式不會把回報送到學校後端。要回報問題，請先到「資料來源」關掉示範資料。'),
+        showCancel: false,
+      });
+      return;
+    }
+
+    wx.showModal({
+      title: i18n.pick('回報問題'),
+      editable: true,
+      placeholderText: i18n.pick('例如：活動詳情的報名按鈕按下去沒反應'),
+      success: (res) => {
+        if (!res.confirm) return;
+        const text = String(res.content || '').trim();
+        if (text.length < 3) {
+          wx.showToast({ title: i18n.pick('請多寫幾個字，方便管理員重現'), icon: 'none' });
+          return;
+        }
+        this.sendIssue(text);
+      },
+    });
+  },
+
+  async sendIssue(text) {
+    const payload = Object.assign({ message: text.slice(0, 300) }, reporter.devicePayload());
+    try {
+      const r = await data.reportIssue(payload);
+      if (r && r.demo) {
+        wx.showToast({ title: i18n.pick('示範模式沒有送出'), icon: 'none' });
+        return;
+      }
+      wx.showToast({ title: i18n.pick('已送出，謝謝你的回報'), icon: 'success' });
+    } catch (e) {
+      const code = (e && (e.code || e.codeName)) || 'ERROR';
+      const msg = (e && e.message) || '';
+      wx.showModal({
+        title: i18n.pick('回報沒有送出'),
+        content: msg + '（' + code + '）\n' + i18n.pick('後端：') + request.apiBase(),
+        showCancel: false,
+      });
+    }
   },
 
   copy2faUrl() {

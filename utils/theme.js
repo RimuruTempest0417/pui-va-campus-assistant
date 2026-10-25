@@ -7,4 +7,7 @@ module.exports = {
   brand: '#C8102E',    // --pv-brand 培華紅
   danger: '#D70015',   // --pv-danger 破壞性操作
   onTint: '#FFFFFF',   // --pv-on-tint 紫／紅底上的文字
+  // W-32 分享卡（canvas 只能用字面色值）
+  surface: '#FFFFFF',  // --pv-surface
+  onTintSoft: 'rgba(255, 255, 255, 0.75)', // --pv-on-tint-2
 };

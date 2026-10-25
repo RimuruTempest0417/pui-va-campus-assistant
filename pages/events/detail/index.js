@@ -9,6 +9,33 @@ const i18n = require('../../../utils/i18n');
 
 const appearance = require('../../../utils/appearance');
 
+/** W-38 附件的型別顯示（後端只存原始值，怎麼講給人看是前端的事） */
+function kindText(type) {
+  // 這幾個是縮寫，不必翻；只有中文那兩個要走 i18n（在呼叫時取，模組載入時取會鎖死在當下語言）
+  if (type === 'pdf') return 'PDF';
+  if (type === 'doc' || type === 'docx') return 'Word';
+  if (type === 'xls' || type === 'xlsx') return 'Excel';
+  if (type === 'ppt' || type === 'pptx') return 'PPT';
+  if (type === 'zip') return 'ZIP';
+  if (type === 'ics') return i18n.pick('日曆');
+  return i18n.pick('連結');
+}
+
+function sizeText(n) {
+  if (typeof n !== 'number' || n <= 0) return '';
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return Math.round(n / 1024) + ' KB';
+  return Math.round((n / 1024 / 1024) * 10) / 10 + ' MB';
+}
+
+function decorateAttachments(list) {
+  return (list || []).map((a) => {
+    const kind = kindText(a.type);
+    const size = sizeText(a.size);
+    return Object.assign({}, a, { kindText: kind, metaText: size ? kind + ' · ' + size : kind });
+  });
+}
+
 Page({
   labels() {
     return {
@@ -23,6 +50,19 @@ Page({
       k24: i18n.pick("未簽到"),
       k25: i18n.pick("出席紀錄已送出"),
       k26: i18n.pick("到現場掃老師的簽到碼"),
+      k61: i18n.pick('組隊報名'),
+      k62: i18n.pick('還沒有人建隊，你可以當第一個'),
+      k63: i18n.pick('建立隊伍'),
+      k64: i18n.pick('用邀請碼加入'),
+      k65: i18n.pick('已選隊伍，邀請碼：'),
+      k56: i18n.pick('活動回饋'),
+      k57: i18n.pick('目前還沒有人評分，你可以當第一個'),
+      k58: i18n.pick('想跟主辦說的話（可不填）'),
+      k59: i18n.pick('送出回饋'),
+      k60: i18n.pick('產生分享卡（存到相簿）'),
+      k53: i18n.pick('這個活動已取消，名額與報名紀錄不再更新。'),
+      k54: i18n.pick('活動改期：原定 '),
+      k55: i18n.pick('，請留意新時間。'),
       k01: i18n.pick("活動詳情"),
       k02: i18n.pick("載入失敗"),
       k03: i18n.pick("重試"),
@@ -38,6 +78,18 @@ Page({
       k13: i18n.pick("去簽到"),
       k14: i18n.pick("檢舉"),
       k15: i18n.pick("檢舉這則內容"),
+      k70: i18n.pick("附件"),
+      k71: i18n.pick("新增附件"),
+      k72: i18n.pick("尚未開通檔案上傳"),
+      k73: i18n.pick("刪除"),
+      k74: i18n.pick("已複製連結，可用瀏覽器開啟"),
+      k75: i18n.pick("下載失敗，請稍後再試"),
+      k76: i18n.pick("這份附件要用瀏覽器開啟，已複製連結"),
+      k77: i18n.pick("貼上連結"),
+      k78: i18n.pick("從聊天記錄選檔（需開通檔案上傳）"),
+      k79: i18n.pick("請輸入附件名稱，例如：比賽章程"),
+      k80: i18n.pick("請貼上檔案連結（https:// 開頭）"),
+      k81: i18n.pick("確定刪除這份附件？"),
     };
   },
 
@@ -49,6 +101,12 @@ Page({
     loading: true,
     submitting: false,
     ev: null,
+    fb: { count: 0, avg: 0, items: [], mine: null },
+    fbDraft: 5,
+    fbComment: '',
+    canFeedback: false,
+    teams: [],
+    pickedTeamCode: '',
     failed: false,
     errorText: '',
     barText: '',
@@ -57,6 +115,7 @@ Page({
     barDisabled: false,
     groups: [],
     pickedGroup: '',
+    attachments: [],
   },
 
   onLoad(query) {
@@ -76,18 +135,29 @@ Page({
             failed: false,
             errorText: '',
             ev: ev,
+            canFeedback: !!(ev.ended && (ev.myStatus === 'CONFIRMED' || (ev.mySignup && ev.mySignup.status === 'CONFIRMED'))),
             groups: ev.groups || [],
             pickedGroup: ev.myGroupKey || '',
+            attachments: decorateAttachments(ev.attachments),
           },
           this.barFor(ev),
         ),
       );
+      if (ev.ended) this.loadFeedback();
+      if (ev.teamsEnabled) this.loadTeams();
     } catch (e) {
       this.setData({
         loading: false,
         ev: null,
-        pickedGroup: '',
-        failed: codeOf(e) !== 'NOT_FOUND',
+    fb: { count: 0, avg: 0, items: [], mine: null },
+    fbDraft: 5,
+    fbComment: '',
+    canFeedback: false,
+    teams: [],
+    pickedTeamCode: '',
+    pickedGroup: '',
+    attachments: [],
+    failed: codeOf(e) !== 'NOT_FOUND',
         errorText: data.messageOf(e),
       });
     }
@@ -135,7 +205,7 @@ Page({
         wx.showToast({ title: i18n.pick('已取消'), icon: 'success' });
       } else {
         await subscribe.request('event'); // 模板 ID 未填就自動跳過
-        const rec = await data.signupEvent(ev.id, this.data.pickedGroup || null);
+        const rec = await data.signupEvent(ev.id, this.data.pickedGroup || null, this.data.pickedTeamCode || null);
         if (rec.status === 'WAITLIST') {
           wx.showToast({ title: i18n.pick('已額滿，候補第 ') + rec.waitlistPos + i18n.pick(' 位'), icon: 'none' });
         } else {
@@ -148,5 +218,284 @@ Page({
     } finally {
       this.setData({ submitting: false });
     }
+  },
+
+  loadFeedback() {
+    data
+      .eventFeedback(this.id)
+      .then((fb) => this.setData({ fb, fbDraft: (fb.mine && fb.mine.rating) || 5, fbComment: (fb.mine && fb.mine.comment) || '', canFeedback: (this.data.canFeedback || !!fb.mine) && this.data.canFeedback ? true : this.data.canFeedback }))
+      .catch(() => {});
+  },
+
+  pickStar(e) {
+    this.setData({ fbDraft: Number(e.currentTarget.dataset.v) });
+  },
+
+  onFbInput(e) {
+    this.setData({ fbComment: e.detail.value });
+  },
+
+  async submitFeedback() {
+    try {
+      await data.submitFeedback(this.id, this.data.fbDraft, this.data.fbComment.trim() || undefined);
+      wx.showToast({ title: i18n.pick('已送出，謝謝你'), icon: 'success' });
+      this.loadFeedback();
+    } catch (e) {
+      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+    }
+  },
+
+  /** W-32 分享卡：畫一張 600×800 的圖存到相簿 */
+  makeShareCard() {
+    const ev = this.data.ev;
+    if (!ev) return;
+    wx.createSelectorQuery()
+      .select('#shareCanvas')
+      .fields({ node: true, size: true })
+      .exec((res) => {
+        const canvas = res && res[0] && res[0].node;
+        if (!canvas) return wx.showToast({ title: i18n.pick('這台裝置不支援'), icon: 'none' });
+        const ctx = canvas.getContext('2d');
+        const dpr = wx.getWindowInfo ? wx.getWindowInfo().pixelRatio : 2;
+        canvas.width = 600 * dpr;
+        canvas.height = 800 * dpr;
+        ctx.scale(dpr, dpr);
+
+        ctx.fillStyle = theme.tint;
+        ctx.fillRect(0, 0, 600, 800);
+        ctx.fillStyle = theme.onTint;
+        ctx.font = 'bold 34px sans-serif';
+        ctx.fillText(i18n.pick('培華校園助手'), 48, 80);
+        ctx.font = '20px sans-serif';
+        ctx.fillStyle = theme.onTintSoft;
+        ctx.fillText(ev.club || i18n.pick('校園活動'), 48, 116);
+
+        ctx.fillStyle = theme.onTint;
+        ctx.font = 'bold 42px sans-serif';
+        const title = String(ev.title || '');
+        const line1 = title.slice(0, 10);
+        const line2 = title.slice(10, 20);
+        ctx.fillText(line1, 48, 220);
+        if (line2) ctx.fillText(line2, 48, 274);
+
+        ctx.font = '24px sans-serif';
+        ctx.fillStyle = theme.onTintSoft;
+        ctx.fillText(i18n.pick('時間：') + (ev.timeText || ''), 48, 380);
+        ctx.fillText(i18n.pick('地點：') + (ev.location || ''), 48, 424);
+        ctx.fillText(i18n.pick('名額：') + (ev.capacityText || ''), 48, 468);
+
+        ctx.font = '18px sans-serif';
+        ctx.fillStyle = theme.onTintSoft;
+        ctx.fillText(i18n.pick('用手機在小程序內報名 · ') + new Date().toLocaleDateString('zh-TW'), 48, 740);
+
+        wx.canvasToTempFilePath({
+          canvas,
+          success: (r) => {
+            wx.saveImageToPhotosAlbum({
+              filePath: r.tempFilePath,
+              success: () => wx.showToast({ title: i18n.pick('已存到相簿'), icon: 'success' }),
+              fail: () => wx.showModal({ title: i18n.pick('需要相簿權限'), content: i18n.pick('請在設定開啟「儲存到相簿」後再試一次'), showCancel: false }),
+            });
+          },
+          fail: () => wx.showToast({ title: i18n.pick('產生失敗'), icon: 'none' }),
+        });
+      });
+  },
+
+  // ── W-38 活動附件 ──
+  /** 附件只有老師看得到管理入口（後端 canManageAttachments 已算好，這裡不重複判斷） */
+  openAttachment(e) {
+    const id = e.currentTarget.dataset.id;
+    const row = (this.data.attachments || []).filter((a) => a.id === id)[0];
+    if (!row) return;
+
+    // 連結型／ICS：小程序沒有瀏覽器，直接複製讓他自己貼
+    if (!row.type || row.type === 'link' || row.type === 'ics' || row.type === 'zip') {
+      wx.setClipboardData({
+        data: row.url,
+        success: () => wx.showToast({ title: this.data.L.k74, icon: 'none' }),
+      });
+      return;
+    }
+
+    wx.showLoading({ title: i18n.pick('下載中'), mask: true });
+    wx.downloadFile({
+      url: row.url,
+      success: (r) => {
+        wx.hideLoading();
+        if (r.statusCode !== 200) {
+          wx.setClipboardData({ data: row.url });
+          return wx.showToast({ title: this.data.L.k76, icon: 'none' });
+        }
+        wx.openDocument({
+          filePath: r.tempFilePath,
+          showMenu: true,
+          fail: () => {
+            wx.setClipboardData({ data: row.url });
+            wx.showToast({ title: this.data.L.k76, icon: 'none' });
+          },
+        });
+      },
+      fail: () => {
+        wx.hideLoading();
+        wx.showToast({ title: this.data.L.k75, icon: 'none' });
+      },
+    });
+  },
+
+  addAttachment() {
+    wx.showActionSheet({
+      itemList: [this.data.L.k77, this.data.L.k78],
+      success: (r) => {
+        if (r.tapIndex === 0) this.addByLink();
+        else this.addByFile();
+      },
+    });
+  },
+
+  addByLink() {
+    wx.showModal({
+      title: this.data.L.k71,
+      editable: true,
+      placeholderText: this.data.L.k79,
+      success: (r1) => {
+        if (!r1.confirm) return;
+        const name = String(r1.content || '').trim();
+        if (!name) return wx.showToast({ title: this.data.L.k79, icon: 'none' });
+        wx.showModal({
+          title: name,
+          editable: true,
+          placeholderText: this.data.L.k80,
+          success: (r2) => {
+            if (!r2.confirm) return;
+            const url = String(r2.content || '').trim();
+            if (!/^https?:\/\/\S+$/i.test(url)) return wx.showToast({ title: this.data.L.k80, icon: 'none' });
+            this.saveAttachment({ name: name, url: url, type: 'link' });
+          },
+        });
+      },
+    });
+  },
+
+  /** 選檔上傳：先在後端取簽名。COS 未開通時後端回 UPLOAD_NOT_CONFIGURED —— 照實提示，不假成功 */
+  addByFile() {
+    wx.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      success: (r) => {
+        const f = (r.tempFiles || [])[0];
+        if (!f) return;
+        const ext = (String(f.name || '').split('.').pop() || '').toLowerCase();
+        data
+          .signUpload('event', ext)
+          .then((sig) => {
+            wx.uploadFile({
+              url: sig.host,
+              filePath: f.path,
+              name: 'file',
+              formData: Object.assign(
+                { key: sig.key, policy: sig.policy, signature: sig.signature, 'q-sign-algorithm': 'sha1', 'q-ak': sig.secretId || '' },
+                sig.fields || {},
+              ),
+              success: (up) => {
+                if (up.statusCode !== 204 && up.statusCode !== 200) {
+                  return wx.showToast({ title: this.data.L.k75, icon: 'none' });
+                }
+                this.saveAttachment({
+                  name: f.name,
+                  url: sig.url,
+                  size: f.size,
+                  type: /^(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|ics)$/.test(ext) ? ext : 'pdf',
+                });
+              },
+              fail: () => wx.showToast({ title: this.data.L.k75, icon: 'none' }),
+            });
+          })
+          .catch((e) => {
+            // 未開通就走這條：明講「尚未開通檔案上傳」，並引導改用貼連結
+            wx.showModal({
+              title: this.data.L.k72,
+              content: data.messageOf(e),
+              confirmText: this.data.L.k77,
+              success: (m) => {
+                if (m.confirm) this.addByLink();
+              },
+            });
+          });
+      },
+    });
+  },
+
+  saveAttachment(payload) {
+    return data
+      .addEventAttachment(this.id, payload)
+      .then(() => {
+        wx.showToast({ title: i18n.pick('已新增'), icon: 'success' });
+        return this.load();
+      })
+      .catch((e) => wx.showToast({ title: data.messageOf(e), icon: 'none' }));
+  },
+
+  removeAttachment(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title: this.data.L.k73,
+      content: this.data.L.k81,
+      success: (r) => {
+        if (!r.confirm) return;
+        data
+          .deleteEventAttachment(this.id, id)
+          .then(() => {
+            wx.showToast({ title: i18n.pick('已刪除'), icon: 'success' });
+            return this.load();
+          })
+          .catch((err) => wx.showToast({ title: data.messageOf(err), icon: 'none' }));
+      },
+    });
+  },
+
+  loadTeams() {
+    data
+      .eventTeams(this.id)
+      .then((r) => this.setData({ teams: (r && r.teams) || [] }))
+      .catch(() => {});
+  },
+
+  /** 點自己隊伍的邀請碼 → 直接用這組碼報名 */
+  useTeamCode(e) {
+    const code = e.currentTarget.dataset.code;
+    if (code) this.setData({ pickedTeamCode: code });
+  },
+
+  createTeam() {
+    wx.showModal({
+      title: i18n.pick('建立隊伍'),
+      editable: true,
+      placeholderText: i18n.pick('隊名，例如：3A 火箭隊'),
+      success: async (r) => {
+        if (!r.confirm || !r.content) return;
+        try {
+          const team = await data.createTeam(this.id, r.content.trim());
+          this.setData({ pickedTeamCode: team.code });
+          wx.showModal({ title: i18n.pick('隊伍已建立'), content: i18n.pick('邀請碼：') + team.code + i18n.pick('，可以按下方按鈕報名'), showCancel: false });
+          this.loadTeams();
+        } catch (err) {
+          wx.showToast({ title: data.messageOf(err), icon: 'none' });
+        }
+      },
+    });
+  },
+
+  joinByCode() {
+    wx.showModal({
+      title: i18n.pick('輸入邀請碼'),
+      editable: true,
+      placeholderText: 'ABC123',
+      success: (r) => {
+        if (!r.confirm || !r.content) return;
+        this.setData({ pickedTeamCode: r.content.trim().toUpperCase() });
+        wx.showToast({ title: i18n.pick('已選隊伍，接著按報名'), icon: 'none' });
+      },
+    });
   },
 });

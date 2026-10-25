@@ -14,6 +14,9 @@
       <pv-empty wx:elif="{{!ev}}" icon="🕳" title="{{L.k04}}" desc="{{L.k05}}" />
 
       <block wx:else>
+        <view wx:if="{{ev.cancelled}}" class="ev-alert ev-alert--danger">{{L.k53}}</view>
+        <view wx:elif="{{ev.postponedText}}" class="ev-alert">{{L.k54}}{{ev.postponedText}}{{L.k55}}</view>
+
         <view class="ev-head">
           <text class="ev-head__title">{{ev.title}}</text>
           <view class="ui-row ev-head__tags">
@@ -34,6 +37,23 @@
         <pv-card>
           <text class="ui-body">{{ev.description || L.k22}}</text>
         </pv-card>
+
+        <!-- W-38 活動附件（章程／場地圖）：點一下直接開或複製連結 -->
+        <block wx:if="{{attachments.length}}">
+          <view class="pv-group-title">{{L.k70}}</view>
+          <pv-card>
+            <view wx:for="{{attachments}}" wx:key="id" class="att-row" data-id="{{item.id}}" bindtap="openAttachment">
+              <view class="att-main">
+                <text class="att-name">{{item.name}}</text>
+                <text class="att-meta">{{item.metaText}}</text>
+              </view>
+              <text wx:if="{{ev.canManageAttachments}}" class="att-del" data-id="{{item.id}}" catchtap="removeAttachment">{{L.k73}}</text>
+            </view>
+          </pv-card>
+        </block>
+        <view wx:if="{{ev.canManageAttachments}}" class="att-add" bindtap="addAttachment">
+          <text class="att-add__text">{{L.k71}}</text>
+        </view>
 
         <pv-card wx:if="{{groups.length}}">
           <text class="group-title">{{L.k10}}</text>
@@ -60,6 +80,51 @@
             <pv-button wx:if="{{!ev.myCheckedIn}}" type="tinted" size="sm" bind:tap="goCheckin">{{L.k13}}</pv-button>
           </view>
         </pv-card>
+        <!-- W-30 組隊報名 -->
+        <view wx:if="{{ev.teamsEnabled}}" class="team-card">
+          <text class="team-title">{{L.k61}}</text>
+          <block wx:for="{{teams}}" wx:key="id" wx:for-item="tm">
+            <view class="team-row" data-code="{{tm.code}}" bindtap="useTeamCode">
+              <text class="team-row__name">{{tm.name}}</text>
+              <text class="team-row__meta">{{tm.members}} 人{{tm.code ? ' · 邀請碼 ' + tm.code : ''}}</text>
+            </view>
+          </block>
+          <text wx:if="{{!teams.length}}" class="team-empty">{{L.k62}}</text>
+          <view class="ui-row" style="margin-top:16rpx">
+            <pv-button size="sm" type="tinted" bind:tap="createTeam">{{L.k63}}</pv-button>
+            <pv-button size="sm" bind:tap="joinByCode">{{L.k64}}</pv-button>
+          </view>
+          <text wx:if="{{pickedTeamCode}}" class="team-picked">{{L.k65}}{{pickedTeamCode}}</text>
+        </view>
+
+        <!-- W-31 活動回饋（活動結束後才出現） -->
+        <view wx:if="{{ev.ended}}" class="fb-card">
+          <text class="fb-title">{{L.k56}}</text>
+          <text class="fb-avg" wx:if="{{fb.count}}">★ {{fb.avg}} · {{fb.count}} 人評分</text>
+          <text class="fb-avg" wx:else>{{L.k57}}</text>
+
+          <block wx:if="{{canFeedback}}">
+            <view class="fb-stars">
+              <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" class="fb-star {{fbDraft >= item ? 'fb-star--on' : ''}}"
+                    data-v="{{item}}" bindtap="pickStar">★</text>
+            </view>
+            <textarea class="fb-input" value="{{fbComment}}" placeholder="{{L.k58}}" maxlength="300" bindinput="onFbInput" auto-height />
+            <pv-button size="sm" type="tinted" bind:tap="submitFeedback">{{L.k59}}</pv-button>
+          </block>
+
+          <block wx:for="{{fb.items}}" wx:key="createdAt" wx:for-item="row">
+            <view class="fb-item">
+              <text class="fb-item__head">{{row.nickname}} · {{row.rating}}★</text>
+              <text class="fb-item__body">{{row.comment}}</text>
+            </view>
+          </block>
+        </view>
+
+        <!-- W-32 分享卡 -->
+        <view class="share-card" bindtap="makeShareCard">
+          <text class="share-card__text">{{L.k60}}</text>
+        </view>
+        <canvas type="2d" id="shareCanvas" class="share-canvas" />
       </block>
     </view>
   </scroll-view>

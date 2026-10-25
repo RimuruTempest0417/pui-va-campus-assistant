@@ -340,6 +340,11 @@ paths:
                       myStatus: { type: string, nullable: true, enum: [CONFIRMED, WAITLIST, CANCELLED, null] }
                       waitlistPos: { type: integer, nullable: true }
                       myCheckedIn: { type: string, format: date-time, nullable: true, description: 我自己的現場簽到時間（未簽到為 null） }
+                      attachments:
+                        type: array
+                        description: W-38 活動附件（章程／場地圖）
+                        items: { $ref: '#/components/schemas/EventAttachment' }
+                      canManageAttachments: { type: boolean, description: 後端算好的旗標（老師只對自己開的活動為 true；前端不要重算） }
         '404': { $ref: '#/components/responses/NotFound' }
 
   /events/{id}/signup:
@@ -1000,6 +1005,12 @@ paths:
         - { in: query, name: status, schema: { type: string, enum: [PENDING, APPROVED, REJECTED], default: PENDING } }
 
   /admin/events:
+    post:
+      tags: [admin]
+      summary: 建立活動
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
     get:
       tags: [admin]
       summary: 活動清單（匯出 CSV 用，需 event:export）
@@ -1010,6 +1021,12 @@ paths:
       summary: 依菜名取得或建立菜色（排菜單用，需 menu:manage）
 
   /admin/menu:
+    get:
+      tags: [admin]
+      summary: 整週菜單（後台）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
     post:
       tags: [admin]
       summary: 排菜單（同日同餐別覆蓋，需 menu:manage）
@@ -1129,6 +1146,12 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
 
   /admin/notices:
+    get:
+      tags: [admin]
+      summary: 公告列表（後台）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
     post:
       tags: [admin]
       summary: 發公告（可推送訂閱消息）
@@ -1189,6 +1212,33 @@ paths:
                     properties:
                       count: { type: integer }
                       avg: { type: number, format: float }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/stats/overview:
+    get:
+      tags: [admin]
+      summary: 後台統計首頁五張數字卡（需 stats:read）
+      description: >-
+        本週＝滾動近 7 天。回傳五個即時 count：本週新使用者、本週報名（正取＋候補，不含已取消）、
+        待審認領、未解決錯誤、未認領失物（已下架不計）。
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  week:
+                    type: object
+                    properties:
+                      from: { type: string, format: date-time }
+                      to: { type: string, format: date-time }
+                  usersNew7d: { type: integer }
+                  signups7d: { type: integer }
+                  claimsPending: { type: integer }
+                  errorsOpen: { type: integer }
+                  itemsOpen: { type: integer }
         '403': { $ref: '#/components/responses/Forbidden' }
 
   /dishes/{id}:
@@ -1319,12 +1369,61 @@ paths:
                   throttled: { type: boolean }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
+  /client-errors/report:
+    post:
+      tags: [admin]
+      summary: 使用者手動回報問題（W-43；匿名可用，kind=USER_REPORT、level=WARN）
+      description: |
+        「按鈕沒反應」「畫面怪」這類沒有拋錯的問題，學生在設定頁按「回報問題」寫一句話送上來。
+        與 POST /client-errors 共用同一套節流（每 IP 每分鐘 20 則）與聚合規則：
+        同一句話＋同一頁面只留一列並累加 count，所以連按 5 次不會灌爆後台。
+        指紋前面加 `report|`，因此「使用者說有問題」不會跟同一頁真的拋出的錯誤混在同一列。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, minLength: 2, maxLength: 300, description: 使用者自己寫的一句話描述 }
+                route: { type: string, maxLength: 200, description: 回報時所在的頁面，例如 pages/events/detail/index }
+                platform: { type: string, maxLength: 32, description: ios / android / devtools }
+                sdkVersion: { type: string, maxLength: 32, description: 微信基礎庫版本 }
+                appVersion: { type: string, maxLength: 32 }
+                model: { type: string, maxLength: 64, description: 機型，例如 iPhone 15（重現問題的唯一線索） }
+                system: { type: string, maxLength: 64, description: 系統版本，例如 iOS 18.1 }
+      responses:
+        '201':
+          description: 已建立（或累加）一筆使用者回報
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  id: { type: string }
+                  count: { type: integer }
+                  kind: { type: string, enum: [USER_REPORT] }
+        '202':
+          description: 超過每 IP 每分鐘 20 則，靜默丟掉並回 throttled true（上報失敗不該製造第二個錯誤）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  throttled: { type: boolean }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
   /admin/errors:
     get:
       tags: [admin]
       summary: 錯誤日誌（預設按出現次數排序，需要 error:read = ADMIN 以上）
       parameters:
         - { in: query, name: status, schema: { type: string, enum: [OPEN, RESOLVED] } }
+        - { in: query, name: kind, schema: { type: string, enum: [CLIENT_ERROR, USER_REPORT] }, description: 留空＝全部；USER_REPORT 只看使用者手動回報 }
         - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
       responses:
         '200':
@@ -1344,6 +1443,7 @@ paths:
                       total: { type: integer, description: 所有錯誤的累計出現次數 }
                       kinds: { type: integer, description: 錯誤種類數 }
                       last24h: { type: integer }
+                      userReports: { type: integer, description: 待處理的使用者手動回報筆數 }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
@@ -1377,6 +1477,73 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /admin/error-logs/cleanup:
+    post:
+      tags: [admin]
+      summary: 清理舊錯誤紀錄（預設只刪已解決的；需要 error:read = ADMIN 以上）
+      description: |
+        OPEN 代表還沒修，自動刪掉等於把待辦事項藏起來，所以預設只刪「已解決」且最後出現時間早於 cutoff 的紀錄。
+        要連未解決的一起清必須明確帶 `includeOpen: true`。回傳 kept 讓前端老實說「還有 N 筆沒動」。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [olderThanDays]
+              properties:
+                olderThanDays: { type: integer, minimum: 1, maximum: 365 }
+                includeOpen: { type: boolean, default: false, description: 連未解決的舊紀錄一起刪 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted: { type: integer, description: 實際刪除筆數 }
+                  kept: { type: integer, description: 還留著的舊紀錄數（未解決的） }
+                  olderThanDays: { type: integer }
+                  includeOpen: { type: boolean }
+                  cutoff: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /admin/error-logs/resolve-similar:
+    post:
+      tags: [admin]
+      summary: 同類一次解決（signature＝訊息＋頁面；需要 error:read = ADMIN 以上）
+      description: |
+        指紋含頁面，所以同一句話在不同頁面出錯會被拆成好幾列。省略 route 就一次解決「所有頁面」的同句話，
+        帶 route 只解決那一頁。已 RESOLVED 的不重算 resolvedAt。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, maxLength: 300 }
+                route: { type: string, nullable: true, description: 省略或 null＝不限頁面 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resolved: { type: integer, description: 這次被標成已解決的筆數 }
+                  matched: { type: integer, description: 符合 signature 的總筆數（含已解決） }
+                  message: { type: string }
+                  route: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /admin/export.json:
     get:
       tags: [admin]
@@ -1405,6 +1572,790 @@ paths:
                   data: { type: object, additionalProperties: { type: array, items: { type: object } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ── 健康檢查（監控用，不需認證） ──
+  /health:
+    get:
+      tags: [system]
+      summary: 存活檢查
+      responses:
+        '200':
+          description: 服務正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  uptime: { type: number }
+
+  /health/deep:
+    get:
+      tags: [system]
+      summary: 深度檢查（含資料庫）
+      responses:
+        '200':
+          description: 服務與資料庫都正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  db: { type: boolean }
+
+  # ── 站內通知（W-34） ──
+  /notifications:
+    get:
+      tags: [notifications]
+      summary: 我的通知（最近 50 筆）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: unreadOnly
+          schema: { type: string, enum: ['0', '1'] }
+      responses:
+        '200':
+          description: 通知列表與未讀數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unread: { type: integer }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        kind: { type: string, enum: [EVENT, CLAIM, NOTICE, SYSTEM] }
+                        title: { type: string }
+                        body: { type: string, nullable: true }
+                        link: { type: string, nullable: true }
+                        readAt: { type: string, format: date-time, nullable: true }
+                        createdAt: { type: string, format: date-time }
+
+  /notifications/unread-count:
+    get:
+      tags: [notifications]
+      summary: 未讀數（首頁鈴鐺）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 未讀數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unread: { type: integer }
+
+  /notifications/read:
+    patch:
+      tags: [notifications]
+      summary: 標記已讀（帶 id 標一筆，不帶就全部）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id: { type: string }
+      responses:
+        '200':
+          description: 已標記，回傳剩下未讀數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  unread: { type: integer }
+
+  # ── 檢舉 ──
+  /reports:
+    post:
+      tags: [reports]
+      summary: 送出檢舉
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetType, targetId, reason]
+              properties:
+                targetType: { type: string, example: ITEM }
+                targetId: { type: string }
+                reason: { type: string }
+      responses:
+        '201': { description: 已建立 }
+
+  /admin/reports:
+    get:
+      tags: [admin]
+      summary: 檢舉列表（教職員）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: 檢舉列表 }
+
+  /admin/reports/{id}:
+    patch:
+      tags: [admin]
+      summary: 處理檢舉（標記已處理／駁回）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [OPEN, RESOLVED, REJECTED] }
+                note: { type: string }
+      responses:
+        '200': { description: 已更新 }
+
+  # ── 訂閱消息同意狀態 ──
+  /subscriptions/check:
+    get:
+      tags: [notifications]
+      summary: 查詢是否已同意某個訂閱模板
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: templateId
+          schema: { type: string }
+        - in: query
+          name: scene
+          schema: { type: string }
+      responses:
+        '200':
+          description: 同意狀態
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agreed: { type: boolean }
+
+  # ── 使用者管理（等級低於自己才可操作） ──
+  /admin/users/{id}/ban:
+    patch:
+      tags: [admin]
+      summary: 停用／恢復帳號
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                banned: { type: boolean }
+      responses:
+        '200': { description: 已更新 }
+
+  /admin/users/{id}/unlock:
+    post:
+      tags: [admin]
+      summary: 解除登入失敗鎖定（連續 5 次密碼錯會鎖 15 分鐘；需 user:ban 能力）
+      description: 只能解鎖等級低於自己的帳號；回 403 代表能力或等級不足、404 代表帳號不存在。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 已解除鎖定（failedLogins 歸零、lockedUntil 清空）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  locked: { type: boolean }
+        '403': { description: 能力或等級不足 }
+        '404': { description: 找不到使用者 }
+
+  /admin/permissions:
+    get:
+      tags: [admin]
+      summary: 能力矩陣（角色 × 能力）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: 能力矩陣 }
+
+  /admin/push-logs:
+    get:
+      tags: [admin]
+      summary: 推送紀錄（誰收到、誰沒收到、為什麼；需要 push:read = ADMIN 以上）
+      parameters:
+        - { in: query, name: ok, schema: { type: string, enum: [all, ok, failed], default: all } }
+        - { in: query, name: channel, schema: { type: string, enum: [INAPP, WX] } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        userId: { type: string }
+                        nickname: { type: string, nullable: true, description: 使用者已被刪除時為 null }
+                        role: { type: string, nullable: true }
+                        channel: { type: string, enum: [INAPP, WX] }
+                        scene: { type: string, nullable: true }
+                        title: { type: string, nullable: true }
+                        templateId: { type: string, nullable: true }
+                        ok: { type: boolean }
+                        error: { type: string, nullable: true, description: '失敗原因：no-consent／no-user／errcode N' }
+                        createdAt: { type: string, format: date-time }
+                  summary:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      ok: { type: integer }
+                      failed: { type: integer }
+                      last24h: { type: integer }
+                  templates:
+                    type: object
+                    description: 微信模板是否已設定（false＝該場景根本不會發微信消息）
+                    properties:
+                      claim: { type: boolean }
+                      event: { type: boolean }
+                      notice: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/audit:
+    get:
+      tags: [admin]
+      summary: 審計紀錄
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: 審計紀錄列表 }
+
+  /admin/audit.csv:
+    get:
+      tags: [admin]
+      summary: 審計紀錄匯出 CSV（UTF-8 BOM，最高權限）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: CSV 檔
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /admin/trash:
+    get:
+      tags: [admin]
+      summary: 資源回收桶（已刪的公告與下架的失物；需要 trash:manage = ADMIN 以上）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: type, schema: { type: string, enum: [all, notice, item], default: all } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 200, default: 100 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type: { type: string, enum: [notice, item] }
+                        id: { type: string }
+                        title: { type: string }
+                        subtitle: { type: string, description: '公告＝kind（NORMAL／URGENT／CALENDAR）；失物＝地點' }
+                        itemType: { type: string, enum: [LOST, FOUND], description: 只有失物才有 }
+                        deletedAt: { type: string, format: date-time }
+                        deletedByName: { type: string, nullable: true, description: 公告讀 deletedBy，失物由審計紀錄回推 }
+                  counts:
+                    type: object
+                    properties:
+                      notice: { type: integer }
+                      item: { type: integer }
+                      all: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/trash/restore:
+    post:
+      tags: [admin]
+      summary: 還原垃圾桶裡的一筆內容（需要 trash:manage = ADMIN 以上）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, id]
+              properties:
+                type: { type: string, enum: [notice, item] }
+                id: { type: string }
+      responses:
+        '200':
+          description: 已還原
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  type: { type: string }
+                  id: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound', description: '不存在，或本來就沒被刪除（兩者不區分）' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /admin/notices/{id}:
+    patch:
+      tags: [admin]
+      summary: 編輯公告
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                content: { type: string }
+                kind: { type: string, enum: [NORMAL, URGENT, CALENDAR] }
+                isPinned: { type: boolean }
+                expiresAt: { type: string, format: date-time, nullable: true }
+                version:
+                  type: integer
+                  description: 'W-42 樂觀鎖：帶回讀到的版本；不符回 409，不帶＝舊客戶端（相容，照樣成功並遞增）'
+      responses:
+        '200': { description: 已更新 }
+        '409': { description: '版本衝突（別人先改過），請重新載入後再存' }
+    delete:
+      tags: [admin]
+      summary: 刪除公告
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: 已刪除 }
+
+  /admin/menu/{id}:
+    delete:
+      tags: [admin]
+      summary: 移除某一天的菜單
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: 已移除 }
+
+  # ── 外部校曆（iCalendar 唯讀） ──
+  /calendar/external:
+    get:
+      tags: [calendar]
+      summary: 外部校曆場次（10 分鐘快取，可多來源）
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+        - in: query
+          name: refresh
+          schema: { type: string, enum: ['0', '1'] }
+      responses:
+        '200':
+          description: 場次與各來源狀態
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items: { type: object }
+                  sources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        label: { type: string }
+                        ok: { type: boolean }
+                        count: { type: integer }
+                        error: { type: string, nullable: true }
+
+  # ── 活動回饋（W-31） ──
+  /events/{id}/feedback:
+    post:
+      tags: [events]
+      summary: 送出回饋（需正取且活動已結束，一人一次可改）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rating]
+              properties:
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                comment: { type: string, maxLength: 300 }
+      responses:
+        '200': { description: 已記錄 }
+    get:
+      tags: [events]
+      summary: 回饋摘要（平均分、筆數、我的、最近 20 條留言）
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 回饋摘要
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  avg: { type: number }
+                  mine: { type: object, nullable: true }
+                  items: { type: array, items: { type: object } }
+
+  # ── 組隊報名（W-30） ──
+  /events/{id}/teams:
+    post:
+      tags: [events]
+      summary: 建立隊伍（回 6 碼邀請碼）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 40 }
+      responses:
+        '201': { description: 已建立，回傳 code }
+    get:
+      tags: [events]
+      summary: 隊伍列表（人數；只有隊長看得到邀請碼）
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 隊伍列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teams:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        members: { type: integer }
+                        mine: { type: boolean }
+                        code: { type: string, nullable: true }
+        '404': { description: 活動不存在 }
+
+  /events/{id}/attachments:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    post:
+      tags: [events]
+      summary: 新增活動附件（老師以上，只能動自己開的活動；上限 10 份）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, url]
+              properties:
+                name: { type: string, maxLength: 120 }
+                url: { type: string, maxLength: 1024, description: 只接受 http(s) 連結（COS 直傳後的網址或老師貼的學校連結） }
+                size: { type: integer, nullable: true, description: 檔案大小 bytes；貼連結時不填 }
+                type: { type: string, enum: [pdf, doc, docx, xls, xlsx, ppt, pptx, zip, ics, link] }
+      responses:
+        '201':
+          description: 已新增
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventAttachment' }
+        '403': { description: FORBIDDEN（學生，或不是自己開的活動） }
+        '422': { description: 連結格式不對／名稱空白／已達 10 份上限 }
+
+  /events/{id}/attachments/{attachmentId}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+      - { in: path, name: attachmentId, required: true, schema: { type: string } }
+    delete:
+      tags: [events]
+      summary: 刪除活動附件（同一個權限閘門；不存在或不屬於這個活動都回 404）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: 已刪除 }
+        '403': { description: FORBIDDEN }
+        '404': { description: NOT_FOUND }
+
+  /admin:
+    get:
+      tags: [admin]
+      summary: 後台 HTML 頁（不需認證，登入在頁內做）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/2fa-ui:
+    get:
+      tags: [admin]
+      summary: 兩步驗證設定頁（HTML）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/2fa:
+    get:
+      tags: [admin]
+      summary: 查詢我的兩步驗證狀態
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/2fa/begin:
+    post:
+      tags: [admin]
+      summary: 產生 TOTP 密鑰與 8 組備用碼
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/2fa/enable:
+    post:
+      tags: [admin]
+      summary: 輸入 6 位碼完成開啟（回傳備用碼）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/2fa/disable:
+    post:
+      tags: [admin]
+      summary: 關閉兩步驗證（需密碼）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/dishes:
+    get:
+      tags: [admin]
+      summary: 菜色清單
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/events/{id}:
+    patch:
+      tags: [admin]
+      summary: 修改活動（含取消／延期 postpone）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                location: { type: string }
+                startAt: { type: string, format: date-time }
+                capacity: { type: integer, description: '0 = 不限' }
+                status: { type: string, enum: [DRAFT, PUBLISHED, CANCELLED, FINISHED] }
+                postpone: { type: boolean, description: '延期：改 startAt 時一起帶，會記下原定時間' }
+                teamsEnabled: { type: boolean }
+                version:
+                  type: integer
+                  description: 'W-42 樂觀鎖：帶回讀到的版本；不符回 409，不帶＝舊客戶端（相容，照樣成功並遞增）'
+      responses:
+        '200': { description: OK }
+        '409': { description: '版本衝突（別人先改過），請重新載入後再存' }
+
+  /admin/users:
+    post:
+      tags: [admin]
+      summary: 建立帳號（只能建立低於自己等級）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+    get:
+      tags: [admin]
+      summary: 使用者清單（含 level／canManage／assignable）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/users/{id}:
+    delete:
+      tags: [admin]
+      summary: 刪除帳號
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+    patch:
+      tags: [admin]
+      summary: 修改名稱／帳號／密碼／等級
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/users/{id}/password:
+    patch:
+      tags: [admin]
+      summary: 重設密碼
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/users/{id}/temp-password:
+    post:
+      tags: [admin]
+      summary: 產生一次性臨時密碼（順便清 2FA）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/users/{id}/reset-2fa:
+    post:
+      tags: [admin]
+      summary: 重設兩步驗證（清密鑰與備用碼）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/users/{id}/role:
+    patch:
+      tags: [admin]
+      summary: 指派角色
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /cron/reminders:
+    get:
+      tags: [admin]
+      summary: 活動前自動提醒（定時任務；Vercel Cron 用 GET）
+      description: |
+        由排程每 30 分鐘呼叫。找出 24 小時／1 小時內開始、狀態 PUBLISHED、
+        尚未提醒過的活動，對 **正取（CONFIRMED）** 報名者寫站內通知並嘗試發訂閱消息。
+        同一活動同一階段只發一次（`Event.reminder24SentAt`／`reminder1SentAt` 做樂觀鎖）。
+        認證不是 JWT，而是 `Authorization: Bearer <CRON_SECRET>`（或 `x-cron-secret`）；
+        後端沒設定 `CRON_SECRET` 時一律回 503 `CRON_DISABLED`。
+      security: []
+      responses:
+        '200':
+          description: 這一輪的結果（沒有活動要提醒時回 0 筆）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  now: { type: string, format: date-time }
+                  checked: { type: integer, description: 進入檢查的活動數 }
+                  reminders:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        eventId: { type: string }
+                        title: { type: string }
+                        stage: { type: string, enum: [24h, 1h] }
+                        startAt: { type: string, format: date-time }
+                        recipients: { type: integer, description: 正取人數 }
+                        subscribeSent: { type: integer }
+                        subscribeSkipped: { type: integer }
+                  totals:
+                    type: object
+                    properties:
+                      events: { type: integer }
+                      recipients: { type: integer }
+                      subscribeSent: { type: integer }
+                      subscribeSkipped: { type: integer }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+    post:
+      tags: [admin]
+      summary: 活動前自動提醒（手動觸發／GitHub Actions 用 POST）
+      security: []
+      responses:
+        '200': { description: 同 GET }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
 
 components:
   securitySchemes:
@@ -1451,12 +2402,18 @@ components:
         platform: { type: string, nullable: true }
         sdkVersion: { type: string, nullable: true }
         appVersion: { type: string, nullable: true }
+        kind: { type: string, enum: [CLIENT_ERROR, USER_REPORT], description: 自動上報 or 使用者手動回報（W-43） }
+        level: { type: string, enum: [ERROR, WARN] }
+        model: { type: string, nullable: true, description: 機型（使用者回報時才有） }
+        system: { type: string, nullable: true, description: 系統版本（使用者回報時才有） }
         userId: { type: string, nullable: true, description: 有 JWT 才有；匿名上報為 null }
         count: { type: integer, description: 出現次數（列表排序依據） }
         status: { type: string, enum: [OPEN, RESOLVED] }
         firstSeenAt: { type: string, format: date-time }
         lastSeenAt: { type: string, format: date-time }
         resolvedAt: { type: string, format: date-time, nullable: true }
+        # 同類筆數＝訊息相同的紀錄數（不限頁面）；後台用它顯示「同類 N 筆」與一次解決
+        similar: { type: integer }
 
     EventCheckinState:
       type: object
@@ -1568,6 +2525,9 @@ components:
         capacity: { type: integer, description: '0 = 不限' }
         signedCount: { type: integer }
         status: { type: string, enum: [DRAFT, PUBLISHED, CANCELLED, FINISHED] }
+        version:
+          type: integer
+          description: 'W-42 編輯衝突保護：每次成功修改 +1，PATCH 時帶回讀到的值'
 
     EventSignup:
       type: object
@@ -1577,6 +2537,17 @@ components:
         userId: { type: string }
         status: { type: string, enum: [CONFIRMED, WAITLIST, CANCELLED] }
         waitlistPos: { type: integer, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    EventAttachment:
+      type: object
+      description: 'W-38 活動附件：只存位址（COS 直傳後的 URL 或老師貼的連結）'
+      properties:
+        id: { type: string }
+        name: { type: string }
+        url: { type: string }
+        size: { type: integer, nullable: true, description: 檔案大小 bytes；貼連結時為 null }
+        type: { type: string, nullable: true, enum: [pdf, doc, docx, xls, xlsx, ppt, pptx, zip, ics, link] }
         createdAt: { type: string, format: date-time }
 
     MenuDish:
@@ -1607,3 +2578,6 @@ components:
         coverImage: { type: string, nullable: true }
         publishedAt: { type: string, format: date-time }
         expiresAt: { type: string, format: date-time, nullable: true }
+        version:
+          type: integer
+          description: 'W-42 編輯衝突保護：每次成功修改 +1，PATCH 時帶回讀到的值'

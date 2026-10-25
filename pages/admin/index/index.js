@@ -2,19 +2,22 @@ const i18n = require('../../../utils/i18n');
 const admin = require('../../../services/admin');
 const request = require('../../../utils/request');
 const config = require('../../../config/config');
-const { dateKey, fromNow } = require('../../../utils/date');
+const { dateKey, fromNow, dateTimeText } = require('../../../utils/date');
+const role = require('../../../utils/role');
 const theme = require('../../../utils/theme');
 
 const TABS = [
   { key: 'stats', label: i18n.pick('概況') },
   { key: 'claims', label: i18n.pick('認領') },
   { key: 'items', label: i18n.pick('失物') },
+  { key: 'trash', label: i18n.pick('垃圾桶') },
   { key: 'events', label: i18n.pick('活動') },
   { key: 'notice', label: i18n.pick('公告') },
   { key: 'users', label: i18n.pick('使用者') },
   { key: 'parents', label: i18n.pick('家長') },
   { key: 'reports', label: i18n.pick('檢舉') },
   { key: 'errors', label: i18n.pick('錯誤') },
+  { key: 'push', label: i18n.pick('推送') },
   { key: 'audit', label: i18n.pick('審計') },
   { key: 'export', label: i18n.pick('名單') },
   { key: 'menu', label: i18n.pick('菜單') },
@@ -24,8 +27,8 @@ const ROLE_TABS = {
   // 校內職員：排菜單＋匯出報名名單。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
   STAFF: ['notice', 'claims', 'menu', 'export'],
   TEACHER: ['notice', 'events'],
-  ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'export', 'menu'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'audit', 'export', 'menu'],
+  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -40,6 +43,34 @@ const ROLES = [
 
 
 const appearance = require('../../../utils/appearance');
+
+/**
+ * W-42：編輯衝突保護的共用收尾。
+ *
+ * `CONFLICT` 代表「別人先存過了」—— 提示後**重抓清單**，但**不把這次的修改偷偷重送**：
+ * 偷偷重送就等於讓後存的人蓋掉前一位，正是這道鎖要擋掉的事。
+ */
+function onWriteError(err, reload) {
+  if (err && err.code === 'CONFLICT') {
+    wx.showModal({
+      title: i18n.pick('這筆剛被別人改過'),
+      content: i18n.pick('你看到的不是最新版本，已重新載入，請確認後再操作一次。'),
+      showCancel: false,
+    });
+    if (typeof reload === 'function') reload();
+    return;
+  }
+  wx.showToast({ title: (err && err.message) || i18n.pick('操作失敗'), icon: 'none' });
+}
+
+/**
+ * W-42：WXML 的 `data-version` 一律是字串（甚至可能是 undefined），
+ * 只有真的是數字才放進 payload；沒有就不帶欄位＝後端維持舊行為（相容）。
+ */
+function versionPatch(dataset) {
+  const v = Number((dataset || {}).version);
+  return Number.isFinite(v) ? { version: v } : {};
+}
 
 Page({
   labels() {
@@ -69,7 +100,36 @@ Page({
       k122: i18n.pick("午餐"),
       k123: i18n.pick("小賣部"),
       k124: i18n.pick("菜單"),
-      k125: i18n.pick("活動"),
+      k125: i18n.pick('活動'),
+      k126: i18n.pick('列印清單'),
+      k127: i18n.pick('列印名單'),
+      k128: i18n.pick('同類一次解決'),
+      k131: i18n.pick('清理舊紀錄'),
+      k132: i18n.pick('推送紀錄'),
+      k133: i18n.pick('總計'),
+      k134: i18n.pick('成功'),
+      k135: i18n.pick('失敗紀錄'),
+      k136: i18n.pick('近 24 小時'),
+      k137: i18n.pick('全部通路'),
+      k138: i18n.pick('站內通知'),
+      k139: i18n.pick('微信消息'),
+      k140: i18n.pick('沒有推送紀錄'),
+      k141: i18n.pick('發一則公告，或有人報名活動之後，這裡會出現每一筆發送的結果'),
+      k142: i18n.pick('（無標題）'),
+      k143: i18n.pick('原因：'),
+      // W-40 資源回收桶（新增區塊一律用固定號碼，不要重跑遷移腳本重新編號）
+      k145: i18n.pick('垃圾桶'),
+      k146: i18n.pick('刪掉的公告與下架的失物會先放在這裡，按還原就回到原本的分頁；這裡不做永久刪除。'),
+      k147: i18n.pick('公告'),
+      k148: i18n.pick('失物'),
+      k149: i18n.pick('合計'),
+      k150: i18n.pick('筆'),
+      k151: i18n.pick('刪除時間'),
+      k152: i18n.pick('誰刪的'),
+      k153: i18n.pick('還原'),
+      k154: i18n.pick('垃圾桶是空的'),
+      k155: i18n.pick('刪掉或下架的內容會出現在這裡'),
+      k156: i18n.pick('（未記錄）'),
       k85: i18n.pick("已下架"),
       k86: i18n.pick("拾獲"),
       k87: i18n.pick("遺失"),
@@ -112,6 +172,7 @@ Page({
       k25: i18n.pick("地點（可空）"),
       k26: i18n.pick("日期 YYYY-MM-DD"),
       k27: i18n.pick("名額（0 = 不限）"),
+      k144: i18n.pick("開放組隊報名（隊長建隊拿 6 碼邀請碼）"),
       k28: i18n.pick("分組（可空，例：A組,B組）"),
       k29: i18n.pick("建立活動"),
       k30: i18n.pick("匯入 CSV"),
@@ -169,6 +230,17 @@ Page({
       k82: i18n.pick("選擇 CSV 檔"),
       k83: i18n.pick("先檢查"),
       k84: i18n.pick("確認匯入"),
+      // v0.48.0 後台統計首頁（W-39）：第一屏五張數字卡
+      // 注意：這裡的 key 一定要用「本檔還沒用過」的號碼 —— 舊版沿用 k100~k102，
+      // 和上面出席名單的「（未設定）／已簽到／未簽到」撞號，後面的定義會靜默蓋掉前面的，
+      // 結果簽到名單顯示成「累計／點卡片跳到對應分頁」。新增 key 前先 grep 一次最大號。
+      k157: i18n.pick("本週概況"),
+      k158: i18n.pick("累計"),
+      k159: i18n.pick("點卡片跳到對應分頁"),
+      // W-41：登入失敗鎖定（帳號層級，與 IP 限流互補）
+      k160: i18n.pick(" · 已鎖定"),
+      k161: i18n.pick("解除鎖定"),
+      k162: i18n.pick("已解除鎖定"),
     };
   },
 
@@ -179,6 +251,9 @@ Page({
     tab: 'stats',
     role: '',
     stats: { users: 0, items: { open: 0, claimed: 0, added7d: 0 }, claimsPending: 0, signups: { confirmed: 0, waitlist: 0 }, noticesActive: 0, ratings: { count: 0, avg: 0 } },
+    // 第一屏五張數字卡：值與標籤在 loadStats 一起備好（WXML 不做運算）
+    ovCards: [],
+    ovPressed: -1,
     claims: [],
     items: [],
     itemStatus: 'OPEN',
@@ -188,6 +263,15 @@ Page({
       { key: 'CLAIMED', label: i18n.pick('已認領') },
       { key: '', label: i18n.pick('全部') },
     ],
+    // W-40 資源回收桶：公告與失物都是軟刪除，這裡看得到、可以還原
+    trashType: 'all',
+    trashFilters: [
+      { key: 'all', label: i18n.pick('全部') },
+      { key: 'notice', label: i18n.pick('公告') },
+      { key: 'item', label: i18n.pick('失物') },
+    ],
+    trashRows: [],
+    trashCounts: { notice: 0, item: 0, all: 0 },
     events: [],
     ci: null, // 現場簽到面板（老師／管理員）
     attendance: null,
@@ -209,6 +293,7 @@ Page({
     menuWeekStart: '',
     menuEntries: [],
     eventForm: { title: '', date: '', capacity: '20', location: '', groups: '' },
+    teamsEnabled: false,
     creatingEvent: false,
     users: [],
     parents: [],
@@ -229,11 +314,28 @@ Page({
     reports: [],
     errors: [],
     errStatus: 'OPEN',
+    errKind: '',
     errFilters: [
       { key: 'OPEN', label: i18n.pick('待處理') },
       { key: 'RESOLVED', label: i18n.pick('已解決') },
     ],
-    errSummary: { open: 0, total: 0, kinds: 0, last24h: 0 },
+    // 來源篩選（W-43）：使用者自己回報的問題跟程式拋的錯混在一起時，修的人分不出輕重
+    errKindFilters: [
+      { key: '', label: i18n.pick('全部') },
+      { key: 'USER_REPORT', label: i18n.pick('使用者回報') },
+      { key: 'CLIENT_ERROR', label: i18n.pick('自動上報') },
+    ],
+    errSummary: { open: 0, total: 0, kinds: 0, last24h: 0, userReports: 0 },
+    // 推送紀錄（W-37）
+    pushLogs: [],
+    pushOk: 'all',
+    pushChannel: '',
+    pushFilters: [
+      { key: 'all', label: i18n.pick('全部') },
+      { key: 'failed', label: i18n.pick('只看失敗') },
+    ],
+    pushSummary: { total: 0, ok: 0, failed: 0, last24h: 0 },
+    pushTplHint: '',
     audit: [],
     noticeList: [],
     showPerms: false,
@@ -296,12 +398,14 @@ Page({
     if (t === 'stats') p = this.loadStats();
     else if (t === 'claims') p = this.loadClaims();
     else if (t === 'items') p = this.loadItems();
+    else if (t === 'trash') p = this.loadTrash();
     else if (t === 'export') p = this.loadEventsForExport();
     else if (t === 'events') p = this.loadEventsAdmin();
     else if (t === 'users') p = this.loadUsers();
     else if (t === 'parents') p = this.loadParents();
     else if (t === 'reports') p = this.loadReports();
     else if (t === 'errors') p = this.loadErrors();
+    else if (t === 'push') p = this.loadPushLogs();
     else if (t === 'audit') p = this.loadAudit();
     else if (t === 'notice') p = this.loadNoticeList();
     else if (t === 'menu') p = this.loadMenuWeek();
@@ -325,11 +429,38 @@ Page({
 
   async loadStats() {
     try {
-      const stats = await admin.stats();
-      this.setData({ stats: stats });
+      // 累計報表與「本週五張卡」一起打。第二支失敗不讓整頁變失敗畫面：
+      // 卡片是加值資訊，累計數字才是後台原本就有的內容。
+      const [stats, ov] = await Promise.all([admin.stats(), admin.statsOverview().catch(() => null)]);
+      this.setData({ stats: stats, ovCards: this.buildOvCards(ov) });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到數據：') + (e.message || e.code) });
     }
+  },
+
+  /**
+   * 五張卡的值、標籤與跳轉目標一起算好。
+   * 標籤不寫在 WXML 是因為它要跟著介面語言變；target 放這裡讓 WXML 只負責顯示，
+   * 之後要改「點卡片去哪一頁」只改這一處。
+   */
+  buildOvCards(ov) {
+    const o = ov || {};
+    const n = (v) => (typeof v === 'number' ? v : 0);
+    return [
+      { key: 'usersNew7d', label: i18n.pick('本週新使用者'), value: n(o.usersNew7d), target: 'users' },
+      { key: 'signups7d', label: i18n.pick('本週報名'), value: n(o.signups7d), target: 'export' },
+      { key: 'claimsPending', label: i18n.pick('待審認領'), value: n(o.claimsPending), target: 'claims' },
+      { key: 'errorsOpen', label: i18n.pick('未解決錯誤'), value: n(o.errorsOpen), target: 'errors' },
+      { key: 'itemsOpen', label: i18n.pick('未認領失物'), value: n(o.itemsOpen), target: 'items' },
+    ];
+  },
+
+  // 按壓回饋（Skyline 下 hover-class 不可靠）：按下 60ms、放開 180ms
+  ovDown(e) {
+    this.setData({ ovPressed: Number(e.currentTarget.dataset.i) });
+  },
+  ovUp() {
+    if (this.data.ovPressed !== -1) this.setData({ ovPressed: -1 });
   },
 
   async loadClaims() {
@@ -366,6 +497,19 @@ Page({
   filterItems(e) {
     this.setData({ itemStatus: e.currentTarget.dataset.key });
     this.loadItems();
+  },
+
+  // W-28：列印版（A4 黑白）——失物清單帶目前篩選、活動名單帶該場活動
+  openPrint(e) {
+    const { kind, id } = e.currentTarget.dataset;
+    if (kind === 'event') {
+      wx.navigateTo({ url: '/pages/print/event/index?id=' + id });
+      return;
+    }
+    // 後台的 MATCHED 是內部狀態，公開清單只認 OPEN／CLAIMED／CLOSED，其餘一律印全部
+    const printable = ['OPEN', 'CLAIMED', 'CLOSED'];
+    const status = printable.indexOf(this.data.itemStatus) >= 0 ? this.data.itemStatus : '';
+    wx.navigateTo({ url: '/pages/print/items/index?status=' + status });
   },
 
   async review(e) {
@@ -670,6 +814,10 @@ Page({
     }
   },
 
+  toggleEvTeams() {
+    this.setData({ teamsEnabled: !this.data.teamsEnabled });
+  },
+
   onEventField(e) {
     const field = e.currentTarget.dataset.field;
     const patch = {};
@@ -697,6 +845,7 @@ Page({
         capacity: Number(f.capacity) || 0,
         status: 'PUBLISHED',
         groups: groups.length ? groups : undefined,
+        teamsEnabled: this.data.teamsEnabled || undefined,
       });
       this.setData({ 'eventForm.title': '', 'eventForm.location': '', 'eventForm.groups': '', hint: i18n.pick('活動已建立') });
       wx.showToast({ title: i18n.pick('已建立'), icon: 'success' });
@@ -712,11 +861,12 @@ Page({
     const { id, status } = e.currentTarget.dataset;
     const next = status === 'CANCELLED' ? 'PUBLISHED' : 'CANCELLED';
     try {
-      await admin.updateEvent(id, { status: next });
+      // W-42：帶上清單讀到的 version（取消會通知報名者，更不能蓋掉別人的改動）
+      await admin.updateEvent(id, { status: next, ...versionPatch(e.currentTarget.dataset) });
       wx.showToast({ title: next === 'CANCELLED' ? i18n.pick('已取消') : i18n.pick('已恢復'), icon: 'success' });
       this.loadEventsAdmin();
     } catch (err) {
-      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
+      onWriteError(err, () => this.loadEventsAdmin());
     }
   },
 
@@ -792,7 +942,13 @@ Page({
       const res = await admin.users({ q: q.q || undefined, role: q.role || undefined });
       // roles 用後端回來的（帶 level 與 label，單一來源）；離線或舊後端才退回本地 ROLES
       const roles = (res.roles && res.roles.length) ? res.roles : ROLES;
-      this.setData({ users: res.items || [], meLevel: (res.me || {}).level || 0, roles: roles });
+      // W-41：最後登入時間換成本地時區、加上鎖定旗標（locked 由後端算，前端不比時間）
+      const users = (res.items || []).map((u) => ({
+        ...u,
+        locked: Boolean(u.locked),
+        lastLoginText: u.lastLoginAt ? dateTimeText(u.lastLoginAt) : '',
+      }));
+      this.setData({ users: users, meLevel: (res.me || {}).level || 0, roles: roles });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到使用者：') + (e.message || e.code) });
     }
@@ -962,6 +1118,18 @@ Page({
     }
   },
 
+  /** W-41：解除登入失敗鎖定（密碼錯太多次會鎖 15 分鐘） */
+  async unlockUser(e) {
+    const { id } = e.currentTarget.dataset;
+    try {
+      await admin.unlockUser(id);
+      wx.showToast({ title: i18n.pick('已解除鎖定'), icon: 'success' });
+      this.loadUsers();
+    } catch (err) {
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
+    }
+  },
+
   // ───────── 檢舉 ─────────
   async loadReports() {
     try {
@@ -975,11 +1143,20 @@ Page({
   // ───────── 錯誤日誌（用戶端上報）─────────
   async loadErrors() {
     try {
-      const res = await admin.errors(this.data.errStatus);
+      const res = await admin.errors(this.data.errStatus, this.data.errKind);
       const summary = res.summary || {};
       this.setData({
         errors: (res.items || []).map((e) =>
-          Object.assign({}, e, { seenText: fromNow(e.lastSeenAt), firstSeenText: fromNow(e.firstSeenAt) }),
+          Object.assign({}, e, {
+            seenText: fromNow(e.lastSeenAt),
+            firstSeenText: fromNow(e.firstSeenAt),
+            isUserReport: e.kind === 'USER_REPORT',
+            kindText: e.kind === 'USER_REPORT' ? i18n.pick('使用者回報') : i18n.pick('自動上報'),
+            // 使用者回報沒有堆疊，機型與系統就是唯一的重現線索
+            deviceText: [e.model, e.system].filter(Boolean).join(' · '),
+            // 「同類」＝同一句話（不限頁面）。指紋含頁面，所以同一支 API 在不同頁出錯會拆成好幾列
+            similarText: e.similar > 1 ? i18n.pick('同類 ') + e.similar + i18n.pick(' 筆') : '',
+          }),
         ),
         errSummary: summary,
       });
@@ -988,8 +1165,174 @@ Page({
     }
   },
 
+  // ───────── 推送紀錄（W-37）─────────
+  // 家長說「沒收到通知」時，這裡看得到是沒有同意過、沒有帳號，還是微信回了錯誤碼。
+  async loadPushLogs() {
+    try {
+      const res = await admin.pushLogs(this.data.pushOk, this.data.pushChannel, 50);
+      const t = res.templates || {};
+      // 模板未設定＝這個場景根本不會發微信消息（不是發了失敗），要明講，不然會被誤判成 bug
+      const missing = ['claim', 'event', 'notice'].filter((k) => !t[k]);
+      const NAMES = { claim: i18n.pick('認領通過'), event: i18n.pick('活動提醒'), notice: i18n.pick('緊急公告') };
+      const SCENES = {
+        EVENT: i18n.pick('活動'),
+        CLAIM: i18n.pick('認領'),
+        NOTICE: i18n.pick('公告'),
+        SYSTEM: i18n.pick('系統'),
+        claim: i18n.pick('認領通過'),
+        event: i18n.pick('活動提醒'),
+        notice: i18n.pick('緊急公告'),
+      };
+      this.setData({
+        pushLogs: (res.items || []).map((x) =>
+          Object.assign({}, x, {
+            timeText: fromNow(x.createdAt),
+            nameText: x.nickname || i18n.pick('（已刪除的使用者）'),
+            roleText: x.role ? role.label(x.role) : '',
+            titleText: x.title || i18n.pick('（無標題）'),
+            sceneText: SCENES[x.scene] || '',
+            channelText: x.channel === 'WX' ? i18n.pick('微信') : i18n.pick('站內'),
+            resultText: x.ok ? i18n.pick('已送出') : i18n.pick('失敗'),
+            errorText: x.error || i18n.pick('未知原因'),
+          }),
+        ),
+        pushSummary: res.summary || { total: 0, ok: 0, failed: 0, last24h: 0 },
+        pushTplHint: missing.length
+          ? i18n.pick('微信模板未設定：') + missing.map((k) => NAMES[k]).join(i18n.pick('、')) + i18n.pick('（這幾個場景不會發微信消息）')
+          : i18n.pick('微信模板三個場景都已設定'),
+      });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到推送紀錄：') + (e.message || e.code) });
+    }
+  },
+
+  pickPushOk(e) {
+    this.setData({ pushOk: e.currentTarget.dataset.key });
+    this.loadPushLogs();
+  },
+
+  pickPushChannel(e) {
+    this.setData({ pushChannel: e.currentTarget.dataset.key });
+    this.loadPushLogs();
+  },
+
+  // ── W-40 資源回收桶 ──
+  /** 讀取被刪的公告／失物清單。deletedByName 後端已算好（公告讀 deletedBy、失物回推審計） */
+  async loadTrash() {
+    try {
+      const res = await admin.trash(this.data.trashType);
+      const TYPE = { notice: i18n.pick('公告'), item: i18n.pick('失物') };
+      const KIND = {
+        NORMAL: i18n.pick('一般公告'),
+        URGENT: i18n.pick('緊急公告'),
+        CALENDAR: i18n.pick('校曆'),
+      };
+      const ITEM_KIND = { LOST: i18n.pick('遺失'), FOUND: i18n.pick('拾獲') };
+      this.setData({
+        trashRows: (res.items || []).map((x) => {
+          const sub =
+            x.type === 'notice'
+              ? KIND[x.subtitle] || ''
+              : (ITEM_KIND[x.itemType] || '') + (x.subtitle ? ' · ' + x.subtitle : '');
+          return {
+            id: x.id,
+            type: x.type,
+            title: x.title,
+            typeText: TYPE[x.type] || x.type,
+            subText: sub,
+            timeText: fromNow(x.deletedAt),
+            deleterText: x.deletedByName || i18n.pick('（未記錄）'),
+          };
+        }),
+        trashCounts: res.counts || { notice: 0, item: 0, all: 0 },
+      });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到垃圾桶：') + (e.message || e.code) });
+    }
+  },
+
+  pickTrashType(e) {
+    this.setData({ trashType: e.currentTarget.dataset.key });
+    this.loadTab();
+  },
+
+  /** 還原：二次確認後才送出 —— 還原公告等於把它重新公開給全校 */
+  restoreTrash(e) {
+    const id = e.currentTarget.dataset.id;
+    const type = e.currentTarget.dataset.type;
+    const title = e.currentTarget.dataset.title || '';
+    const self = this;
+    wx.showModal({
+      title: i18n.pick('還原這筆內容'),
+      content: title ? i18n.pick('「') + title + i18n.pick('」會立刻恢復顯示，確定嗎？') : i18n.pick('還原後會立刻恢復顯示，確定嗎？'),
+      success(res) {
+        if (!res.confirm) return;
+        admin
+          .restoreTrash(type, id)
+          .then(() => {
+            wx.showToast({ title: i18n.pick('已還原'), icon: 'none' });
+            self.loadTab();
+          })
+          .catch((err) => wx.showToast({ title: (err && err.message) || i18n.pick('還原失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // 同類一次解決：把同一句話在「所有頁面」的錯誤一起標成已解決
+  resolveSimilarErr(e) {
+    const message = e.currentTarget.dataset.message;
+    const self = this;
+    wx.showModal({
+      title: i18n.pick('同類一次解決'),
+      content: i18n.pick('同一句話在不同頁面出現的錯誤會一起標記為已解決，確定嗎？'),
+      success(res) {
+        if (!res.confirm) return;
+        admin
+          .resolveSimilarErrors(message, '')
+          .then((r) => {
+            wx.showToast({ title: i18n.pick('已解決 ') + r.resolved + i18n.pick(' 筆'), icon: 'none' });
+            self.loadErrors();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // 清理舊紀錄：只刪「已解決」的，未解決的不動（刪待辦事項等於把 bug 藏起來）
+  cleanupErrors() {
+    const self = this;
+    const days = [30, 90, 180];
+    wx.showActionSheet({
+      itemList: days.map((d) => d + i18n.pick(' 天前')),
+      success(res) {
+        const picked = days[res.tapIndex];
+        if (!picked) return;
+        wx.showModal({
+          title: i18n.pick('清理舊紀錄'),
+          content: i18n.pick('只會刪除 ') + picked + i18n.pick(' 天前已解決的紀錄，未解決的不會動。'),
+          success(m) {
+            if (!m.confirm) return;
+            admin
+              .cleanupErrors(picked, false)
+              .then((r) => {
+                const tail = r.kept ? i18n.pick('，保留 ') + r.kept + i18n.pick(' 筆未解決') : '';
+                wx.showToast({ title: i18n.pick('已清理 ') + r.deleted + i18n.pick(' 筆') + tail, icon: 'none' });
+                self.loadErrors();
+              })
+              .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+          },
+        });
+      },
+    });
+  },
+
   pickErrStatus(e) {
     this.setData({ errStatus: e.currentTarget.dataset.key });
+    this.loadErrors();
+  },
+
+  pickErrKind(e) {
+    this.setData({ errKind: e.currentTarget.dataset.key });
     this.loadErrors();
   },
 
@@ -1072,10 +1415,11 @@ Page({
   async togglePin(e) {
     const { id, pinned } = e.currentTarget.dataset;
     try {
-      await admin.updateNotice(id, { isPinned: pinned !== '1' });
+      // W-42：帶上清單讀到的 version；別人先改過就回 409（不再靜默覆蓋）
+      await admin.updateNotice(id, { isPinned: pinned !== '1', ...versionPatch(e.currentTarget.dataset) });
       this.loadNoticeList();
     } catch (err) {
-      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
+      onWriteError(err, () => this.loadNoticeList());
     }
   },
 

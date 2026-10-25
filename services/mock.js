@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 7;
+const SEED_VERSION = 8;
 
 const weekUtil = require('../utils/week');
 
@@ -108,10 +108,16 @@ function seed() {
         signedCount: 0,
         status: 'PUBLISHED',
         groups: ['甲組', '乙組'],
-        description: '按班別分甲乙兩組，報名時請選組別。',
+        teamsEnabled: true,
+        description: '按班別分甲乙兩組，報名時請選組別；也可以組隊報名。',
       },
     ],
     signups: [], // { id, eventId, userId, status: CONFIRMED|WAITLIST, waitlistPos, createdAt, checkedInAt }
+    // W-38 活動附件（示範）：一份連結型、一份檔案型，讓兩種下載行為都看得到
+    attachments: [
+      { id: 'a1', eventId: 'e1', name: '校運會報名表（PDF）', url: 'https://www.puiva.edu.mo/', size: null, type: 'link', createdAt: now - 20 * h },
+      { id: 'a2', eventId: 'e1', name: '二號操場位置圖', url: 'https://www.puiva.edu.mo/', size: 512000, type: 'pdf', createdAt: now - 18 * h },
+    ],
     // 示範用的「老師已開簽到」狀態：e1 的碼固定在 246810，方便自檢腳本與手動演示
     checkin: { eventId: 'e1', code: '246810', active: true },
     // 家長示範資料：後端是 parent_links，這裡只放兩筆「已綁定的子女」，
@@ -210,6 +216,17 @@ function waitlistCount(data, eventId) {
 function childOf(data, studentId) {
   const list = (data.parent && data.parent.children) || [];
   return list.filter((x) => x.studentId === studentId)[0] || null;
+}
+
+/** W-38 附件：只回這個活動的，並複製一份（呼叫端改到也不會污染示範資料） */
+function attachmentsOf(data, eventId) {
+  return (data.attachments || []).filter((a) => a.eventId === eventId).map((a) => Object.assign({}, a));
+}
+
+/** 誰看得到「新增／刪除附件」：與後端同一條規則（能開活動的才有），示範身分是學生就不給 */
+function canManageAttachmentsFor(data) {
+  const role = (data.user && data.user.role) || 'STUDENT';
+  return ['TEACHER', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) >= 0;
 }
 
 /**
@@ -412,7 +429,52 @@ module.exports = {
     const data = db();
     const e = data.events.filter((x) => x.id === id)[0];
     if (!e) return Promise.reject({ code: 'NOT_FOUND' });
-    return Promise.resolve(Object.assign({}, e, { mySignup: mineFor(data, id) }));
+    return Promise.resolve(
+      Object.assign({}, e, {
+        mySignup: mineFor(data, id),
+        attachments: attachmentsOf(data, id),
+        canManageAttachments: canManageAttachmentsFor(data),
+      }),
+    );
+  },
+
+  /** W-38 新增附件（示範模式：寫進 storage，重開詳情頁還在） */
+  addEventAttachment(eventId, payload) {
+    const data = db();
+    const p = payload || {};
+    const name = String(p.name || '').trim();
+    const url = String(p.url || '').trim();
+    if (!name) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請填寫附件名稱' });
+    if (!/^https?:\/\/\S+$/i.test(url)) return Promise.reject({ code: 'VALIDATION_FAILED', message: '只接受 http(s) 連結' });
+    const mine = (data.attachments || []).filter((a) => a.eventId === eventId);
+    if (mine.length >= 10) return Promise.reject({ code: 'VALIDATION_FAILED', message: '一個活動最多 10 份附件，先刪掉舊的再加' });
+    data.attachments = data.attachments || [];
+    const row = {
+      id: 'a' + (data.attachments.length + 1) + '-' + Date.now(),
+      eventId,
+      name,
+      url,
+      size: typeof p.size === 'number' ? p.size : null,
+      type: p.type || 'link',
+      createdAt: Date.now(),
+    };
+    data.attachments.push(row);
+    save(data);
+    return Promise.resolve(Object.assign({}, row));
+  },
+
+  deleteEventAttachment(eventId, attachmentId) {
+    const data = db();
+    const before = (data.attachments || []).length;
+    data.attachments = (data.attachments || []).filter((a) => !(a.id === attachmentId && a.eventId === eventId));
+    if (data.attachments.length === before) return Promise.reject({ code: 'NOT_FOUND' });
+    save(data);
+    return Promise.resolve({ ok: true });
+  },
+
+  /** 示範模式沒有物件存儲：照實拒絕，不要回一個假簽名 */
+  signUpload() {
+    return Promise.reject({ code: 'UPLOAD_NOT_CONFIGURED', message: '示範模式不支援檔案上傳，請改用「貼上連結」' });
   },
 
   signupEvent(id, groupKey) {
@@ -723,76 +785,59 @@ module.exports = {
     return Promise.resolve({ ok: true });
   },
 
-  // 示範模式專用：切換身分（用來驗證「第二個人報名 → 候補」）
-  switchDemoUser(nickname, id) {
-    const data = db();
-    data.user = Object.assign({}, data.user, { nickname: nickname, id: id || 'demo-' + nickname });
-    save(data);
-    return Promise.resolve(data.user);
+  // ── W-34 示範站內通知 ──
+  notifications(unreadOnly) {
+    const all = [
+      { id: 'n1', kind: 'EVENT', title: '活動改期：班際籃球賽', body: '原定 11/10 09:00 → 11/17 09:00', link: '/pages/events/detail/index?id=e7', readAt: null, createdAt: '2026-10-24T09:12:00.000Z' },
+      { id: 'n2', kind: 'CLAIM', title: '認領已通過', body: '你申請的「黑色雨傘」已審批通過，請到失物招領領取。', link: '/pages/items/detail/index?id=i1', readAt: null, createdAt: '2026-10-23T15:40:00.000Z' },
+      { id: 'n3', kind: 'NOTICE', title: '新公告：期中考試安排', body: '教務處已發布期中考試時間表。', link: '/pages/notices/detail/index?id=nt1', readAt: '2026-10-22T08:00:00.000Z', createdAt: '2026-10-22T07:30:00.000Z' },
+    ];
+    return Promise.resolve({ items: unreadOnly ? all.filter((x) => !x.readAt) : all, unread: all.filter((x) => !x.readAt).length });
+  },
+  notificationsUnread() {
+    return this.notifications(true).then((r) => ({ unread: r.unread }));
+  },
+  readNotifications() {
+    return Promise.resolve({ ok: true, unread: 0 });
   },
 
-  // ── 菜單 ──
-  weekMenu(query) {
-    const q = query || {};
-    const offset = Number(q.offset) || 0;
-    const data = db();
-    const dates = weekUtil.weekDates(offset);
-    const days = dates.map((date) => {
-      const entry = (data.menu || []).filter((x) => x.date === date)[0];
-      const lunch = entry ? entry.lunch.map((d) => decorateDish(data, d)) : [];
-      const snack = entry ? entry.snack.map((d) => decorateDish(data, d)) : [];
-      return { date: date, lunch: lunch, snack: snack };
+  // ── W-31 示範回饋 ──
+  eventFeedback(eventId) {
+    const rows = (this.__feedback || []).filter((x) => x.eventId === eventId);
+    const mine = rows.find((x) => x.mine) || null;
+    return Promise.resolve({
+      count: rows.length,
+      avg: rows.length ? Math.round((rows.reduce((a, b) => a + b.rating, 0) / rows.length) * 10) / 10 : 0,
+      mine: mine ? { rating: mine.rating, comment: mine.comment } : null,
+      items: rows.filter((x) => x.comment).map((x) => ({ rating: x.rating, comment: x.comment, nickname: x.nickname || '同學', createdAt: x.createdAt })),
     });
-    return Promise.resolve({ offset: offset, dates: dates, days: days });
+  },
+  submitFeedback(eventId, rating, comment) {
+    this.__feedback = (this.__feedback || []).filter((x) => !(x.eventId === eventId && x.mine));
+    this.__feedback.push({ eventId, rating, comment, mine: true, nickname: '我', createdAt: new Date().toISOString() });
+    return Promise.resolve({ ok: true });
   },
 
-  getDish(id) {
-    const data = db();
-    const dish = DISH_LIBRARY.filter((x) => x.id === id)[0];
-    if (!dish) return Promise.reject({ code: 'NOT_FOUND' });
-    return Promise.resolve(decorateDish(data, dishById(id)));
+  // ── W-30 示範組隊 ──
+  eventTeams(eventId) {
+    const rows = (this.__teams || []).filter((t) => t.eventId === eventId);
+    return Promise.resolve({ teams: rows.map((t) => ({ id: t.id, name: t.name, members: t.members || 1, mine: !!t.mine, code: t.mine ? t.code : null })) });
+  },
+  createTeam(eventId, name) {
+    const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+    this.__teams = this.__teams || [];
+    this.__teams.push({ id: 't' + this.__teams.length, eventId, name, code, mine: true, members: 1 });
+    return Promise.resolve({ id: 't', name, code });
   },
 
-  rateDish(id, payload) {
-    const data = db();
+  // ── W-43 使用者回報（示範模式）：寫進本地，不假裝送到後端 ──
+  // 回傳 demo: true，畫面才能老實說「示範模式沒有送出」，而不是彈一個假的「已送出」。
+  reportIssue(payload) {
     const p = payload || {};
-    const score = Number(p.score);
-    if (!(score >= 1 && score <= 5)) {
-      return Promise.reject({ code: 'VALIDATION_FAILED', message: '評分必須是 1–5 星' });
-    }
-    data.dishScores = data.dishScores || seedScores();
-    data.myRatings = data.myRatings || {};
-
-    const agg = data.dishScores[id] || { sum: 0, count: 0, likes: 0 };
-    const prev = data.myRatings[id];
-
-    if (prev) {
-      // 一人一評：改分時先把舊分扣掉，不會重複計算
-      agg.sum = agg.sum - prev.score + score;
-      if (prev.liked && !p.liked) agg.likes = Math.max(0, agg.likes - 1);
-      if (!prev.liked && p.liked) agg.likes += 1;
-    } else {
-      agg.sum += score;
-      agg.count += 1;
-      if (p.liked) agg.likes += 1;
-    }
-    data.dishScores[id] = agg;
-    data.myRatings[id] = { score: score, liked: !!p.liked };
-    save(data);
-
-    return Promise.resolve(decorateDish(db(), dishById(id)));
+    const text = String(p.message || '').trim().slice(0, 300);
+    if (text.length < 2) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請簡短描述你遇到的問題' });
+    this.__reports = this.__reports || [];
+    this.__reports.push({ id: 'r' + this.__reports.length, message: text, route: p.route || '', at: new Date().toISOString() });
+    return Promise.resolve({ ok: true, demo: true, id: 'r' + (this.__reports.length - 1), count: 1 });
   },
-
-  topDishes(query) {
-    const q = query || {};
-    const limit = Number(q.limit) || 5;
-    const data = db();
-    data.dishScores = data.dishScores || seedScores();
-    const rows = DISH_LIBRARY.map((d) => decorateDish(data, dishById(d.id)))
-      .filter((d) => d.ratingCount > 0)
-      .sort((a, b) => b.avgScore - a.avgScore || b.ratingCount - a.ratingCount)
-      .slice(0, limit);
-    return Promise.resolve({ items: rows });
-  },
-
 };

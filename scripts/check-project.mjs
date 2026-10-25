@@ -3,7 +3,7 @@
 // 檢查項目：JSON 可解析、app.json 頁面四件套齊全、usingComponents 目標存在、
 // WXSS 風險選擇器、白屏守門、組件註冊一致、未登記頁面、tabBar/entryPagePath、相對 require 可解析。
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 
 const root = process.cwd();
@@ -490,8 +490,11 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   const { readdirSync, readFileSync } = await import('node:fs');
   const phPath = join(root, 'utils/i18n-phrases.js');
   const keys = new Set();
-  for (const m of readFileSync(phPath, 'utf8').matchAll(/"((?:\\.|[^"\\])+)":/g)) {
-    keys.add(JSON.parse('"' + m[1] + '"'));
+  // 逐行解析：整檔 matchAll 在 600+ 條對照表上會爆 call stack
+  for (const line of readFileSync(phPath, 'utf8').split('\n')) {
+    const m = /^\s*"((?:\\.|[^"\\])+)":/.exec(line);
+    if (!m) continue;
+    try { keys.add(JSON.parse('"' + m[1] + '"')); } catch { /* 跳過壞行 */ }
   }
   const walkJs = (dir, out = []) => {
     for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -519,6 +522,174 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
     }
   }
   if (!missing && keys.size < 100) warnings.push('i18n-phrases.js 只有 ' + keys.size + ' 組，疑似被截斷');
+}
+
+// 17) 同一個物件裡的重複 key：後面的定義會靜默蓋掉前面的（畫面顯示成別的字，console 完全沒有錯）
+//     實測：admin 頁的 W-39 卡片沿用 k100~k102，把出席名單的「已簽到／未簽到」蓋成「累計」；
+//     登入頁的兩步驗證欄位被「登入／培華校園助手」蓋掉。這種錯編譯不會報，只能靠掃描。
+{
+  const stripCode = (src) => {
+    let out = '';
+    let i = 0;
+    while (i < src.length) {
+      const c = src[i];
+      const n = src[i + 1];
+      if (c === '/' && n === '/') { while (i < src.length && src[i] !== '\n') { out += ' '; i += 1; } continue; }
+      if (c === '/' && n === '*') {
+        while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) { out += ' '; i += 1; }
+        out += '  '; i += 2; continue;
+      }
+      if (c === '"' || c === "'" || c === '`') {
+        const q = c; out += ' '; i += 1;
+        while (i < src.length && src[i] !== q) { out += ' '; i += src[i] === '\\' ? 2 : 1; }
+        out += ' '; i += 1; continue;
+      }
+      out += c; i += 1;
+    }
+    return out;
+  };
+  // 從開頭 { 走訪到配對的 }，只收 depth 1 的 key
+  const topKeys = (code, openAt) => {
+    const keys = [];
+    let depth = 0;
+    let seg = '';
+    for (let i = openAt; i < code.length; i += 1) {
+      const ch = code[i];
+      if (ch === '{' || ch === '(' || ch === '[') { depth += 1; seg = ''; continue; }
+      if (ch === '}' || ch === ')' || ch === ']') { depth -= 1; if (depth === 0) break; seg = ''; continue; }
+      if (depth !== 1) continue;
+      if (/[A-Za-z0-9_$]/.test(ch)) { seg += ch; continue; }
+      if (ch === ':' && seg) { keys.push(seg); seg = ''; continue; }
+      seg = '';
+    }
+    return keys;
+  };
+  const targets = [];
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (e.name.endsWith('.js')) targets.push(full);
+    }
+  };
+  for (const d of ['pages', 'components']) if (existsSync(join(root, d))) walk(join(root, d));
+
+  for (const file of targets) {
+    const code = stripCode(readFileSync(file, 'utf8'));
+    const blocks = [];
+    for (const m of code.matchAll(/\bdata\s*:\s*\{/g)) blocks.push({ at: m.index + m[0].length - 1, kind: 'data' });
+    for (const m of code.matchAll(/\blabels\s*\(\s*\)\s*\{/g)) {
+      const ret = code.indexOf('return', m.index);
+      if (ret < 0) continue;
+      const brace = code.indexOf('{', ret);
+      if (brace > 0) blocks.push({ at: brace, kind: 'labels()' });
+    }
+    for (const b of blocks) {
+      const seen = new Set();
+      for (const k of topKeys(code, b.at)) {
+        if (seen.has(k)) errors.push(`${file.slice(root.length + 1)} 的 ${b.kind} 物件裡「${k}」重複定義（後面的會蓋掉前面的，畫面顯示到別的字）`);
+        seen.add(k);
+      }
+    }
+  }
+}
+
+// 18) W-42：每個「改公告／改活動」的呼叫都要帶 version
+//     帶了才會做樂觀鎖比對；漏一個呼叫端，那條路徑就會繼續靜默覆蓋別人的修改，
+//     而畫面、console、測試都不會有意見（後端把「不帶 version」視為舊客戶端而放行）。
+//     用文字掃描而不是型別檢查：payload 是物件字面值，型別上 version 是選填，抓不到。
+{
+  const walkJs = (dir, out) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walkJs(full, out);
+      else if (e.name.endsWith('.js')) out.push(full);
+    }
+    return out;
+  };
+  const files = existsSync(join(root, 'pages')) ? walkJs(join(root, 'pages'), []) : [];
+  const CALL = /\badmin\.(updateNotice|updateEvent)\(([\s\S]{0,240}?)\)\s*;/g;
+  for (const file of files) {
+    const src = readFileSync(file, 'utf8');
+    for (const m of src.matchAll(CALL)) {
+      if (!/\bversion(Patch)?\b/.test(m[2])) {
+        const line = src.slice(0, m.index).split('\n').length;
+        errors.push(`${file.slice(root.length + 1)}:${line} 呼叫 admin.${m[1]}() 沒帶 version（編輯衝突保護會失效，別人先改過的內容會被靜默蓋掉）`);
+      }
+    }
+  }
+}
+
+// 19) W-44：services/*.js 的 module.exports 第一層 key 不得重複
+//     物件字面值後面那份會靜默蓋掉前面那份：兩份內容若開始分岔（有人只改上面那份），
+//     行為會悄悄退回舊版，而 console、編譯、資料層自檢全都不會報 —— 這是「靜默降級」的另一種形狀。
+//     第 17 條只掃 `key: value` 的 data／labels()；這裡要另外認方法簡寫 `foo() {}`，
+//     所以用「depth 1 遇到 `(` 也算一個 key」的走法，而不是直接沿用 topKeys。
+{
+  const stripSvc = (src) => {
+    let out = '';
+    let i = 0;
+    while (i < src.length) {
+      const c = src[i];
+      const n = src[i + 1];
+      if (c === '/' && n === '/') { while (i < src.length && src[i] !== '\n') { out += ' '; i += 1; } continue; }
+      if (c === '/' && n === '*') {
+        while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) { out += ' '; i += 1; }
+        out += '  '; i += 2; continue;
+      }
+      if (c === '"' || c === "'" || c === '`') {
+        const q = c; out += ' '; i += 1;
+        while (i < src.length && src[i] !== q) { out += ' '; i += src[i] === '\\' ? 2 : 1; }
+        out += ' '; i += 1; continue;
+      }
+      out += c; i += 1;
+    }
+    return out;
+  };
+  // 走 module.exports = { … }，收 depth 1 的 key（`a: 1`、`a() {}`、`async a() {}` 都算）
+  // 只認「成員開頭」的識別字（expecting 旗標）：`login: (...a) => call('login', a)` 這種箭頭函式值
+  // 裡的 `call(` 不是 key，第一版沒擋就是 40 條誤報（data.js 每個轉接方法都會中）。
+  const exportKeys = (code, openAt) => {
+    const keys = [];
+    let depth = 0;
+    let seg = '';
+    let expecting = true;
+    for (let i = openAt; i < code.length; i += 1) {
+      const ch = code[i];
+      if (ch === '{' || ch === '(' || ch === '[') {
+        if (depth === 1 && ch === '(' && expecting && seg) keys.push({ key: seg, at: i });
+        if (depth === 1 && ch === '(') expecting = false;
+        depth += 1; seg = ''; continue;
+      }
+      if (ch === '}' || ch === ')' || ch === ']') { depth -= 1; if (depth === 0) break; seg = ''; continue; }
+      if (depth === 1 && ch === ',') { expecting = true; seg = ''; continue; }
+      if (depth !== 1) continue;
+      if (ch === ':' && seg && expecting) { keys.push({ key: seg, at: i }); expecting = false; seg = ''; continue; }
+      if (ch === '=' || ch === ':') { expecting = false; seg = ''; continue; }
+      if (/[A-Za-z0-9_$]/.test(ch)) { if (expecting) seg += ch; continue; }
+      seg = '';
+    }
+    return keys;
+  };
+  const svcDir = join(root, 'services');
+  const svcFiles = existsSync(svcDir)
+    ? readdirSync(svcDir, { withFileTypes: true }).filter((e) => e.isFile() && e.name.endsWith('.js')).map((e) => join(svcDir, e.name))
+    : [];
+  for (const file of svcFiles) {
+    const code = stripSvc(readFileSync(file, 'utf8'));
+    const m = /module\.exports\s*=\s*\{/.exec(code);
+    if (!m) continue;
+    const openAt = m.index + m[0].length - 1;
+    const seen = new Map();
+    for (const { key, at } of exportKeys(code, openAt)) {
+      if (seen.has(key)) {
+        const line = code.slice(0, at).split('\n').length;
+        errors.push(`${file.slice(root.length + 1)}:${line} 的 module.exports 裡「${key}()」重複定義（後面的會靜默蓋掉前面的，只改上面那份就等於白改）`);
+      } else {
+        seen.set(key, at);
+      }
+    }
+  }
 }
 
 for (const w of warnings) console.warn(`⚠️  ${w}`);

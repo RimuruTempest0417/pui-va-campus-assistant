@@ -3,6 +3,7 @@
     "pages/index/index",
     "pages/settings/index",
     "pages/help/index",
+    "pages/notifications/index",
     "pages/style-guide/index",
     "pages/dev/api-check/index",
     "pages/items/list/index",
@@ -20,7 +21,9 @@
     "pages/notices/detail/index",
     "pages/calendar/index",
     "pages/admin/login/index",
-    "pages/admin/index/index"
+    "pages/admin/index/index",
+    "pages/print/items/index",
+    "pages/print/event/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",

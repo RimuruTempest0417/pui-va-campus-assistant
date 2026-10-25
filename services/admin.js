@@ -8,6 +8,10 @@ module.exports = {
   stats() {
     return http.get('/admin/stats');
   },
+  // 後台第一屏五張卡（本週新使用者／本週報名／待審認領／未解決錯誤／未認領失物）
+  statsOverview() {
+    return http.get('/admin/stats/overview');
+  },
   items(status) {
     return http.get('/admin/items', status ? { status: status } : {});
   },
@@ -97,6 +101,10 @@ module.exports = {
   setBanned(id, banned) {
     return http.patch('/admin/users/' + id + '/ban', { banned: banned });
   },
+  // W-41：解除登入失敗鎖定
+  unlockUser(id) {
+    return http.post('/admin/users/' + id + '/unlock', {});
+  },
   reports(status) {
     return http.get('/admin/reports', { status: status || 'PENDING' });
   },
@@ -107,11 +115,30 @@ module.exports = {
     return http.get('/admin/permissions');
   },
   // 錯誤日誌：手機上沒人看得到的白屏／閃退會送到這裡，按出現次數排序
-  errors(status) {
-    return http.get('/admin/errors', { status: status || '', limit: 50 });
+  errors(status, kind) {
+    return http.get('/admin/errors', { status: status || '', kind: kind || '', limit: 50 });
   },
   setErrorStatus(id, action) {
     return http.patch('/admin/errors/' + id, { action: action });
+  },
+  // 同類一次解決：後端以「訊息＋頁面」為 signature；省略 route = 同一句話的所有頁面
+  resolveSimilarErrors(message, route) {
+    return http.post('/admin/error-logs/resolve-similar', { message: message, route: route || null });
+  },
+  // 清理舊錯誤：預設只刪已解決的，回傳 { deleted, kept }
+  cleanupErrors(days, includeOpen) {
+    return http.post('/admin/error-logs/cleanup', { olderThanDays: days, includeOpen: !!includeOpen });
+  },
+  // 推送紀錄（W-37）：每一次發送的成敗與原因，回答「為什麼我沒收到」
+  pushLogs(ok, channel, limit) {
+    return http.get('/admin/push-logs', { ok: ok || 'all', channel: channel || '', limit: limit || 50 });
+  },
+  // 資源回收桶（W-40）：公告與失物都是軟刪除，這裡看得到、可以還原
+  trash(type) {
+    return http.get('/admin/trash', { type: type || 'all' });
+  },
+  restoreTrash(type, id) {
+    return http.post('/admin/trash/restore', { type: type, id: id });
   },
   audit(limit) {
     return http.get('/admin/audit', { limit: limit || 50 });

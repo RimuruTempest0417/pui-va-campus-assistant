@@ -4,6 +4,7 @@
 // CI 也會跑這支：node scripts/check-data-layer.mjs
 
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -337,6 +338,157 @@ check('簽到：我的報名帶簽到時間',
       JSON.stringify(rec && (rec.groupKey || rec.error || rec)),
     );
   }
+}
+
+
+// ── W-34 站內通知 ──
+{
+  const list = await data.notifications();
+  check('通知：清單可讀', Array.isArray(list.items) && list.items.length > 0, `${list.items.length} 則`);
+  check('通知：未讀數是數字', typeof list.unread === 'number', String(list.unread));
+  const only = await data.notifications({ unreadOnly: true });
+  check('通知：只看未讀', only.items.every((x) => !x.readAt), `${only.items.length} 則未讀`);
+}
+
+// ── W-29 活動延期／取消要能顯示 ──
+{
+  const { decorate } = require(join(here, '..', 'utils', 'event.js'));
+  const ev = decorate({ id: 'x', title: 't', startAt: Date.now() + 86400000, capacity: 10, signedCount: 1, status: 'CANCELLED', postponedFrom: '2026-11-10T01:00:00.000Z' });
+  check('活動：取消狀態可判', ev.cancelled === true, String(ev.cancelled));
+  check('活動：延期顯示原定時間', !!ev.postponedText, ev.postponedText || '空');
+}
+
+
+// ── W-31 活動回饋 ──
+{
+  const before = await data.eventFeedback('e1');
+  await data.submitFeedback('e1', 5, '很好玩');
+  const after = await data.eventFeedback('e1');
+  check('回饋：送出後看得到', after.mine && after.mine.rating === 5, JSON.stringify(after.mine));
+  check('回饋：平均分有算', typeof after.avg === 'number' && after.avg > 0, String(after.avg));
+}
+
+
+// ── W-30 組隊報名（示範模式） ──
+{
+  const team = await data.createTeam('e7', '測試隊');
+  check('組隊：建隊拿到邀請碼', !!(team && team.code && team.code.length === 6), team && team.code);
+  const list = await data.eventTeams('e7');
+  check('組隊：隊伍列表看得到自己', list.teams.some((t) => t.name === '測試隊' && t.mine), `${list.teams.length} 隊`);
+}
+
+// ── W-28 列印版（A4 分頁與表格文字；純函式，不依賴 IDE） ──
+{
+  const print = require(join(here, '..', 'utils', 'print.js'));
+  const rows = Array.from({ length: 45 }, (_, i) => ({ no: i + 1 }));
+  const pages = print.paginate(rows, 20);
+  check(
+    '列印：分頁列數固定',
+    pages.length === 3 && pages[1].rows.length === 20 && pages[2].rows.length === 5,
+    `${pages.length} 頁／最後一頁 ${pages[2].rows.length} 列`,
+  );
+  const per = print.rowsPerPage({ sheetHeight: 800, headHeight: 80, footHeight: 40, rowHeight: 24 });
+  check('列印：每頁列數由紙高推算', per === 28, String(per));
+  const tsv = print.toTsv(['A', 'B'], [['x\ty', 'z\nw']]);
+  check('列印：表格文字清掉跳字', tsv.split('\n').length === 2 && tsv.indexOf('\t\n') === -1, JSON.stringify(tsv));
+}
+
+// ── W-43 使用者手動回報問題 ──
+// 驗收要求「前端有一條回報路徑」：只做後端端點不算，畫面點不到就等於沒做。
+// 這裡同時驗四層的最後兩層（data.js 入口＋示範模式寫得進去）與第五層的靜態證據
+// （api.js 真的打 /client-errors/report）；第一層（設定頁按鈕）由 check-project 的
+// 「WXML 用到的 handler 必須在頁面 JS 存在」擋住。
+{
+  const settingsSrc = readFileSync(join(here, '..', 'pages', 'settings', 'index.js'), 'utf8');
+  const settingsWxml = readFileSync(join(here, '..', 'pages', 'settings', 'index.wxml'), 'utf8');
+  check(
+    '回報問題：設定頁有入口',
+    settingsWxml.indexOf('bindtap="reportIssue"') !== -1 && settingsSrc.indexOf('reportIssue()') !== -1,
+    'pages/settings',
+  );
+
+  check('回報問題：data.js 有入口', typeof data.reportIssue === 'function', typeof data.reportIssue);
+
+  const first = await data.reportIssue({ message: '自我檢查回報', route: 'pages/settings/index' }).catch((e) => e);
+  check(
+    '回報問題：示範模式寫本地並標明 demo',
+    first && first.ok === true && first.demo === true,
+    JSON.stringify(first),
+  );
+
+  const second = await data.reportIssue({ message: '自我檢查回報', route: 'pages/settings/index' }).catch((e) => e);
+  check('回報問題：送兩次都有記錄（不靜默吞掉）', second && second.id !== first.id, `${first.id} → ${second && second.id}`);
+
+  const rejected = await data
+    .reportIssue({ message: '   ' })
+    .then(() => false)
+    .catch(() => true);
+  check('回報問題：空訊息被拒', rejected, rejected);
+
+  const apiSrc = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  check(
+    '回報問題：真 API 走 /client-errors/report',
+    apiSrc.indexOf("'/client-errors/report'") !== -1,
+    'services/api.js',
+  );
+}
+
+// ── W-38 活動附件 ──
+// 驗收要點：老師加得了、學生看得到但改不了、COS 沒開通要明確報而不是假成功。
+{
+  const ev = await data.getEvent('e1');
+  check('附件：詳情頁帶附件清單', (ev.attachments || []).length === 2, `${(ev.attachments || []).length} 份`);
+  check(
+    '附件：連結與檔案兩種都示範得到',
+    (ev.attachments || []).some((a) => a.type === 'link') && (ev.attachments || []).some((a) => a.type === 'pdf'),
+    (ev.attachments || []).map((a) => a.type).join('/'),
+  );
+  check('附件：示範身分是學生 → 不給管理入口', ev.canManageAttachments === false, String(ev.canManageAttachments));
+
+  const added = await data
+    .addEventAttachment('e1', { name: '自我檢查附件', url: 'https://www.puiva.edu.mo/', type: 'link' })
+    .catch((e) => e);
+  check('附件：新增後寫進示範資料', added && added.id, added && added.id ? added.name : JSON.stringify(added));
+
+  const afterAdd = await data.getEvent('e1');
+  check('附件：重新讀取還在（不是只在記憶體）', (afterAdd.attachments || []).length === 3, `${(afterAdd.attachments || []).length} 份`);
+
+  const badUrl = await data
+    .addEventAttachment('e1', { name: '壞連結', url: 'javascript:alert(1)' })
+    .then(() => false)
+    .catch(() => true);
+  check('附件：非 http(s) 連結被拒', badUrl, badUrl);
+
+  await data.deleteEventAttachment('e1', added.id).catch(() => null);
+  const afterDel = await data.getEvent('e1');
+  check('附件：刪除後清單回到兩份', (afterDel.attachments || []).length === 2, `${(afterDel.attachments || []).length} 份`);
+
+  const sign = await data.signUpload('event', 'pdf').then(() => null).catch((e) => e);
+  check(
+    '附件：COS 未開通時明確報未開通（不假成功）',
+    sign && sign.code === 'UPLOAD_NOT_CONFIGURED',
+    sign ? sign.code : '沒有拒絕',
+  );
+
+  // 第五層：畫面入口（沒有入口等於功能沒做）
+  const evWxml = readFileSync(join(here, '..', 'pages', 'events', 'detail', 'index.wxml'), 'utf8');
+  const evJs = readFileSync(join(here, '..', 'pages', 'events', 'detail', 'index.js'), 'utf8');
+  check(
+    '附件：詳情頁有入口（開檔＋新增＋刪除）',
+    evWxml.indexOf('bindtap="openAttachment"') !== -1 &&
+      evWxml.indexOf('bindtap="addAttachment"') !== -1 &&
+      evWxml.indexOf('catchtap="removeAttachment"') !== -1 &&
+      evJs.indexOf('openAttachment(') !== -1 &&
+      evJs.indexOf('addAttachment(') !== -1 &&
+      evJs.indexOf('removeAttachment(') !== -1,
+    'pages/events/detail',
+  );
+  const apiSrc2 = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  check(
+    '附件：真 API 走 /events/:id/attachments',
+    apiSrc2.indexOf("'/events/' + eventId + '/attachments'") !== -1 && apiSrc2.indexOf("'/uploads/signature'") !== -1,
+    'services/api.js',
+  );
 }
 
 // ── 輸出 ──
