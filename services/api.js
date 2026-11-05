@@ -252,4 +252,5 @@ module.exports = {
   markHomework(id) { return http.post('/homework/' + id + '/done', {}); },
   unmarkHomework(id) { return http.del('/homework/' + id + '/done'); },
   parentChildHomework(childId) { return http.get('/parents/me/children/' + childId + '/homework'); },
+  homeworkStats(query) { return http.get('/homework/stats', query || {}); },
 };

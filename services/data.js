@@ -232,4 +232,5 @@ module.exports = {
   markHomework: (...a) => call('markHomework', a),
   unmarkHomework: (...a) => call('unmarkHomework', a),
   parentChildHomework: (...a) => call('parentChildHomework', a),
+  homeworkStats: (...a) => call('homeworkStats', a),
 };

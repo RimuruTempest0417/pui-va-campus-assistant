@@ -80,6 +80,7 @@
   align-items: center;
 }
 .hw-del__text { font-size: var(--pv-fs-footnote); color: var(--pv-label-3); }
+.hw-row__count { font-size: var(--pv-fs-footnote); color: var(--pv-tint); }
 
 .hw-foot { margin-top: var(--pv-sp-4); display: flex; flex-direction: row; gap: var(--pv-sp-2); }
 

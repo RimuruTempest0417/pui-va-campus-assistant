@@ -2617,4 +2617,17 @@ module.exports = {
       },
     });
   },
+
+  // 老師：一次看這一班每項功課「幾個人交了」（示範層沒有真實名單，用示範班級人數示意）
+  homeworkStats(query) {
+    const data = db();
+    const me = data.user;
+    const q = query || {};
+    const className = q.className || [me.grade, me.className].filter(Boolean).join('') || DEMO_CLASS;
+    const total = 24; // 示範班級人數
+    const items = (data.homework || [])
+      .filter((h) => h.className === className && !h.deletedAt)
+      .map((h) => ({ id: h.id, done: (data.homeworkDone || []).filter((d) => d.homeworkId === h.id).length }));
+    return Promise.resolve({ className: className, total: total, items: items });
+  },
 };

@@ -112,6 +112,12 @@ async function main() {
   }
   check('讀沒有綁定的學生被擋（FORBIDDEN）', otherChildBlocked);
 
+  // ── ⑦.5 老師看完成率（一支端點回全部） ──
+  const hwStats = await data.homeworkStats();
+  check('完成率有全班人數', hwStats.total > 0, hwStats.total);
+  check('完成率涵蓋每一項功課', hwStats.items.length >= 1, hwStats.items.length);
+  check('完成率每項都有 done 數字', hwStats.items.every((i) => typeof i.done === 'number'));
+
   // ── ⑧ 舊版號不能蓋掉新版 ──
   const keep = afterRemove.items[0];
   await data.updateHomework(keep.id, { title: '改過的新標題', version: keep.version });

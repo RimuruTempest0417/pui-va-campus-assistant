@@ -58,6 +58,7 @@ Page({
       k35: i18n.pick('例：數學'),
       k36: i18n.pick('送出失敗'),
       k37: i18n.pick('班'),
+      k38: i18n.pick(' 人交了'),
     };
   },
 
@@ -117,12 +118,18 @@ Page({
     this.setData({ loading: true, failed: false });
     try {
       const res = await data.listHomework({ scope: this.data.scope });
-      const items = (res.items || []).map((item) =>
-        Object.assign({}, item, {
+      // 老師：順便拿「幾個人交了」（一支端點回全部，不逐項打）
+      const stats = res.canCreate ? await data.homeworkStats().catch(() => null) : null;
+      const countById = {};
+      if (stats && stats.items) stats.items.forEach((s) => { countById[s.id] = s; });
+      const items = (res.items || []).map((item) => {
+        const s = countById[item.id];
+        return Object.assign({}, item, {
           dueText: this.dueText(item.dueAt, item.done),
           dueBadge: item.overdue ? (this.data.L.k10 || '') : '',
-        }),
-      );
+          countText: s && stats.total ? s.done + '/' + stats.total : '',
+        });
+      });
       this.setData({
         loading: false,
         needLogin: false,

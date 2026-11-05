@@ -4647,6 +4647,34 @@ paths:
         '200':
           description: 已取消
 
+  /homework/stats:
+    get:
+      tags: [homework]
+      summary: 老師看這一班每項功課「幾個人交了」（一支端點回全部）
+      description: 只回數字不回姓名（要點名請走名單／簽到）。權限是 `homework:create`（老師以上）。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: className, in: query, schema: { type: string, maxLength: 32 }, description: 留空＝自己那一班 }
+      responses:
+        '200':
+          description: 全班人數與每項功課的交件數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  className: { type: string }
+                  total: { type: integer, description: 班上人數（不含被封禁的帳號） }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        done: { type: integer }
+        '403':
+          description: 不是老師（學生／家長沒有 homework:create）
+
   /parents/me/children/{studentId}/homework:
     get:
       tags: [parent, homework]
