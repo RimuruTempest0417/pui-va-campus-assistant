@@ -1,8 +1,9 @@
-// 全校搜尋（W-59）：一支輸入框搜遍公告／活動／失物。
+// 全校搜尋（W-59）：一支輸入框搜遍公告／活動／失物／轉贈。
 // 規則全部在後端 `/search`（可見性不能在前端重算），這裡只負責「輸入 → 去抖 → 分組顯示」。
 const data = require('../../services/data');
 const i18n = require('../../utils/i18n');
 const appearance = require('../../utils/appearance');
+const giveaway = require('../../utils/giveaway');
 const { fromNow, dateTimeText } = require('../../utils/date');
 
 const RECENT_KEY = 'pv_recent_searches';
@@ -17,6 +18,7 @@ const DEBOUNCE_MS = 280;
 function typeLabel(type) {
   if (type === 'event') return i18n.pick('活動');
   if (type === 'item') return i18n.pick('失物招領');
+  if (type === 'giveaway') return i18n.pick('二手轉贈');
   return i18n.pick('公告');
 }
 
@@ -46,6 +48,7 @@ const ROUTE = {
   notice: '/pages/notices/detail/index?id=',
   event: '/pages/events/detail/index?id=',
   item: '/pages/items/detail/index?id=',
+  giveaway: '/pages/giveaway/detail/index?id=',
 };
 
 function readRecent() {
@@ -78,6 +81,11 @@ function decorateRow(row) {
     badgeLabel = eventStatus(row.badge);
     badgeTag = row.badge === 'CANCELLED' ? 'danger' : 'neutral';
     metaText = dateTimeText(row.date);
+  } else if (row.type === 'giveaway') {
+    // 徽章用「書籍／校服／其他」，與轉贈清單同一支 utils/giveaway（不在這裡抄第二份對照表）
+    badgeLabel = giveaway.kindLabel(row.badge);
+    badgeTag = 'tint';
+    metaText = fromNow(row.date);
   } else {
     const t = (row.badge || '').split(':')[0];
     const s = (row.badge || '').split(':')[1];
@@ -101,9 +109,9 @@ Page({
   labels() {
     return {
       title: i18n.pick('搜尋'),
-      placeholder: i18n.pick('搜尋公告、活動、失物'),
+      placeholder: i18n.pick('搜尋公告、活動、失物、轉贈'),
       hintTitle: i18n.pick('想找什麼？'),
-      hintDesc: i18n.pick('輸入關鍵字，一次搜遍公告、活動與失物'),
+      hintDesc: i18n.pick('輸入關鍵字，一次搜遍公告、活動、失物與轉贈'),
       recent: i18n.pick('最近搜尋'),
       clearRecent: i18n.pick('清除'),
       failed: i18n.pick('搜尋失敗'),

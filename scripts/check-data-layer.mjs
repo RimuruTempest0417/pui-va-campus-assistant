@@ -212,6 +212,27 @@ check(
 );
 const s3 = await data.search('   ');
 check('搜尋：空白關鍵字不打後端', s3.total === 0 && s3.groups.length === 0, `groups ${s3.groups.length}`);
+// W-71 轉贈進搜尋：示範層與後端同一條規則 —— 只搜 AVAILABLE，已贈出／已下架不出現
+const sGv = await data.search('課本');
+const sGvGroup = sGv.groups.filter((g) => g.type === 'giveaway')[0] || { count: 0, items: [] };
+check('搜尋：轉贈也搜得到（AVAILABLE）', sGvGroup.count > 0, `轉贈 ${sGvGroup.count} 筆`);
+check(
+  '搜尋：轉贈排到「書籍」那件',
+  sGvGroup.items.some((i) => i.id === 'gv1' && i.badge === 'BOOK'),
+  sGvGroup.items.map((i) => i.id + ':' + i.badge).join(' ') || '沒有結果',
+);
+const sGvGiven = await data.search('體育服');
+check(
+  '搜尋：已贈出的轉贈不出現在結果',
+  !sGvGiven.groups.some((g) => g.type === 'giveaway' && g.items.some((i) => i.id === 'gv5')),
+  sGvGiven.groups.map((g) => g.type + '×' + g.count).join(' ') || '沒有結果',
+);
+const sGvOnly = await data.search({ q: '課本', types: 'giveaway' });
+check(
+  '搜尋：types=giveaway 只回轉贈',
+  sGvOnly.groups.length > 0 && sGvOnly.groups.every((g) => g.type === 'giveaway'),
+  sGvOnly.groups.map((g) => g.type).join(' ') || '沒有結果',
+);
 const apiSrcSearch = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
 check('搜尋：真 API 走 /search', apiSrcSearch.indexOf("'/search'") !== -1, 'services/api.js');
 

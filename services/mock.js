@@ -972,7 +972,7 @@ module.exports = {
     const low = q.toLowerCase();
     const data = db();
     const now = Date.now();
-    const wanted = (opts.types || 'notice,event,item').split(',').map((s) => s.trim());
+    const wanted = (opts.types || 'notice,event,item,giveaway').split(',').map((s) => s.trim());
     const groups = [];
 
     const hitScore = (title) => (String(title || '').toLowerCase().indexOf(low) !== -1 ? 2 : 1);
@@ -1030,6 +1030,20 @@ module.exports = {
         .sort(byScore)
         .slice(0, limit);
       groups.push({ type: 'item', count: items.length, items: items });
+    }
+
+    if (wanted.indexOf('giveaway') !== -1) {
+      // W-71：只搜還拿得到的（AVAILABLE）；已贈出／已下架對搜尋的人是「按進去才發現沒有了」的假結果
+      const items = (data.giveaways || [])
+        .filter((g) => g.status === 'AVAILABLE')
+        .filter((g) => [g.title, g.body, g.detail, g.pickupPlace].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((g) => ({
+          id: g.id, type: 'giveaway', title: g.title, snippet: bestSnippet([g.body, g.detail, g.pickupPlace]),
+          badge: g.kind, date: new Date(g.createdAt).toISOString(), score: hitScore(g.title),
+        }))
+        .sort(byScore)
+        .slice(0, limit);
+      groups.push({ type: 'giveaway', count: items.length, items: items });
     }
 
     const kept = groups.filter((g) => g.count > 0);
