@@ -46,6 +46,12 @@
     <view class="i-tray-line" />
   </block>
 
+  <!-- 圖書館（W-66）：打開的書（左右兩頁＋書脊） -->
+  <block wx:elif="{{name === 'book'}}">
+    <view class="i-book" />
+    <view class="i-book-spine" />
+  </block>
+
   <!-- 右箭頭 -->
   <block wx:elif="{{name === 'chevron'}}">
     <view class="i-chev" />

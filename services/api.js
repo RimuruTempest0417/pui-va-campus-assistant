@@ -185,4 +185,16 @@ module.exports = {
   schoolAttendance(q) { return http.get('/school/attendance', q || {}); },
   schoolManualGrade(body) { return http.post('/school/manual/grades', body); },
   schoolManualAttendance(body) { return http.post('/school/manual/attendance', body); },
+
+  // ── W-66 圖書館 ──
+  listBooks(query) { return http.get('/library/books', query); },
+  getBook(id) { return http.get('/library/books/' + id); },
+  /** 掃碼查書：查不到回 200 found:false（不是 404），前端顯示「登記新書」 */
+  lookupIsbn(isbn) { return http.get('/library/isbn/' + encodeURIComponent(isbn)); },
+  hotBooks() { return http.get('/library/hot'); },
+  borrowBook(payload) { return http.post('/library/loans', payload); },
+  myLoans() { return http.get('/library/loans/mine'); },
+  returnLoan(id) { return http.post('/library/loans/' + id + '/return', {}); },
+  renewLoan(id) { return http.post('/library/loans/' + id + '/renew', {}); },
+  cancelReservation(id) { return http.del('/library/reservations/' + id); },
 };

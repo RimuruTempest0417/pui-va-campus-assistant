@@ -172,4 +172,16 @@ module.exports = {
   parentChildSync: (...a) => call('parentChildSync', a),
   schoolManualGrade: (...a) => call('schoolManualGrade', a),
   schoolManualAttendance: (...a) => call('schoolManualAttendance', a),
+
+  // ── W-66 圖書館（借還要登入；館藏查詢訪客也可以用）──
+  // 訪客查館藏不該先被 ensureLogin 擋住：後端 library:read 對 GUEST 開放。
+  listBooks: (...a) => call('listBooks', a),
+  getBook: (...a) => call('getBook', a),
+  lookupIsbn: (...a) => call('lookupIsbn', a),
+  hotBooks: (...a) => call('hotBooks', a),
+  borrowBook: (...a) => call('borrowBook', a),
+  myLoans: (...a) => call('myLoans', a),
+  returnLoan: (...a) => call('returnLoan', a),
+  renewLoan: (...a) => call('renewLoan', a),
+  cancelReservation: (...a) => call('cancelReservation', a),
 };

@@ -1,0 +1,90 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view
+    class="page-scroll"
+    scroll-y
+    bounces
+    show-scrollbar="{{false}}"
+    enhanced="{{true}}"
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+    bindscrolltolower="onReachBottom"
+  >
+    <view class="list-inner">
+      <view class="toolbar">
+        <view class="search">
+          <pv-icon class="search__icon" name="search" size="28" tone="muted" />
+          <input
+            class="search__input"
+            placeholder="{{L.k02}}"
+            placeholder-class="ui-placeholder"
+            value="{{keyword}}"
+            bindinput="onKeywordInput"
+            confirm-type="search"
+            bindconfirm="onSearch"
+          />
+          <text wx:if="{{keyword}}" class="search__clear" bindtap="onClearKeyword">✕</text>
+        </view>
+        <view class="scan" bindtap="scan">
+          <text class="scan__text">{{L.k05}}</text>
+        </view>
+      </view>
+
+      <view class="chips">
+        <view
+          wx:for="{{tabs}}"
+          wx:key="key"
+          class="chip {{(onlyAvailable && item.key === 'available') || (!onlyAvailable && item.key === 'all') ? 'is-active' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onTabChange"
+        >{{item.label}}</view>
+        <view class="chip chip--ghost" bindtap="manualIsbn">{{L.k17}}</view>
+        <view class="chip chip--ghost" bindtap="goMine">{{L.k12}}</view>
+      </view>
+
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="2" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="2" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{failed}}" title="{{L.k03}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k04}}</pv-button>
+      </pv-empty>
+
+      <pv-empty wx:elif="{{!items.length}}" title="{{keyword ? L.k08 : L.k10}}" desc="{{keyword ? L.k09 : L.k11}}" />
+
+      <view wx:else class="ui-list ui-list--grouped">
+        <view
+          wx:for="{{items}}"
+          wx:key="id"
+          class="ui-card ui-card--row {{index === items.length - 1 ? 'ui-card--last' : ''}} {{pressedId === item.id ? 'ui-card--pressed' : ''}}"
+          data-id="{{item.id}}"
+          bindtouchstart="onItemTouchStart"
+          bindtouchend="onItemTouchEnd"
+          bindtouchcancel="onItemTouchEnd"
+          bindtap="goDetail"
+        >
+          <view class="book-row">
+            <view class="book-mark"><text class="book-mark__text">{{item.initial}}</text></view>
+            <view class="book-main">
+              <view class="ui-row-between">
+                <text class="ui-title book-title">{{item.title}}</text>
+                <pv-tag text="{{item.availLabel}}" type="{{item.availTag}}" />
+              </view>
+              <text class="ui-meta book-meta">{{item.metaText}}</text>
+              <text class="ui-meta">{{item.stockText}}<block wx:if="{{item.waitingText}}"> · {{item.waitingText}}</block><block wx:if="{{item.callText}}"> · {{item.callText}}</block></text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="list-foot">
+        <text wx:if="{{loadingMore}}">{{L.k14}}</text>
+        <text wx:elif="{{!hasMore && items.length}}">{{L.k13}}</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

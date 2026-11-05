@@ -5,6 +5,7 @@ const config = require('../../../config/config');
 const { dateKey, fromNow, dateTimeText } = require('../../../utils/date');
 const role = require('../../../utils/role');
 const theme = require('../../../utils/theme');
+const { decorateBook, decorateLoan } = require('../../../utils/book');
 
 const TABS = [
   { key: 'stats', label: i18n.pick('概況') },
@@ -22,6 +23,7 @@ const TABS = [
   { key: 'audit', label: i18n.pick('審計') },
   { key: 'export', label: i18n.pick('名單') },
   { key: 'menu', label: i18n.pick('菜單') },
+  { key: 'library', label: i18n.pick('圖書館') },
 ];
 
 // 學段三個固定值（後端 TERMS）：key 必須送原文，簡體下字形相同所以直接用 pick 的結果當 key
@@ -29,10 +31,10 @@ const TERM_KEYS = [i18n.pick('第一段'), i18n.pick('第二段'), i18n.pick('�
 
 const ROLE_TABS = {
   // 校內職員：排菜單＋匯出報名名單＋補登成績。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
-  STAFF: ['notice', 'claims', 'school', 'menu', 'export'],
+  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'export'],
   TEACHER: ['notice', 'school', 'events'],
-  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu'],
+  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -338,6 +340,37 @@ Page({
       k260: i18n.pick("已立即發佈"),
       k261: i18n.pick("報名截止日（選填，格式 2026-10-30）"),
       k262: i18n.pick("報名截止要早於活動當天"),
+      // ── W-66 圖書館分頁（k270 起，避免撞號）──
+      k270: i18n.pick("館藏"),
+      k271: i18n.pick("借閱紀錄"),
+      k272: i18n.pick("新增館藏"),
+      k273: i18n.pick("修改館藏"),
+      k274: i18n.pick("書名"),
+      k275: i18n.pick("書號 ISBN"),
+      k276: i18n.pick("作者"),
+      k277: i18n.pick("分類"),
+      k278: i18n.pick("索書號"),
+      k279: i18n.pick("館藏量"),
+      k280: i18n.pick("借期（天）"),
+      k281: i18n.pick("儲存"),
+      k282: i18n.pick("掃書號"),
+      k283: i18n.pick("取消"),
+      k284: i18n.pick("編輯"),
+      k285: i18n.pick("下架"),
+      k286: i18n.pick("上架"),
+      k287: i18n.pick("刪除"),
+      k288: i18n.pick("還沒有館藏"),
+      k289: i18n.pick("按上方「新增館藏」登記第一本書"),
+      k290: i18n.pick("借閱中"),
+      k291: i18n.pick("逾期"),
+      k292: i18n.pick("全部"),
+      k293: i18n.pick("代還"),
+      k294: i18n.pick("催還"),
+      k295: i18n.pick("已催還"),
+      k296: i18n.pick("目前沒有借閱紀錄"),
+      k297: i18n.pick("確定刪除這本書？"),
+      k298: i18n.pick("已刪除"),
+      k299: i18n.pick("已儲存"),
     };
   },
 
@@ -346,6 +379,23 @@ Page({
     theme,
     tabs: TABS,
     tab: 'stats',
+    // ── W-66 圖書館分頁 ──
+    libMode: 'books',
+    libModes: [
+      { key: 'books', label: i18n.pick('館藏') },
+      { key: 'loans', label: i18n.pick('借閱紀錄') },
+    ],
+    libBooks: [],
+    libLoans: [],
+    libSummary: { active: 0, overdue: 0 },
+    libStatus: 'active',
+    libStatuses: [
+      { key: 'active', label: i18n.pick('借閱中') },
+      { key: 'overdue', label: i18n.pick('逾期') },
+      { key: 'all', label: i18n.pick('全部') },
+    ],
+    libForm: { id: '', title: '', isbn: '', author: '', category: '', callNumber: '', totalCopies: '1', loanDays: '14' },
+    libSaving: false,
     role: '',
     stats: { users: 0, items: { open: 0, claimed: 0, added7d: 0 }, claimsPending: 0, signups: { confirmed: 0, waitlist: 0 }, noticesActive: 0, ratings: { count: 0, avg: 0 } },
     // 第一屏五張數字卡：值與標籤在 loadStats 一起備好（WXML 不做運算）
@@ -552,6 +602,7 @@ Page({
     else if (t === 'audit') p = this.loadAudit();
     else if (t === 'notice') p = this.loadNoticeList();
     else if (t === 'menu') p = this.loadMenuWeek();
+    else if (t === 'library') p = this.loadLibrary();
 
     if (!p || typeof p.then !== 'function') {
       this.setData({ tabLoading: false });
@@ -2217,5 +2268,169 @@ Page({
     } catch (err) {
       wx.showToast({ title: err.message || i18n.pick('移除失敗'), icon: 'none' });
     }
+  },
+
+  // ───────── 圖書館（W-66） ─────────
+  // 館藏管理與借閱紀錄在同一個分頁的兩個子模式：圖書館職員日常只做兩件事 ——
+  // 「登記／改書」與「看誰還沒還」，把它們放在一起比開兩個分頁好找。
+  async loadLibrary() {
+    if (this.data.libMode === 'loans') {
+      try {
+        const res = await admin.libraryLoans({ status: this.data.libStatus });
+        this.setData({ libLoans: (res.items || []).map(decorateLoan), libSummary: res.summary || { active: 0, overdue: 0 } });
+      } catch (e) {
+        this.setData({ hint: i18n.pick('讀不到借閱紀錄：') + (e.message || e.code) });
+      }
+      return;
+    }
+    try {
+      const res = await admin.libraryBooks({ limit: 50 });
+      this.setData({ libBooks: (res.items || []).map(decorateBook) });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到館藏：') + (e.message || e.code) });
+    }
+  },
+
+  switchLibMode(e) {
+    this.setData({ libMode: e.currentTarget.dataset.key }, () => this.loadLibrary());
+  },
+
+  pickLibStatus(e) {
+    this.setData({ libStatus: e.currentTarget.dataset.key }, () => this.loadLibrary());
+  },
+
+  onLibField(e) {
+    const field = e.currentTarget.dataset.field;
+    if (!field) return;
+    this.setData({ ['libForm.' + field]: e.detail.value });
+  },
+
+  libScan() {
+    wx.scanCode({
+      scanType: ['barCode'],
+      success: (res) => {
+        const isbn = String(res.result || '').replace(/[^0-9Xx]/g, '');
+        if (isbn) this.setData({ 'libForm.isbn': isbn });
+      },
+      fail: () => {},
+    });
+  },
+
+  libResetForm() {
+    this.setData({
+      libForm: { id: '', title: '', isbn: '', author: '', category: '', callNumber: '', totalCopies: '1', loanDays: '14' },
+    });
+  },
+
+  /** 編輯：直接從清單那一列帶資料進來（不另外打一次詳情端點） */
+  libEdit(e) {
+    const id = e.currentTarget.dataset.id;
+    const book = this.data.libBooks.filter((b) => b.id === id)[0];
+    if (!book) return;
+    this.setData({
+      libForm: {
+        id: book.id,
+        title: book.title || '',
+        isbn: book.isbn || '',
+        author: book.author || '',
+        category: book.category || '',
+        callNumber: book.callNumber || '',
+        totalCopies: String(book.totalCopies || 1),
+        loanDays: String(book.loanDays || 14),
+        version: book.version,
+      },
+    });
+  },
+
+  async libSave() {
+    if (this.data.libSaving) return;
+    const f = this.data.libForm;
+    const title = String(f.title || '').trim();
+    if (!title) {
+      wx.showToast({ title: i18n.pick('請輸入書名'), icon: 'none' });
+      return;
+    }
+    const payload = {
+      title: title,
+      isbn: f.isbn || undefined,
+      author: f.author || undefined,
+      category: f.category || undefined,
+      callNumber: f.callNumber || undefined,
+      totalCopies: Number(f.totalCopies) || 1,
+      loanDays: Number(f.loanDays) || 14,
+    };
+
+    this.setData({ libSaving: true });
+    try {
+      if (f.id) {
+        // 帶 version：兩人先後存同一筆時後者會拿到 409，而不是靜默覆蓋
+        await admin.libraryBookUpdate(f.id, Object.assign({}, payload, { version: f.version }));
+      } else {
+        await admin.libraryBookCreate(payload);
+      }
+      this.setData({ libSaving: false });
+      wx.showToast({ title: i18n.pick('已儲存'), icon: 'success' });
+      this.libResetForm();
+      this.loadLibrary();
+    } catch (err) {
+      this.setData({ libSaving: false });
+      wx.showToast({ title: err.message || i18n.pick('儲存失敗'), icon: 'none' });
+    }
+  },
+
+  libArchive(e) {
+    const id = e.currentTarget.dataset.id;
+    const archived = e.currentTarget.dataset.archived === true || e.currentTarget.dataset.archived === 'true';
+    admin
+      .libraryBookArchive(id, archived)
+      .then(() => {
+        wx.showToast({ title: archived ? i18n.pick('已下架') : i18n.pick('已上架'), icon: 'success' });
+        this.loadLibrary();
+      })
+      .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+  },
+
+  /** 刪除一律用原生確認框（自製兩段式在 Skyline 下第二次點不到） */
+  libDelete(e) {
+    const id = e.currentTarget.dataset.id;
+    const title = e.currentTarget.dataset.title || '';
+    wx.showModal({
+      title: i18n.pick('確定刪除這本書？'),
+      content: title,
+      confirmText: i18n.pick('刪除'),
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .libraryBookDelete(id)
+          .then(() => {
+            wx.showToast({ title: i18n.pick('已刪除'), icon: 'success' });
+            this.loadLibrary();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('刪除失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  /** 代還：學生忘了帶書來也行，職員在系統上收回 */
+  libReturn(e) {
+    const id = e.currentTarget.dataset.id;
+    admin
+      .libraryReturn(id)
+      .then(() => {
+        wx.showToast({ title: i18n.pick('已歸還'), icon: 'success' });
+        this.loadLibrary();
+      })
+      .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+  },
+
+  libRemind() {
+    admin
+      .libraryRemind()
+      .then((res) => {
+        wx.showToast({ title: i18n.pick('已催還') + ' ' + ((res && res.checked) || 0), icon: 'none' });
+        this.loadLibrary();
+      })
+      .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
   },
 });

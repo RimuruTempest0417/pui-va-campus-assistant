@@ -139,3 +139,24 @@
 .imp-row__msg { flex: 1; font-size: var(--pv-fs-footnote); line-height: 1.45; }
 .imp-row__msg--ok { color: var(--pv-label); }
 .imp-row__msg--bad { color: var(--pv-warning); }
+
+/* ── W-66 圖書館分頁 ── */
+/* 兩欄輸入（分類／索書號、館藏量／借期）：窄屏各佔一半，用 gap 而不是 margin， */
+/* 自訂組件與 input 都不會互相擠在一起。 */
+.lib-two { display: flex; flex-direction: row; gap: var(--pv-sp-2); }
+.lib-two__col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.lib-two__col .field__input { width: 100%; box-sizing: border-box; }
+
+/* 「掃書號」是一個小動作，做成文字按鈕比第二顆實心鈕低調 */
+.lib-scan {
+  flex-shrink: 0;
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-tint);
+  background: var(--pv-fill);
+  border-radius: var(--pv-r-pill);
+  padding: 6rpx var(--pv-sp-2);
+}
+
+.lib-row { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; gap: var(--pv-sp-2); }
+.lib-row__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.lib-row .row-actions { margin-top: 0; flex-wrap: nowrap; }

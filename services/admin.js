@@ -244,4 +244,30 @@ module.exports = {
   twoFactorDisable(password) {
     return http.post('/admin/2fa/disable', { password: password });
   },
+
+  // ── W-66 圖書館（館藏與借閱紀錄）──
+  libraryBooks(query) {
+    return http.get('/admin/library/books', query || {});
+  },
+  libraryBookCreate(payload) {
+    return http.post('/admin/library/books', payload);
+  },
+  libraryBookUpdate(id, payload) {
+    return http.patch('/admin/library/books/' + id, payload);
+  },
+  libraryBookArchive(id, archived) {
+    return http.post('/admin/library/books/' + id + '/archive', { archived: archived });
+  },
+  libraryBookDelete(id) {
+    return http.del('/admin/library/books/' + id);
+  },
+  libraryLoans(query) {
+    return http.get('/admin/library/loans', query || {});
+  },
+  libraryReturn(loanId) {
+    return http.post('/admin/library/loans/' + loanId + '/return', {});
+  },
+  libraryRemind() {
+    return http.post('/admin/library/remind', {});
+  },
 };

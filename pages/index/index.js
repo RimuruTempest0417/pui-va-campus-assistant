@@ -49,6 +49,8 @@ Page({
     adminUrl: '',
     adminSub: '',
     apiBaseText: '',
+    libraryText: '',
+    libPressed: false,
     // 家長：只在家長身分時才有值（切換子女就在首頁做，不必先點進別的頁）
     parentChildren: [],
     parentActiveId: '',
@@ -78,6 +80,10 @@ Page({
       k10: i18n.pick("管理後台"),
       k11: i18n.pick("· 示範資料（未連後端）"),
       k12: i18n.pick("· 資料來源"),
+      k16: i18n.pick("圖書館"),
+      k17: i18n.pick("可借 "),
+      k18: i18n.pick(" 本"),
+      k19: i18n.pick("查看館藏 ›"),
       brand: i18n.pick('培華校園助手'),
       brandSub: i18n.pick('PUI VA CAMPUS'),
       demoTag: i18n.t('home.demoTag'),
@@ -222,13 +228,15 @@ Page({
       // 首次進入先嘗試登入（沒有後端就當訪客，不阻塞畫面）
       await data.ensureLogin();
 
-      const [me, items, events, menu, notices] = await Promise.all([
+      const [me, items, events, menu, notices, lib] = await Promise.all([
         // 未登入時 me() 會 401；首頁是公開頁，訪客照樣要能看到四個模組
         data.me().catch(() => null),
         data.listItems({}),
         data.listEvents({}),
         data.weekMenu(),
         data.listNotices({}),
+        // 圖書館入口的副標（可借幾本）：失敗不影響首頁，寧可顯示「—」
+        data.listBooks({ available: '1', limit: 1 }).catch(() => ({ total: 0 })),
       ]);
 
       // 緊急公告：只在真的有 URGENT 時顯示第一則
@@ -282,6 +290,7 @@ Page({
         loading: false,
         failed: false,
         isDemo: data.isDemo(),
+        libraryText: lib && lib.total ? i18n.pick('可借 ') + lib.total + i18n.pick(' 本') : '—',
         user: me || {},
         parentChildren: parentChildren,
         parentActiveId: parentActiveId,
@@ -334,6 +343,19 @@ Page({
   onTapUrgent() {
     if (!this.data.urgent) return;
     wx.navigateTo({ url: '/pages/notices/detail/index?id=' + this.data.urgent.id });
+  },
+
+  // ── 圖書館入口（W-66）：一條列，不動四宮格的 2×2 版面 ──
+  onLibTouchStart() {
+    this.setData({ libPressed: true });
+  },
+
+  onLibTouchEnd() {
+    this.setData({ libPressed: false });
+  },
+
+  goLibrary() {
+    wx.navigateTo({ url: '/pages/library/list/index' });
   },
 
   onRetry() {

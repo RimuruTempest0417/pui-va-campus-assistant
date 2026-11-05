@@ -558,6 +558,57 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-66 圖書館（示範層也要借得動，否則交付現場斷網時這個功能是死的）──
+{
+  const list1 = await data.listBooks({});
+  const hasArchived = list1.items.filter((b) => b.id === 'b9').length > 0;
+  check('圖書館：列表排除已下架', !hasArchived && list1.items.length >= 8, `${list1.items.length} 本／含下架=${hasArchived}`);
+
+  const hit = await data.lookupIsbn('978-999-3700-02-8');
+  check('圖書館：書號查詢（含連字號）', hit && hit.found === true && hit.book.id === 'b2', hit && hit.book ? hit.book.title : '查不到');
+
+  const miss = await data.lookupIsbn('9780000000002');
+  check('圖書館：查不到回 found:false（不是錯誤）', miss && miss.found === false, String(miss && miss.found));
+
+  const borrowed = await data.borrowBook({ bookId: 'b2' });
+  const afterBorrow = await data.getBook('b2');
+  check('圖書館：借書扣可借量', borrowed.kind === 'loan' && afterBorrow.book.availableCopies === 4, `${borrowed.kind}／可借 ${afterBorrow.book.availableCopies}`);
+
+  const dupLoan = await data.borrowBook({ bookId: 'b2' }).then(() => null).catch((e) => e);
+  check('圖書館：同一本不能重複借（409 同族）', dupLoan && dupLoan.code === 'ALREADY_BORROWED', dupLoan ? dupLoan.code : '沒有拒絕');
+
+  // b3 可借量 0 且有候補 → 借不到要排候補，不是丟錯
+  const wait = await data.borrowBook({ bookId: 'b3' });
+  check('圖書館：沒可借的排候補', wait.kind === 'reservation' && wait.reservation.position >= 2, `${wait.kind}／第 ${wait.reservation ? wait.reservation.position : '-'} 位`);
+
+  const dupWait = await data.borrowBook({ bookId: 'b3' }).then(() => null).catch((e) => e);
+  check('圖書館：已排候補不會重複排（ALREADY_RESERVED）', dupWait && dupWait.code === 'ALREADY_RESERVED', dupWait ? dupWait.code : '沒有拒絕');
+
+  // 還 b3 的另一筆借閱 → 最早候補（rv1）被叫到
+  const ret = await data.returnLoan('l3');
+  check('圖書館：還書叫最早候補（READY）', ret.promotedUserId === 'demo-other', String(ret.promotedUserId));
+
+  const renewed = await data.renewLoan('l1');
+  const twice = await data.renewLoan('l1').then(() => null).catch((e) => e);
+  check('圖書館：續借上限 1 次', renewed.renewals === 1 && twice && twice.code === 'RENEW_LIMIT', twice ? twice.code : '沒有拒絕');
+
+  const mine = await data.myLoans();
+  check('圖書館：我的借閱有逾期天數', mine.loans.some((l) => l.overdueDays > 0), `逾期 ${mine.overdueCount} 筆`);
+
+  const rv2 = { id: 'rv1' };
+  const cancelled = await data.cancelReservation(rv2.id);
+  check('圖書館：取消候補', cancelled && cancelled.cancelled === true, String(cancelled && cancelled.cancelled));
+
+  const pageWxml = readFileSync(join(here, '..', 'pages', 'library', 'list', 'index.wxml'), 'utf8');
+  const homeWxml = readFileSync(join(here, '..', 'pages', 'index', 'index.wxml'), 'utf8');
+  const apiSrc3 = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  check(
+    '圖書館：有畫面入口＋真 API 端點',
+    pageWxml.indexOf('bindtap="scan"') !== -1 && homeWxml.indexOf('goLibrary') !== -1 && apiSrc3.indexOf("'/library/loans'") !== -1,
+    '首頁 → 列表（掃碼）→ 借還',
+  );
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

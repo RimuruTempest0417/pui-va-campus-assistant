@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 9;
+const SEED_VERSION = 10;
 
 const weekUtil = require('../utils/week');
 
@@ -168,6 +168,29 @@ function seed() {
         content: '此公告已於十日前過期，列表不應再顯示。' },
     ],
     noticeReads: [], // 已讀的公告 id
+    // ── 圖書館（W-66）：示範層也要借得動，交付現場斷網時這個功能不能是死的 ──
+    books: [
+      { id: 'b1', isbn: '9789993700011', title: '澳門街巷誌', author: '陳志明', publisher: '澳門文化局', category: '歷史', callNumber: 'R 673.9/7523', totalCopies: 3, availableCopies: 1, loanDays: 14, status: 'ACTIVE', summary: '由半島到路環的街名掌故，附老照片。' },
+      { id: 'b2', isbn: '9789993700028', title: '中葡對照詞典', author: '培華語文組', publisher: '校內出版', category: '參考書', callNumber: 'R 801/8442', totalCopies: 5, availableCopies: 5, loanDays: 21, status: 'ACTIVE', summary: '日常會話與公文常用詞，適合葡語組同學。' },
+      { id: 'b3', isbn: '9787115428028', title: '演算法圖解', author: 'Aditya Bhargava', publisher: '人民郵電', category: '電腦', callNumber: 'T 312.9/4472', totalCopies: 2, availableCopies: 0, loanDays: 14, status: 'ACTIVE', summary: '用圖講二分搜尋、遞迴與動態規劃。' },
+      { id: 'b4', isbn: '9789573334091', title: '解憂雜貨店', author: '東野圭吾', publisher: '皇冠', category: '文學', callNumber: '857.7/5064', totalCopies: 4, availableCopies: 2, loanDays: 14, status: 'ACTIVE', summary: '寫給煩惱的人的五個故事。' },
+      { id: 'b5', isbn: '9789863209610', title: '物理之美', author: '徐立之', publisher: '天下文化', category: '科學', callNumber: 'T 330/2803', totalCopies: 2, availableCopies: 2, loanDays: 14, status: 'ACTIVE', summary: '從生活現象講力學與電學。' },
+      { id: 'b6', isbn: '9780194420990', title: 'Oxford Advanced Learner\'s Dictionary', author: 'Oxford', publisher: 'OUP', category: '參考書', callNumber: 'R 805.1/2233', totalCopies: 6, availableCopies: 6, loanDays: 21, status: 'ACTIVE', summary: '英文作文常用的搭配詞都查得到。' },
+      { id: 'b7', isbn: '9789888526907', title: '澳門土生葡人飲食誌', author: '黎若嵐', publisher: '澳門基金會', category: '歷史', callNumber: 'R 673.9/2742', totalCopies: 1, availableCopies: 0, loanDays: 14, status: 'ACTIVE', summary: '葡國雞、免治與豬扒包的由來。' },
+      { id: 'b8', isbn: '9787536692930', title: '三體', author: '劉慈欣', publisher: '重慶出版社', category: '文學', callNumber: '857.7/7238', totalCopies: 3, availableCopies: 3, loanDays: 14, status: 'ACTIVE', summary: '科幻長篇，第一冊。' },
+      { id: 'b9', isbn: '9789864796331', title: '氣候緊急時代來了', author: 'David Wallace-Wells', publisher: '天下', category: '科學', callNumber: 'T 328.8/4424', totalCopies: 1, availableCopies: 1, loanDays: 14, status: 'ARCHIVED', summary: '已下架（示範「下架後前台看不到」）。' },
+    ],
+    // 我的借閱：一本正常、一本已逾期，讓「我的借閱」一打開就看得到兩種狀態
+    loans: [
+      { id: 'l1', bookId: 'b1', userId: 'demo-user', borrowedAt: now - 3 * 24 * h, dueAt: now + 11 * 24 * h, returnedAt: null, renewals: 0 },
+      { id: 'l2', bookId: 'b7', userId: 'demo-user', borrowedAt: now - 20 * 24 * h, dueAt: now - 6 * 24 * h, returnedAt: null, renewals: 1 },
+      { id: 'l3', bookId: 'b3', userId: 'demo-other', borrowedAt: now - 5 * 24 * h, dueAt: now + 9 * 24 * h, returnedAt: null, renewals: 0 },
+      { id: 'l4', bookId: 'b4', userId: 'demo-other', borrowedAt: now - 40 * 24 * h, dueAt: now - 26 * 24 * h, returnedAt: now - 25 * 24 * h, renewals: 0 },
+    ],
+    // 候補：b3 有人在排，用來驗「還書 → 最早候補被叫到」的示範
+    reservations: [
+      { id: 'rv1', bookId: 'b3', userId: 'demo-other', status: 'WAITING', position: 1, createdAt: now - 2 * 24 * h, readyAt: null },
+    ],
   };
 }
 
@@ -1056,4 +1079,293 @@ module.exports = {
 
   schoolManualGrade(body) { return Promise.resolve({ ...body, id: 'gm', source: 'MANUAL' }); },
   schoolManualAttendance(body) { return Promise.resolve({ ...body, id: 'am', source: 'MANUAL' }); },
+
+  // ── W-66 圖書館（示範模式）──
+  // 與後端同一套規則：可借量扣減、借不到排候補、還書叫最早候補、續借上限 1 次。
+  // 狀態一律寫回 storage（data.books / data.loans / data.reservations），重新整理還在。
+  listBooks(query) {
+    const q = query || {};
+    const data = db();
+    const iso = (t) => (t ? new Date(t).toISOString() : null);
+    const loansOf = (id) => data.loans.filter((l) => l.bookId === id).length;
+    const holdsOf = (id) =>
+      data.reservations.filter((r) => r.bookId === id && (r.status === 'WAITING' || r.status === 'READY')).length;
+
+    let books = data.books.filter((b) => b.status !== 'ARCHIVED');
+    if (q.category) books = books.filter((b) => b.category === q.category);
+    if (q.available === '1') books = books.filter((b) => b.availableCopies > 0);
+    if (q.q) {
+      const kw = String(q.q);
+      books = books.filter((b) => (b.title + (b.author || '') + (b.isbn || '') + (b.callNumber || '')).indexOf(kw) !== -1);
+    }
+
+    let out = books.map((b) =>
+      Object.assign({}, b, {
+        createdAt: iso(b.createdAt || Date.now()),
+        updatedAt: iso(b.updatedAt || b.createdAt || Date.now()),
+        waiting: holdsOf(b.id),
+        borrowable: b.availableCopies > 0,
+      }),
+    );
+    if (q.sort === 'title') out.sort((a, b) => String(a.title).localeCompare(String(b.title)));
+    else if (q.sort === 'hot') out.sort((a, b) => loansOf(b.id) - loansOf(a.id) || String(a.title).localeCompare(String(b.title)));
+    else out.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+
+    const page = Number(q.page) || 1;
+    const limit = Number(q.limit) || Number(q.pageSize) || 20;
+    const start = (page - 1) * limit;
+    const slice = out.slice(start, start + limit);
+    return Promise.resolve({ items: slice, total: out.length, page: page, limit: limit, hasMore: start + slice.length < out.length });
+  },
+
+  getBook(id) {
+    const data = db();
+    const b = data.books.filter((x) => x.id === id && x.status !== 'ARCHIVED')[0];
+    if (!b) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這本書' });
+    const iso = (t) => (t ? new Date(t).toISOString() : null);
+    const mine = data.loans.filter((l) => l.bookId === id && l.userId === 'demo-user' && !l.returnedAt)[0] || null;
+    const rv = data.reservations.filter((r) => r.bookId === id && r.userId === 'demo-user' && (r.status === 'WAITING' || r.status === 'READY'))[0] || null;
+    const waiting = data.reservations.filter((r) => r.bookId === id && r.status === 'WAITING').length;
+    const ready = data.reservations.filter((r) => r.bookId === id && r.status === 'READY').length;
+    const now = Date.now();
+    return Promise.resolve({
+      book: Object.assign({}, b, {
+        createdAt: iso(b.createdAt || now),
+        updatedAt: iso(b.updatedAt || now),
+        waiting: waiting,
+        loans90d: data.loans.filter((l) => l.bookId === id).length,
+        borrowable: b.availableCopies > ready,
+      }),
+      myLoan: mine
+        ? {
+            id: mine.id,
+            bookId: mine.bookId,
+            borrowedAt: iso(mine.borrowedAt),
+            dueAt: iso(mine.dueAt),
+            returnedAt: null,
+            renewals: mine.renewals || 0,
+            overdueDays: Math.max(0, Math.floor((now - new Date(mine.dueAt).getTime()) / 86400000)),
+          }
+        : null,
+      myReservation: rv
+        ? { id: rv.id, status: rv.status, position: rv.position, readyAt: iso(rv.readyAt), holdHours: 48 }
+        : null,
+      totalLoans: data.loans.filter((l) => l.bookId === id).length,
+    });
+  },
+
+  lookupIsbn(raw) {
+    const isbn = String(raw || '').replace(/[^0-9Xx]/g, '').toUpperCase();
+    if (isbn.length < 10) return Promise.reject({ code: 'VALIDATION_FAILED', message: '書號格式不正確' });
+    const b = db().books.filter((x) => x.isbn === isbn && x.status !== 'ARCHIVED')[0];
+    if (!b) return Promise.resolve({ found: false, isbn: isbn, book: null });
+    return Promise.resolve({ found: true, isbn: isbn, book: Object.assign({}, b, { borrowable: b.availableCopies > 0 }) });
+  },
+
+  hotBooks() {
+    const data = db();
+    const counts = {};
+    data.loans.forEach((l) => {
+      counts[l.bookId] = (counts[l.bookId] || 0) + 1;
+    });
+    const items = Object.keys(counts)
+      .map((id) => {
+        const b = data.books.filter((x) => x.id === id && x.status !== 'ARCHIVED')[0];
+        return b ? { id: b.id, title: b.title, author: b.author, category: b.category, isbn: b.isbn, loans: counts[id] } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.loans - a.loans)
+      .slice(0, 5);
+    return Promise.resolve({ items: items });
+  },
+
+  borrowBook(payload) {
+    const p = payload || {};
+    const data = db();
+    const iso = (t) => (t ? new Date(t).toISOString() : null);
+    const book = p.bookId
+      ? data.books.filter((b) => b.id === p.bookId)[0]
+      : data.books.filter((b) => b.isbn === String(p.isbn || '').replace(/[^0-9Xx]/g, '').toUpperCase())[0];
+    if (!book || book.status === 'ARCHIVED') return Promise.reject({ code: 'NOT_FOUND', message: '找不到這本書' });
+
+    if (data.loans.filter((l) => l.bookId === book.id && l.userId === 'demo-user' && !l.returnedAt).length) {
+      return Promise.reject({ code: 'ALREADY_BORROWED', message: '你已經借了這本書，還沒歸還' });
+    }
+
+    const ready = data.reservations.filter((r) => r.bookId === book.id && r.status === 'READY');
+    const mineR = data.reservations.filter((r) => r.bookId === book.id && r.userId === 'demo-user')[0] || null;
+    const holdsReady = mineR && mineR.status === 'READY';
+    const availableForMe = holdsReady || book.availableCopies > ready.length;
+
+    if (!availableForMe) {
+      if (mineR && mineR.status === 'WAITING') {
+        return Promise.reject({ code: 'ALREADY_RESERVED', message: '你已经在候補名單（第 ' + mineR.position + ' 位）', details: { position: mineR.position } });
+      }
+      const pos = data.reservations.filter((r) => r.bookId === book.id && r.status === 'WAITING').length + 1;
+      let saved;
+      if (mineR) {
+        mineR.status = 'WAITING';
+        mineR.position = pos;
+        mineR.readyAt = null;
+        saved = mineR;
+      } else {
+        saved = { id: 'rv' + (data.reservations.length + 1), bookId: book.id, userId: 'demo-user', status: 'WAITING', position: pos, createdAt: Date.now(), readyAt: null };
+        data.reservations.push(saved);
+      }
+      save(data);
+      return Promise.resolve({
+        ok: true,
+        kind: 'reservation',
+        message: '目前沒有可借的，已幫你排候補第 ' + pos + ' 位',
+        reservation: { id: saved.id, bookId: book.id, status: 'WAITING', position: pos, readyAt: null },
+        availableCopies: book.availableCopies,
+        waiting: data.reservations.filter((r) => r.bookId === book.id && r.status === 'WAITING').length,
+      });
+    }
+
+    const now = Date.now();
+    book.availableCopies -= 1;
+    const loan = { id: 'l' + (data.loans.length + 1), bookId: book.id, userId: 'demo-user', borrowedAt: now, dueAt: now + (book.loanDays || 14) * 86400000, returnedAt: null, renewals: 0 };
+    data.loans.push(loan);
+    if (mineR && mineR.status === 'READY') {
+      mineR.status = 'FULFILLED';
+      mineR.position = 0;
+    }
+    save(data);
+    return Promise.resolve({
+      ok: true,
+      kind: 'loan',
+      message: '借書成功',
+      loan: { id: loan.id, bookId: book.id, borrowedAt: iso(loan.borrowedAt), dueAt: iso(loan.dueAt), renewals: 0 },
+      availableCopies: book.availableCopies,
+      waiting: data.reservations.filter((r) => r.bookId === book.id && r.status === 'WAITING').length,
+    });
+  },
+
+  myLoans() {
+    const data = db();
+    const iso = (t) => (t ? new Date(t).toISOString() : null);
+    const now = Date.now();
+    const bookOf = (id) => data.books.filter((b) => b.id === id)[0] || null;
+    const shape = (l) => {
+      const b = bookOf(l.bookId);
+      const overdueDays = l.returnedAt ? 0 : Math.max(0, Math.floor((now - new Date(l.dueAt).getTime()) / 86400000));
+      return {
+        id: l.id,
+        bookId: l.bookId,
+        book: b ? { id: b.id, title: b.title, author: b.author, isbn: b.isbn } : null,
+        borrowedAt: iso(l.borrowedAt),
+        dueAt: iso(l.dueAt),
+        returnedAt: iso(l.returnedAt),
+        renewals: l.renewals || 0,
+        overdueDays: overdueDays,
+        dueSoon: !l.returnedAt && overdueDays === 0 && new Date(l.dueAt).getTime() - now <= 3 * 86400000,
+      };
+    };
+    const loans = data.loans.filter((l) => l.userId === 'demo-user').map(shape);
+    const active = loans.filter((l) => !l.returnedAt);
+    const reservations = data.reservations
+      .filter((r) => r.userId === 'demo-user' && (r.status === 'WAITING' || r.status === 'READY'))
+      .map((r) => {
+        const b = bookOf(r.bookId);
+        return {
+          id: r.id,
+          bookId: r.bookId,
+          book: b ? { id: b.id, title: b.title, author: b.author, isbn: b.isbn } : null,
+          status: r.status,
+          position: r.position,
+          readyAt: iso(r.readyAt),
+          holdHours: 48,
+        };
+      });
+    return Promise.resolve({
+      activeCount: active.length,
+      overdueCount: active.filter((l) => l.overdueDays > 0).length,
+      loans: loans,
+      reservations: reservations,
+    });
+  },
+
+  returnLoan(id) {
+    const data = db();
+    const loan = data.loans.filter((l) => l.id === id)[0];
+    if (!loan) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆借閱紀錄' });
+    if (loan.returnedAt) return Promise.reject({ code: 'ALREADY_RETURNED', message: '這本書已經歸還了' });
+    const now = Date.now();
+    loan.returnedAt = now;
+    const book = data.books.filter((b) => b.id === loan.bookId)[0];
+    if (book) book.availableCopies += 1;
+
+    // 還書 → 最早候補被叫到（與後端同一條規則）
+    const next = data.reservations
+      .filter((r) => r.bookId === loan.bookId && r.status === 'WAITING')
+      .sort((a, b) => a.position - b.position)[0];
+    if (next) {
+      next.status = 'READY';
+      next.position = 0;
+      next.readyAt = now;
+    }
+    data.reservations
+      .filter((r) => r.bookId === loan.bookId && r.status === 'WAITING')
+      .sort((a, b) => a.position - b.position)
+      .forEach((r, i) => {
+        r.position = i + 1;
+      });
+    save(data);
+    return Promise.resolve({
+      ok: true,
+      returned: true,
+      bookId: loan.bookId,
+      overdueDays: Math.max(0, Math.floor((now - new Date(loan.dueAt).getTime()) / 86400000)),
+      promotedUserId: next ? next.userId : null,
+      availableCopies: book ? book.availableCopies : 0,
+      waiting: data.reservations.filter((r) => r.bookId === loan.bookId && r.status === 'WAITING').length,
+    });
+  },
+
+  renewLoan(id) {
+    const data = db();
+    const loan = data.loans.filter((l) => l.id === id)[0];
+    if (!loan) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆借閱紀錄' });
+    if (loan.returnedAt) return Promise.reject({ code: 'VALIDATION_FAILED', message: '這本書已經歸還，不需要續借' });
+    if ((loan.renewals || 0) >= 1) return Promise.reject({ code: 'RENEW_LIMIT', message: '每本書只能續借一次' });
+    if (Date.now() > new Date(loan.dueAt).getTime()) return Promise.reject({ code: 'LOAN_OVERDUE', message: '已經逾期，請先還書' });
+    if (data.reservations.filter((r) => r.bookId === loan.bookId && (r.status === 'WAITING' || r.status === 'READY')).length) {
+      return Promise.reject({ code: 'LOAN_QUEUED', message: '有人在等這本書，請讓給下一位' });
+    }
+    const book = data.books.filter((b) => b.id === loan.bookId)[0];
+    loan.dueAt = new Date(loan.dueAt).getTime() + ((book && book.loanDays) || 14) * 86400000;
+    loan.renewals = 1;
+    save(data);
+    return Promise.resolve({ ok: true, dueAt: new Date(loan.dueAt).toISOString(), renewals: 1, loanDays: (book && book.loanDays) || 14 });
+  },
+
+  cancelReservation(id) {
+    const data = db();
+    const rv = data.reservations.filter((r) => r.id === id)[0];
+    if (!rv) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆預約' });
+    if (rv.status !== 'WAITING' && rv.status !== 'READY') return Promise.reject({ code: 'VALIDATION_FAILED', message: '這筆預約已經結束了' });
+    const wasReady = rv.status === 'READY';
+    rv.status = 'CANCELLED';
+    rv.position = 0;
+    let promoted = null;
+    if (wasReady) {
+      promoted = data.reservations
+        .filter((r) => r.bookId === rv.bookId && r.status === 'WAITING')
+        .sort((a, b) => a.position - b.position)[0];
+      if (promoted) {
+        promoted.status = 'READY';
+        promoted.position = 0;
+        promoted.readyAt = Date.now();
+      }
+    }
+    data.reservations
+      .filter((r) => r.bookId === rv.bookId && r.status === 'WAITING')
+      .sort((a, b) => a.position - b.position)
+      .forEach((r, i) => {
+        r.position = i + 1;
+      });
+    save(data);
+    return Promise.resolve({ ok: true, cancelled: true, bookId: rv.bookId, promotedUserId: promoted ? promoted.userId : null });
+  },
 };

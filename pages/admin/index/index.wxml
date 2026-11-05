@@ -728,6 +728,116 @@
         <pv-empty wx:if="{{!menuEntries.length}}" title="{{L.k80}}" desc="" />
       </block>
 
+      <!-- 圖書館（W-66）：館藏登記與借閱紀錄兩個子模式 -->
+      <block wx:elif="{{tab === 'library'}}">
+        <view class="filter-row">
+          <view
+            wx:for="{{libModes}}"
+            wx:key="key"
+            class="chip {{libMode === item.key ? 'chip--on' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="switchLibMode"
+          >{{item.label}}</view>
+        </view>
+
+        <block wx:if="{{libMode === 'books'}}">
+          <pv-card>
+            <view class="ui-row-between">
+              <text class="ui-title">{{libForm.id ? L.k273 : L.k272}}</text>
+              <pv-button wx:if="{{libForm.id}}" size="sm" type="plain" bind:tap="libResetForm">{{L.k283}}</pv-button>
+            </view>
+
+            <text class="ui-section ui-mt-2">{{L.k274}}</text>
+            <input class="field__input" value="{{libForm.title}}" data-field="title" bindinput="onLibField" />
+
+            <view class="ui-row-between ui-mt-2">
+              <text class="ui-section">{{L.k275}}</text>
+              <view class="lib-scan" bindtap="libScan">{{L.k282}}</view>
+            </view>
+            <input class="field__input" value="{{libForm.isbn}}" data-field="isbn" bindinput="onLibField" />
+
+            <text class="ui-section ui-mt-2">{{L.k276}}</text>
+            <input class="field__input" value="{{libForm.author}}" data-field="author" bindinput="onLibField" />
+
+            <view class="lib-two">
+              <view class="lib-two__col">
+                <text class="ui-section ui-mt-2">{{L.k277}}</text>
+                <input class="field__input" value="{{libForm.category}}" data-field="category" bindinput="onLibField" />
+              </view>
+              <view class="lib-two__col">
+                <text class="ui-section ui-mt-2">{{L.k278}}</text>
+                <input class="field__input" value="{{libForm.callNumber}}" data-field="callNumber" bindinput="onLibField" />
+              </view>
+            </view>
+
+            <view class="lib-two">
+              <view class="lib-two__col">
+                <text class="ui-section ui-mt-2">{{L.k279}}</text>
+                <input class="field__input" type="number" value="{{libForm.totalCopies}}" data-field="totalCopies" bindinput="onLibField" />
+              </view>
+              <view class="lib-two__col">
+                <text class="ui-section ui-mt-2">{{L.k280}}</text>
+                <input class="field__input" type="number" value="{{libForm.loanDays}}" data-field="loanDays" bindinput="onLibField" />
+              </view>
+            </view>
+
+            <view class="row-actions">
+              <pv-button type="filled" loading="{{libSaving}}" disabled="{{libSaving}}" bind:tap="libSave">{{L.k281}}</pv-button>
+            </view>
+          </pv-card>
+
+          <view wx:if="{{libBooks.length}}" class="ui-list ui-list--grouped">
+            <view wx:for="{{libBooks}}" wx:key="id" class="signup-row {{index === libBooks.length - 1 ? 'signup-row--last' : ''}}">
+              <view class="lib-row">
+                <view class="lib-row__main">
+                  <text class="signup-row__name">{{item.title}}</text>
+                  <text class="ui-meta">{{item.stockText}}</text>
+                </view>
+                <view class="row-actions">
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="libEdit">{{L.k284}}</pv-button>
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" data-archived="{{item.status === 'ACTIVE'}}" bind:tap="libArchive">{{item.status === 'ACTIVE' ? L.k285 : L.k286}}</pv-button>
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" data-title="{{item.title}}" bind:tap="libDelete">{{L.k287}}</pv-button>
+                </view>
+              </view>
+            </view>
+          </view>
+          <pv-empty wx:else title="{{L.k288}}" desc="{{L.k289}}" />
+        </block>
+
+        <block wx:else>
+          <view class="ui-row-between">
+            <text class="ui-meta">{{L.k290}} {{libSummary.active}} · {{L.k291}} {{libSummary.overdue}}</text>
+            <pv-button size="sm" type="tinted" bind:tap="libRemind">{{L.k294}}</pv-button>
+          </view>
+
+          <view class="filter-row">
+            <view
+              wx:for="{{libStatuses}}"
+              wx:key="key"
+              class="chip {{libStatus === item.key ? 'chip--on' : ''}}"
+              data-key="{{item.key}}"
+              bindtap="pickLibStatus"
+            >{{item.label}}</view>
+          </view>
+
+          <view wx:if="{{libLoans.length}}" class="ui-list ui-list--grouped">
+            <view wx:for="{{libLoans}}" wx:key="id" class="signup-row {{index === libLoans.length - 1 ? 'signup-row--last' : ''}}">
+              <view class="lib-row">
+                <view class="lib-row__main">
+                  <text class="signup-row__name">{{item.book.title}}</text>
+                  <text class="ui-meta">{{item.user.nickname}} · {{item.dueText}}</text>
+                  <text class="ui-meta">{{item.statusLabel}}</text>
+                </view>
+                <view wx:if="{{!item.returnedAt}}" class="row-actions">
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="libReturn">{{L.k293}}</pv-button>
+                </view>
+              </view>
+            </view>
+          </view>
+          <pv-empty wx:else title="{{L.k296}}" desc="" />
+        </block>
+      </block>
+
       <!-- 批次匯入（活動／菜單共用同一塊面板） -->
       <pv-card wx:if="{{importType}}">
         <view class="ui-row-between">

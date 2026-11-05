@@ -52,6 +52,33 @@
 .urgent__title { color: var(--pv-on-tint); font-size: var(--pv-fs-subhead); font-weight: 600; flex: 1; }
 .urgent__arrow { color: var(--pv-on-tint-2); font-size: var(--pv-fs-title-3); margin-left: var(--pv-sp-1); }
 
+/* 圖書館入口（W-66）：一條列而不是第五個宮格 —— 四宮格是 2×2，多一格會變成一隻孤兒 */
+.lib {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: var(--pv-surface);
+  border-radius: var(--pv-r-lg);
+  padding: var(--pv-sp-2) var(--pv-sp-3);
+  margin-bottom: var(--pv-sp-2);
+  min-height: 88rpx;
+  box-sizing: border-box;
+}
+.lib--pressed { transform: scale(0.985); transition-duration: var(--pv-dur-press); }
+.lib__icon {
+  width: 64rpx;
+  height: 64rpx;
+  flex-shrink: 0;
+  border-radius: var(--pv-r-sm);
+  background: var(--pv-fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lib__main { flex: 1; min-width: 0; margin-left: var(--pv-sp-2); display: flex; flex-direction: column; }
+.lib__title { font-size: var(--pv-fs-callout); font-weight: 600; }
+.lib__sub { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); margin-top: 2rpx; }
+
 /* 四宮格 */
 .grid {
   display: flex;

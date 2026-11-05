@@ -1,0 +1,70 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.list-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+
+.toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--pv-sp-2);
+}
+.search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: var(--pv-surface);
+  border-radius: var(--pv-r);
+  padding: 0 var(--pv-sp-2);
+  height: 76rpx;
+}
+.search__input { flex: 1; min-width: 0; font-size: var(--pv-fs-subhead); }
+.search__clear { color: var(--pv-label-3); padding: 0 6rpx; font-size: 24rpx; }
+.search__icon { margin-right: 8rpx; }
+
+/* 掃碼是這個頁面的主要動作之一，但不用實心紫搶走搜尋的注意力（iOS 的 tinted 按鈕尺寸） */
+.scan {
+  flex-shrink: 0;
+  height: 76rpx;
+  padding: 0 var(--pv-sp-3);
+  border-radius: var(--pv-r);
+  background: var(--pv-fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scan__text { font-size: var(--pv-fs-subhead); font-weight: 600; color: var(--pv-tint); }
+
+.chips { display: flex; flex-direction: row; flex-wrap: wrap; gap: var(--pv-sp-2); margin-top: var(--pv-sp-2); }
+.chip {
+  flex-shrink: 0;
+  font-size: var(--pv-fs-subhead);
+  color: var(--pv-label-2);
+  background: var(--pv-surface);
+  border-radius: var(--pv-r-pill);
+  padding: 8rpx var(--pv-sp-3);
+}
+.chip.is-active { background: var(--pv-tint); color: var(--pv-on-tint); font-weight: 600; }
+.chip--ghost { color: var(--pv-tint); background: var(--pv-fill); }
+
+.book-row { display: flex; flex-direction: row; align-items: flex-start; }
+.book-main { flex: 1; min-width: 0; margin-left: var(--pv-sp-2); display: flex; flex-direction: column; }
+.book-title { flex: 1; min-width: 0; margin-right: var(--pv-sp-2); }
+.book-meta { margin-top: 6rpx; }
+
+/* 書名首字徽章：比彩色 emoji 穩定，也讓一整列有「書脊」的辨識感 */
+.book-mark {
+  width: 72rpx;
+  height: 96rpx;
+  flex-shrink: 0;
+  border-radius: var(--pv-r-sm);
+  background: var(--pv-fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.book-mark__text { font-size: var(--pv-fs-title-3); font-weight: 600; color: var(--pv-tint); }
+
+.list-foot { text-align: center; color: var(--pv-label-3); font-size: var(--pv-fs-caption-1); padding: var(--pv-sp-2) 0 var(--pv-sp-6); }

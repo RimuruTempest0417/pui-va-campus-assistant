@@ -56,5 +56,9 @@
 .i-tray { position: absolute; top: 28%; left: 12%; width: 76%; height: 46%; border: 2rpx solid var(--ico); border-radius: 4rpx; }
 .i-tray-line { position: absolute; top: 50%; left: 12%; width: 76%; height: 2rpx; background: var(--ico); }
 
+/* 圖書館：打開的書（外框＋中央書脊） */
+.i-book { position: absolute; top: 16%; left: 8%; width: 84%; height: 68%; border: 2rpx solid var(--ico); border-radius: 4rpx; }
+.i-book-spine { position: absolute; top: 16%; left: 50%; width: 2rpx; height: 68%; background: var(--ico); }
+
 /* 右箭頭：旋轉的兩條邊（只畫 border-top + border-right） */
 .i-chev { position: absolute; top: 34%; left: 36%; width: 26%; height: 26%; border-top: 2rpx solid var(--ico); border-right: 2rpx solid var(--ico); transform: rotate(45deg); }

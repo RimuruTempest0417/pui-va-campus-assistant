@@ -1,0 +1,93 @@
+<view class="{{themeClass}} ui-page page-root ui-page--withbar">
+  <pv-navbar title="{{book.title || L.k01}}" back="{{true}}" />
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="detail-inner">
+      <block wx:if="{{loading}}">
+        <view class="ui-card"><pv-skeleton rows="4" /></view>
+      </block>
+
+      <pv-empty wx:elif="{{failed}}" title="{{L.k16}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k17}}</pv-button>
+      </pv-empty>
+
+      <block wx:else>
+        <view class="hero">
+          <view class="hero__mark"><text class="hero__initial">{{book.initial}}</text></view>
+          <view class="hero__main">
+            <text class="hero__title">{{book.title}}</text>
+            <text class="ui-sub hero__sub">{{book.metaText}}</text>
+            <view class="hero__tags">
+              <pv-tag text="{{book.availLabel}}" type="{{book.availTag}}" />
+              <pv-tag wx:if="{{book.waiting}}" text="{{book.waitingText}}" type="neutral" />
+            </view>
+          </view>
+        </view>
+
+        <view class="ui-card">
+          <view class="row">
+            <text class="row__label">{{L.k02}}</text>
+            <text class="row__value">{{book.author || '—'}}</text>
+          </view>
+          <view class="row">
+            <text class="row__label">{{L.k03}}</text>
+            <text class="row__value">{{book.publisher || '—'}}</text>
+          </view>
+          <view class="row">
+            <text class="row__label">{{L.k04}}</text>
+            <text class="row__value">{{book.category || '—'}}</text>
+          </view>
+          <view class="row">
+            <text class="row__label">{{L.k05}}</text>
+            <text class="row__value">{{book.callNumber || '—'}}</text>
+          </view>
+          <view class="row">
+            <text class="row__label">{{L.k09}}</text>
+            <text class="row__value ui-num">{{book.loans90d}}</text>
+          </view>
+          <view class="row row--last">
+            <text class="row__label">{{L.k06}}</text>
+            <text class="row__value ui-num">{{book.stockText}}</text>
+          </view>
+        </view>
+
+        <view wx:if="{{book.summary}}" class="ui-card">
+          <text class="ui-section">{{L.k10}}</text>
+          <text class="ui-body summary">{{book.summary}}</text>
+        </view>
+
+        <view wx:if="{{myLoan}}" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{L.k25}}</text>
+            <pv-tag text="{{myLoan.statusLabel}}" type="{{myLoan.statusTag}}" />
+          </view>
+          <text class="ui-meta ui-mt-2">{{myLoan.borrowedText}}</text>
+          <text class="ui-meta">{{myLoan.dueText}}</text>
+        </view>
+        <view wx:elif="{{myReservation}}" class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{L.k08}}</text>
+            <pv-tag text="{{myReservation.statusLabel}}" type="{{myReservation.statusTag}}" />
+          </view>
+          <text class="ui-meta ui-mt-2">{{myReservation.hint}}</text>
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+
+  <view wx:if="{{book}}" class="ui-bar">
+    <text class="ui-bar__hint">{{barHint}}</text>
+    <pv-button
+      wx:if="{{secondaryText}}"
+      type="plain"
+      size="md"
+      bind:tap="onSecondary"
+    >{{secondaryText}}</pv-button>
+    <pv-button
+      type="{{barAction === 'cancel' ? 'tinted' : 'filled'}}"
+      size="md"
+      loading="{{busy}}"
+      disabled="{{barDisabled || busy}}"
+      bind:tap="onPrimary"
+    >{{barText}}</pv-button>
+  </view>
+</view>

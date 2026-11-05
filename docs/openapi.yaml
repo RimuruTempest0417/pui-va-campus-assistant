@@ -3358,6 +3358,460 @@ paths:
         '401': { description: 未登入 }
         '422': { description: 參數不合法 }
 
+  # ── 圖書館借閱（W-66） ──
+  # 館藏查詢對訪客開放；借還要登入；館藏管理是校內職員（library:manage）。
+  # 可借量一律由後端交易內列鎖扣減，前端不自己判斷「還有沒有」。
+  /library/books:
+    get:
+      tags: [library]
+      summary: 館藏列表（訪客可看）
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 60 }, description: 書名／作者／書號／索書號 }
+        - { name: category, in: query, schema: { type: string, maxLength: 40 } }
+        - { name: available, in: query, schema: { type: string, enum: ['1', '0'] }, description: '1＝只看現在借得到的' }
+        - { name: sort, in: query, schema: { type: string, enum: [new, title, hot] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 館藏清單
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        isbn: { type: string, nullable: true }
+                        title: { type: string }
+                        author: { type: string, nullable: true }
+                        category: { type: string, nullable: true }
+                        callNumber: { type: string, nullable: true, description: 索書號（排架位置） }
+                        coverImage: { type: string, nullable: true }
+                        totalCopies: { type: integer }
+                        availableCopies: { type: integer }
+                        loanDays: { type: integer }
+                        waiting: { type: integer, description: 排隊（候補＋已留書）人數 }
+                        borrowable: { type: boolean, description: 現在有可借量（可能被留書佔住，實際能不能借看後端） }
+                  page: { type: integer }
+                  limit: { type: integer }
+                  total: { type: integer }
+                  hasMore: { type: boolean }
+
+  /library/books/{id}:
+    get:
+      tags: [library]
+      summary: 書籍詳情（含我的借閱／我的預約）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 詳情；未登入時 myLoan／myReservation 皆為 null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  book:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      title: { type: string }
+                      availableCopies: { type: integer }
+                      waiting: { type: integer }
+                      loans90d: { type: integer, description: 近 90 天借出次數（熱門度） }
+                      borrowable: { type: boolean }
+                  myLoan:
+                    nullable: true
+                    type: object
+                    properties:
+                      id: { type: string }
+                      dueAt: { type: string, format: date-time }
+                      overdueDays: { type: integer }
+                      dueSoon: { type: boolean, description: 3 天內到期 }
+                      renewals: { type: integer }
+                  myReservation:
+                    nullable: true
+                    type: object
+                    properties:
+                      id: { type: string }
+                      status: { type: string, enum: [WAITING, READY] }
+                      position: { type: integer, description: 候補順位（READY 時為 0） }
+                      readyAt: { type: string, format: date-time, nullable: true }
+                      holdHours: { type: integer, description: 留書期限（小時） }
+                  totalLoans: { type: integer }
+        '404': { description: 找不到或已刪除 }
+
+  /library/isbn/{isbn}:
+    get:
+      tags: [library]
+      summary: 用書號查書（掃碼）
+      parameters:
+        - { name: isbn, in: path, required: true, schema: { type: string, minLength: 10 } }
+      responses:
+        '200':
+          description: 查不到也回 200（found=false），前端據此顯示「登記新書」
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  found: { type: boolean }
+                  isbn: { type: string, description: 正規化後的純數字書號 }
+                  book: { type: object, nullable: true }
+        '422': { description: 書號格式不正確 }
+
+  /library/hot:
+    get:
+      tags: [library]
+      summary: 熱門榜（近 90 天借出次數 TOP 5）
+      responses:
+        '200':
+          description: 熱門書清單
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        title: { type: string }
+                        author: { type: string, nullable: true }
+                        loans: { type: integer }
+
+  /library/loans:
+    post:
+      tags: [library]
+      summary: 借書（可借就借出，沒書就排候補）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bookId: { type: string }
+                isbn: { type: string, description: 掃碼得到的書號（與 bookId 二選一） }
+      responses:
+        '201':
+          description: 借書成功（kind=loan）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  kind: { type: string, enum: [loan] }
+                  loan:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      dueAt: { type: string, format: date-time }
+                      renewals: { type: integer }
+                  availableCopies: { type: integer }
+                  waiting: { type: integer }
+        '200':
+          description: 沒可借的 → 回候補（kind=reservation，不是錯誤）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  kind: { type: string, enum: [reservation] }
+                  message: { type: string, description: 例「已幫你排候補第 3 位」 }
+                  reservation:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      status: { type: string, enum: [WAITING, READY] }
+                      position: { type: integer }
+        '401': { description: 未登入 }
+        '404': { description: 找不到這本書（或書號不在館藏） }
+        '409': { description: 'ALREADY_BORROWED（已借未還）／ALREADY_RESERVED（已排候補）' }
+        '422': { description: 已下架或參數不合法 }
+
+  /library/loans/mine:
+    get:
+      tags: [library]
+      summary: 我的借閱與預約
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 我的借閱＋我的候補
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activeCount: { type: integer }
+                  overdueCount: { type: integer }
+                  loans:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        book: { type: object }
+                        borrowedAt: { type: string, format: date-time }
+                        dueAt: { type: string, format: date-time }
+                        returnedAt: { type: string, format: date-time, nullable: true }
+                        overdueDays: { type: integer }
+                        dueSoon: { type: boolean }
+                        renewals: { type: integer }
+                  reservations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        book: { type: object }
+                        status: { type: string, enum: [WAITING, READY] }
+                        position: { type: integer }
+                        readyAt: { type: string, format: date-time, nullable: true }
+        '401': { description: 未登入 }
+
+  /library/loans/{id}/return:
+    post:
+      tags: [library]
+      summary: 還書（本人或圖書館職員代還）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已歸還；有人候補時 promotedUserId 不為 null（後端已發站內通知）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  bookId: { type: string }
+                  overdueDays: { type: integer }
+                  promotedUserId: { type: string, nullable: true }
+                  availableCopies: { type: integer }
+                  waiting: { type: integer }
+        '403': { description: 不是自己的書且沒有管理能力 }
+        '409': { description: ALREADY_RETURNED（重複還或別人先還了） }
+
+  /library/loans/{id}/renew:
+    post:
+      tags: [library]
+      summary: 續借（上限 1 次）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已續借（從原到期日往後延，不是從今天算）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dueAt: { type: string, format: date-time }
+                  renewals: { type: integer }
+                  loanDays: { type: integer }
+        '409': { description: 'RENEW_LIMIT／LOAN_OVERDUE／LOAN_QUEUED（有人在等）' }
+
+  /library/reservations/{id}:
+    delete:
+      tags: [library]
+      summary: 取消預約（順位自動重排）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已取消；若讓出的是已留書的位子，promotedUserId 是最早候補
+        '403': { description: 不是自己的預約 }
+        '422': { description: 這筆預約已經結束 }
+
+  /admin/library/books:
+    get:
+      tags: [admin]
+      summary: 館藏管理清單（含下架）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: includeArchived, in: query, schema: { type: string, enum: ['1', '0'] } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 30 } }
+      responses:
+        '200': { description: 清單（每列帶借閱／預約筆數） }
+        '403': { description: '權限不足（需要 library:manage）' }
+    post:
+      tags: [admin]
+      summary: 新增館藏
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string, maxLength: 120 }
+                isbn: { type: string, description: 會正規化成純數字 }
+                author: { type: string, maxLength: 80 }
+                publisher: { type: string, maxLength: 80 }
+                category: { type: string, maxLength: 40 }
+                callNumber: { type: string, maxLength: 40 }
+                coverImage: { type: string, format: uri }
+                summary: { type: string, maxLength: 2000 }
+                totalCopies: { type: integer, minimum: 1, maximum: 999, default: 1 }
+                loanDays: { type: integer, minimum: 1, maximum: 90, default: 14 }
+      responses:
+        '201': { description: 建好的書 }
+        '409': { description: 書號重複 }
+
+  /admin/library/books/{id}:
+    patch:
+      tags: [admin]
+      summary: 修改館藏（帶 version 防覆蓋）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                isbn: { type: string }
+                totalCopies: { type: integer }
+                loanDays: { type: integer }
+                version: { type: integer, description: 讀到的那個版本；不符回 409 }
+      responses:
+        '200': { description: 改好的書 }
+        '409': { description: 版本不符或書號重複 }
+        '422': { description: 館藏量不能少於借出中的本數 }
+    delete:
+      tags: [admin]
+      summary: 刪除館藏（軟刪除，只在前台消失）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已刪除 }
+        '422': { description: 還有書借出中 }
+
+  /admin/library/books/{id}/archive:
+    post:
+      tags: [admin]
+      summary: 下架／重新上架
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                archived: { type: boolean, default: true }
+      responses:
+        '200': { description: 已下架／已上架 }
+        '404': { description: 找不到 }
+
+  /admin/library/loans:
+    get:
+      tags: [admin]
+      summary: 借閱紀錄（誰借了什麼、什麼時候到期、哪些逾期）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [active, overdue, returned, all], default: active } }
+        - { name: q, in: query, schema: { type: string }, description: 書名／借閱人／帳號 }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 30 } }
+      responses:
+        '200':
+          description: 紀錄＋統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        book: { type: object }
+                        user: { type: object }
+                        dueAt: { type: string, format: date-time }
+                        returnedAt: { type: string, format: date-time, nullable: true }
+                        overdueDays: { type: integer }
+                  total: { type: integer }
+                  summary:
+                    type: object
+                    properties:
+                      active: { type: integer }
+                      overdue: { type: integer }
+
+  /admin/library/loans.csv:
+    get:
+      tags: [admin]
+      summary: 借閱紀錄 CSV（UTF-8 BOM）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [active, overdue, returned, all], default: all } }
+      responses:
+        '200':
+          description: CSV 檔（text/csv）
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /admin/library/remind:
+    post:
+      tags: [admin]
+      summary: 催還（到期前 2 天內＋逾期，一天只催一次）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 已提醒筆數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  checked: { type: integer }
+
+  /cron/library-reminders:
+    get:
+      tags: [admin]
+      summary: 圖書館催還（定時任務，與活動提醒分開一支）
+      description: 認證同 /cron/reminders（CRON_SECRET，不是 JWT）；未設定時回 503 CRON_DISABLED。
+      security: []
+      responses:
+        '200': { description: 已提醒筆數 }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+    post:
+      tags: [admin]
+      summary: 圖書館催還（手動觸發用 POST）
+      security: []
+      responses:
+        '200': { description: 同 GET }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+
 components:
   securitySchemes:
     bearerAuth:
