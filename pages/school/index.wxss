@@ -35,3 +35,12 @@
 .a-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: var(--pv-sp-2) 0; border-bottom: 1rpx solid var(--pv-sep); }
 .a-date { font-size: var(--pv-fs-subhead); color: var(--pv-label); }
 .a-time { flex: 1; margin-left: var(--pv-sp-2); font-size: var(--pv-fs-footnote); color: var(--pv-label-3); }
+
+/* 家長端功課（W-76）：一行一項，狀態用膠囊；換行要能折 */
+.sch-hwsum { margin-bottom: var(--pv-sp-1); }
+.sch-hwsum__text { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+.hwmin-row { display: flex; flex-direction: row; align-items: center; gap: var(--pv-sp-2); padding: var(--pv-sp-2) 0; border-bottom: 1rpx solid var(--pv-sep); }
+.hwmin-main { flex: 1; min-width: 0; }
+.hwmin-title { display: block; font-size: var(--pv-fs-subhead); color: var(--pv-label); word-break: break-all; }
+.hwmin-title.is-done { color: var(--pv-label-3); text-decoration: line-through; }
+.hwmin-meta { display: block; margin-top: 4rpx; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }

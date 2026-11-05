@@ -251,4 +251,5 @@ module.exports = {
   removeHomework(id) { return http.del('/homework/' + id); },
   markHomework(id) { return http.post('/homework/' + id + '/done', {}); },
   unmarkHomework(id) { return http.del('/homework/' + id + '/done'); },
+  parentChildHomework(childId) { return http.get('/parents/me/children/' + childId + '/homework'); },
 };

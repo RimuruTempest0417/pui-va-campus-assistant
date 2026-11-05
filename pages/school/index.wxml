@@ -60,6 +60,7 @@
           <view class="sch-tabs">
             <view class="sch-tab {{tab === 'grades' ? 'sch-tab--on' : ''}}" data-tab="grades" bindtap="pickTab">{{L.grades}}</view>
             <view class="sch-tab {{tab === 'attendance' ? 'sch-tab--on' : ''}}" data-tab="attendance" bindtap="pickTab">{{L.attendance}}</view>
+            <view wx:if="{{isParent}}" class="sch-tab {{tab === 'homework' ? 'sch-tab--on' : ''}}" data-tab="homework" bindtap="pickTab">{{L.hwTab}}</view>
           </view>
 
           <block wx:if="{{tab === 'grades'}}">
@@ -76,7 +77,7 @@
             <pv-empty wx:else title="{{isParent ? L.emptyGradesChild : L.emptyGrades}}" />
           </block>
 
-          <block wx:else>
+          <block wx:elif="{{tab === 'attendance'}}">
             <pv-card wx:if="{{attendance.length}}">
               <view class="sch-sum">
                 <view class="sch-sum__cell"><text class="sch-sum__num ui-num">{{summary.total}}</text><text class="sch-sum__label">{{L.total}}</text></view>
@@ -91,6 +92,26 @@
               </view>
             </pv-card>
             <pv-empty wx:else title="{{L.emptyAttend}}" />
+          </block>
+
+          <!-- 家長看子女的功課（唯讀）：打勾是小孩自己打的，家長只看不改 -->
+          <block wx:else>
+            <pv-empty wx:if="{{hwNeedsClass}}" title="{{L.hwNeedsClass}}" desc="{{L.hwEmptyHint}}" />
+            <block wx:elif="{{homework.length}}">
+              <view class="sch-hwsum">
+                <text class="sch-hwsum__text">{{hwText}}</text>
+              </view>
+              <pv-card>
+                <view wx:for="{{homework}}" wx:key="id" class="hwmin-row">
+                  <view class="hwmin-main">
+                    <text class="hwmin-title {{item.done ? 'is-done' : ''}}">{{item.subject}} · {{item.title}}</text>
+                    <text class="hwmin-meta">{{item.dueText}}</text>
+                  </view>
+                  <pv-tag wx:if="{{item.statusText}}" text="{{item.statusText}}" type="{{item.tone}}" />
+                </view>
+              </pv-card>
+            </block>
+            <pv-empty wx:else title="{{L.hwEmpty}}" desc="{{L.hwEmptyHint}}" />
           </block>
         </block>
       </block>

@@ -96,7 +96,23 @@ async function main() {
   eq('收回後少一筆', afterRemove.items.length, before.items.length - 1);
   check('收回的那筆不在清單裡', !afterRemove.items.some((i) => i.id === created.id));
 
-  // ── ⑦ 舊版號不能蓋掉新版 ──
+  // ── ⑦ 家長端：只看得到自己小孩那一班，且是唯讀（沒有打勾方法） ──
+  const kidsRes = await data.parentChildren();
+  const kids = (kidsRes && kidsRes.items) || [];
+  check('示範家長有子女', kids && kids.length > 0, kids && kids.length);
+  const childId = kids[0].studentId;
+  const childHw = await data.parentChildHomework(childId);
+  check('子女的功課清單帶班級', !!childHw.className, childHw.className);
+  check('子女的功課只屬於那個班', childHw.items.every((i) => typeof i.done === 'boolean'));
+  let otherChildBlocked = false;
+  try {
+    await data.parentChildHomework('demo-child-unknown');
+  } catch (e) {
+    otherChildBlocked = e && e.code === 'FORBIDDEN';
+  }
+  check('讀沒有綁定的學生被擋（FORBIDDEN）', otherChildBlocked);
+
+  // ── ⑧ 舊版號不能蓋掉新版 ──
   const keep = afterRemove.items[0];
   await data.updateHomework(keep.id, { title: '改過的新標題', version: keep.version });
   let stale = false;

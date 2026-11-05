@@ -4647,6 +4647,49 @@ paths:
         '200':
           description: 已取消
 
+  /parents/me/children/{studentId}/homework:
+    get:
+      tags: [parent, homework]
+      summary: 家長看子女這一班的功課（唯讀）
+      description: 只用 parent_links 反查，不接受前端傳班級；打勾狀態是子女自己打的，家長只看不改。未綁定與「這個人不存在」回同一句 403（防學號探測）。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: studentId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 子女班級的功課清單與統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  className: { type: string }
+                  studentName: { type: string }
+                  needsClass: { type: boolean }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        subject: { type: string }
+                        title: { type: string }
+                        detail: { type: string }
+                        dueAt: { type: string, format: date-time }
+                        dueMs: { type: integer }
+                        done: { type: boolean }
+                        doneAt: { type: string }
+                        overdue: { type: boolean }
+                  stats:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      done: { type: integer }
+                      todo: { type: integer }
+                      overdue: { type: integer }
+        '403':
+          description: 沒有綁定這位學生（與「不存在」同一句）
+
   /admin/timetable:
     get:
       tags: [admin]

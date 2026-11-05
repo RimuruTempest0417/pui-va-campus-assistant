@@ -236,6 +236,8 @@ function seed() {
       { id: 'hw1', className: DEMO_CLASS, subject: '數學', title: '習作 4.2 第 1–10 題', detail: '課本 p.88 例題也要看', dueAt: now + 6 * h, createdById: 'demo-teacher' },
       { id: 'hw2', className: DEMO_CLASS, subject: '中文', title: '默書：課文三、四', detail: '', dueAt: now - 20 * h, createdById: 'demo-teacher' },
       { id: 'hw3', className: DEMO_CLASS, subject: '英文', title: '作文 200 字（My School）', detail: '用本週學的連接詞', dueAt: now + 42 * h, createdById: 'demo-teacher' },
+      // 家長端示範用：初二忠（示範家長的其中一位子女）也有一筆，登入家長帳號才看得到
+      { id: 'hw4', className: '初二忠', subject: '數學', title: '工作紙 3（小數四則）', detail: '', dueAt: now + 30 * h, createdById: 'demo-teacher' },
     ],
     homeworkDone: [{ id: 'hd1', homeworkId: 'hw3', userId: 'demo-user', doneAt: now - 2 * h }],
   };
@@ -2575,5 +2577,44 @@ module.exports = {
     data.homeworkDone = (data.homeworkDone || []).filter((d) => !(d.homeworkId === id && d.userId === me.id));
     save(data);
     return Promise.resolve({ ok: true, done: false });
+  },
+
+  // 家長端：只看自己小孩那一班（示範層用 parentChildren 反查班級，跟後端同一條規則）
+  parentChildHomework(childId) {
+    const data = db();
+    const link = ((data.parent && data.parent.children) || []).filter((l) => l.studentId === childId)[0];
+    if (!link) return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
+    const className = [link.grade, link.className].filter(Boolean).join('');
+    const nowMs = Date.now();
+    const doneRows = data.homeworkDone || [];
+    const items = (data.homework || [])
+      .filter((h) => h.className === className && !h.deletedAt)
+      .sort((a, b) => a.dueAt - b.dueAt)
+      .map((h) => {
+        const done = doneRows.filter((d) => d.homeworkId === h.id && d.userId === childId)[0];
+        return {
+          id: h.id,
+          subject: h.subject,
+          title: h.title,
+          detail: h.detail || '',
+          dueAt: new Date(h.dueAt).toISOString(),
+          dueMs: h.dueAt,
+          done: !!done,
+          doneAt: done ? new Date(done.doneAt).toISOString() : '',
+          overdue: !done && h.dueAt < nowMs,
+        };
+      });
+    return Promise.resolve({
+      className: className,
+      studentName: link.nickname || '',
+      needsClass: !className,
+      items: items,
+      stats: {
+        total: items.length,
+        done: items.filter((i) => i.done).length,
+        todo: items.filter((i) => !i.done).length,
+        overdue: items.filter((i) => i.overdue).length,
+      },
+    });
   },
 };

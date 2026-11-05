@@ -36,6 +36,11 @@ Page({
     grades: [],
     attendance: [],
     summary: { total: 0, late: 0, absent: 0 },
+    // 家長：子女這一班的功課（唯讀；打勾是小孩自己打的）
+    homework: [],
+    hwStats: { total: 0, done: 0, todo: 0, overdue: 0 },
+    hwText: '',
+    hwNeedsClass: false,
   },
 
   onLoad() {
@@ -90,6 +95,16 @@ Page({
       pendingPrefix: i18n.pick('還有 '),
       pendingSuffix: i18n.pick(' 段未同步，可再按一次繼續'),
       allSynced: i18n.pick('所有學年都已同步'),
+      // 家長看子女功課（W-76 延伸）
+      hwTab: i18n.pick('功課'),
+      hwEmpty: i18n.pick('還沒有功課'),
+      hwEmptyHint: i18n.pick('老師派了功課就會出現在這裡。'),
+      hwNeedsClass: i18n.pick('孩子的帳號還沒有班級資料'),
+      hwDone: i18n.pick('已交'),
+      hwOverdue: i18n.pick('已逾期'),
+      hwSummary: i18n.pick('未交 '),
+      hwSummaryMid: i18n.pick(' · 逾期 '),
+      hwSummaryEnd: i18n.pick(' · 已交 '),
     };
   },
 
@@ -163,10 +178,15 @@ Page({
     try {
       const childId = this.data.activeChildId;
       const pair = this.data.isParent
-        ? await Promise.all([data.parentChildGrades(childId), data.parentChildAttendance(childId)])
+        ? await Promise.all([
+          data.parentChildGrades(childId),
+          data.parentChildAttendance(childId),
+          data.parentChildHomework(childId).catch(() => null),
+        ])
         : await Promise.all([data.schoolGrades(), data.schoolAttendance()]);
       const g = pair[0];
       const a = pair[1];
+      const hw = pair[2] || null;
       const grades = (g.items || []).map((x) => ({ ...x, dateText: (x.testDate || '').slice(0, 10), scoreText: x.score === null || x.score === undefined ? '—' : String(x.score), manual: x.source === 'MANUAL' }));
       const attendance = (a.items || []).map((x) => ({
         ...x,
@@ -176,6 +196,22 @@ Page({
         tone: x.amStatus === 'leave' ? 'warning' : (x.amStatus === 'absent' ? 'danger' : (x.isAmLate ? 'warning' : 'success')),
       }));
       this.setData({ grades, attendance, summary: (a && a.summary) || { total: 0, late: 0, absent: 0 } });
+      if (this.data.isParent) {
+        const L = this.data.L;
+        const hwItems = ((hw && hw.items) || []).map((x) => ({
+          ...x,
+          dueText: (x.dueAt || '').slice(0, 10).replace(/-/g, '/'),
+          statusText: x.done ? (L.hwDone || '') : (x.overdue ? (L.hwOverdue || '') : ''),
+          tone: x.done ? 'success' : (x.overdue ? 'danger' : 'neutral'),
+        }));
+        const st = (hw && hw.stats) || { total: 0, done: 0, todo: 0, overdue: 0 };
+        this.setData({
+          homework: hwItems,
+          hwStats: st,
+          hwNeedsClass: !!(hw && hw.needsClass),
+          hwText: hwItems.length ? (L.hwSummary || '') + st.todo + (L.hwSummaryMid || '') + st.overdue + (L.hwSummaryEnd || '') + st.done : '',
+        });
+      }
     } catch (e) {
       this.setData({ failed: true, errorText: data.messageOf(e) });
     }

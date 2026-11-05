@@ -27,6 +27,8 @@ function buildHarness(role) {
     parentChildren: () => { calls.children += 1; return Promise.resolve({ items: [{ studentId: 'c1', nickname: '甲同學' }, { studentId: 'c2', nickname: '乙同學' }] }); },
     parentChildGrades: (id) => { calls.childGrades = id; return Promise.resolve({ items: [{ id: 'g1', courseName: '數學', testDate: '2026-10-09', score: 88, source: 'SYNC' }], years: ['2026/2027'] }); },
     parentChildAttendance: (id) => { calls.childAttendance = id; return Promise.resolve({ items: [{ id: 'a1', date: '2026-10-12', amStatus: 'late', isAmLate: true, source: 'SYNC' }], summary: { total: 1, late: 1, absent: 0 } }); },
+    // W-76：家長端的第三個分頁（唯讀功課）。少了這支，loadAll 會在 Promise.all 裡炸掉整頁
+    parentChildHomework: (id) => { calls.childHomework = id; return Promise.resolve({ className: '高二仁', items: [{ id: 'h1', subject: '數學', title: '習作 4.2', dueAt: '2026-11-09T15:59:00.000Z', dueMs: 0, done: false, overdue: false }], stats: { total: 1, done: 0, todo: 1, overdue: 0 } }); },
     parentChildSync: (id) => { calls.childSync = id; return Promise.resolve({ ok: true, grades: 1 }); },
     schoolGrades: () => { calls.selfGrades += 1; return Promise.resolve({ items: [{ id: 'sg1', courseName: '化學', testDate: '2026-10-08', score: 91, source: 'SYNC' }], years: ['2026/2027'] }); },
     schoolAttendance: () => { calls.selfAttendance += 1; return Promise.resolve({ items: [{ id: 'sa1', date: '2026-10-11', amStatus: 'normal', isAmLate: false, source: 'SYNC' }], summary: { total: 1, late: 0, absent: 0 } }); },

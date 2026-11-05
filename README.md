@@ -115,7 +115,7 @@
 │   ├── build-i18n-phrases.py             # 用 opencc tw2sp 重建繁→簡對照表
 │   ├── check-states.mjs                  # 41 頁三態（載入／空／失敗）對照表守門
 │   ├── check-study.cjs                   # 測驗倒數／溫習排序的邏輯守門（40 項，不需開發者工具）
-│   ├── check-homework.cjs                # 功課清單的邏輯守門（17 項：幂等打勾／權限／版號，不需開發者工具）
+│   ├── check-homework.cjs                # 功課清單的邏輯守門（21 項：幂等打勾／權限／版號／家長唯讀，不需開發者工具）
 │   ├── check-console.mjs                 # 41 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
 │   └── verify-all.mjs                    # 一鍵驗收：上面四支串起來跑完並彙總（失敗貼完整輸出）
 ├── docs/
@@ -148,11 +148,11 @@ node scripts/verify-all.mjs        # 4 通過／0 失敗；--no-console 跳過�
 
 # 也可以單獨跑（CI 也會跑）
 node scripts/check-project.mjs     # 41 頁面 / 0 警告
-node scripts/check-openapi.mjs     # 167 條路徑／201 個操作、0 重複鍵（--parity 印出與後端路由表的差）
+node scripts/check-openapi.mjs     # 168 條路徑／202 個操作、0 重複鍵（--parity 印出與後端路由表的差）
 node scripts/check-data-layer.mjs  # ALL PASS 179/179（固定跑示範資料層，含 data↔api↔mock 方法對齊）
 node scripts/check-states.mjs      # 41 頁三態全部符合（--table 印出對照表）
 node scripts/check-study.cjs       # 測驗倒數／溫習排序：40 項邏輯斷言（不需要開發者工具）
-node scripts/check-homework.cjs    # 功課清單：17 項邏輯斷言（幂等打勾／權限／重複出題／版號）
+node scripts/check-homework.cjs    # 功課清單：21 項邏輯斷言（幂等打勾／權限／重複出題／版號／家長唯讀）
 node scripts/check-console.mjs     # 41 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
 ```
 
