@@ -81,7 +81,9 @@ Page({
       childUnit: i18n.pick(' 位'),
       noChildren: i18n.pick('還沒有對應到子女'),
       noChildrenHint: i18n.pick('用家長的家校通帳號登入後會自動對應子女；如果沒有，請聯絡學校。'),
+      childNoSyncHint: i18n.pick('已自動對應子女，可以直接查看已同步的成績與出缺席。要抓取最新資料，請在下面用你自己的家校通帳號連結。'),
       viewing: i18n.pick('目前查看'),
+      partialNote: i18n.pick('學校系統較慢，這次先同步一部分；下次同步會補齊。'),
     };
   },
 
@@ -211,6 +213,8 @@ Page({
         : await data.schoolSync();
       this.setData({ syncing: false });
       wx.showToast({ title: this.data.L.syncedPrefix + (r.grades || 0) + this.data.L.gradeUnit, icon: 'none' });
+      // partial＝學校系統太慢，後端先寫入一部分：要講清楚「下次會補齊」，不然家長以為只抓到這些
+      if (r && r.partial) wx.showModal({ title: this.data.L.sync, content: this.data.L.partialNote, showCancel: false });
       await this.loadAll();
     } catch (e) {
       this.setData({ syncing: false });

@@ -26,6 +26,8 @@
                   data-id="{{item.studentId}}" bindtap="pickChild">{{item.nickname}}</view>
           </view>
           <text wx:else class="sch-hint">{{L.viewing}} · {{children[0].nickname}}</text>
+          <!-- 已對應子女 ≠ 已連結同步：家長看到 linked:false 會以為沒對應到小孩，這裡講清楚 -->
+          <text wx:if="{{!credLinked}}" class="sch-hint">{{L.childNoSyncHint}}</text>
         </pv-card>
 
         <pv-empty wx:elif="{{isParent}}" title="{{L.noChildren}}" desc="{{L.noChildrenHint}}" />

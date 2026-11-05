@@ -1038,11 +1038,12 @@ module.exports = {
   // 注意：不能用 this.xxx 存狀態 —— data.js 是把方法拆出來呼叫的，this 會是 null
   // （2026-10-25 走查抓到：Cannot read properties of null (reading '__schoolLinked')）
   schoolStatus() {
-    return Promise.resolve({ linked: schoolLinked, studentNo: schoolLinked ? '3201301037' : null, className: '高二丙', lastSyncAt: schoolLinked ? new Date().toISOString() : null, lastError: null, cryptoReady: true });
+    return Promise.resolve({ linked: schoolLinked, childrenCount: 0, studentNo: schoolLinked ? '3201301037' : null, className: '高二丙', lastSyncAt: schoolLinked ? new Date().toISOString() : null, lastError: null, cryptoReady: true });
   },
   schoolLink(account) {
     schoolLinked = true;
-    return Promise.resolve({ linked: true, studentNo: account });
+    // 學號只留數字（與後端 accountToStudentNo 一致），示範模式才不會顯示成 pv3201301037
+    return Promise.resolve({ linked: true, studentNo: String(account || '').replace(/^pv|^s/i, '') });
   },
   schoolUnlink() { schoolLinked = false; return Promise.resolve({ linked: false }); },
   schoolSync() { return Promise.resolve({ ok: true, grades: 6, attendance: 35 }); },

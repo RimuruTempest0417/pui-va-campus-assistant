@@ -130,13 +130,14 @@ paths:
                   accountType: { type: string, enum: [student, parent, other], description: 由帳號前綴判斷的類型；other 代表格式不在規範內（建成學生，等指示） }
                   children:
                     type: array
-                    description: 家長本次自動對應到的子女（學生為空陣列）
+                    description: 家長本次自動對應到的子女（學生為空陣列；依定案一位家長帳號＝一位子女）
                     items:
                       type: object
                       properties:
                         studentId: { type: string }
                         studentNo: { type: string }
                         nickname: { type: string, nullable: true }
+                  linkedChildren: { type: integer, description: 自動對應到的子女數（＝children.length；前端顯示「已對應 N 位」用這個） }
                   user:
                     type: object
                     properties:
@@ -3103,7 +3104,8 @@ paths:
               schema:
                 type: object
                 properties:
-                  linked: { type: boolean }
+                  linked: { type: boolean, description: 是否已儲存家校通同步憑證（SchoolLink） }
+                  childrenCount: { type: integer, description: '家長已對應的子女數（parent_links）；與 linked 是兩件事：有子女不一定已連結同步' }
                   studentNo: { type: string, nullable: true }
                   studentName: { type: string, nullable: true }
                   className: { type: string, nullable: true }
@@ -3184,12 +3186,16 @@ paths:
                   yearTerms:
                     type: array
                     items: { type: string }
-                  grades: { type: integer, description: 寫入的成績筆數 }
-                  attendance: { type: integer, description: 寫入的出缺席筆數 }
+                  grades: { type: integer, description: 實際寫入的成績筆數（已去重，與資料庫筆數一致） }
+                  attendance: { type: integer, description: 實際寫入的出缺席天數（已去重；上游會把同一天回三次） }
+                  skipped: { type: integer, description: 上游重複回傳而被略過的筆數（診斷用） }
+                  termsDone: { type: integer, description: 完成幾個學段（正常為 3） }
+                  partial: { type: boolean, description: 'true＝時間預算用完，先寫入已抓到的部分；下次同步會補齊（不是失敗）' }
                   syncedAt: { type: string, format: date-time }
         '401': { description: 家校通帳號或密碼已失效，請重新連結 }
         '422': { description: 尚未連結家校通 }
         '501': { description: 後端未設定 SCHOOL_CRED_KEY }
+        '503': { description: 學校系統暫時連不上（SCHOOL_UNAVAILABLE）；可改用手動輸入 }
 
   /school/grades:
     get:

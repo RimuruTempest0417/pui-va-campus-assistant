@@ -243,9 +243,10 @@ Page({
     try {
       const res = await admin.schoolLogin(account, password);
       const kids = (res && res.children) || [];
+      const count = res && typeof res.linkedChildren === 'number' ? res.linkedChildren : kids.length;
       this.afterLogin(res);
-      if (kids.length) {
-        setTimeout(() => wx.showToast({ title: i18n.pick('已對應子女：') + kids.length + i18n.pick(' 位'), icon: 'none' }), 500);
+      if (count) {
+        setTimeout(() => wx.showToast({ title: i18n.pick('已對應子女：') + count + i18n.pick(' 位'), icon: 'none' }), 500);
       }
     } catch (e) {
       const code = (e && e.code) || 'UNKNOWN';
