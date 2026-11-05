@@ -39,6 +39,7 @@ const STEPS = [
   { key: 'boot', label: '啟動煙霧', script: 'check-pages-boot.cjs', args: [] },
   { key: 'parent-view', label: '家長視角', script: 'check-parent-view.cjs', args: [] },
   { key: 'study', label: '測驗倒數', script: 'check-study.cjs', args: [] },
+  { key: 'homework', label: '功課清單', script: 'check-homework.cjs', args: [] },
   { key: 'edu', label: '教育版同步', script: 'check-edu-sync.cjs', args: [] },
 ];
 
