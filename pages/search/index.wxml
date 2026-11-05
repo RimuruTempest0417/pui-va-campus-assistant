@@ -20,6 +20,17 @@
         </view>
       </view>
 
+      <!-- 類型篩選（W-75）：有輸入才出現，避免還沒搜尋就先給一排沒用的選項 -->
+      <view wx:if="{{hasKeyword}}" class="chips filters">
+        <view
+          wx:for="{{typeFilters}}"
+          wx:key="key"
+          class="chip {{typeFilter === item.key ? 'chip--on' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="pickType"
+        >{{item.label}}</view>
+      </view>
+
       <!-- 還沒輸入：提示 ＋ 最近搜尋 -->
       <block wx:if="{{!hasKeyword}}">
         <pv-empty title="{{L.hintTitle}}" desc="{{L.hintDesc}}" />

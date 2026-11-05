@@ -149,17 +149,46 @@ Page({
     pressedId: '',
     summaryText: '',
     emptyDesc: '',
+    // W-75 類型篩選：all＝不帶 types（五類一起回）
+    typeFilter: 'all',
+    typeFilters: [],
   },
 
   onLoad() {
     this._seq = 0;
     this._timer = null;
-    this.setData({ L: this.labels(), recent: readRecent() });
+    this.setData({ L: this.labels(), recent: readRecent(), typeFilters: this.filters() });
   },
 
   onShow() {
     // 在別頁切了繁／簡再回來，文案要重取（L 只在 onLoad 設一次就會停在舊語言）
-    this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
+    this.setData({ L: this.labels(), themeClass: appearance.themeClass(), typeFilters: this.filters() });
+  },
+
+  /** 類型篩選的 chips（W-75）：key 對應後端 `types` 的值，all 代表不帶參數 */
+  filters() {
+    return [
+      { key: 'all', label: i18n.pick('全部') },
+      { key: 'notice', label: i18n.pick('公告') },
+      { key: 'event', label: i18n.pick('活動') },
+      { key: 'item', label: i18n.pick('失物') },
+      { key: 'giveaway', label: i18n.pick('轉贈') },
+      { key: 'menu', label: i18n.pick('菜單') },
+    ];
+  },
+
+  /**
+   * 切換類型：**重跑一次查詢**而不是在前端過濾已抓回來的結果 ——
+   * 每一類的「看得到」規則在後端，前端過濾等於把規則抄第二份；
+   * 而且某些類原本就被 limit 截斷，前端過濾會讓「只看失物」永遠比實際少。
+   */
+  pickType(e) {
+    const key = e.currentTarget.dataset.key;
+    if (!key || key === this.data.typeFilter) return;
+    this.setData({ typeFilter: key }, () => {
+      const kw = (this.data.keyword || '').trim();
+      if (kw) this.run(kw);
+    });
   },
 
   onUnload() {
@@ -222,7 +251,7 @@ Page({
     const seq = (this._seq += 1);
     this.setData({ loading: true, failed: false, errorText: '' });
     try {
-      const res = await data.search(word);
+      const res = await data.search(word, this.data.typeFilter === 'all' ? null : { types: this.data.typeFilter });
       // 慢的那一支回來時使用者已經打了新的字 → 丟掉，避免畫面顯示上一個關鍵字的結果
       if (seq !== this._seq) return;
       const groups = (res.groups || []).map((g) => ({

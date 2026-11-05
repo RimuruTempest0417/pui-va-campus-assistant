@@ -104,8 +104,10 @@ module.exports = {
     return http.get('/notices', query);
   },
   /** W-59 全校搜尋：公告／活動／失物一次搜（可見性規則在後端，前端不重算） */
-  search(q) {
-    return http.get('/search', { q: q });
+  search(q, opts) {
+    // W-75：頁面可以傳物件 { q, types }（類型篩選）；字串是老呼叫端
+    if (q && typeof q === 'object') return http.get('/search', q);
+    return http.get('/search', Object.assign({ q: q }, opts || {}));
   },
   getNotice(id) {
     return http.get('/notices/' + id);

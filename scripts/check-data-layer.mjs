@@ -249,6 +249,18 @@ check(
   !sMenuOnly.groups.some((g) => g.type === 'menu'),
   sMenuOnly.groups.map((g) => g.type).join(' ') || '沒有結果',
 );
+// W-75 類型篩選：頁面把 chip 的值帶進 types，請求層兩種呼叫形狀都要吃
+const searchPageJs = readFileSync(join(here, '..', 'pages', 'search', 'index.js'), 'utf8');
+check(
+  '搜尋：類型 chip 的 types 會帶進請求',
+  searchPageJs.indexOf('{ types: this.data.typeFilter }') !== -1 && searchPageJs.indexOf('pickType') !== -1,
+  'pages/search/index.js',
+);
+check(
+  '搜尋：請求層同時吃字串與 { q, types } 兩種形狀',
+  apiSrcSearch.indexOf("typeof q === 'object'") !== -1,
+  'services/api.js',
+);
 
 
 
