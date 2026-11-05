@@ -23,6 +23,8 @@
     "pages/giveaway/detail/index",
     "pages/giveaway/create/index",
     "pages/giveaway/mine/index",
+    "pages/leaves/create/index",
+    "pages/leaves/mine/index",
     "pages/events/list/index",
     "pages/events/detail/index",
     "pages/events/mine/index",

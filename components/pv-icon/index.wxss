@@ -67,3 +67,10 @@
 .i-gift-lid { position: absolute; top: 30%; left: 10%; width: 80%; height: 18%; border: 2rpx solid var(--ico); border-radius: 3rpx; }
 .i-gift-body { position: absolute; top: 50%; left: 18%; width: 64%; height: 34%; border: 2rpx solid var(--ico); border-top-width: 0; border-radius: 0 0 3rpx 3rpx; }
 .i-gift-ribbon { position: absolute; top: 30%; left: 48%; width: 4%; height: 54%; background: var(--ico); }
+
+/* 請假（W-72）：假單（紙＋兩行＋右下角圓形核准章） */
+.i-form { position: absolute; top: 12%; left: 16%; width: 68%; height: 74%; border: 2rpx solid var(--ico); border-radius: 4rpx; }
+.i-form-line { position: absolute; left: 26%; height: 2rpx; background: var(--ico); border-radius: 2rpx; }
+.i-form-line--1 { top: 32%; width: 44%; }
+.i-form-line--2 { top: 44%; width: 28%; }
+.i-form-stamp { position: absolute; right: 10%; bottom: 8%; width: 24%; height: 24%; border: 2rpx solid var(--ico); border-radius: 50%; background: var(--pv-surface); }

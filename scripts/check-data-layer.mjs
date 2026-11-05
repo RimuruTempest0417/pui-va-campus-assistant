@@ -826,6 +826,45 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-72 請假申請（示範層也要走得完：送出 → 重疊被擋 → 取消 → 改狀態）──
+{
+  const before = await data.myLeaves();
+  check('請假：我的假單有三種狀態', before.items.length >= 3 && before.pending >= 1, `${before.items.length} 張／待審 ${before.pending}`);
+
+  const made = await data.createLeave({ kind: 'SICK', fromDate: '2030-01-07', toDate: '2030-01-08', reason: '示範層自檢用' });
+  check('請假：送出後是待審批', made && made.leave && made.leave.status === 'PENDING' && made.leave.days === 2, made && made.leave ? `${made.leave.status}/${made.leave.days} 天` : '沒有建立');
+
+  const after = await data.myLeaves();
+  check('請假：送出後出現在我的假單', after.items.some((row) => row.id === made.leave.id) && after.pending === before.pending + 1, `${after.items.length} 張`);
+
+  const dup = await data.createLeave({ kind: 'SICK', fromDate: '2030-01-08', toDate: '2030-01-09', reason: '重疊' }).then(() => null).catch((e) => e);
+  check('請假：重疊日期被擋（CONFLICT）', dup && dup.code === 'CONFLICT', dup ? dup.code : '沒有拒絕');
+
+  const bad = await data.createLeave({ kind: 'SICK', fromDate: '2030-02-05', toDate: '2030-02-01', reason: '倒轉' }).then(() => null).catch((e) => e);
+  check('請假：結束早於開始被擋（VALIDATION_FAILED）', bad && bad.code === 'VALIDATION_FAILED', bad ? bad.code : '沒有拒絕');
+
+  const cancelled = await data.cancelLeave(made.leave.id);
+  const listAfterCancel = await data.myLeaves();
+  check(
+    '請假：取消後狀態變已取消',
+    cancelled && cancelled.status === 'CANCELLED' && listAfterCancel.items.some((row) => row.id === made.leave.id && row.status === 'CANCELLED'),
+    cancelled ? cancelled.status : '沒有取消',
+  );
+
+  const again = await data.cancelLeave(made.leave.id).then(() => null).catch((e) => e);
+  check('請假：同一張不能取消兩次（CONFLICT）', again && again.code === 'CONFLICT', again ? again.code : '沒有拒絕');
+
+  const createJs = readFileSync(join(here, '..', 'pages', 'leaves', 'create', 'index.js'), 'utf8');
+  const mineWxml = readFileSync(join(here, '..', 'pages', 'leaves', 'mine', 'index.wxml'), 'utf8');
+  const homeWxml4 = readFileSync(join(here, '..', 'pages', 'index', 'index.wxml'), 'utf8');
+  const apiSrc6 = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  check(
+    '請假：有畫面入口＋真 API 端點',
+    createJs.indexOf('createLeave') !== -1 && mineWxml.indexOf('goCreate') !== -1 && homeWxml4.indexOf('goLeaves') !== -1 && apiSrc6.indexOf("'/leaves'") !== -1,
+    '首頁 → 我的假單 → 請假（送出／取消）',
+  );
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

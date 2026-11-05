@@ -5,10 +5,10 @@
 
 ---
 
-## 1. 資料表總覽（核心 13 張 ＋ 後續模組 20 張，共 33 張）
+## 1. 資料表總覽（核心 13 張 ＋ 後續模組 21 張，共 34 張）
 
-> 下表是專案起點的核心 13 張，逐欄說明仍在這裡；**v0.49 之後新增的模組**（回收桶、錯誤日誌、推送紀錄、家校通三張、評分／組隊／附件／回饋、圖書館三張、場地兩張、轉贈兩張）以 `prisma/schema.prisma` 為唯一來源，欄位命名與 `docs/openapi.yaml` 對應。
-> 目前 schema 共 **33 張表／29 支 migration**（每次加表都會有一支 migration，`npm run check:drift` 會對本機與 Neon 兩邊）。
+> 下表是專案起點的核心 13 張，逐欄說明仍在這裡；**v0.49 之後新增的模組**（回收桶、錯誤日誌、推送紀錄、家校通三張、評分／組隊／附件／回饋、圖書館三張、場地兩張、轉贈兩張、請假一張）以 `prisma/schema.prisma` 為唯一來源，欄位命名與 `docs/openapi.yaml` 對應。
+> 目前 schema 共 **34 張表／30 支 migration**（每次加表都會有一支 migration，`npm run check:drift` 會對本機與 Neon 兩邊）。
 
 | 表 | 用途 | 關鍵設計 |
 |---|---|---|
@@ -101,7 +101,7 @@ UPDATE events
 
 ---
 
-## 5. 端點一覽（47 個操作 / 42 條路徑，全部已在 `docs/openapi.yaml` 定義並驗證）
+## 5. 端點一覽（189 個操作 / 159 條路徑，全部已在 `docs/openapi.yaml` 定義並驗證）
 
 ### 認證 `/auth`
 | 方法 | 路徑 | 說明 |
@@ -171,6 +171,18 @@ UPDATE events
 | DELETE | `/admin/parents/link/:id` | 解除綁定 |
 
 > 隔離規則：`studentId` 只是查詢鍵，必須存在於 `parent_links` 才算數；未綁定回 **403 且訊息固定**（不區分「不存在」與「不是你的孩子」），避免學號探測。
+
+### 請假 `/leaves`（W-72；送出要登入，審批要 `leave:review`）
+| 方法 | 路徑 | 說明 |
+|---|---|---|
+| POST | `/leaves` | 送出假單；學生只能替自己（傳別人的 `studentId` 回 403），家長必須帶 `studentId` 且已綁定（未綁定與不存在回同一句 403）；同段日期重疊回 409 |
+| GET | `/leaves/mine` | 我的假單（學生看自己／家長看子女）＋待審批與已批准筆數 |
+| GET | `/leaves/:id` | 單張假單（送出者／學生本人／具 `leave:review` 的老師與職員） |
+| DELETE | `/leaves/:id` | 取消（只有 `PENDING`；改狀態不刪列，月底統計才對得上） |
+| GET | `/admin/leaves` | 假單清單（狀態篩選＋`counts`；待審批依開始日期由近到遠） |
+| PATCH | `/admin/leaves/:id` | 批准／駁回（駁回必填原因）；**條件式更新 `where status='PENDING'`**，兩人同時批只有一位成立、另一位 409；批完通知送出者與學生 |
+
+> 日期只到「天」（`@db.Date`，字串 `2026-11-12`）：請假是「哪幾天不在」，不是幾點幾分；`dateText`／`days` 由後端算好，前端不重算時區。
 
 ### 管理 `/admin`（需 TEACHER / ADMIN）
 | 方法 | 路徑 | 說明 |

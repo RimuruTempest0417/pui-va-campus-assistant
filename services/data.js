@@ -208,4 +208,11 @@ module.exports = {
   requestGiveaway: (...a) => call('requestGiveaway', a),
   cancelGiveawayRequest: (...a) => call('cancelGiveawayRequest', a),
   decideGiveawayRequest: (...a) => call('decideGiveawayRequest', a),
+
+  // ── W-72 請假申請（學生／家長送出、老師與校務處審批）──
+  myLeaves: (...a) => call('myLeaves', a),
+  createLeave: (...a) => call('createLeave', a),
+  cancelLeave: (...a) => call('cancelLeave', a),
+  adminLeaves: (...a) => call('adminLeaves', a),
+  reviewLeave: (...a) => call('reviewLeave', a),
 };

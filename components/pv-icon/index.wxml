@@ -64,4 +64,12 @@
     <view class="i-gift-ribbon" />
   </block>
 
+  <!-- 請假（W-72）：假單（紙＋兩行＋右下角核准章） -->
+  <block wx:elif="{{name === 'leave'}}">
+    <view class="i-form" />
+    <view class="i-form-line i-form-line--1" />
+    <view class="i-form-line i-form-line--2" />
+    <view class="i-form-stamp" />
+  </block>
+
 </view>

@@ -28,6 +28,7 @@ const TABS = [
   { key: 'library', label: i18n.pick('圖書館') },
   { key: 'venues', label: i18n.pick('場地') },
   { key: 'giveaways', label: i18n.pick('轉贈') },
+  { key: 'leaves', label: i18n.pick('假單') },
 ];
 
 // 學段三個固定值（後端 TERMS）：key 必須送原文，簡體下字形相同所以直接用 pick 的結果當 key
@@ -35,10 +36,10 @@ const TERM_KEYS = [i18n.pick('第一段'), i18n.pick('第二段'), i18n.pick('�
 
 const ROLE_TABS = {
   // 校內職員：排菜單＋匯出報名名單＋補登成績。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
-  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'giveaways', 'export'],
-  TEACHER: ['notice', 'school', 'events', 'venues'],
-  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues', 'giveaways'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways'],
+  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'export'],
+  TEACHER: ['notice', 'school', 'events', 'venues', 'leaves'],
+  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -412,6 +413,18 @@ Page({
       k333: i18n.pick("目前沒有轉贈貼文"),
       k334: i18n.pick("待回覆申請"),
       k335: i18n.pick("已贈出"),
+      // ── W-72 請假分頁（k336 起）──
+      k336: i18n.pick("假單"),
+      k337: i18n.pick("目前沒有待審批的假單"),
+      k338: i18n.pick("學生與家長送出的假單會出現在這裡"),
+      k339: i18n.pick("讀不到假單："),
+      k340: i18n.pick("批准請假"),
+      k341: i18n.pick("駁回假單"),
+      k342: i18n.pick("寫一句原因（會通知家長與學生）"),
+      k343: i18n.pick("已批准請假"),
+      k344: i18n.pick("已駁回"),
+      k345: i18n.pick("天"),
+      k346: i18n.pick("家長代送"),
     };
   },
 
@@ -459,6 +472,16 @@ Page({
     ],
     gvItems: [],
     gvStats: { available: 0, given: 0, closed: 0, pendingRequests: 0 },
+    // ── 請假（W-72）：待審優先；一手批／駁，駁回要寫原因（會通知家長與學生）──
+    leaveStatus: 'PENDING',
+    leaveStatuses: [
+      { key: 'PENDING', label: i18n.pick('待審批') },
+      { key: 'APPROVED', label: i18n.pick('已批准') },
+      { key: 'REJECTED', label: i18n.pick('已駁回') },
+      { key: 'ALL', label: i18n.pick('全部') },
+    ],
+    leaveItems: [],
+    leaveCounts: { PENDING: 0, APPROVED: 0, REJECTED: 0, CANCELLED: 0 },
     role: '',
     stats: { users: 0, items: { open: 0, claimed: 0, added7d: 0 }, claimsPending: 0, signups: { confirmed: 0, waitlist: 0 }, noticesActive: 0, ratings: { count: 0, avg: 0 } },
     // 第一屏五張數字卡：值與標籤在 loadStats 一起備好（WXML 不做運算）
@@ -668,6 +691,7 @@ Page({
     else if (t === 'library') p = this.loadLibrary();
     else if (t === 'venues') p = this.loadVenues();
     else if (t === 'giveaways') p = this.loadGiveaways();
+    else if (t === 'leaves') p = this.loadLeaves();
 
     if (!p || typeof p.then !== 'function') {
       this.setData({ tabLoading: false });
@@ -2594,6 +2618,58 @@ Page({
           .then(() => {
             wx.showToast({ title: i18n.pick('已駁回'), icon: 'success' });
             this.loadVenues();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // ───────── 請假（W-72）─────────
+  // 老師與校務處都批得了（能力 leave:review）；名單依狀態篩，預設只看待審批。
+  async loadLeaves() {
+    try {
+      const res = await admin.leaves(this.data.leaveStatus);
+      const tone = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', CANCELLED: 'neutral' };
+      this.setData({
+        leaveItems: (res.items || []).map((row) => Object.assign({}, row, { statusTone: tone[row.status] || 'neutral' })),
+        leaveCounts: res.counts || this.data.leaveCounts,
+      });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到假單：') + (e.message || e.code) });
+    }
+  },
+
+  switchLeaveStatus(e) {
+    this.setData({ leaveStatus: e.currentTarget.dataset.key }, () => this.loadLeaves());
+  },
+
+  leaveApprove(e) {
+    const id = e.currentTarget.dataset.id;
+    admin
+      .reviewLeave(id, { action: 'APPROVE' })
+      .then(() => {
+        wx.showToast({ title: this.data.L.k343, icon: 'success' });
+        this.loadLeaves();
+      })
+      .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+  },
+
+  /** 駁回一定要寫原因：家長看到「未通過」卻不知道為什麼，只會再送一次一樣的假單 */
+  leaveReject(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title: this.data.L.k341,
+      editable: true,
+      placeholderText: this.data.L.k342,
+      confirmText: i18n.pick('駁回'),
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .reviewLeave(id, { action: 'REJECT', reason: r.content || '' })
+          .then(() => {
+            wx.showToast({ title: this.data.L.k344, icon: 'success' });
+            this.loadLeaves();
           })
           .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
       },

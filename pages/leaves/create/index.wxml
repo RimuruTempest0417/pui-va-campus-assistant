@@ -1,0 +1,90 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="form-inner">
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="3" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="3" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{guest}}" title="{{L.k15}}" desc="{{L.k14}}">
+        <pv-button type="tinted" size="sm" bind:tap="goLogin">{{L.k24}}</pv-button>
+      </pv-empty>
+
+      <pv-empty
+        wx:elif="{{isParent && !childId}}"
+        title="{{L.k18}}"
+        desc="{{L.k19}}"
+      />
+
+      <block wx:else>
+        <block wx:if="{{isParent}}">
+          <view class="ui-list ui-list--grouped">
+            <view class="ui-card ui-card--row ui-card--last">
+              <text class="ui-field__label">{{L.k12}}</text>
+              <text class="child-name">{{childName}}</text>
+            </view>
+          </view>
+          <text class="form-hint">{{L.k13}}</text>
+        </block>
+
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row">
+            <text class="ui-field__label">{{L.k02}}</text>
+            <view class="kind-row">
+              <view
+                wx:for="{{kinds}}"
+                wx:key="key"
+                class="kind-chip {{kind === item.key ? 'is-active' : ''}}"
+                data-key="{{item.key}}"
+                bindtap="pickKind"
+              >{{item.label}}</view>
+            </view>
+          </view>
+
+          <view class="ui-card ui-card--row">
+            <picker mode="date" value="{{fromDate}}" bindchange="onFrom">
+              <view class="field-row">
+                <text class="field-label">{{L.k03}}</text>
+                <text class="field-value">{{fromDate}}</text>
+                <text class="field-arrow">›</text>
+              </view>
+            </picker>
+          </view>
+
+          <view class="ui-card ui-card--row ui-card--last">
+            <picker mode="date" value="{{toDate}}" start="{{fromDate}}" bindchange="onTo">
+              <view class="field-row">
+                <text class="field-label">{{L.k04}}</text>
+                <text class="field-value">{{toDate}}</text>
+                <text class="field-arrow">›</text>
+              </view>
+            </picker>
+          </view>
+        </view>
+
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row ui-card--last">
+            <text class="ui-field__label">{{L.k05}}</text>
+            <textarea
+              class="ui-textarea"
+              placeholder="{{L.k06}}"
+              placeholder-class="ui-placeholder"
+              value="{{reason}}"
+              maxlength="300"
+              bindinput="onReason"
+            />
+          </view>
+        </view>
+
+        <text class="form-hint">{{L.k14}}</text>
+
+        <view class="submit-row">
+          <pv-button type="filled" block loading="{{submitting}}" bind:tap="submit">{{submitting ? L.k08 : L.k07}}</pv-button>
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+</view>

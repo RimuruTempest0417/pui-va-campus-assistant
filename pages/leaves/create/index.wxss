@@ -1,0 +1,42 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.form-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+
+.field-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 88rpx;
+}
+.field-label { font-size: var(--pv-fs-body); color: var(--pv-label-2); }
+.field-value { flex: 1; min-width: 0; text-align: right; font-size: var(--pv-fs-body); color: var(--pv-label); }
+.field-arrow { color: var(--pv-label-3); margin-left: var(--pv-sp-1); font-size: var(--pv-fs-title-3); }
+
+/* 假別三選一：chip 不做卡片（一頁只該有一張卡＋髮絲線分列） */
+.kind-row { display: flex; flex-direction: row; flex-wrap: wrap; gap: var(--pv-sp-2); margin-top: var(--pv-sp-2); }
+.kind-chip {
+  flex-shrink: 0;
+  min-height: 64rpx;
+  padding: 0 var(--pv-sp-3);
+  display: flex;
+  align-items: center;
+  border-radius: var(--pv-r-sm);
+  background: var(--pv-fill);
+  color: var(--pv-label-2);
+  font-size: var(--pv-fs-footnote);
+}
+.kind-chip.is-active { background: var(--pv-tint-soft); color: var(--pv-tint); }
+
+.child-name { font-size: var(--pv-fs-body); color: var(--pv-label); }
+
+.form-hint {
+  display: block;
+  margin: var(--pv-sp-2) var(--pv-sp-1) var(--pv-sp-3);
+  font-size: var(--pv-fs-caption-1);
+  color: var(--pv-label-3);
+  line-height: 1.5;
+}
+
+.submit-row { margin-top: var(--pv-sp-4); }

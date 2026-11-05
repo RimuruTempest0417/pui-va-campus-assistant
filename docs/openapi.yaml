@@ -4299,6 +4299,154 @@ paths:
                       pendingRequests: { type: integer, description: 全站待審申請數 }
         '403': { description: 能力不足 }
 
+  # ── W-72 請假申請 ──────────────────────────────────────────────
+  /leaves:
+    post:
+      tags: [leaves]
+      summary: 送出假單（學生自己／家長代已綁定的子女）
+      description: |
+        角色分流：學生只能替自己送（studentId 傳別人的一律 403）；
+        家長一定要帶 studentId，而且必須存在於 parent_links（未綁定與「不存在的人」回同一句 403，防學號探測）。
+        同一學生「待審批／已批准」的日期區間不能重疊（409）；已駁回／已取消的不佔日期。
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, fromDate, toDate, reason]
+              properties:
+                studentId: { type: string, description: 家長必填；學生留空（後端一律用自己的 id） }
+                kind: { type: string, enum: [SICK, PERSONAL, OFFICIAL] }
+                fromDate: { type: string, example: '2026-11-12', description: 'YYYY-MM-DD（只到天）' }
+                toDate: { type: string, example: '2026-11-13' }
+                reason: { type: string, minLength: 2, maxLength: 300 }
+                attachmentUrl: { type: string, maxLength: 512 }
+      responses:
+        '201':
+          description: 已送出（status=PENDING）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  leave: { $ref: '#/components/schemas/LeaveRequest' }
+        '401': { description: 未登入 }
+        '403': { description: 能力不足／只能替自己請假／沒有綁定這位學生 }
+        '409': { description: 同一段日期已經有假單（待審批或已批准） }
+        '422': { description: 日期格式錯、結束早於開始、超過 60 天、原因太短 }
+
+  /leaves/mine:
+    get:
+      tags: [leaves]
+      summary: 我的假單（學生看自己；家長看子女）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 由新到舊（最多 100 筆）＋待審批／已批准筆數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/LeaveRequest' }
+                  pending: { type: integer }
+                  approved: { type: integer }
+                  studentName: { type: string, nullable: true }
+        '401': { description: 未登入 }
+
+  /leaves/{id}:
+    get:
+      tags: [leaves]
+      summary: 單張假單（送出者／學生本人／可審批的老師與職員）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 假單＋是否可以審批
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  leave: { $ref: '#/components/schemas/LeaveRequest' }
+                  canReview: { type: boolean }
+        '403': { description: 看不到這張假單 }
+        '404': { description: 找不到這張假單 }
+    delete:
+      tags: [leaves]
+      summary: 取消假單（只有待審批，且只有送出者／學生本人）
+      description: 取消是狀態改成 CANCELLED（不刪列）—— 請假紀錄要留著，月底統計才對得上。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已取消 }
+        '403': { description: 只能取消自己的假單 }
+        '409': { description: 已批准／已駁回／已取消，不能再取消 }
+
+  /admin/leaves:
+    get:
+      tags: [admin]
+      summary: "假單清單（leave:review；老師／校務處）"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [PENDING, APPROVED, REJECTED, CANCELLED, ALL], default: PENDING } }
+        - { name: q, in: query, schema: { type: string, maxLength: 40 }, description: 學生暱稱或原因 }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 待審批依開始日期由近到遠；其他狀態依處理時間由新到舊
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/LeaveRequest' }
+                  total: { type: integer }
+                  page: { type: integer }
+                  counts:
+                    type: object
+                    properties:
+                      PENDING: { type: integer }
+                      APPROVED: { type: integer }
+                      REJECTED: { type: integer }
+                      CANCELLED: { type: integer }
+        '403': { description: 能力不足 }
+
+  /admin/leaves/{id}:
+    patch:
+      tags: [admin]
+      summary: "審批假單（leave:review；駁回必填原因）"
+      description: 條件式寫入（where status=PENDING）—— 兩位老師同時按批准，第二位回 409。批完發站內通知給送出者與學生本人。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [APPROVE, REJECT] }
+                reason: { type: string, maxLength: 200, description: 駁回時必填 }
+      responses:
+        '200':
+          description: 已處理（回更新後的狀態與日期摘要）
+        '403': { description: 能力不足 }
+        '404': { description: 找不到這張假單 }
+        '409': { description: 這張已經被其他老師處理過了 }
+        '422': { description: 駁回沒寫原因 }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -4510,6 +4658,36 @@ components:
         role: { type: string, enum: [STUDENT, TEACHER, ADMIN] }
         grade: { type: string, nullable: true }
         className: { type: string, nullable: true }
+
+    LeaveRequest:
+      type: object
+      description: 一張假單（W-72）。日期只到天，dateText／days 由後端算好，前端不重算時區
+      properties:
+        id: { type: string }
+        studentId: { type: string }
+        student:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+            grade: { type: string, nullable: true }
+            className: { type: string, nullable: true }
+        createdById: { type: string, description: 送出者（家長代請假時與學生不同人） }
+        kind: { type: string, enum: [SICK, PERSONAL, OFFICIAL] }
+        kindText: { type: string, example: 病假 }
+        from: { type: string, example: '2026-11-12' }
+        to: { type: string, example: '2026-11-13' }
+        dateText: { type: string, example: '2026/11/12–11/13' }
+        days: { type: integer, example: 2 }
+        reason: { type: string }
+        attachmentUrl: { type: string, nullable: true }
+        status: { type: string, enum: [PENDING, APPROVED, REJECTED, CANCELLED] }
+        statusText: { type: string, example: 待審批 }
+        rejectReason: { type: string, nullable: true }
+        reviewedAt: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        canCancel: { type: boolean, description: 只有待審批才是 true }
 
     LostItemInput:
       type: object

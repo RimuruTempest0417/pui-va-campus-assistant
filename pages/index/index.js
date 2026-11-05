@@ -66,6 +66,7 @@ Page({
     giveawayPressed: false,
     studyText: '',
     studyPressed: false,
+    leavePressed: false,
     // 家長：只在家長身分時才有值（切換子女就在首頁做，不必先點進別的頁）
     parentChildren: [],
     parentActiveId: '',
@@ -106,6 +107,8 @@ Page({
       k24: i18n.pick('明天'),
       k25: i18n.pick(' 天後'),
       k26: i18n.pick('目前沒有測驗安排'),
+      k27: i18n.pick('請假申請'),
+      k28: i18n.pick('送出後班主任會收到'),
       brand: i18n.pick('培華校園助手'),
       brandSub: i18n.pick('PUI VA CAMPUS'),
       demoTag: i18n.t('home.demoTag'),
@@ -440,6 +443,19 @@ Page({
 
   goStudy() {
     wx.navigateTo({ url: '/pages/study/index' });
+  },
+
+  // ── 請假申請入口（W-72）：第五條列；進去就是「我的假單」，右上角有請假膠囊 ──
+  onLeaveTouchStart() {
+    this.setData({ leavePressed: true });
+  },
+
+  onLeaveTouchEnd() {
+    this.setData({ leavePressed: false });
+  },
+
+  goLeaves() {
+    wx.navigateTo({ url: '/pages/leaves/mine/index' });
   },
 
   onRetry() {

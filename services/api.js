@@ -224,4 +224,12 @@ module.exports = {
   requestGiveaway(id, message) { return http.post('/giveaways/' + id + '/requests', { message: message }); },
   cancelGiveawayRequest(id) { return http.del('/giveaways/requests/' + id); },
   decideGiveawayRequest(id, action) { return http.patch('/giveaways/requests/' + id, { action: action }); },
+
+  // ── W-72 請假申請 ──
+  myLeaves() { return http.get('/leaves/mine'); },
+  createLeave(body) { return http.post('/leaves', body); },
+  cancelLeave(id) { return http.del('/leaves/' + id); },
+  // 批假單（老師／校務處）：待審清單與審批
+  adminLeaves(query) { return http.get('/admin/leaves', query); },
+  reviewLeave(id, body) { return http.patch('/admin/leaves/' + id, body); },
 };

@@ -887,6 +887,43 @@
         <pv-empty wx:else title="{{L.k333}}" desc="" />
       </block>
 
+      <!-- W-72 假單：待審批優先，一手批／駁；駁回要寫原因（會通知家長與學生） -->
+      <block wx:elif="{{tab === 'leaves'}}">
+        <view class="filter-row">
+          <view
+            wx:for="{{leaveStatuses}}"
+            wx:key="key"
+            class="chip {{leaveStatus === item.key ? 'chip--on' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="switchLeaveStatus"
+          >{{item.label}}{{item.key === 'PENDING' && leaveCounts.PENDING ? ' ' + leaveCounts.PENDING : ''}}</view>
+        </view>
+
+        <view wx:if="{{leaveItems.length}}" class="ui-list ui-list--grouped">
+          <view
+            wx:for="{{leaveItems}}"
+            wx:key="id"
+            class="signup-row {{index === leaveItems.length - 1 ? 'signup-row--last' : ''}}"
+          >
+            <view class="lib-row">
+              <view class="lib-row__main">
+                <text class="signup-row__name">{{item.student.nickname}} · {{item.kindText}}</text>
+                <text class="ui-meta">{{item.dateText}} · {{item.days}} {{L.k345}}</text>
+                <text wx:if="{{item.createdById !== item.studentId}}" class="ui-meta">{{L.k346}}</text>
+                <text class="ui-meta">{{item.reason}}</text>
+                <text wx:if="{{item.rejectReason}}" class="ui-meta">{{item.rejectReason}}</text>
+              </view>
+              <view wx:if="{{item.status === 'PENDING'}}" class="row-actions">
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="leaveApprove">{{L.k303}}</pv-button>
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="leaveReject">{{L.k304}}</pv-button>
+              </view>
+              <pv-tag wx:else text="{{item.statusText}}" type="{{item.statusTone}}" />
+            </view>
+          </view>
+        </view>
+        <pv-empty wx:else title="{{L.k337}}" desc="{{L.k338}}" />
+      </block>
+
       <block wx:elif="{{tab === 'venues'}}">
         <view class="filter-row">
           <view

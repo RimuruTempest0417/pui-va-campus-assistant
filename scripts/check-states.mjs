@@ -32,6 +32,8 @@ const REQUIRE = {
   'pages/giveaway/detail/index': { loading: true, empty: true, failed: true },
   'pages/giveaway/create/index': { loading: false, empty: false, failed: false, why: '純表單頁：沒有載入／空／失敗三態，錯誤用彈窗' },
   'pages/giveaway/mine/index': { loading: true, empty: true, failed: true },
+  'pages/leaves/create/index': { loading: true, empty: true, failed: false, why: '送出失敗用彈窗；讀不到身分時顯示「請先登入」或「還沒對應到子女」，不另做重試卡' },
+  'pages/leaves/mine/index': { loading: true, empty: true, failed: true },
   'pages/events/list/index': { loading: true, empty: true, failed: true },
   'pages/events/detail/index': { loading: true, empty: true, failed: true },
   'pages/events/mine/index': { loading: true, empty: true, failed: true },

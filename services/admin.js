@@ -297,4 +297,12 @@ module.exports = {
   setGiveawayStatus(id, status) {
     return http.post('/giveaways/' + id + '/status', { status: status });
   },
+
+  // ── W-72 請假申請：待審清單與審批（能力 leave:review：老師／校務處）──
+  leaves(status) {
+    return http.get('/admin/leaves', status ? { status: status } : {});
+  },
+  reviewLeave(id, body) {
+    return http.patch('/admin/leaves/' + id, body);
+  },
 };

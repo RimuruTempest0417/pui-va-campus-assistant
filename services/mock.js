@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 12;
+const SEED_VERSION = 13;
 
 const weekUtil = require('../utils/week');
 const venue = require('../utils/venue');
@@ -220,6 +220,13 @@ function seed() {
       { id: 'gr1', itemId: 'gv2', userId: 'demo-other', message: '我今年要換 M 碼，可以留給我嗎？', status: 'PENDING', createdAt: now - 4 * h, decidedAt: null },
       { id: 'gr2', itemId: 'gv3', userId: 'demo-user', message: '我弟弟明年用得到，謝謝。', status: 'PENDING', createdAt: now - 20 * h, decidedAt: null },
       { id: 'gr3', itemId: 'gv5', userId: 'demo-user', message: '想要體育服', status: 'ACCEPTED', createdAt: now - 14 * h, decidedAt: now - 12 * h },
+    ],
+    // ── 請假申請（W-72）──
+    // 一筆待審批（可練取消）、一筆已批准（看得到日期與天數）、一筆已駁回（看得到原因）
+    leaves: [
+      { id: 'lv1', studentId: 'demo-user', createdById: 'demo-user', kind: 'SICK', from: leaveDate(2), to: leaveDate(2), reason: '發燒，醫生建議在家休息一天。', status: 'PENDING', rejectReason: null, reviewedAt: null, createdAt: now - 3 * h },
+      { id: 'lv2', studentId: 'demo-user', createdById: 'demo-user', kind: 'PERSONAL', from: leaveDate(-14), to: leaveDate(-13), reason: '家中事務，已先向班主任口頭報告。', status: 'APPROVED', rejectReason: null, reviewedAt: now - 300 * h, createdAt: now - 320 * h },
+      { id: 'lv3', studentId: 'demo-user', createdById: 'demo-user', kind: 'OFFICIAL', from: leaveDate(-30), to: leaveDate(-30), reason: '代表學校參加校際辯論比賽。', status: 'REJECTED', rejectReason: '請附帶比賽通知截圖', reviewedAt: now - 700 * h, createdAt: now - 720 * h },
     ],
   };
 }
@@ -460,6 +467,50 @@ function shapeGiveaway(data, item, extra) {
     givenAt: item.givenAt ? new Date(item.givenAt).toISOString() : null,
     closedAt: item.closedAt ? new Date(item.closedAt).toISOString() : null,
     createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : null,
+  };
+}
+
+/** 示範層的請假日期：相對今天 ±N 天，寫成 `YYYY-MM-DD`（與後端 @db.Date 同一個字串形狀） */
+function leaveDate(offsetDays) {
+  const d = new Date(Date.now() + (offsetDays || 0) * 86400000);
+  return d.toISOString().slice(0, 10);
+}
+
+const LEAVE_KIND_LABEL = { SICK: '病假', PERSONAL: '事假', OFFICIAL: '公假' };
+const LEAVE_STATUS_LABEL = { PENDING: '待審批', APPROVED: '已批准', REJECTED: '已駁回', CANCELLED: '已取消' };
+
+/** 假單的對外形狀與後端 lib/leaves.ts 的 shapeLeave 一致（前端兩條路徑不必分開寫） */
+function shapeLeave(row, me) {
+  const from = String(row.from || '');
+  const to = String(row.to || '');
+  const head = from.replace(/-/g, '/');
+  const tail = to.replace(/-/g, '/');
+  const dateText = head === tail ? head : from.slice(0, 4) === to.slice(0, 4) ? head + '–' + tail.slice(5) : head + '–' + tail;
+  const days = Math.round((new Date(to + 'T00:00:00Z').getTime() - new Date(from + 'T00:00:00Z').getTime()) / 86400000) + 1;
+  const isMine = me && me.id === row.studentId;
+  return {
+    id: row.id,
+    studentId: row.studentId,
+    student: isMine
+      ? { id: me.id, nickname: me.nickname || '同學', grade: me.grade || null, className: me.className || null }
+      : { id: row.studentId, nickname: row.studentName || '陳同學', grade: '高二', className: '仁' },
+    createdById: row.createdById,
+    createdBy: { id: row.createdById, nickname: isMine ? (me && me.nickname) || '同學' : '家長', role: null },
+    kind: row.kind,
+    kindText: LEAVE_KIND_LABEL[row.kind] || row.kind,
+    from: from,
+    to: to,
+    dateText: dateText,
+    days: Number.isNaN(days) ? 1 : days,
+    reason: row.reason || '',
+    attachmentUrl: row.attachmentUrl || null,
+    status: row.status,
+    statusText: LEAVE_STATUS_LABEL[row.status] || row.status,
+    rejectReason: row.rejectReason || null,
+    reviewedAt: row.reviewedAt ? new Date(row.reviewedAt).toISOString() : null,
+    reviewedBy: row.reviewedBy || null,
+    createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
+    canCancel: row.status === 'PENDING',
   };
 }
 
@@ -2010,5 +2061,122 @@ module.exports = {
     item.version = (item.version || 0) + 1;
     save(data);
     return Promise.resolve({ ok: true, action: 'ACCEPT' });
+  },
+
+  // ── W-72 請假申請（示範層也寫得進，斷網演示時這個模組不能是死的）──
+  myLeaves() {
+    const data = db();
+    const me = data.user || {};
+    const rows = (data.leaves || []).filter((row) => row.studentId === me.id || row.createdById === me.id);
+    const items = rows
+      .slice()
+      .sort((a, b) => String(b.from).localeCompare(String(a.from)))
+      .map((row) => shapeLeave(row, me));
+    return Promise.resolve({
+      items: items,
+      pending: items.filter((row) => row.status === 'PENDING').length,
+      approved: items.filter((row) => row.status === 'APPROVED').length,
+      studentName: me.nickname || null,
+    });
+  },
+
+  createLeave(input) {
+    const data = db();
+    const me = data.user || {};
+    const body = input || {};
+    const from = body.fromDate || '';
+    const to = body.toDate || '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '日期格式要是 2026-11-12' });
+    }
+    if (from > to) return Promise.reject({ code: 'VALIDATION_FAILED', message: '結束日期不能早於開始日期' });
+    if (!String(body.reason || '').trim()) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '請簡單寫一下原因' });
+    }
+    const clash = (data.leaves || []).filter(
+      (row) =>
+        row.studentId === me.id &&
+        (row.status === 'PENDING' || row.status === 'APPROVED') &&
+        row.from <= to &&
+        row.to >= from,
+    )[0];
+    if (clash) {
+      return Promise.reject({ code: 'CONFLICT', message: '這段日期已經有一張假單了' });
+    }
+    const row = {
+      id: 'lv' + Date.now(),
+      studentId: me.id,
+      createdById: me.id,
+      kind: body.kind || 'SICK',
+      from: from,
+      to: to,
+      reason: String(body.reason).trim(),
+      attachmentUrl: body.attachmentUrl || null,
+      status: 'PENDING',
+      rejectReason: null,
+      reviewedAt: null,
+      createdAt: Date.now(),
+    };
+    data.leaves = (data.leaves || []).concat([row]);
+    save(data);
+    return Promise.resolve({ leave: shapeLeave(row, me) });
+  },
+
+  cancelLeave(id) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.leaves || []).filter((x) => x.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這張假單' });
+    if (row.studentId !== me.id && row.createdById !== me.id) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只能取消自己的假單' });
+    }
+    if (row.status !== 'PENDING') return Promise.reject({ code: 'CONFLICT', message: '這張假單已經處理過了' });
+    row.status = 'CANCELLED';
+    save(data);
+    return Promise.resolve({ ok: true, status: 'CANCELLED' });
+  },
+
+  adminLeaves(query) {
+    const data = db();
+    const me = data.user || {};
+    const manager = ['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (!manager) return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    const q = query || {};
+    const status = q.status || 'PENDING';
+    const rows = (data.leaves || []).filter((row) => (status === 'ALL' ? true : row.status === status));
+    const counts = { PENDING: 0, APPROVED: 0, REJECTED: 0, CANCELLED: 0 };
+    (data.leaves || []).forEach((row) => {
+      counts[row.status] = (counts[row.status] || 0) + 1;
+    });
+    const items = rows
+      .slice()
+      .sort((a, b) =>
+        status === 'PENDING'
+          ? String(a.from).localeCompare(String(b.from))
+          : Number(b.reviewedAt || b.createdAt) - Number(a.reviewedAt || a.createdAt),
+      )
+      .map((row) => shapeLeave(row, me));
+    return Promise.resolve({ items: items, total: items.length, page: 1, counts: counts });
+  },
+
+  reviewLeave(id, body) {
+    const data = db();
+    const me = data.user || {};
+    const manager = ['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (!manager) return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    const row = (data.leaves || []).filter((x) => x.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這張假單' });
+    if (row.status !== 'PENDING') return Promise.reject({ code: 'CONFLICT', message: '這張假單已經處理過了' });
+    const action = (body && body.action) || 'APPROVE';
+    const reason = String((body && body.reason) || '').trim();
+    if (action === 'REJECT' && !reason) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '駁回要寫原因，家長才知道怎麼補' });
+    }
+    row.status = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+    row.rejectReason = action === 'REJECT' ? reason : null;
+    row.reviewedAt = Date.now();
+    row.reviewedBy = { id: me.id, nickname: me.nickname || '老師' };
+    save(data);
+    return Promise.resolve({ leave: shapeLeave(row, me) });
   },
 };
