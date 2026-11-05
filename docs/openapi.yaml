@@ -1099,6 +1099,13 @@ paths:
                   yearTerms: { type: array, items: { type: string } }
                   grades: { type: integer }
                   attendance: { type: integer }
+                  remaining: { type: integer, description: 還有幾段沒同步（0＝全部完成） }
+                  done: { type: boolean, description: 與 /school/sync 同一支分批邏輯，游標存在家長的 SchoolLink }
+                  thisBatch:
+                    type: object
+                    properties:
+                      from: { type: string, nullable: true }
+                      to: { type: string, nullable: true }
                   syncedAt: { type: string, format: date-time }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -3111,6 +3118,8 @@ paths:
                   className: { type: string, nullable: true }
                   lastSyncAt: { type: string, format: date-time, nullable: true }
                   lastError: { type: string, nullable: true, description: 上次同步失敗原因（成功時清空） }
+                  pendingCells: { type: integer, description: '分批同步還有幾段沒抓（0＝全部完成）；家長端據此顯示「還有 N 段未同步」' }
+                  syncStartedAt: { type: string, format: date-time, nullable: true, description: 這一輪同步第一次按下來的時間 }
                   cryptoReady: { type: boolean, description: 後端是否已設定 SCHOOL_CRED_KEY }
         '401': { description: 未登入 }
 
@@ -3160,7 +3169,14 @@ paths:
   /school/sync:
     post:
       tags: [school]
-      summary: 立即同步（預設當前學年＋上一個學年；手動觸發與排程共用）
+      summary: 分批同步（由近而遠；每批最多用 25 秒，剩下的靠游標續傳）
+      description: |
+        一次完整同步實測 44.5 秒（Vercel 這支函式 60 秒就砍），所以改成**分批**：
+        - 由近而遠：學年由新到舊，學年內第一段→第三段；預設取最近 6 個學年。
+        - 游標落庫：跑到哪一格記在 `SchoolLink.syncCursor`，下次從那一格接上，不從頭。
+        - 每批時間預算 25 秒（`SCHOOL_SYNC_BUDGET_MS` 可調）；預算內能抓幾格就抓幾格。
+        - 回 `done`／`remaining`：`done=false` 時前端顯示「還有 N 段未同步，可再按一次」，
+          **不自動連發**（家長網路慢會排隊卡住）。
       security: [{ bearerAuth: [] }]
       requestBody:
         required: false
@@ -3171,12 +3187,12 @@ paths:
               properties:
                 yearTerms:
                   type: array
-                  maxItems: 6
-                  description: 指定學年（不帶就抓當前＋上一個學年）
+                  maxItems: 20
+                  description: 指定學年（不帶就取上游清單最近 6 個學年）
                   items: { type: string, maxLength: 16 }
       responses:
         '200':
-          description: 同步結果
+          description: 同步結果（一批）
           content:
             application/json:
               schema:
@@ -3189,8 +3205,21 @@ paths:
                   grades: { type: integer, description: 實際寫入的成績筆數（已去重，與資料庫筆數一致） }
                   attendance: { type: integer, description: 實際寫入的出缺席天數（已去重；上游會把同一天回三次） }
                   skipped: { type: integer, description: 上游重複回傳而被略過的筆數（診斷用） }
-                  termsDone: { type: integer, description: 完成幾個學段（正常為 3） }
-                  partial: { type: boolean, description: 'true＝時間預算用完，先寫入已抓到的部分；下次同步會補齊（不是失敗）' }
+                  termsDone: { type: integer, description: 這一批完成幾個學段格 }
+                  partial: { type: boolean, description: 'true＝時間預算用完，後面還有格子（等於 !done）' }
+                  thisBatch:
+                    type: object
+                    description: 這一批從哪一格跑到哪一格（人看得懂的標籤，例「2026/2027 第一段」）
+                    properties:
+                      from: { type: string, nullable: true }
+                      to: { type: string, nullable: true }
+                  synced:
+                    type: object
+                    properties:
+                      grades: { type: integer }
+                      attendance: { type: integer }
+                  remaining: { type: integer, description: 還有幾段沒同步（0＝全部完成） }
+                  done: { type: boolean, description: true＝全部學年同步完成、游標已清空 }
                   syncedAt: { type: string, format: date-time }
         '401': { description: 家校通帳號或密碼已失效，請重新連結 }
         '422': { description: 尚未連結家校通 }

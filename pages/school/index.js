@@ -30,6 +30,8 @@ Page({
     password: '',
     linking: false,
     syncing: false,
+    /** 分批同步還沒抓完的段數（0＝全部同步完成）。從 /school/status 的 pendingCells 來 */
+    pendingCells: 0,
     status: null,
     grades: [],
     attendance: [],
@@ -84,6 +86,10 @@ Page({
       childNoSyncHint: i18n.pick('已自動對應子女，可以直接查看已同步的成績與出缺席。要抓取最新資料，請在下面用你自己的家校通帳號連結。'),
       viewing: i18n.pick('目前查看'),
       partialNote: i18n.pick('學校系統較慢，這次先同步一部分；下次同步會補齊。'),
+      // 分批同步（W-66）：一次只抓一段時間預算內的資料，剩下靠「再按一次」續傳
+      pendingPrefix: i18n.pick('還有 '),
+      pendingSuffix: i18n.pick(' 段未同步，可再按一次繼續'),
+      allSynced: i18n.pick('所有學年都已同步'),
     };
   },
 
@@ -127,6 +133,8 @@ Page({
         status: st,
         isParent,
         credLinked: !!(st && st.linked),
+        // 分批同步：打開頁面就知道「還有幾段沒抓」，不用按了才發現
+        pendingCells: (st && st.pendingCells) || 0,
         children,
         activeChildId: children.length ? children[0].studentId : '',
         loading: false,
@@ -205,16 +213,36 @@ Page({
     }
   },
 
+  /**
+   * 同步（分批）。
+   *
+   * 後端一次只抓「時間預算內」的段數（實測一次完整同步 44.5 秒、離 Vercel 60 秒上限
+   * 只剩 15 秒），所以回傳會帶 `done` 與 `remaining`：
+   *  - done=true → 全部學年都同步完了（游標已清空）；
+   *  - done=false → 還有 N 段，畫面提示「可再按一次繼續」。
+   * 刻意**不自動連發**：家長網路慢時連發只會排隊卡住，而且看不見進度。
+   */
   async sync() {
     this.setData({ syncing: true });
     try {
       const r = this.data.isParent
         ? await data.parentChildSync(this.data.activeChildId)
         : await data.schoolSync();
-      this.setData({ syncing: false });
+      const pending = typeof r.remaining === 'number' ? r.remaining : 0;
+      const from = (r.thisBatch && r.thisBatch.from) || '';
+      const to = (r.thisBatch && r.thisBatch.to) || '';
+      const batch = from && from !== to ? from + ' – ' + to : from;
+      this.setData({ syncing: false, pendingCells: r.done ? 0 : pending });
       wx.showToast({ title: this.data.L.syncedPrefix + (r.grades || 0) + this.data.L.gradeUnit, icon: 'none' });
-      // partial＝學校系統太慢，後端先寫入一部分：要講清楚「下次會補齊」，不然家長以為只抓到這些
-      if (r && r.partial) wx.showModal({ title: this.data.L.sync, content: this.data.L.partialNote, showCancel: false });
+      if (!r.done) {
+        // 有剩下才跳說明，不然每按一次都彈一輪太吵
+        const head = batch ? this.data.L.syncedPrefix + batch + '；' : '';
+        wx.showModal({
+          title: this.data.L.sync,
+          content: head + this.data.L.pendingPrefix + pending + this.data.L.pendingSuffix,
+          showCancel: false,
+        });
+      }
       await this.loadAll();
     } catch (e) {
       this.setData({ syncing: false });

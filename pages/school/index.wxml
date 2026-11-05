@@ -52,6 +52,8 @@
             <pv-button size="sm" type="filled" loading="{{syncing}}" disabled="{{syncing}}" bind:tap="sync">{{isParent ? L.syncChild : L.sync}}</pv-button>
             <pv-button size="sm" type="plain" bind:tap="unlink">{{L.unlink}}</pv-button>
           </view>
+          <!-- 分批同步：上次沒抓完就寫在這裡，讓使用者知道「再按一次」不是重來 -->
+          <text wx:if="{{pendingCells > 0}}" class="sch-hint">{{L.pendingPrefix}}{{pendingCells}}{{L.pendingSuffix}}</text>
         </pv-card>
 
         <block wx:if="{{(isParent && children.length) || (!isParent && credLinked)}}">
