@@ -1,0 +1,106 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view
+    class="page-scroll"
+    scroll-y
+    bounces
+    show-scrollbar="{{false}}"
+    enhanced="{{true}}"
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+  >
+    <view class="study-inner">
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="2" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="2" /></view>
+        </view>
+        <view class="ui-list ui-list--grouped ui-mt-3">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="3" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="3" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{failed}}" title="{{L.k10}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k11}}</pv-button>
+      </pv-empty>
+
+      <block wx:else>
+        <!-- 接下來的測驗（倒數） -->
+        <view class="head">
+          <text class="ui-section">{{L.k02}}</text>
+          <text wx:if="{{childName}}" class="ui-meta">{{L.k37}}{{childName}}</text>
+        </view>
+
+        <pv-empty wx:if="{{!exams.length}}" title="{{L.k03}}" desc="{{L.k04}}" />
+
+        <view wx:else class="ui-list ui-list--grouped">
+          <view
+            wx:for="{{exams}}"
+            wx:key="id"
+            class="ui-card ui-card--row {{index === exams.length - 1 ? 'ui-card--last' : ''}}"
+          >
+            <view class="exam">
+              <view class="exam__when">
+                <text class="exam__when-text ui-num {{item.soon ? 'exam__when-text--soon' : ''}}">{{item.whenText}}</text>
+              </view>
+              <view class="exam__main">
+                <text class="ui-title exam__title">{{item.title}}</text>
+                <text class="ui-meta exam__meta">{{item.metaText}}</text>
+              </view>
+              <pv-tag wx:if="{{item.soon}}" text="{{L.k05}}" type="danger" />
+            </view>
+          </view>
+        </view>
+
+        <!-- 溫習建議（依成績排序） -->
+        <view class="head ui-mt-3">
+          <text class="ui-section">{{L.k06}}</text>
+          <text wx:if="{{totalCount}}" class="ui-meta">{{L.k25}}{{doneCount}} / {{totalCount}}{{L.k26}}</text>
+        </view>
+
+        <pv-empty wx:if="{{needLogin}}" title="{{L.k12}}" desc="{{L.k13}}">
+          <pv-button type="tinted" size="sm" bind:tap="goLogin">{{L.k14}}</pv-button>
+        </pv-empty>
+
+        <pv-empty wx:elif="{{!subjects.length}}" title="{{L.k07}}" desc="{{L.k08}}" />
+
+        <view wx:else class="ui-list ui-list--grouped">
+          <view
+            wx:for="{{subjects}}"
+            wx:key="course"
+            class="ui-card ui-card--row {{index === subjects.length - 1 ? 'ui-card--last' : ''}} {{pressedKey === item.course ? 'ui-card--pressed' : ''}}"
+            data-course="{{item.course}}"
+            bindtouchstart="onTouchStart"
+            bindtouchend="onTouchEnd"
+            bindtouchcancel="onTouchEnd"
+            bindtap="onToggle"
+          >
+            <view class="subj">
+              <view class="subj__check {{item.done ? 'subj__check--on' : ''}}">
+                <text wx:if="{{item.done}}" class="subj__tick">✓</text>
+              </view>
+              <view class="subj__main">
+                <view class="ui-row-between">
+                  <text class="ui-title subj__name {{item.done ? 'subj__name--done' : ''}}">{{item.course}}</text>
+                  <view class="subj__right">
+                    <pv-tag wx:if="{{item.first && !item.done}}" text="{{L.k18}}" type="tint" />
+                    <text class="ui-meta ui-num">{{item.avgText}}</text>
+                  </view>
+                </view>
+                <text wx:if="{{item.reasonText}}" class="ui-sub subj__reason">{{item.reasonText}}</text>
+                <text wx:if="{{item.lastText}}" class="ui-meta">{{item.lastText}}</text>
+                <text class="ui-meta">{{item.trendText}} · {{item.countText}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <text class="foot">{{L.k19}}</text>
+        <text class="foot">{{L.k09}}</text>
+        <text class="foot">{{L.k39}}</text>
+      </block>
+    </view>
+  </scroll-view>
+</view>

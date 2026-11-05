@@ -393,6 +393,14 @@ function cancelCore(id, userId) {
 
 let schoolLinked = false;
 
+/** 示範資料用的「N 天後」日期字串（YYYY-MM-DD，本地時區；每次載入都以今天為基準，不會過期） */
+function demoDay(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + (offset || 0));
+  const pad = (n) => (n < 10 ? '0' + n : String(n));
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+
 /**
  * 家校通示範資料（模組層函式，不是 `this.xxx`）。
  * data.js 是把 mock 的方法拆出來呼叫的（`mock[name](...)`），`this` 會是 null ——
@@ -1028,9 +1036,19 @@ module.exports = {
     return Promise.resolve({ q: q, total: kept.reduce((s, g) => s + g.count, 0), groups: kept });
   },
 
-  /** 外部校曆：示範模式沒有外部連結，回空集合（畫面只顯示站內公告與活動） */
+  /** 外部校曆（示範模式）：給兩場測驗，讓「測驗倒數」在離線演示時也有資料 */
   externalCalendar() {
-    return Promise.resolve({ configured: false, source: 'ics', updatedAt: null, items: [] });
+    // 示範層也要有測驗場次，否則「測驗倒數」在斷網演示時只會是空狀態
+    // （真 API 模式下這份資料來自學校發布的 ICS；沒設定就是空的，頁面會說明）
+    return Promise.resolve({
+      configured: true,
+      source: 'ics',
+      updatedAt: new Date().toISOString(),
+      items: [
+        { id: 'ics-exam-1', title: '化學測驗（第二次）', date: demoDay(4), startTime: '09:00', location: '高二丙課室' },
+        { id: 'ics-exam-2', title: '數學統測', date: demoDay(11), startTime: '09:00', location: '禮堂' },
+      ],
+    });
   },
 
   createReport(targetType, targetId, reason) {

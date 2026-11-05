@@ -21,6 +21,7 @@ const ADMIN_SUB = {
 
 const appearance = require('../../utils/appearance');
 const venue = require('../../utils/venue');
+const study = require('../../utils/study');
 
 /** 首頁場地入口的副標：現在開放的場地／器材數（澳門時間判定，與詳情頁同一套） */
 function venueOpenText(items) {
@@ -63,6 +64,8 @@ Page({
     venuePressed: false,
     giveawayText: '',
     giveawayPressed: false,
+    studyText: '',
+    studyPressed: false,
     // 家長：只在家長身分時才有值（切換子女就在首頁做，不必先點進別的頁）
     parentChildren: [],
     parentActiveId: '',
@@ -98,6 +101,11 @@ Page({
       k19: i18n.pick("查看館藏 ›"),
       k20: i18n.pick('場地借用'),
       k21: i18n.pick('二手轉贈'),
+      k22: i18n.pick('測驗倒數'),
+      k23: i18n.pick('今天'),
+      k24: i18n.pick('明天'),
+      k25: i18n.pick(' 天後'),
+      k26: i18n.pick('目前沒有測驗安排'),
       brand: i18n.pick('培華校園助手'),
       brandSub: i18n.pick('PUI VA CAMPUS'),
       demoTag: i18n.t('home.demoTag'),
@@ -260,6 +268,22 @@ Page({
       // 緊急公告：只在真的有 URGENT 時顯示第一則
       const urgent = (notices.items || []).find((n) => n.kind === 'URGENT') || null;
 
+      // 測驗倒數（W-69）：用剛抓回來的公告＋活動推算，不另外再打一輪 API
+      const studyExams = study.upcomingExams(
+        { events: (events && events.items) || [], notices: (notices && notices.items) || [] },
+        new Date()
+      );
+      const nextExam = studyExams[0] || null;
+      const studyText = nextExam
+        ? (nextExam.daysLeft === 0
+            ? i18n.pick('今天')
+            : nextExam.daysLeft === 1
+              ? i18n.pick('明天')
+              : nextExam.daysLeft + i18n.pick(' 天後')) +
+          ' · ' +
+          nextExam.title
+        : i18n.pick('目前沒有測驗安排');
+
       // 今日菜單：用本地日期比對，找不到就取第一天
       const todayKey = dateKey();
       const days = menu.days || [];
@@ -312,6 +336,7 @@ Page({
         venueText: resources && resources.items ? venueOpenText(resources.items) : '—',
         giveawayText:
           giveaways && giveaways.items ? (giveaways.items.length ? giveaways.items.length + i18n.pick(' 件等你拿') : i18n.pick('目前沒有人送東西')) : '—',
+        studyText: studyText,
         user: me || {},
         parentChildren: parentChildren,
         parentActiveId: parentActiveId,
@@ -402,6 +427,19 @@ Page({
 
   goGiveaway() {
     wx.navigateTo({ url: '/pages/giveaway/list/index' });
+  },
+
+  // ── 測驗倒數入口（W-69）：第四條列 ──
+  onStudyTouchStart() {
+    this.setData({ studyPressed: true });
+  },
+
+  onStudyTouchEnd() {
+    this.setData({ studyPressed: false });
+  },
+
+  goStudy() {
+    wx.navigateTo({ url: '/pages/study/index' });
   },
 
   onRetry() {

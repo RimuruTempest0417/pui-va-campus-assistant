@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.88.0-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.89.0-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -42,6 +42,7 @@
 | 帳號安全 | **兩步驗證（TOTP）**：高權限帳號可自行開啟，登入要密碼＋6 位動態碼，附 8 組一次性備用碼；關閉要再輸密碼。**登入失敗鎖定**：連續 5 次密碼錯鎖 15 分鐘（鎖定期間正確密碼也回 429，訊息不透露帳號是否存在），登入成功清零並記錄最後登入時間，管理員可一鍵解除鎖定 | ✅ 設定頁「安全」區塊＋後台使用者分頁（已鎖定 Tag／解除鎖定） | ✅ TOTP 4 支端點、RFC 6238、e2e 4 項；鎖定 `failedLogins`／`lockedUntil`＋`POST /admin/users/:id/unlock`、e2e 7 項 |
 | 多人同時編輯 | **編輯衝突保護（樂觀鎖）**：兩位老師先後改同一則公告／同一個活動時，後存的人不會靜默蓋掉前一位 —— 收到 409 就提示「這筆剛被別人改過」並重抓清單，不自動重送 | 後台公告／活動分頁（置頂、取消／恢復活動） | ✅ `Notice.version`／`Event.version`、`WHERE version = ?` ＋ `version + 1`、e2e 4 項；前端守門第 18 條釘住每個呼叫端 |
 | 校曆（含外部） | 月視圖、當日項目、**外部 ICS 校曆（可多達 3 個來源、可依來源篩選）** | ✅ 1 頁 ＋ 來源 chips | ✅ `/calendar/external`（多來源獨立快取） |
+| 測驗倒數與溫習計劃 | 把校曆裡的測驗（活動／外部 ICS／公告文字寫出的日期）換算成「今天／明天／N 天後」；下半部按**自己的成績**排溫習順序（考期近 → 最近退步 → 平均偏低），每一列寫出理由與上次考的範圍，點一下標記「已溫完」（每週一自動重算）。純統計規則，**不接任何外部服務、沒有 AI 生成**；家長看的是自己那位子女 | ✅ 1 頁 ＋ 首頁入口 | — （既有 `/events`＋`/calendar/external`＋`/notices`＋`/school/grades` 組合，不新增端點） |
 
 > 不含地圖／導覽功能；不使用微信雲開發（後端另行自建，2026-10-24 老師確認雲開發沒有機會）。
 
@@ -78,7 +79,7 @@
 
 ```
 .
-├── app.js / app.json / app.wxss          # 全局入口（36 個頁面註冊）
+├── app.js / app.json / app.wxss          # 全局入口（37 個頁面註冊）
 ├── pages/
 │   ├── index/                            # 首頁：四模組入口、緊急公告、今日午餐
 │   ├── search/                           # 全校搜尋（公告／活動／失物一次搜）
@@ -90,6 +91,7 @@
 │   ├── library/{list,detail,mine}/       # 圖書館：館藏、掃書號借書、我的借閱
 │   ├── venues/{list,detail,mine}/        # 場地／器材借用：時段申請、我的申請
 │   ├── giveaway/{list,detail,create,mine}/ # 二手書／校服轉贈：送出、申請、物主決定給誰
+│   ├── study/                            # 測驗倒數與溫習計劃（校曆＋成績推算）
 │   ├── parent/                           # 家長端：切換子女、代報名／取消
 │   ├── print/{items,event}/              # 列印版（A4 黑白）：失物清單、活動名單
 │   ├── style-guide/                      # 設計系統展示頁
@@ -98,7 +100,7 @@
 │   └── …                                 # pv-avatar / pv-empty / pv-skeleton / pv-tabs / pv-sheet
 ├── styles/{tokens.wxss,ui.wxss,print.wxss} # design tokens、共用樣式、列印版面
 ├── services/{api.js,mock.js,data.js}     # 真 API／示範資料／唯一資料入口
-├── utils/{request,errors,reporter,date,event,week,notice,item,nav,print,book,venue,giveaway}.js
+├── utils/{request,errors,reporter,date,event,week,notice,item,nav,print,book,venue,giveaway,study}.js
 ├── config/config.js                      # API_BASE_URL、DEMO_MODE
 ├── scripts/
 │   ├── check-project.mjs                 # 結構／WXSS／白屏守門
@@ -107,8 +109,9 @@
 │   ├── check-i18n.mjs                    # 繁簡介面守門（pick 抽樣／對照表殘留／L.* 供應）
 │   ├── i18n-js-scan.mjs／i18n-wrap-js.mjs # 掃出／包裝頁面 JS 的中文字面值（W-20b 工具）
 │   ├── build-i18n-phrases.py             # 用 opencc tw2sp 重建繁→簡對照表
-│   ├── check-states.mjs                  # 36 頁三態（載入／空／失敗）對照表守門
-│   ├── check-console.mjs                 # 36 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
+│   ├── check-states.mjs                  # 37 頁三態（載入／空／失敗）對照表守門
+│   ├── check-study.cjs                   # 測驗倒數／溫習排序的邏輯守門（40 項，不需開發者工具）
+│   ├── check-console.mjs                 # 37 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
 │   └── verify-all.mjs                    # 一鍵驗收：上面四支串起來跑完並彙總（失敗貼完整輸出）
 ├── docs/
 │   ├── 01-藍圖與評分對標.md
@@ -139,11 +142,12 @@ node scripts/package.mjs     # → dist/pui-va-campus-assistant-vX.Y.Z.zip
 node scripts/verify-all.mjs        # 4 通過／0 失敗；--no-console 跳過走查、--strict 讓略過也算失敗
 
 # 也可以單獨跑（CI 也會跑）
-node scripts/check-project.mjs     # 36 頁面 / 0 警告
+node scripts/check-project.mjs     # 37 頁面 / 0 警告
 node scripts/check-openapi.mjs     # 154 條路徑／183 個操作、0 重複鍵（--parity 印出與後端路由表的差）
 node scripts/check-data-layer.mjs  # ALL PASS 158/158（固定跑示範資料層，含 data↔api↔mock 方法對齊）
-node scripts/check-states.mjs      # 36 頁三態全部符合（--table 印出對照表）
-node scripts/check-console.mjs     # 36 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
+node scripts/check-states.mjs      # 37 頁三態全部符合（--table 印出對照表）
+node scripts/check-study.cjs       # 測驗倒數／溫習排序：40 項邏輯斷言（不需要開發者工具）
+node scripts/check-console.mjs     # 37 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
 ```
 
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄
@@ -174,6 +178,7 @@ node scripts/check-console.mjs     # 36 頁 console 走查：0 error／0 warn（
 
 ## 目前進度
 
+- [x] **還有幾天、先讀哪一科，同一頁看（v0.89.0）**：首頁多一條「測驗倒數」，副標就寫著最近一場（例如「4 天後 · 化學測驗」）。點進去上半部是接下來幾場測驗，左邊是天數（今天／明天／N 天後）、右邊是名稱與日期；下半部是「溫習建議」，按自己的成績排 —— 考試快到的科目優先、最近一次明顯退步的次之、平均分偏低的再來，每一列都寫出理由（「4 天後有這一科的測驗」／「最近一次跌 12 分」）和上次考的範圍，點一下就標成「已溫完」，上方顯示「已溫 2 / 5 科」，每週一自動重新計算。倒數只認真的日期：老師在校曆建標題含「測驗」或「考試」的活動、學校發布的校曆表、或公告裡直接寫出日期，不用另外登記。家長看到的同一頁是自己那位子女的版本；這頁只用站內校曆與成績推算，**沒有任何外部服務或 AI 生成**
 - [x] **用不到的課本與穿不下的校服，有地方去了（v0.88.0）**：首頁多一條「二手轉贈」。送出東西只要選種類（書籍／校服／其他）、寫標題與新舊，年級或尺碼、面交地點填一句就好，聯絡方式只有你選中的那位看得到。想要的人按「我想要」並留一句話，最後由**物主自己決定給誰** —— 不是先搶先贏，也不是等老師審。按「給這位」之後東西就標成已贈出、清單上自動消失，其他同時在等的人會收到「這次沒留給你」，不會一直卡在等回覆。暫時不想送了就按「下架」，之後還能重新上架；後台「轉贈」分頁讓校內職員把不合適的貼文收起來
 - [x] **實驗室、球場、投影機，不用再去群組問（v0.87.0）**：以前借場地要問一句「星期三下午實驗室有人用嗎」，兩個人都問、兩個人以為借到了。現在首頁多一條「場地借用」：點進去看每個場地現在開不開放、接下來誰借了哪個時段，選好日期與時間（半小時為一格）、寫一句用途就送出。要老師批准的會標「待審批」，批了會通知你；投影機這類小器材免審批，送出就生效。同一個時段只會有一組人借到，別人先送出時畫面會直接寫「這個時段已被預約」。想改時間就按「取消申請」把時段放出來，再重新選 —— 不用麻煩老師
 - [x] **書想借就借，借完了排隊也看得到第幾位（v0.86.0）**：圖書館的書現在查得到、借得到、也排得到。首頁「圖書館」可以搜書名或直接掃書背的條碼，書在架上按一下就借出，有人先借走就排候補並寫你是第幾位；有人還書時系統會通知你、幫你留 48 小時，逾時才讓給下一位。借期快到的會標色，續借同樣按一下（一本只能續一次、有人在排隊時不能續）。圖書館職員在後台就能登記新書、看誰還沒還、一鍵催還

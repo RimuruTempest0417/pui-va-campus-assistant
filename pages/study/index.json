@@ -1,0 +1,12 @@
+{
+  "navigationBarTitleText": "測驗倒數",
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "pv-navbar": "/components/pv-navbar/index",
+    "pv-tag": "/components/pv-tag/index",
+    "pv-empty": "/components/pv-empty/index",
+    "pv-skeleton": "/components/pv-skeleton/index",
+    "pv-button": "/components/pv-button/index"
+  },
+  "navigationStyle": "custom"
+}
