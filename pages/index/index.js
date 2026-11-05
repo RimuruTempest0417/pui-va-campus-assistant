@@ -20,6 +20,14 @@ const ADMIN_SUB = {
 };
 
 const appearance = require('../../utils/appearance');
+const venue = require('../../utils/venue');
+
+/** 首頁場地入口的副標：現在開放的場地／器材數（澳門時間判定，與詳情頁同一套） */
+function venueOpenText(items) {
+  const now = Date.now();
+  const open = items.filter((item) => venue.shapeResource(item, now).openNow).length;
+  return open ? i18n.pick('現在開放 ') + open + i18n.pick(' 個') : i18n.pick('目前都已休息');
+}
 
 Page({
   data: {
@@ -51,6 +59,8 @@ Page({
     apiBaseText: '',
     libraryText: '',
     libPressed: false,
+    venueText: '',
+    venuePressed: false,
     // 家長：只在家長身分時才有值（切換子女就在首頁做，不必先點進別的頁）
     parentChildren: [],
     parentActiveId: '',
@@ -84,6 +94,7 @@ Page({
       k17: i18n.pick("可借 "),
       k18: i18n.pick(" 本"),
       k19: i18n.pick("查看館藏 ›"),
+      k20: i18n.pick('場地借用'),
       brand: i18n.pick('培華校園助手'),
       brandSub: i18n.pick('PUI VA CAMPUS'),
       demoTag: i18n.t('home.demoTag'),
@@ -228,7 +239,7 @@ Page({
       // 首次進入先嘗試登入（沒有後端就當訪客，不阻塞畫面）
       await data.ensureLogin();
 
-      const [me, items, events, menu, notices, lib] = await Promise.all([
+      const [me, items, events, menu, notices, lib, resources] = await Promise.all([
         // 未登入時 me() 會 401；首頁是公開頁，訪客照樣要能看到四個模組
         data.me().catch(() => null),
         data.listItems({}),
@@ -237,6 +248,8 @@ Page({
         data.listNotices({}),
         // 圖書館入口的副標（可借幾本）：失敗不影響首頁，寧可顯示「—」
         data.listBooks({ available: '1', limit: 1 }).catch(() => ({ total: 0 })),
+        // 場地入口的副標（現在開放的場地數）；訪客也看得到，失敗就顯示「—」
+        data.listResources({ limit: 50 }).catch(() => ({ items: [] })),
       ]);
 
       // 緊急公告：只在真的有 URGENT 時顯示第一則
@@ -291,6 +304,7 @@ Page({
         failed: false,
         isDemo: data.isDemo(),
         libraryText: lib && lib.total ? i18n.pick('可借 ') + lib.total + i18n.pick(' 本') : '—',
+        venueText: resources && resources.items ? venueOpenText(resources.items) : '—',
         user: me || {},
         parentChildren: parentChildren,
         parentActiveId: parentActiveId,
@@ -356,6 +370,18 @@ Page({
 
   goLibrary() {
     wx.navigateTo({ url: '/pages/library/list/index' });
+  },
+
+  onVenueTouchStart() {
+    this.setData({ venuePressed: true });
+  },
+
+  onVenueTouchEnd() {
+    this.setData({ venuePressed: false });
+  },
+
+  goVenues() {
+    wx.navigateTo({ url: '/pages/venues/list/index' });
   },
 
   onRetry() {

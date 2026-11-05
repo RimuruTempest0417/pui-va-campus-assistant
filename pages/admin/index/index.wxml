@@ -838,6 +838,127 @@
         </block>
       </block>
 
+      <block wx:elif="{{tab === 'venues'}}">
+        <view class="filter-row">
+          <view
+            wx:for="{{venModes}}"
+            wx:key="key"
+            class="chip {{venMode === item.key ? 'chip--on' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="switchVenMode"
+          >{{item.label}}</view>
+        </view>
+
+        <block wx:if="{{venMode === 'pending'}}">
+          <view wx:if="{{venPending.length}}" class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{venPending}}"
+              wx:key="id"
+              class="signup-row {{index === venPending.length - 1 ? 'signup-row--last' : ''}}"
+            >
+              <view class="lib-row">
+                <view class="lib-row__main">
+                  <text class="signup-row__name">{{item.resource.name}}</text>
+                  <text class="ui-meta">{{item.dateText}} {{item.timeText}}</text>
+                  <text class="ui-meta">{{L.k302}} {{item.user.nickname}}</text>
+                  <text class="ui-meta">{{L.k328}} {{item.purpose}}</text>
+                </view>
+                <view class="row-actions">
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="venApprove">{{L.k303}}</pv-button>
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="venReject">{{L.k304}}</pv-button>
+                </view>
+              </view>
+            </view>
+          </view>
+          <pv-empty wx:else title="{{L.k305}}" desc="" />
+
+          <block wx:if="{{venHandled.length}}">
+            <text class="group-sub">{{L.k306}}</text>
+            <view class="ui-list ui-list--grouped">
+              <view
+                wx:for="{{venHandled}}"
+                wx:key="id"
+                class="signup-row {{index === venHandled.length - 1 ? 'signup-row--last' : ''}}"
+              >
+                <view class="lib-row">
+                  <view class="lib-row__main">
+                    <text class="signup-row__name">{{item.resource.name}}</text>
+                    <text class="ui-meta">{{item.dateText}} {{item.timeText}} · {{item.user.nickname}}</text>
+                    <text wx:if="{{item.rejectReason}}" class="ui-meta">{{item.rejectReason}}</text>
+                  </view>
+                  <pv-tag text="{{item.statusLabel}}" type="{{item.status === 'APPROVED' ? 'success' : 'neutral'}}" />
+                </view>
+              </view>
+            </view>
+          </block>
+        </block>
+
+        <block wx:else>
+          <pv-card>
+            <view class="ui-row-between">
+              <text class="ui-title">{{venForm.id ? L.k308 : L.k307}}</text>
+              <pv-button wx:if="{{venForm.id}}" size="sm" type="plain" bind:tap="venResetForm">{{L.k307}}</pv-button>
+            </view>
+
+            <view class="filter-row filter-row--tight">
+              <picker mode="selector" range="{{venKindLabels}}" value="{{venForm.kind === 'EQUIPMENT' ? 1 : 0}}" bindchange="venKindChange">
+                <view class="chip chip--on">{{venForm.kind === 'EQUIPMENT' ? L.k327 : L.k326}}</view>
+              </picker>
+            </view>
+
+            <text class="ui-section ui-mt-2">{{L.k309}}</text>
+            <input class="field__input" value="{{venForm.name}}" data-field="name" bindinput="onVenField" />
+
+            <text class="ui-section ui-mt-2">{{L.k310}}</text>
+            <input class="field__input" value="{{venForm.location}}" data-field="location" bindinput="onVenField" />
+
+            <view class="lib-two">
+              <view class="lib-two__col">
+                <text class="ui-section ui-mt-2">{{L.k311}}</text>
+                <input class="field__input" value="{{venForm.openFrom}}" data-field="openFrom" bindinput="onVenField" />
+              </view>
+              <view class="lib-two__col">
+                <text class="ui-section ui-mt-2">{{L.k312}}</text>
+                <input class="field__input" type="number" value="{{venForm.maxHours}}" data-field="maxHours" bindinput="onVenField" />
+              </view>
+            </view>
+
+            <text class="ui-section ui-mt-2">{{L.k311}}</text>
+            <input class="field__input" value="{{venForm.openTo}}" data-field="openTo" bindinput="onVenField" />
+
+            <view class="filter-row filter-row--tight">
+              <view class="chip {{venForm.needsApproval ? 'chip--on' : ''}}" data-v="1" bindtap="venSetApproval">{{L.k313}}</view>
+              <view class="chip {{!venForm.needsApproval ? 'chip--on' : ''}}" data-v="0" bindtap="venSetApproval">{{L.k329}}</view>
+            </view>
+
+            <view class="row-actions">
+              <pv-button type="filled" loading="{{venSaving}}" disabled="{{venSaving}}" bind:tap="venSave">{{L.k299}}</pv-button>
+            </view>
+          </pv-card>
+
+          <view wx:if="{{venResources.length}}" class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{venResources}}"
+              wx:key="id"
+              class="signup-row {{index === venResources.length - 1 ? 'signup-row--last' : ''}}"
+            >
+              <view class="lib-row">
+                <view class="lib-row__main">
+                  <text class="signup-row__name">{{item.name}}</text>
+                  <text class="ui-meta">{{item.kindLabel}} · {{item.hoursText}} · {{L.k312}} {{item.maxHours}}</text>
+                  <text class="ui-meta">{{item.needsApproval ? L.k313 : L.k329}}</text>
+                </view>
+                <view class="row-actions">
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="venEdit">{{L.k308}}</pv-button>
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" data-name="{{item.name}}" bind:tap="venArchive">{{L.k314}}</pv-button>
+                </view>
+              </view>
+            </view>
+          </view>
+          <pv-empty wx:else title="{{L.k315}}" desc="{{L.k316}}" />
+        </block>
+      </block>
+
       <!-- 批次匯入（活動／菜單共用同一塊面板） -->
       <pv-card wx:if="{{importType}}">
         <view class="ui-row-between">

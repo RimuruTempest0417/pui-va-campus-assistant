@@ -1,0 +1,13 @@
+{
+  "navigationBarTitleText": "場地借用",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "pv-navbar": "/components/pv-navbar/index",
+    "pv-tag": "/components/pv-tag/index",
+    "pv-empty": "/components/pv-empty/index",
+    "pv-skeleton": "/components/pv-skeleton/index",
+    "pv-button": "/components/pv-button/index"
+  },
+  "navigationStyle": "custom"
+}

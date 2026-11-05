@@ -160,3 +160,13 @@
 .lib-row { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; gap: var(--pv-sp-2); }
 .lib-row__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .lib-row .row-actions { margin-top: 0; flex-wrap: nowrap; }
+
+/* 場地分頁（W-67）：子模式標題與緊湊 chip 列 */
+.group-sub {
+  display: block;
+  margin: var(--pv-sp-3) var(--pv-sp-1) var(--pv-sp-1);
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-label-2);
+  letter-spacing: var(--pv-ls-section);
+}
+.filter-row--tight { margin: var(--pv-sp-2) 0 0; gap: var(--pv-sp-2); }

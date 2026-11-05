@@ -1,0 +1,26 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.mine-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+
+.group-title {
+  margin: var(--pv-sp-3) var(--pv-sp-1) var(--pv-sp-1);
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-label-2);
+  letter-spacing: var(--pv-ls-section);
+}
+
+.mine-row { display: flex; flex-direction: row; align-items: center; }
+.mine-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6rpx; }
+.mine-title { flex: 1; min-width: 0; margin-right: var(--pv-sp-2); }
+/* 取消是低頻但重要的動作：給它 88rpx 的可點高度，不要做成一個小字 */
+.mine-cancel {
+  flex-shrink: 0;
+  margin-left: var(--pv-sp-2);
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  padding-left: var(--pv-sp-2);
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-tint);
+}

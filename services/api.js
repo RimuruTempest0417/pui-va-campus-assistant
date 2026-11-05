@@ -197,4 +197,19 @@ module.exports = {
   returnLoan(id) { return http.post('/library/loans/' + id + '/return', {}); },
   renewLoan(id) { return http.post('/library/loans/' + id + '/renew', {}); },
   cancelReservation(id) { return http.del('/library/reservations/' + id); },
+
+  // ── W-67 場地／器材借用 ──
+  listResources(query) { return http.get('/resources', query); },
+  getResource(id) { return http.get('/resources/' + id); },
+  myResourceBookings() { return http.get('/resources/bookings/mine'); },
+  createResourceBooking(id, payload) { return http.post('/resources/' + id + '/bookings', payload); },
+  cancelResourceBooking(id) { return http.del('/resources/bookings/' + id); },
+  // 審批（老師以上）
+  pendingResourceBookings() { return http.get('/resources/pending'); },
+  reviewResourceBooking(id, body) { return http.patch('/resources/bookings/' + id, body); },
+  // 資源管理（校內職員）
+  allResources() { return http.get('/resources/all'); },
+  createResource(body) { return http.post('/resources', body); },
+  updateResource(id, body) { return http.patch('/resources/' + id, body); },
+  archiveResource(id) { return http.del('/resources/' + id); },
 };

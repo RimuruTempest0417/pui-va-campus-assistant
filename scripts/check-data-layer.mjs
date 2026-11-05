@@ -609,6 +609,94 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-67 場地／器材（示範層也要借得動、批得了）──
+{
+  const venueUtil = require(join(here, '..', 'utils', 'venue.js'));
+
+  const all = await data.listResources({});
+  const hasArchived = all.items.filter((r) => r.id === 'r6').length > 0;
+  check('場地：列表排除已下架', !hasArchived && all.items.length >= 5, `${all.items.length} 個／含下架=${hasArchived}`);
+
+  const onlyEquip = await data.listResources({ kind: 'EQUIPMENT' });
+  check('場地：可用類型過濾', onlyEquip.items.every((r) => r.kind === 'EQUIPMENT') && onlyEquip.items.length >= 2, `${onlyEquip.items.length} 件器材`);
+
+  const detail = await data.getResource('r1');
+  check('場地：詳情帶未來時段與申請人', detail.bookings.length >= 2 && !!detail.bookings[0].user.nickname, `${detail.bookings.length} 筆`);
+
+  const day = venueUtil.dateOptions(3)[1].value;
+  const slotA = await data.createResourceBooking('r3', {
+    startAt: venueUtil.slotIso(day, '09:00'),
+    endAt: venueUtil.slotIso(day, '10:00'),
+    purpose: '分組報告',
+  });
+  check('場地：需審批的送出後待批（PENDING）', slotA.pending === true && slotA.booking.status === 'PENDING', slotA.booking.status);
+
+  const clash = await data
+    .createResourceBooking('r3', { startAt: venueUtil.slotIso(day, '09:30'), endAt: venueUtil.slotIso(day, '10:30'), purpose: '測試重疊' })
+    .then(() => null)
+    .catch((e) => e);
+  check('場地：重疊時段被擋（CONFLICT）', clash && clash.code === 'CONFLICT', clash ? clash.code : '沒有拒絕');
+
+  const touching = await data.createResourceBooking('r3', {
+    startAt: venueUtil.slotIso(day, '10:00'),
+    endAt: venueUtil.slotIso(day, '11:00'),
+    purpose: '接著用',
+  });
+  check('場地：邊界相接不算重疊', touching.booking.status === 'PENDING', touching.booking.timeText);
+
+  const studentReview = await data.reviewResourceBooking(slotA.booking.id, { action: 'APPROVE' }).then(() => null).catch((e) => e);
+  check('場地：學生批不了（FORBIDDEN）', studentReview && studentReview.code === 'FORBIDDEN', studentReview ? studentReview.code : '沒有拒絕');
+
+  // 切老師（保留同一個 userId，否則「我的申請」會換人）→ 批第一筆
+  await data.switchDemoUser('示範老師', 'demo-user', 'TEACHER');
+  const approved = await data.reviewResourceBooking(slotA.booking.id, { action: 'APPROVE' });
+  check('場地：老師可批准', approved.booking.status === 'APPROVED', approved.booking.status);
+
+  const pendingList = await data.pendingResourceBookings();
+  check('場地：待審批清單含種子資料', pendingList.pending.length >= 2, `${pendingList.pending.length} 筆待審`);
+
+  const rejected = await data.reviewResourceBooking(touching.booking.id, { action: 'REJECT', reason: '當天有考試' });
+  check('場地：駁回要留原因', rejected.booking.status === 'REJECTED' && rejected.booking.rejectReason === '當天有考試', rejected.booking.status);
+
+  const mineBookings = await data.myResourceBookings();
+  check('場地：我的申請分得出待審／已批准', mineBookings.items.length >= 2 && mineBookings.upcoming >= 1, `${mineBookings.items.length} 筆／已批准 ${mineBookings.upcoming}`);
+
+  const cancelled = await data.cancelResourceBooking(slotA.booking.id);
+  check('場地：取消後狀態 CANCELLED', cancelled.status === 'CANCELLED', cancelled.status);
+
+  const reuse = await data.createResourceBooking('r3', {
+    startAt: venueUtil.slotIso(day, '09:00'),
+    endAt: venueUtil.slotIso(day, '10:00'),
+    purpose: '別人接手',
+  });
+  check('場地：取消後時段被釋放', reuse.booking.status === 'PENDING', reuse.booking.status);
+
+  const free = await data.createResourceBooking('r4', {
+    startAt: venueUtil.slotIso(day, '13:00'),
+    endAt: venueUtil.slotIso(day, '14:00'),
+    purpose: '借用投影機',
+  });
+  check('場地：免審批的送出即生效', free.pending === false && free.booking.status === 'APPROVED', free.booking.status);
+
+  // 建場地是校內職員（STAFF）的能力，老師只有審批 —— 切職員再建
+  await data.switchDemoUser('示範職員', 'demo-user', 'STAFF');
+  const created = await data.createResource({ kind: 'VENUE', name: '示範新場地', openFrom: '09:00', openTo: '17:00', maxHours: 2 });
+  check('場地：職員可新增場地', created.resource.name === '示範新場地', created.resource.id);
+
+  await data.switchDemoUser('示範學生', 'demo-user', 'STUDENT');
+  const deniedCreate = await data.createResource({ kind: 'VENUE', name: '學生偷建' }).then(() => null).catch((e) => e);
+  check('場地：學生建不了場地（FORBIDDEN）', deniedCreate && deniedCreate.code === 'FORBIDDEN', deniedCreate ? deniedCreate.code : '沒有拒絕');
+
+  const pageWxml2 = readFileSync(join(here, '..', 'pages', 'venues', 'detail', 'index.wxml'), 'utf8');
+  const homeWxml2 = readFileSync(join(here, '..', 'pages', 'index', 'index.wxml'), 'utf8');
+  const apiSrc4 = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  check(
+    '場地：有畫面入口＋真 API 端點',
+    pageWxml2.indexOf('bind:tap="submit"') !== -1 && homeWxml2.indexOf('goVenues') !== -1 && apiSrc4.indexOf("'/resources/'") !== -1,
+    '首頁 → 列表 → 詳情（選時段送出）',
+  );
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

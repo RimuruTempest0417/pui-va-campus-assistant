@@ -3361,6 +3361,214 @@ paths:
   # ── 圖書館借閱（W-66） ──
   # 館藏查詢對訪客開放；借還要登入；館藏管理是校內職員（library:manage）。
   # 可借量一律由後端交易內列鎖扣減，前端不自己判斷「還有沒有」。
+  /resources:
+    get:
+      tags: [resources]
+      summary: 場地／器材清單（訪客可看）
+      parameters:
+        - { name: kind, in: query, schema: { type: string, enum: [VENUE, EQUIPMENT] } }
+        - { name: q, in: query, schema: { type: string, maxLength: 60 }, description: 名稱／位置／說明 }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 場地與器材清單（openNow 依 Asia/Macau 判定）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        kind: { type: string, enum: [VENUE, EQUIPMENT] }
+                        name: { type: string }
+                        location: { type: string, nullable: true }
+                        openFrom: { type: string, description: 'HH:mm（澳門時間）' }
+                        openTo: { type: string }
+                        hoursText: { type: string, description: '例 08:00–18:00' }
+                        maxHours: { type: integer }
+                        needsApproval: { type: boolean }
+                        openNow: { type: boolean }
+                        upcoming: { type: integer, description: 未來未結束的預約數 }
+                  total: { type: integer }
+                  page: { type: integer }
+    post:
+      tags: [resources]
+      summary: 新增場地／器材（resource:manage：校內職員）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, name]
+              properties:
+                kind: { type: string, enum: [VENUE, EQUIPMENT] }
+                name: { type: string, maxLength: 80 }
+                location: { type: string, maxLength: 80 }
+                description: { type: string, maxLength: 2000 }
+                openFrom: { type: string, description: 'HH:mm，預設 08:00' }
+                openTo: { type: string, description: 'HH:mm，預設 18:00' }
+                maxHours: { type: integer, minimum: 1, maximum: 12, default: 4 }
+                needsApproval: { type: boolean, default: true }
+      responses:
+        '201':
+          description: 已建立
+        '403': { description: 能力不足（學生／老師） }
+
+  /resources/pending:
+    get:
+      tags: [resources]
+      summary: 待審批借用申請（resource:approve：老師以上）
+      responses:
+        '200':
+          description: pending 待審、handled 最近處理過的 20 筆
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending:
+                    type: array
+                    items: { $ref: '#/components/schemas/ResourceBooking' }
+                  handled:
+                    type: array
+                    items: { $ref: '#/components/schemas/ResourceBooking' }
+
+  /resources/all:
+    get:
+      tags: [resources]
+      summary: 場地總表（含已下架；resource:manage）
+      responses:
+        '200':
+          description: 全部資源與各自的預約總數
+        '403': { description: 能力不足 }
+
+  /resources/bookings/mine:
+    get:
+      tags: [resources]
+      summary: 我的借用申請
+      responses:
+        '200':
+          description: 自己的全部申請（新到舊），附待審／已批准筆數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ResourceBooking' }
+                  pending: { type: integer }
+                  upcoming: { type: integer }
+
+  /resources/bookings/{id}:
+    delete:
+      tags: [resources]
+      summary: 取消自己的申請（PENDING／APPROVED）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已取消，時段釋放 }
+        '404': { description: 不是自己的申請或不存在（同一句話，防探測） }
+        '409': { description: 申請已結束（已駁回／已取消） }
+    patch:
+      tags: [resources]
+      summary: 審批（APPROVE／REJECT，resource:approve）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [APPROVE, REJECT] }
+                reason: { type: string, maxLength: 200, description: 駁回原因（會通知申請人） }
+      responses:
+        '200': { description: 已處理，申請人收到站內通知 }
+        '403': { description: 能力不足 }
+        '409': { description: 已處理過，或同時段還有另一筆待審 }
+
+  /resources/{id}:
+    get:
+      tags: [resources]
+      summary: 場地詳情（未來 14 天時段＋我的申請）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 詳情；訪客也能看，mine 為空、canBook=false
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resource:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      name: { type: string }
+                      hoursText: { type: string }
+                      maxHours: { type: integer }
+                      needsApproval: { type: boolean }
+                      openNow: { type: boolean }
+                  bookings:
+                    type: array
+                    items: { $ref: '#/components/schemas/ResourceBooking' }
+                  mine:
+                    type: array
+                    items: { $ref: '#/components/schemas/ResourceBooking' }
+                  canBook: { type: boolean }
+                  canApprove: { type: boolean }
+                  canManage: { type: boolean }
+        '404': { description: 找不到或已下架 }
+    patch:
+      tags: [resources]
+      summary: 修改場地／器材（帶 version 做樂觀鎖，resource:manage）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已更新（version +1） }
+        '409': { description: 版本不符，請重新載入 }
+    delete:
+      tags: [resources]
+      summary: 下架（軟刪除；resource:manage）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已下架，前台看不到 }
+        '409': { description: 還有未結束的預約 }
+
+  /resources/{id}/bookings:
+    post:
+      tags: [resources]
+      summary: 送出借用申請（resource:book）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [startAt, endAt, purpose]
+              properties:
+                startAt: { type: string, format: date-time }
+                endAt: { type: string, format: date-time }
+                purpose: { type: string, maxLength: 200 }
+      responses:
+        '201':
+          description: 已建立（needsApproval=false 時直接 APPROVED）
+        '409': { description: 時段重疊（CONFLICT，附衝突時段） }
+        '422': { description: 超過最長時數／跨日／不在開放時間內／過去時段 }
+
   /library/books:
     get:
       tags: [library]
@@ -3847,6 +4055,37 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
 
   schemas:
+    ResourceBooking:
+      type: object
+      description: 一筆場地／器材借用申請（W-67）
+      properties:
+        id: { type: string }
+        resourceId: { type: string }
+        resource:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            name: { type: string }
+            kind: { type: string, enum: [VENUE, EQUIPMENT] }
+            location: { type: string, nullable: true }
+        userId: { type: string }
+        user:
+          type: object
+          nullable: true
+          description: 只回暱稱，不回 openid
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        dateText: { type: string, description: '澳門時間 YYYY-MM-DD，前端直接顯示' }
+        timeText: { type: string, description: '例 10:00–12:00' }
+        purpose: { type: string }
+        status: { type: string, enum: [PENDING, APPROVED, REJECTED, CANCELLED] }
+        rejectReason: { type: string, nullable: true }
+        past: { type: boolean, description: 時段已過 }
+
     SearchHit:
       type: object
       description: 搜尋結果的一列（公告／活動／失物共用）

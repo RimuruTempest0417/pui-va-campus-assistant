@@ -1,0 +1,56 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.detail-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+
+.res-head { display: flex; flex-direction: row; align-items: center; }
+.res-main { flex: 1; min-width: 0; margin: 0 var(--pv-sp-2); display: flex; flex-direction: column; }
+.res-title { margin-bottom: 4rpx; }
+
+.info-row { padding: 4rpx 0; }
+.desc { display: block; margin-top: 6rpx; line-height: 1.5; }
+
+/* 場／器單字徽章（與清單頁同一個語彙） */
+.venue-mark {
+  width: 72rpx;
+  height: 72rpx;
+  flex-shrink: 0;
+  border-radius: var(--pv-r-sm);
+  background: var(--pv-fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.venue-mark__text { font-size: var(--pv-fs-title-3); font-weight: 600; color: var(--pv-tint); }
+
+.section-title {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: var(--pv-sp-4) var(--pv-sp-1) var(--pv-sp-1);
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-label-2);
+  letter-spacing: var(--pv-ls-section);
+}
+.section-link { color: var(--pv-tint); font-size: var(--pv-fs-footnote); }
+
+.field-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-height: 88rpx;
+}
+.field-label { flex-shrink: 0; font-size: var(--pv-fs-body); color: var(--pv-label-2); }
+.field-value { flex: 1; min-width: 0; text-align: right; font-size: var(--pv-fs-body); color: var(--pv-label); }
+.field-picker { flex: 1; min-width: 0; display: flex; flex-direction: row; justify-content: flex-end; }
+.field-arrow { flex-shrink: 0; margin-left: 8rpx; color: var(--pv-label-3); font-size: 28rpx; }
+
+.submit-row { margin-top: var(--pv-sp-3); display: flex; flex-direction: column; gap: var(--pv-sp-2); }
+.form-hint { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); text-align: center; }
+
+.slot-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.slot-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6rpx; }
+.slot-actions { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 8rpx; margin-left: var(--pv-sp-2); }
+.slot-cancel { font-size: var(--pv-fs-caption-1); color: var(--pv-tint); padding: 8rpx 0 8rpx var(--pv-sp-2); }
+.empty-inline { padding: var(--pv-sp-2) 0; display: block; }

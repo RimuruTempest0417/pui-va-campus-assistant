@@ -1,0 +1,99 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="mine-inner">
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="2" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="2" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{failed}}" title="{{L.k11}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k12}}</pv-button>
+      </pv-empty>
+
+      <pv-empty wx:elif="{{!items.length}}" title="{{L.k05}}" desc="{{L.k06}}">
+        <pv-button type="tinted" size="sm" bind:tap="goList">{{L.k14}}</pv-button>
+      </pv-empty>
+
+      <block wx:else>
+        <block wx:if="{{pendingItems.length}}">
+          <view class="group-title">{{L.k02}}</view>
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{pendingItems}}"
+              wx:key="id"
+              class="ui-card ui-card--row {{index === pendingItems.length - 1 ? 'ui-card--last' : ''}}"
+            >
+              <view class="mine-row">
+                <view class="mine-main">
+                  <view class="ui-row-between">
+                    <text class="ui-title mine-title">{{item.resource.name}}</text>
+                    <pv-tag text="{{item.statusLabel}}" type="warning" />
+                  </view>
+                  <text class="ui-meta">{{item.dateText}} {{item.timeText}}</text>
+                  <text class="ui-meta">{{item.purpose}}</text>
+                </view>
+                <text
+                  class="mine-cancel"
+                  data-id="{{item.id}}"
+                  data-label="{{item.dateText}} {{item.timeText}}"
+                  bindtap="cancelBooking"
+                >{{L.k07}}</text>
+              </view>
+            </view>
+          </view>
+        </block>
+
+        <block wx:if="{{approvedItems.length}}">
+          <view class="group-title">{{L.k03}}</view>
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{approvedItems}}"
+              wx:key="id"
+              class="ui-card ui-card--row {{index === approvedItems.length - 1 ? 'ui-card--last' : ''}}"
+            >
+              <view class="mine-row">
+                <view class="mine-main">
+                  <view class="ui-row-between">
+                    <text class="ui-title mine-title">{{item.resource.name}}</text>
+                    <pv-tag text="{{item.statusLabel}}" type="success" />
+                  </view>
+                  <text class="ui-meta">{{item.dateText}} {{item.timeText}}</text>
+                  <text class="ui-meta">{{item.purpose}}</text>
+                </view>
+                <text
+                  class="mine-cancel"
+                  data-id="{{item.id}}"
+                  data-label="{{item.dateText}} {{item.timeText}}"
+                  bindtap="cancelBooking"
+                >{{L.k07}}</text>
+              </view>
+            </view>
+          </view>
+        </block>
+
+        <block wx:if="{{otherItems.length}}">
+          <view class="group-title">{{L.k04}}</view>
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{otherItems}}"
+              wx:key="id"
+              class="ui-card ui-card--row {{index === otherItems.length - 1 ? 'ui-card--last' : ''}}"
+            >
+              <view class="mine-main">
+                <view class="ui-row-between">
+                  <text class="ui-title mine-title">{{item.resource.name}}</text>
+                  <pv-tag text="{{item.statusLabel}}" type="{{item.status === 'REJECTED' ? 'danger' : 'neutral'}}" />
+                </view>
+                <text class="ui-meta">{{item.dateText}} {{item.timeText}}</text>
+                <text wx:if="{{item.rejectReason}}" class="ui-meta">{{L.k13}} {{item.rejectReason}}</text>
+              </view>
+            </view>
+          </view>
+        </block>
+      </block>
+    </view>
+  </scroll-view>
+</view>

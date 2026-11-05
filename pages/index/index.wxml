@@ -97,6 +97,22 @@
       <pv-icon name="chevron" size="24" tone="muted" />
     </view>
 
+    <!-- 場地／器材借用（W-67）：第二條入口列，與圖書館同一個語彙 -->
+    <view
+      class="lib {{venuePressed ? 'lib--pressed' : ''}}"
+      bindtouchstart="onVenueTouchStart"
+      bindtouchend="onVenueTouchEnd"
+      bindtouchcancel="onVenueTouchEnd"
+      bindtap="goVenues"
+    >
+      <view class="lib__icon"><pv-icon name="events" size="40" tone="tint" /></view>
+      <view class="lib__main">
+        <text class="lib__title">{{L.k20}}</text>
+        <text class="lib__sub">{{venueText}}</text>
+      </view>
+      <pv-icon name="chevron" size="24" tone="muted" />
+    </view>
+
     <!-- 今日午餐 ＋ 小賣部（合成一張卡，內部用小標題與髮絲線分組） -->
     <view class="pv-group-title">{{L.k03}}</view>
     <pv-card>

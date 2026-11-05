@@ -4,9 +4,10 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 10;
+const SEED_VERSION = 11;
 
 const weekUtil = require('../utils/week');
+const venue = require('../utils/venue');
 
 const DISH_LIBRARY = [
   { id: 'd1', name: '葡式焗雞飯', price: null, tags: ['招牌'], desc: '薯仔鋪底，雞肉焗到金黃。', base: { sum: 148, count: 32, likes: 18 } },
@@ -191,6 +192,20 @@ function seed() {
     reservations: [
       { id: 'rv1', bookId: 'b3', userId: 'demo-other', status: 'WAITING', position: 1, createdAt: now - 2 * 24 * h, readyAt: null },
     ],
+    // ── 場地／器材（W-67）：示範層也要借得動、批得了，交付現場斷網時不能是死的 ──
+    resources: [
+      { id: 'r1', kind: 'VENUE', name: '物理實驗室', location: '三樓', description: '48 個座位，有投影機與實驗台。做完實驗請把器材歸位。', openFrom: '08:00', openTo: '18:00', maxHours: 4, needsApproval: true, status: 'ACTIVE', version: 0 },
+      { id: 'r2', kind: 'VENUE', name: '籃球場', location: '地下操場', description: '全場；借半場請在用途註明。雨天不開放。', openFrom: '07:30', openTo: '19:00', maxHours: 3, needsApproval: true, status: 'ACTIVE', version: 0 },
+      { id: 'r3', kind: 'VENUE', name: '多媒體室', location: '圖書館二樓', description: '24 部電腦，可借來做分組報告。', openFrom: '09:00', openTo: '17:00', maxHours: 2, needsApproval: true, status: 'ACTIVE', version: 0 },
+      { id: 'r4', kind: 'EQUIPMENT', name: '投影機', location: '器材室 A', description: '含 HDMI 線與遙控器；用完請歸還器材室。', openFrom: '08:00', openTo: '17:30', maxHours: 8, needsApproval: false, status: 'ACTIVE', version: 0 },
+      { id: 'r5', kind: 'EQUIPMENT', name: '流動音響', location: '器材室 B', description: '附無線麥克風兩支，需老師批准。', openFrom: '08:00', openTo: '18:00', maxHours: 6, needsApproval: true, status: 'ACTIVE', version: 0 },
+      { id: 'r6', kind: 'EQUIPMENT', name: '舊投影機（已下架）', location: '器材室 A', description: '燈泡壞了，等報廢。', openFrom: '08:00', openTo: '17:00', maxHours: 4, needsApproval: false, status: 'ARCHIVED', version: 0 },
+    ],
+    resourceBookings: [
+      { id: 'rb1', resourceId: 'r1', userId: 'demo-other', startAt: venue.slotIso(venue.dateOptions(3)[1].value, '10:00'), endAt: venue.slotIso(venue.dateOptions(3)[1].value, '12:00'), purpose: '化學科分組實驗', status: 'APPROVED', createdAt: now - 6 * h, rejectReason: null },
+      { id: 'rb2', resourceId: 'r1', userId: 'demo-other', startAt: venue.slotIso(venue.dateOptions(3)[1].value, '14:00'), endAt: venue.slotIso(venue.dateOptions(3)[1].value, '16:00'), purpose: '物理科補課', status: 'PENDING', createdAt: now - 2 * h, rejectReason: null },
+      { id: 'rb3', resourceId: 'r2', userId: 'demo-user', startAt: venue.slotIso(venue.dateOptions(3)[2].value, '15:00'), endAt: venue.slotIso(venue.dateOptions(3)[2].value, '16:30'), purpose: '班際籃球練習', status: 'PENDING', createdAt: now - 3 * h, rejectReason: null },
+    ],
   };
 }
 
@@ -206,6 +221,15 @@ function db() {
 function save(data) {
   wx.setStorageSync(KEY, data);
   return data;
+}
+
+let idSeq = 0;
+
+/** 示範層的 id 產生器：同一個毫秒內連續建立兩筆時，只用 Date.now() 會撞號
+ *  （症狀：批了第一筆之後，第二筆顯示「已經處理過了」） */
+function nextId(prefix) {
+  idSeq += 1;
+  return prefix + Date.now() + '-' + idSeq;
 }
 
 /** 雙字母組相似度（0–1），與後端 pg_trgm 的概念一致但更輕量 */
@@ -720,9 +744,11 @@ module.exports = {
   },
 
   // 示範模式專用：切換身分（用來驗證「第二個人報名 → 候補」）
-  switchDemoUser(nickname, id) {
+  switchDemoUser(nickname, id, role) {
     const data = db();
     data.user = Object.assign({}, data.user, { nickname: nickname, id: id || 'demo-' + nickname });
+    // 第三個參數才改角色：示範模式要能演「老師審批場地」，不傳就維持原角色
+    if (role) data.user.role = role;
     save(data);
     return Promise.resolve(data.user);
   },
@@ -1367,5 +1393,299 @@ module.exports = {
       });
     save(data);
     return Promise.resolve({ ok: true, cancelled: true, bookId: rv.bookId, promotedUserId: promoted ? promoted.userId : null });
+  },
+
+  // ── W-67 場地／器材借用 ──
+  // 狀態一律寫回 storage，重新整理還在；方法內不用 this（data.js 是拆出來呼叫的）。
+  listResources(query) {
+    const q = query || {};
+    const data = db();
+    let list = data.resources.filter((r) => r.status !== 'ARCHIVED');
+    if (q.kind) list = list.filter((r) => r.kind === q.kind);
+    if (q.q) {
+      const kw = String(q.q).toLowerCase();
+      list = list.filter((r) => (r.name + (r.location || '') + (r.description || '')).toLowerCase().indexOf(kw) !== -1);
+    }
+    const now = Date.now();
+    const items = list.map((r) =>
+      venue.shapeResource(
+        Object.assign({}, r, {
+          upcoming: data.resourceBookings.filter(
+            (b) => b.resourceId === r.id && (b.status === 'PENDING' || b.status === 'APPROVED') && new Date(b.endAt).getTime() >= now,
+          ).length,
+        }),
+        now,
+      ),
+    );
+    return Promise.resolve({ items: items, total: items.length, page: 1 });
+  },
+
+  getResource(id) {
+    const data = db();
+    const r = data.resources.filter((x) => x.id === id && x.status !== 'ARCHIVED')[0];
+    if (!r) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個場地或器材' });
+    const now = Date.now();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    const mineId = (data.user && data.user.id) || 'demo-user';
+    const live = data.resourceBookings.filter(
+      (b) => b.resourceId === id && (b.status === 'PENDING' || b.status === 'APPROVED') && new Date(b.endAt).getTime() >= now,
+    );
+    const withUser = live.map((b) =>
+      Object.assign({}, b, { user: { id: b.userId, nickname: b.userId === mineId ? (data.user.nickname || '我') : '其他同學' } }),
+    );
+    return Promise.resolve({
+      resource: venue.shapeResource(r, now),
+      bookings: withUser.sort((a, b) => new Date(a.startAt) - new Date(b.startAt)).map((b) => venue.shapeBooking(b, now)),
+      mine: withUser.filter((b) => b.userId === mineId).map((b) => venue.shapeBooking(b, now)),
+      canBook: role !== 'GUEST',
+      canApprove: ['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1,
+      canManage: ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1,
+    });
+  },
+
+  createResourceBooking(id, payload) {
+    const body = payload || {};
+    const data = db();
+    const r = data.resources.filter((x) => x.id === id && x.status !== 'ARCHIVED')[0];
+    if (!r) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個場地或器材' });
+
+    const startMs = new Date(body.startAt).getTime();
+    const endMs = new Date(body.endAt).getTime();
+    if (!isFinite(startMs) || !isFinite(endMs) || endMs <= startMs) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '結束時間要晚於開始時間' });
+    }
+    const minutes = (endMs - startMs) / 60000;
+    if (minutes < 30) return Promise.reject({ code: 'VALIDATION_FAILED', message: '一次最少借 30 分鐘' });
+    if (minutes > (r.maxHours || 4) * 60) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '這個場地一次最多借 ' + (r.maxHours || 4) + ' 小時' });
+    }
+    if (startMs < Date.now() - 5 * 60000) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '不能預約已經過去的時段' });
+    }
+    const s = venue.macauClock(startMs);
+    const e = venue.macauClock(endMs);
+    if (s.ymd !== e.ymd) return Promise.reject({ code: 'VALIDATION_FAILED', message: '借用不可以跨日，請分兩筆申請' });
+    const toMin = (t) => {
+      const p = String(t).split(':').map(Number);
+      return p[0] * 60 + p[1];
+    };
+    if (s.minutes < toMin(r.openFrom) || e.minutes > toMin(r.openTo)) {
+      return Promise.reject({
+        code: 'VALIDATION_FAILED',
+        message: '這個場地只在 ' + r.openFrom + '–' + r.openTo + ' 開放',
+      });
+    }
+    const conflict = data.resourceBookings.filter(
+      (b) =>
+        b.resourceId === id &&
+        (b.status === 'PENDING' || b.status === 'APPROVED') &&
+        venue.overlaps(b.startAt, b.endAt, body.startAt, body.endAt),
+    )[0];
+    if (conflict) {
+      const c = venue.macauClock(conflict.startAt);
+      return Promise.reject({
+        code: 'CONFLICT',
+        message: '這個時段已被預約（' + venue.hhmm(c.minutes) + ' 起）',
+      });
+    }
+
+    const needsApproval = r.needsApproval !== false;
+    const booking = {
+      id: nextId('rb'),
+      resourceId: id,
+      userId: (data.user && data.user.id) || 'demo-user',
+      startAt: new Date(startMs).toISOString(),
+      endAt: new Date(endMs).toISOString(),
+      purpose: String(body.purpose || '').slice(0, 200),
+      status: needsApproval ? 'PENDING' : 'APPROVED',
+      createdAt: Date.now(),
+      rejectReason: null,
+    };
+    data.resourceBookings.unshift(booking);
+    save(data);
+    return Promise.resolve({
+      booking: venue.shapeBooking(Object.assign({}, booking, { resource: { id: r.id, name: r.name, kind: r.kind } }), Date.now()),
+      pending: needsApproval,
+    });
+  },
+
+  cancelResourceBooking(id) {
+    const data = db();
+    const mineId = (data.user && data.user.id) || 'demo-user';
+    const booking = data.resourceBookings.filter((b) => b.id === id)[0];
+    if (!booking || booking.userId !== mineId) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆申請' });
+    if (booking.status !== 'PENDING' && booking.status !== 'APPROVED') {
+      return Promise.reject({ code: 'CONFLICT', message: '這筆申請已經結束，不能取消' });
+    }
+    booking.status = 'CANCELLED';
+    save(data);
+    return Promise.resolve({ ok: true, status: 'CANCELLED' });
+  },
+
+  myResourceBookings() {
+    const data = db();
+    const mineId = (data.user && data.user.id) || 'demo-user';
+    const now = Date.now();
+    const rows = data.resourceBookings
+      .filter((b) => b.userId === mineId)
+      .sort((a, b) => new Date(b.startAt) - new Date(a.startAt));
+    const items = rows.map((b) => {
+      const r = data.resources.filter((x) => x.id === b.resourceId)[0];
+      return venue.shapeBooking(
+        Object.assign({}, b, { resource: r ? { id: r.id, name: r.name, kind: r.kind, location: r.location } : null }),
+        now,
+      );
+    });
+    return Promise.resolve({
+      items: items,
+      pending: rows.filter((b) => b.status === 'PENDING' && new Date(b.endAt).getTime() >= now).length,
+      upcoming: rows.filter((b) => b.status === 'APPROVED' && new Date(b.endAt).getTime() >= now).length,
+    });
+  },
+
+  pendingResourceBookings() {
+    const data = db();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    if (['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const now = Date.now();
+    const shape = (b) => {
+      const r = data.resources.filter((x) => x.id === b.resourceId)[0];
+      const nickname = b.userId === ((data.user && data.user.id) || 'demo-user') ? (data.user.nickname || '我') : '其他同學';
+      return venue.shapeBooking(
+        Object.assign({}, b, {
+          resource: r ? { id: r.id, name: r.name, kind: r.kind, location: r.location } : null,
+          user: { id: b.userId, nickname: nickname },
+        }),
+        now,
+      );
+    };
+    return Promise.resolve({
+      pending: data.resourceBookings
+        .filter((b) => b.status === 'PENDING')
+        .sort((a, b) => new Date(a.startAt) - new Date(b.startAt))
+        .map(shape),
+      handled: data.resourceBookings
+        .filter((b) => b.status !== 'PENDING')
+        .sort((a, b) => new Date(b.startAt) - new Date(a.startAt))
+        .slice(0, 20)
+        .map(shape),
+    });
+  },
+
+  reviewResourceBooking(id, body) {
+    const data = db();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    if (['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const booking = data.resourceBookings.filter((b) => b.id === id)[0];
+    if (!booking) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆申請' });
+    if (booking.status !== 'PENDING') return Promise.reject({ code: 'CONFLICT', message: '這筆申請已經處理過了' });
+    const action = (body && body.action) || 'APPROVE';
+    if (action === 'APPROVE') {
+      const clash = data.resourceBookings.filter(
+        (b) =>
+          b.id !== booking.id &&
+          b.resourceId === booking.resourceId &&
+          (b.status === 'PENDING' || b.status === 'APPROVED') &&
+          venue.overlaps(b.startAt, b.endAt, booking.startAt, booking.endAt),
+      )[0];
+      if (clash) return Promise.reject({ code: 'CONFLICT', message: '這個時段還有另一筆申請，請先處理那一筆' });
+    }
+    booking.status = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+    booking.rejectReason = action === 'REJECT' ? String((body && body.reason) || '').slice(0, 200) : null;
+    booking.reviewedAt = Date.now();
+    save(data);
+    return Promise.resolve({
+      booking: { id: booking.id, status: booking.status, userId: booking.userId, rejectReason: booking.rejectReason },
+    });
+  },
+
+  allResources() {
+    const data = db();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    if (['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const now = Date.now();
+    return Promise.resolve({
+      items: data.resources.map((r) =>
+        Object.assign(venue.shapeResource(r, now), {
+          bookings: data.resourceBookings.filter((b) => b.resourceId === r.id).length,
+        }),
+      ),
+    });
+  },
+
+  createResource(body) {
+    const data = db();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    if (['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const input = body || {};
+    if (!input.name) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請輸入名稱' });
+    if ((input.openFrom || '08:00') >= (input.openTo || '18:00')) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '關閉時間要晚於開放時間' });
+    }
+    const resource = {
+      id: nextId('r'),
+      kind: input.kind || 'VENUE',
+      name: String(input.name).slice(0, 80),
+      location: input.location || '',
+      description: input.description || '',
+      openFrom: input.openFrom || '08:00',
+      openTo: input.openTo || '18:00',
+      maxHours: Number(input.maxHours) || 4,
+      needsApproval: input.needsApproval !== false,
+      status: 'ACTIVE',
+      version: 0,
+    };
+    data.resources.push(resource);
+    save(data);
+    return Promise.resolve({ resource: venue.shapeResource(resource, Date.now()) });
+  },
+
+  updateResource(id, body) {
+    const data = db();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    if (['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const resource = data.resources.filter((r) => r.id === id && r.status !== 'ARCHIVED')[0];
+    if (!resource) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個場地或器材' });
+    const input = body || {};
+    if (input.version !== undefined && input.version !== resource.version) {
+      return Promise.reject({ code: 'CONFLICT', message: '這筆資料剛被別人改過，請重新載入後再儲存' });
+    }
+    ['kind', 'name', 'location', 'description', 'openFrom', 'openTo', 'maxHours', 'needsApproval'].forEach((k) => {
+      if (input[k] !== undefined) resource[k] = input[k];
+    });
+    if (resource.openFrom >= resource.openTo) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '關閉時間要晚於開放時間' });
+    }
+    resource.version = (resource.version || 0) + 1;
+    save(data);
+    return Promise.resolve({ resource: venue.shapeResource(resource, Date.now()) });
+  },
+
+  archiveResource(id) {
+    const data = db();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    if (['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const resource = data.resources.filter((r) => r.id === id && r.status !== 'ARCHIVED')[0];
+    if (!resource) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個場地或器材' });
+    const live = data.resourceBookings.filter(
+      (b) => b.resourceId === id && (b.status === 'PENDING' || b.status === 'APPROVED') && new Date(b.endAt).getTime() >= Date.now(),
+    ).length;
+    if (live) return Promise.reject({ code: 'CONFLICT', message: '還有 ' + live + ' 筆未結束的預約，請先處理或取消後再下架' });
+    resource.status = 'ARCHIVED';
+    resource.version = (resource.version || 0) + 1;
+    save(data);
+    return Promise.resolve({ ok: true });
   },
 };

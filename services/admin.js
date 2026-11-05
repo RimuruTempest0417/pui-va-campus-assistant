@@ -270,4 +270,24 @@ module.exports = {
   libraryRemind() {
     return http.post('/admin/library/remind', {});
   },
+
+  // ── W-67 場地／器材（與前台共用同一組端點；後端能力守衛自己會擋）──
+  resourcePending() {
+    return http.get('/resources/pending');
+  },
+  resourceReview(id, body) {
+    return http.patch('/resources/bookings/' + id, body);
+  },
+  resourcesAll() {
+    return http.get('/resources/all');
+  },
+  resourceCreate(body) {
+    return http.post('/resources', body);
+  },
+  resourceUpdate(id, body) {
+    return http.patch('/resources/' + id, body);
+  },
+  resourceArchive(id) {
+    return http.del('/resources/' + id);
+  },
 };

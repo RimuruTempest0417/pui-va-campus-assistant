@@ -184,4 +184,17 @@ module.exports = {
   returnLoan: (...a) => call('returnLoan', a),
   renewLoan: (...a) => call('renewLoan', a),
   cancelReservation: (...a) => call('cancelReservation', a),
+
+  // ── W-67 場地／器材借用（查詢訪客可看；申請要登入；審批老師以上）──
+  listResources: (...a) => call('listResources', a),
+  getResource: (...a) => call('getResource', a),
+  myResourceBookings: (...a) => call('myResourceBookings', a),
+  createResourceBooking: (...a) => call('createResourceBooking', a),
+  cancelResourceBooking: (...a) => call('cancelResourceBooking', a),
+  pendingResourceBookings: (...a) => call('pendingResourceBookings', a),
+  reviewResourceBooking: (...a) => call('reviewResourceBooking', a),
+  allResources: (...a) => call('allResources', a),
+  createResource: (...a) => call('createResource', a),
+  updateResource: (...a) => call('updateResource', a),
+  archiveResource: (...a) => call('archiveResource', a),
 };

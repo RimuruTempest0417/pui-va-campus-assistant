@@ -6,6 +6,7 @@ const { dateKey, fromNow, dateTimeText } = require('../../../utils/date');
 const role = require('../../../utils/role');
 const theme = require('../../../utils/theme');
 const { decorateBook, decorateLoan } = require('../../../utils/book');
+const venueUtil = require('../../../utils/venue');
 
 const TABS = [
   { key: 'stats', label: i18n.pick('概況') },
@@ -24,6 +25,7 @@ const TABS = [
   { key: 'export', label: i18n.pick('名單') },
   { key: 'menu', label: i18n.pick('菜單') },
   { key: 'library', label: i18n.pick('圖書館') },
+  { key: 'venues', label: i18n.pick('場地') },
 ];
 
 // 學段三個固定值（後端 TERMS）：key 必須送原文，簡體下字形相同所以直接用 pick 的結果當 key
@@ -31,10 +33,10 @@ const TERM_KEYS = [i18n.pick('第一段'), i18n.pick('第二段'), i18n.pick('�
 
 const ROLE_TABS = {
   // 校內職員：排菜單＋匯出報名名單＋補登成績。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
-  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'export'],
-  TEACHER: ['notice', 'school', 'events'],
-  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library'],
+  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'export'],
+  TEACHER: ['notice', 'school', 'events', 'venues'],
+  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -371,6 +373,36 @@ Page({
       k297: i18n.pick("確定刪除這本書？"),
       k298: i18n.pick("已刪除"),
       k299: i18n.pick("已儲存"),
+      k300: i18n.pick("待審批"),
+      k301: i18n.pick("場地清單"),
+      k302: i18n.pick("申請人"),
+      k303: i18n.pick("批准"),
+      k304: i18n.pick("駁回"),
+      k305: i18n.pick("目前沒有待審批申請"),
+      k306: i18n.pick("已處理"),
+      k307: i18n.pick("新增場地／器材"),
+      k308: i18n.pick("編輯場地／器材"),
+      k309: i18n.pick("名稱"),
+      k310: i18n.pick("位置"),
+      k311: i18n.pick("開放時間"),
+      k312: i18n.pick("最長時數"),
+      k313: i18n.pick("需要老師批准"),
+      k314: i18n.pick("下架"),
+      k315: i18n.pick("目前沒有場地"),
+      k316: i18n.pick("先新增一個場地或器材"),
+      k317: i18n.pick("讀不到待審批申請："),
+      k318: i18n.pick("讀不到場地清單："),
+      k319: i18n.pick("請輸入名稱"),
+      k320: i18n.pick("關閉時間要晚於開放時間"),
+      k321: i18n.pick("駁回申請"),
+      k322: i18n.pick("寫一句原因（會通知申請人）"),
+      k323: i18n.pick("已駁回"),
+      k324: i18n.pick("已批准"),
+      k325: i18n.pick("確定下架這個場地？"),
+      k326: i18n.pick("場地"),
+      k327: i18n.pick("器材"),
+      k328: i18n.pick("用途"),
+      k329: i18n.pick("免審批"),
     };
   },
 
@@ -396,6 +428,18 @@ Page({
     ],
     libForm: { id: '', title: '', isbn: '', author: '', category: '', callNumber: '', totalCopies: '1', loanDays: '14' },
     libSaving: false,
+    // ── 場地／器材（W-67）：待審批＋資源管理兩個子模式 ──
+    venMode: 'pending',
+    venModes: [
+      { key: 'pending', label: i18n.pick('待審批') },
+      { key: 'resources', label: i18n.pick('場地清單') },
+    ],
+    venPending: [],
+    venHandled: [],
+    venResources: [],
+    venKindLabels: [i18n.pick('場地'), i18n.pick('器材')],
+    venForm: { id: '', kind: 'VENUE', name: '', location: '', openFrom: '08:00', openTo: '18:00', maxHours: '4', needsApproval: true },
+    venSaving: false,
     role: '',
     stats: { users: 0, items: { open: 0, claimed: 0, added7d: 0 }, claimsPending: 0, signups: { confirmed: 0, waitlist: 0 }, noticesActive: 0, ratings: { count: 0, avg: 0 } },
     // 第一屏五張數字卡：值與標籤在 loadStats 一起備好（WXML 不做運算）
@@ -603,6 +647,7 @@ Page({
     else if (t === 'notice') p = this.loadNoticeList();
     else if (t === 'menu') p = this.loadMenuWeek();
     else if (t === 'library') p = this.loadLibrary();
+    else if (t === 'venues') p = this.loadVenues();
 
     if (!p || typeof p.then !== 'function') {
       this.setData({ tabLoading: false });
@@ -2432,5 +2477,165 @@ Page({
         this.loadLibrary();
       })
       .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+  },
+
+  // ───────── 場地／器材（W-67） ─────────
+  // 同一頁兩個子模式：老師日常只做「批／駁」，總務才需要「登記場地」。
+  async loadVenues() {
+    if (this.data.venMode === 'resources') {
+      try {
+        const res = await admin.resourcesAll();
+        this.setData({ venResources: (res.items || []).map((item) => venueUtil.shapeResource(item, Date.now())) });
+      } catch (e) {
+        this.setData({ hint: i18n.pick('讀不到場地清單：') + (e.message || e.code) });
+      }
+      return;
+    }
+    try {
+      const res = await admin.resourcePending();
+      const now = Date.now();
+      this.setData({
+        venPending: (res.pending || []).map((b) => venueUtil.shapeBooking(b, now)),
+        venHandled: (res.handled || []).map((b) => venueUtil.shapeBooking(b, now)),
+      });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到待審批申請：') + (e.message || e.code) });
+    }
+  },
+
+  switchVenMode(e) {
+    this.setData({ venMode: e.currentTarget.dataset.key }, () => this.loadVenues());
+  },
+
+  venApprove(e) {
+    const id = e.currentTarget.dataset.id;
+    admin
+      .resourceReview(id, { action: 'APPROVE' })
+      .then(() => {
+        wx.showToast({ title: i18n.pick('已批准'), icon: 'success' });
+        this.loadVenues();
+      })
+      .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+  },
+
+  /** 駁回一定要寫原因：學生看到「未通過」卻不知道為什麼，只會再送一次一樣的申請 */
+  venReject(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title: i18n.pick('駁回申請'),
+      editable: true,
+      placeholderText: i18n.pick('寫一句原因（會通知申請人）'),
+      confirmText: i18n.pick('駁回'),
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .resourceReview(id, { action: 'REJECT', reason: r.content || '' })
+          .then(() => {
+            wx.showToast({ title: i18n.pick('已駁回'), icon: 'success' });
+            this.loadVenues();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  onVenField(e) {
+    const field = e.currentTarget.dataset.field;
+    if (!field) return;
+    this.setData({ ['venForm.' + field]: e.detail.value });
+  },
+
+  venSetApproval(e) {
+    this.setData({ 'venForm.needsApproval': e.currentTarget.dataset.v === '1' });
+  },
+
+  venKindChange(e) {
+    const kinds = ['VENUE', 'EQUIPMENT'];
+    this.setData({ 'venForm.kind': kinds[Number(e.detail.value) || 0] });
+  },
+
+  venResetForm() {
+    this.setData({
+      venForm: { id: '', kind: 'VENUE', name: '', location: '', openFrom: '08:00', openTo: '18:00', maxHours: '4', needsApproval: true },
+    });
+  },
+
+  venEdit(e) {
+    const id = e.currentTarget.dataset.id;
+    const item = this.data.venResources.filter((r) => r.id === id)[0];
+    if (!item) return;
+    this.setData({
+      venForm: {
+        id: item.id,
+        kind: item.kind,
+        name: item.name || '',
+        location: item.location || '',
+        openFrom: item.openFrom || '08:00',
+        openTo: item.openTo || '18:00',
+        maxHours: String(item.maxHours || 4),
+        needsApproval: item.needsApproval !== false,
+        version: item.version,
+      },
+    });
+  },
+
+  async venSave() {
+    if (this.data.venSaving) return;
+    const f = this.data.venForm;
+    const name = String(f.name || '').trim();
+    if (!name) {
+      wx.showToast({ title: i18n.pick('請輸入名稱'), icon: 'none' });
+      return;
+    }
+    if (String(f.openFrom) >= String(f.openTo)) {
+      wx.showToast({ title: i18n.pick('關閉時間要晚於開放時間'), icon: 'none' });
+      return;
+    }
+    const payload = {
+      kind: f.kind || 'VENUE',
+      name: name,
+      location: f.location || undefined,
+      openFrom: f.openFrom,
+      openTo: f.openTo,
+      maxHours: Number(f.maxHours) || 4,
+      needsApproval: !!f.needsApproval,
+    };
+    this.setData({ venSaving: true });
+    try {
+      if (f.id) {
+        await admin.resourceUpdate(f.id, Object.assign({}, payload, { version: f.version }));
+      } else {
+        await admin.resourceCreate(payload);
+      }
+      this.setData({ venSaving: false });
+      wx.showToast({ title: i18n.pick('已儲存'), icon: 'success' });
+      this.venResetForm();
+      this.loadVenues();
+    } catch (err) {
+      this.setData({ venSaving: false });
+      wx.showToast({ title: err.message || i18n.pick('儲存失敗'), icon: 'none' });
+    }
+  },
+
+  venArchive(e) {
+    const id = e.currentTarget.dataset.id;
+    const name = e.currentTarget.dataset.name || '';
+    wx.showModal({
+      title: i18n.pick('確定下架這個場地？'),
+      content: name,
+      confirmText: i18n.pick('下架'),
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .resourceArchive(id)
+          .then(() => {
+            wx.showToast({ title: i18n.pick('已下架'), icon: 'success' });
+            this.loadVenues();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
   },
 });
