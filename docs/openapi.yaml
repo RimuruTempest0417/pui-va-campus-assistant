@@ -88,6 +88,62 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /auth/school:
+    post:
+      tags: [auth]
+      security: []
+      summary: 家校通帳密直接登入（不需微信授權、不需管理員先開帳號）
+      description: |
+        先向培華家校通（app.puiva.edu.mo）驗證這組帳密，通過才簽發本系統 JWT。
+        使用者對應：`User.openid = "sc:" + 帳號`（微信 openid 不含冒號，兩邊不撞）；
+        已存在就直接登入（角色不動，家長／老師由後台指派），不存在才建立 STUDENT。
+        **密碼不落庫**：只換 token；要同步成績才另外走 `/school/link`（AES-256-GCM 加密保存）。
+        連續失敗 5 次鎖 15 分鐘；帳號不存在與密碼錯誤回同一句話。
+        家校通連不上回 503 `SCHOOL_UNAVAILABLE`（可改用校內帳號），不是密碼錯。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account, password]
+              properties:
+                account: { type: string, description: 家校通帳號（不含空白與冒號） }
+                password: { type: string, description: 家校通密碼（只用於本次請求） }
+      responses:
+        '200':
+          description: 登入成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  role: { type: string, enum: [SUPER_ADMIN, ADMIN, STAFF, TEACHER, PARENT, STUDENT] }
+                  nickname: { type: string }
+                  account: { type: string, description: '本系統帳號（sc:<家校通帳號>）' }
+                  created: { type: boolean, description: 是否本次才建立 }
+                  source: { type: string, enum: [school] }
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      nickname: { type: string }
+                      avatarUrl: { type: string, nullable: true }
+                      role: { type: string }
+                      grade: { type: string, nullable: true }
+                      className: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503':
+          description: 家校通暫時連不上（SCHOOL_UNAVAILABLE）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /auth/me:
     get:
       tags: [auth]

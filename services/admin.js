@@ -6,6 +6,14 @@ module.exports = {
     // 學生／家長也用這支（/auth/login）；教職員登入後照樣進後台，由 role 分流
     return http.post('/auth/password', { account: account, password: password, code: code || undefined }, { auth: false });
   },
+  /**
+   * 家校通帳密直接登入：不需要微信授權，也不需要管理員先開帳號。
+   * 後端會先向家校通驗證，通過才建立／對應本系統使用者（openid = sc:<帳號>）。
+   * 密碼只在這次請求裡用掉，不會存到後端資料庫。
+   */
+  schoolLogin(account, password) {
+    return http.post('/auth/school', { account: account, password: password }, { auth: false });
+  },
   stats() {
     return http.get('/admin/stats');
   },
