@@ -197,4 +197,15 @@ module.exports = {
   createResource: (...a) => call('createResource', a),
   updateResource: (...a) => call('updateResource', a),
   archiveResource: (...a) => call('archiveResource', a),
+
+  // ── W-68 二手書／校服轉贈（查詢訪客可看；送出與申請要登入）──
+  listGiveaways: (...a) => call('listGiveaways', a),
+  getGiveaway: (...a) => call('getGiveaway', a),
+  myGiveaways: (...a) => call('myGiveaways', a),
+  createGiveaway: (...a) => call('createGiveaway', a),
+  updateGiveaway: (...a) => call('updateGiveaway', a),
+  setGiveawayStatus: (...a) => call('setGiveawayStatus', a),
+  requestGiveaway: (...a) => call('requestGiveaway', a),
+  cancelGiveawayRequest: (...a) => call('cancelGiveawayRequest', a),
+  decideGiveawayRequest: (...a) => call('decideGiveawayRequest', a),
 };

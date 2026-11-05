@@ -7,6 +7,7 @@ const role = require('../../../utils/role');
 const theme = require('../../../utils/theme');
 const { decorateBook, decorateLoan } = require('../../../utils/book');
 const venueUtil = require('../../../utils/venue');
+const giveawayUtil = require('../../../utils/giveaway');
 
 const TABS = [
   { key: 'stats', label: i18n.pick('概況') },
@@ -26,6 +27,7 @@ const TABS = [
   { key: 'menu', label: i18n.pick('菜單') },
   { key: 'library', label: i18n.pick('圖書館') },
   { key: 'venues', label: i18n.pick('場地') },
+  { key: 'giveaways', label: i18n.pick('轉贈') },
 ];
 
 // 學段三個固定值（後端 TERMS）：key 必須送原文，簡體下字形相同所以直接用 pick 的結果當 key
@@ -33,10 +35,10 @@ const TERM_KEYS = [i18n.pick('第一段'), i18n.pick('第二段'), i18n.pick('�
 
 const ROLE_TABS = {
   // 校內職員：排菜單＋匯出報名名單＋補登成績。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
-  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'export'],
+  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'giveaways', 'export'],
   TEACHER: ['notice', 'school', 'events', 'venues'],
-  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues'],
+  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues', 'giveaways'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -403,6 +405,13 @@ Page({
       k327: i18n.pick("器材"),
       k328: i18n.pick("用途"),
       k329: i18n.pick("免審批"),
+      // ── W-68 轉贈分頁（k330 起，接在最大值後面，不要回頭撞號）──
+      k330: i18n.pick("可上架"),
+      k331: i18n.pick("下架"),
+      k332: i18n.pick("重新上架"),
+      k333: i18n.pick("目前沒有轉贈貼文"),
+      k334: i18n.pick("待回覆申請"),
+      k335: i18n.pick("已贈出"),
     };
   },
 
@@ -440,6 +449,16 @@ Page({
     venKindLabels: [i18n.pick('場地'), i18n.pick('器材')],
     venForm: { id: '', kind: 'VENUE', name: '', location: '', openFrom: '08:00', openTo: '18:00', maxHours: '4', needsApproval: true },
     venSaving: false,
+    // ── 轉贈（W-68）：一個清單＋四張統計卡，操作只有下架／重新上架 ──
+    gvStatus: 'all',
+    gvStatuses: [
+      { key: 'all', label: i18n.pick('全部') },
+      { key: 'AVAILABLE', label: i18n.pick('可申請') },
+      { key: 'GIVEN', label: i18n.pick('已贈出') },
+      { key: 'CLOSED', label: i18n.pick('已下架') },
+    ],
+    gvItems: [],
+    gvStats: { available: 0, given: 0, closed: 0, pendingRequests: 0 },
     role: '',
     stats: { users: 0, items: { open: 0, claimed: 0, added7d: 0 }, claimsPending: 0, signups: { confirmed: 0, waitlist: 0 }, noticesActive: 0, ratings: { count: 0, avg: 0 } },
     // 第一屏五張數字卡：值與標籤在 loadStats 一起備好（WXML 不做運算）
@@ -648,6 +667,7 @@ Page({
     else if (t === 'menu') p = this.loadMenuWeek();
     else if (t === 'library') p = this.loadLibrary();
     else if (t === 'venues') p = this.loadVenues();
+    else if (t === 'giveaways') p = this.loadGiveaways();
 
     if (!p || typeof p.then !== 'function') {
       this.setData({ tabLoading: false });
@@ -2477,6 +2497,46 @@ Page({
         this.loadLibrary();
       })
       .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+  },
+
+  // ── 轉贈（W-68）：校內職員日常只做一件事 —— 把不合適的貼文下架，之後可以再上架 ──
+  async loadGiveaways() {
+    try {
+      const res = await admin.giveaways(this.data.gvStatus);
+      this.setData({
+        gvItems: (res.items || []).map((item) => giveawayUtil.decorateItem(item)),
+        gvStats: res.stats || { available: 0, given: 0, closed: 0, pendingRequests: 0 },
+      });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到轉贈清單：') + (e.message || e.code) });
+    }
+  },
+
+  switchGvStatus(e) {
+    this.setData({ gvStatus: e.currentTarget.dataset.key || 'all' }, () => this.loadGiveaways());
+  },
+
+  gvToggle(e) {
+    const id = e.currentTarget.dataset.id;
+    const next = e.currentTarget.dataset.next;
+    const title = e.currentTarget.dataset.title || '';
+    if (!id || !next) return;
+    wx.showModal({
+      title: next === 'CLOSED' ? i18n.pick('下架這筆轉贈？') : i18n.pick('重新上架？'),
+      content: title,
+      confirmText: next === 'CLOSED' ? i18n.pick('下架') : i18n.pick('重新上架'),
+      cancelText: i18n.pick('再想想'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .setGiveawayStatus(id, next)
+          .then(() => {
+            wx.showToast({ title: next === 'CLOSED' ? i18n.pick('已下架') : i18n.pick('已上架'), icon: 'success' });
+            this.loadGiveaways();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
   },
 
   // ───────── 場地／器材（W-67） ─────────

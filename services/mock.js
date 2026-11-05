@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 11;
+const SEED_VERSION = 12;
 
 const weekUtil = require('../utils/week');
 const venue = require('../utils/venue');
@@ -206,6 +206,21 @@ function seed() {
       { id: 'rb2', resourceId: 'r1', userId: 'demo-other', startAt: venue.slotIso(venue.dateOptions(3)[1].value, '14:00'), endAt: venue.slotIso(venue.dateOptions(3)[1].value, '16:00'), purpose: '物理科補課', status: 'PENDING', createdAt: now - 2 * h, rejectReason: null },
       { id: 'rb3', resourceId: 'r2', userId: 'demo-user', startAt: venue.slotIso(venue.dateOptions(3)[2].value, '15:00'), endAt: venue.slotIso(venue.dateOptions(3)[2].value, '16:30'), purpose: '班際籃球練習', status: 'PENDING', createdAt: now - 3 * h, rejectReason: null },
     ],
+    // ── 二手書／校服轉贈（W-68）──
+    // 示範資料刻意安排成：一筆是自己送的（不能申請自己的）、一筆有人向我申請（可練「給誰」）、
+    // 一筆我已申請（可練取消）、一筆已贈出（驗「前台看不到、參與者看得到」）。
+    giveaways: [
+      { id: 'gv1', kind: 'BOOK', title: '高二化學課本（第八版）', body: '書角有一點摺，內頁沒有筆記。', condition: 'GOOD', detail: '高二', pickupPlace: '圖書館門口', ownerId: 'demo-other', ownerNickname: '陳同學', ownerClass: '高二 仁', contactName: '陳同學', contactValue: 'p3201301037', status: 'AVAILABLE', version: 0, createdAt: now - 3 * h, imageUrl: null },
+      { id: 'gv2', kind: 'UNIFORM', title: '冬季校服外套', body: '只穿過一個冬天，拉鍊正常。', condition: 'LIKE_NEW', detail: 'M', pickupPlace: '校務處', ownerId: 'demo-user', ownerNickname: '示範學生', ownerClass: '高二 仁', contactName: '示範學生', contactValue: '3201201002', status: 'AVAILABLE', version: 0, createdAt: now - 8 * h, imageUrl: null },
+      { id: 'gv3', kind: 'BOOK', title: '初二數學練習冊（未寫過）', body: '買錯版本，完全空白。', condition: 'LIKE_NEW', detail: '初二', pickupPlace: '教務處', ownerId: 'demo-other', ownerNickname: '李同學', ownerClass: '初二 孝', contactName: '李同學', contactValue: 'p3201402008', status: 'AVAILABLE', version: 0, createdAt: now - 26 * h, imageUrl: null },
+      { id: 'gv4', kind: 'OTHER', title: '木結他（3/4 尺寸）', body: '琴頸沒有彎，附琴袋。家裡放不下才送出。', condition: 'FAIR', detail: '3/4', pickupPlace: '音樂室', ownerId: 'demo-other', ownerNickname: '黃同學', ownerClass: '高一 忠', contactName: '黃同學', contactValue: 'p3201103021', status: 'AVAILABLE', version: 0, createdAt: now - 50 * h, imageUrl: null },
+      { id: 'gv5', kind: 'UNIFORM', title: '體育服（短袖）', body: '已送給學弟。', condition: 'GOOD', detail: 'S', pickupPlace: '操場', ownerId: 'demo-other', ownerNickname: '周同學', ownerClass: '高二 信', contactName: '周同學', contactValue: 'p3201301055', status: 'GIVEN', givenToId: 'demo-user', givenAt: now - 12 * h, version: 1, createdAt: now - 5 * 24 * h, imageUrl: null },
+    ],
+    giveawayRequests: [
+      { id: 'gr1', itemId: 'gv2', userId: 'demo-other', message: '我今年要換 M 碼，可以留給我嗎？', status: 'PENDING', createdAt: now - 4 * h, decidedAt: null },
+      { id: 'gr2', itemId: 'gv3', userId: 'demo-user', message: '我弟弟明年用得到，謝謝。', status: 'PENDING', createdAt: now - 20 * h, decidedAt: null },
+      { id: 'gr3', itemId: 'gv5', userId: 'demo-user', message: '想要體育服', status: 'ACCEPTED', createdAt: now - 14 * h, decidedAt: now - 12 * h },
+    ],
   };
 }
 
@@ -403,12 +418,48 @@ function demoSchoolAttendance() {
   return { items, summary: { total: items.length, late: 1, absent: 1 } };
 }
 
+/** 示範層的轉贈物顯示欄位（與後端 shapeItem 同名同義；頁面兩種模式共用一份程式） */
+function shapeGiveaway(data, item, extra) {
+  const e = extra || {};
+  const me = data.user || {};
+  const rows = (data.giveawayRequests || []).filter((r) => r.itemId === item.id);
+  const mine = rows.filter((r) => r.userId === me.id)[0] || null;
+  const isOwner = item.ownerId === me.id;
+  const manager = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+  const showContact = !!e.showContact || isOwner || manager || (mine && mine.status === 'ACCEPTED');
+  return {
+    id: item.id,
+    kind: item.kind,
+    kindLabel: { BOOK: '書籍', UNIFORM: '校服', OTHER: '其他' }[item.kind] || '其他',
+    title: item.title,
+    body: item.body || null,
+    condition: item.condition || 'GOOD',
+    conditionLabel: { LIKE_NEW: '幾乎全新', GOOD: '良好', FAIR: '可用' }[item.condition] || '良好',
+    detail: item.detail || null,
+    pickupPlace: item.pickupPlace || null,
+    imageUrl: item.imageUrl || null,
+    status: item.status || 'AVAILABLE',
+    statusLabel: { AVAILABLE: '可申請', GIVEN: '已贈出', CLOSED: '已下架' }[item.status] || item.status,
+    version: item.version || 0,
+    ownerId: item.ownerId,
+    ownerNickname: item.ownerNickname || '同學',
+    ownerClass: item.ownerClass || null,
+    contactName: showContact ? item.contactName || null : null,
+    contactValue: showContact ? item.contactValue || null : null,
+    requestCount: rows.length,
+    pendingCount: rows.filter((r) => r.status === 'PENDING').length,
+    myRequest: mine ? { id: mine.id, status: mine.status, createdAt: new Date(mine.createdAt).toISOString() } : null,
+    givenAt: item.givenAt ? new Date(item.givenAt).toISOString() : null,
+    closedAt: item.closedAt ? new Date(item.closedAt).toISOString() : null,
+    createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : null,
+  };
+}
+
 module.exports = {
   reset() {
     const fresh = seed();
     return save(fresh);
   },
-
   // ── 認證 ──
   login() {
     const data = db();
@@ -1687,5 +1738,245 @@ module.exports = {
     resource.version = (resource.version || 0) + 1;
     save(data);
     return Promise.resolve({ ok: true });
+  },
+
+  // ── W-68 二手書／校服轉贈（示範層也寫得進，交付現場斷網時這個模組不能是死的）──
+  listGiveaways(query) {
+    const data = db();
+    const q = query || {};
+    const kw = String(q.q || '').trim();
+    let list = (data.giveaways || []).filter((g) => g.status === 'AVAILABLE');
+    if (q.kind) list = list.filter((g) => g.kind === q.kind);
+    if (kw) {
+      list = list.filter(
+        (g) =>
+          String(g.title || '').indexOf(kw) !== -1 ||
+          String(g.body || '').indexOf(kw) !== -1 ||
+          String(g.detail || '').indexOf(kw) !== -1 ||
+          String(g.pickupPlace || '').indexOf(kw) !== -1,
+      );
+    }
+    list = list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return Promise.resolve({ items: list.map((g) => shapeGiveaway(data, g)), total: list.length, page: 1 });
+  },
+
+  getGiveaway(id) {
+    const data = db();
+    const item = (data.giveaways || []).filter((g) => g.id === id)[0];
+    if (!item) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這件轉贈物品' });
+    const me = data.user || {};
+    const isOwner = item.ownerId === me.id;
+    const manager = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    const mine = (data.giveawayRequests || []).filter((r) => r.itemId === id && r.userId === me.id)[0] || null;
+    if (item.status !== 'AVAILABLE' && !isOwner && !manager && !mine) {
+      return Promise.reject({ code: 'NOT_FOUND', message: '找不到這件轉贈物品' });
+    }
+    const rows = isOwner || manager
+      ? (data.giveawayRequests || []).filter((r) => r.itemId === id)
+      : [];
+    return Promise.resolve({
+      item: shapeGiveaway(data, item),
+      requests: rows.map((r) => ({
+        id: r.id,
+        userId: r.userId,
+        nickname: r.userId === me.id ? me.nickname : '陳同學',
+        className: r.userId === me.id ? '高二 仁' : '高二 仁',
+        message: r.message || null,
+        status: r.status,
+        createdAt: new Date(r.createdAt).toISOString(),
+        decidedAt: r.decidedAt ? new Date(r.decidedAt).toISOString() : null,
+      })),
+      isOwner: isOwner,
+      canRequest: !isOwner && item.status === 'AVAILABLE' && !mine,
+      canManage: manager,
+    });
+  },
+
+  myGiveaways() {
+    const data = db();
+    const me = data.user || {};
+    const posted = (data.giveaways || [])
+      .filter((g) => g.ownerId === me.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map((g) => shapeGiveaway(data, g, { showContact: true }));
+    const requests = (data.giveawayRequests || [])
+      .filter((r) => r.userId === me.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map((r) => {
+        const item = (data.giveaways || []).filter((g) => g.id === r.itemId)[0] || {};
+        return {
+          id: r.id,
+          status: r.status,
+          message: r.message || null,
+          createdAt: new Date(r.createdAt).toISOString(),
+          decidedAt: r.decidedAt ? new Date(r.decidedAt).toISOString() : null,
+          item: {
+            id: item.id,
+            kind: item.kind,
+            kindLabel: { BOOK: '書籍', UNIFORM: '校服', OTHER: '其他' }[item.kind] || '其他',
+            title: item.title || '',
+            detail: item.detail || null,
+            status: item.status || 'AVAILABLE',
+            ownerNickname: item.ownerNickname || '同學',
+          },
+        };
+      });
+    return Promise.resolve({ posted: posted, requests: requests });
+  },
+
+  createGiveaway(input) {
+    const data = db();
+    const body = input || {};
+    if (!body.title || String(body.title).trim().length < 2) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '標題至少 2 個字' });
+    }
+    if (body.imageUrl && !/^https?:\/\//i.test(String(body.imageUrl))) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '圖片要填 http(s) 開頭的網址' });
+    }
+    const me = data.user || {};
+    const item = {
+      id: nextId('gv'),
+      kind: body.kind || 'OTHER',
+      title: String(body.title).trim(),
+      body: body.body || '',
+      condition: body.condition || 'GOOD',
+      detail: body.detail || '',
+      pickupPlace: body.pickupPlace || '',
+      imageUrl: body.imageUrl || null,
+      contactName: body.contactName || me.nickname || '',
+      contactValue: body.contactValue || '',
+      status: 'AVAILABLE',
+      version: 0,
+      ownerId: me.id,
+      ownerNickname: me.nickname || '我',
+      ownerClass: [me.grade, me.className].filter(Boolean).join(' '),
+      createdAt: Date.now(),
+    };
+    data.giveaways = data.giveaways || [];
+    data.giveaways.unshift(item);
+    save(data);
+    return Promise.resolve({ item: shapeGiveaway(data, item, { showContact: true }) });
+  },
+
+  updateGiveaway(id, input) {
+    const data = db();
+    const item = (data.giveaways || []).filter((g) => g.id === id)[0];
+    if (!item) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這件轉贈物品' });
+    const me = data.user || {};
+    const manager = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (item.ownerId !== me.id && !manager) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只有物主可以修改這件轉贈' });
+    }
+    const patch = input || {};
+    if (patch.version !== undefined && patch.version !== (item.version || 0)) {
+      return Promise.reject({ code: 'CONFLICT', message: '這筆資料剛被別人改過，請重新載入後再儲存' });
+    }
+    ['kind', 'title', 'body', 'condition', 'detail', 'pickupPlace', 'imageUrl', 'contactName', 'contactValue'].forEach((k) => {
+      if (patch[k] !== undefined) item[k] = patch[k];
+    });
+    item.version = (item.version || 0) + 1;
+    save(data);
+    return Promise.resolve({ item: shapeGiveaway(data, item, { showContact: true }) });
+  },
+
+  setGiveawayStatus(id, status) {
+    const data = db();
+    const item = (data.giveaways || []).filter((g) => g.id === id)[0];
+    if (!item) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這件轉贈物品' });
+    const me = data.user || {};
+    const manager = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (item.ownerId !== me.id && !manager) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只有物主可以下架這件轉贈' });
+    }
+    if (item.status === 'GIVEN') {
+      return Promise.reject({ code: 'CONFLICT', message: '已贈出的物品不能再改狀態' });
+    }
+    item.status = status === 'CLOSED' ? 'CLOSED' : 'AVAILABLE';
+    item.closedAt = item.status === 'CLOSED' ? Date.now() : null;
+    item.version = (item.version || 0) + 1;
+    save(data);
+    return Promise.resolve({ ok: true, status: item.status });
+  },
+
+  requestGiveaway(id, message) {
+    const data = db();
+    const item = (data.giveaways || []).filter((g) => g.id === id)[0];
+    if (!item) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這件轉贈物品' });
+    const me = data.user || {};
+    if (item.ownerId === me.id) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '這是你自己送出的物品' });
+    }
+    if (item.status !== 'AVAILABLE') {
+      return Promise.reject({ code: 'CONFLICT', message: '這件物品已經有人領取或已下架' });
+    }
+    data.giveawayRequests = data.giveawayRequests || [];
+    const existing = data.giveawayRequests.filter((r) => r.itemId === id && r.userId === me.id)[0];
+    if (existing) {
+      if (existing.status === 'PENDING') {
+        return Promise.reject({ code: 'CONFLICT', message: '你已經申請過了，等物主回覆' });
+      }
+      if (existing.status === 'ACCEPTED') {
+        return Promise.reject({ code: 'CONFLICT', message: '物主已經把這件物品留給你' });
+      }
+      existing.status = 'PENDING';
+      existing.message = message || null;
+      existing.decidedAt = null;
+      existing.createdAt = Date.now();
+      save(data);
+      return Promise.resolve({ ok: true, requestId: existing.id });
+    }
+    const row = { id: nextId('gr'), itemId: id, userId: me.id, message: message || null, status: 'PENDING', createdAt: Date.now(), decidedAt: null };
+    data.giveawayRequests.push(row);
+    save(data);
+    return Promise.resolve({ ok: true, requestId: row.id });
+  },
+
+  cancelGiveawayRequest(id) {
+    const data = db();
+    const row = (data.giveawayRequests || []).filter((r) => r.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆申請' });
+    const me = data.user || {};
+    if (row.userId !== me.id) return Promise.reject({ code: 'FORBIDDEN', message: '只能取消自己的申請' });
+    if (row.status !== 'PENDING') return Promise.reject({ code: 'CONFLICT', message: '這筆申請已經處理過了' });
+    row.status = 'CANCELLED';
+    row.decidedAt = Date.now();
+    save(data);
+    return Promise.resolve({ ok: true });
+  },
+
+  decideGiveawayRequest(id, action) {
+    const data = db();
+    const row = (data.giveawayRequests || []).filter((r) => r.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆申請' });
+    const item = (data.giveaways || []).filter((g) => g.id === row.itemId)[0];
+    if (!item) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這件轉贈物品' });
+    const me = data.user || {};
+    const manager = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (item.ownerId !== me.id && !manager) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只有物主可以決定要給誰' });
+    }
+    if (row.status !== 'PENDING') return Promise.reject({ code: 'CONFLICT', message: '這筆申請已經處理過了' });
+    if (item.status !== 'AVAILABLE') return Promise.reject({ code: 'CONFLICT', message: '這件物品已經不是可申請的狀態' });
+    const now = Date.now();
+    if (action === 'REJECT') {
+      row.status = 'REJECTED';
+      row.decidedAt = now;
+      save(data);
+      return Promise.resolve({ ok: true, action: 'REJECT' });
+    }
+    row.status = 'ACCEPTED';
+    row.decidedAt = now;
+    (data.giveawayRequests || []).forEach((r) => {
+      if (r.itemId === item.id && r.id !== id && r.status === 'PENDING') {
+        r.status = 'REJECTED';
+        r.decidedAt = now;
+      }
+    });
+    item.status = 'GIVEN';
+    item.givenToId = row.userId;
+    item.givenAt = now;
+    item.version = (item.version || 0) + 1;
+    save(data);
+    return Promise.resolve({ ok: true, action: 'ACCEPT' });
   },
 };

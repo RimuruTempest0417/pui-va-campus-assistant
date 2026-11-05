@@ -1,0 +1,128 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="detail-inner">
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="3" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="2" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{failed}}" title="{{L.k24}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k25}}</pv-button>
+      </pv-empty>
+
+      <block wx:elif="{{item}}">
+        <!-- 物品：一張卡＋髮絲線分列 -->
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row">
+            <view class="gv-head">
+              <view class="gv-mark"><text class="gv-mark__text">{{item.mark}}</text></view>
+              <view class="gv-main">
+                <text class="ui-title gv-title">{{item.title}}</text>
+                <text class="ui-meta">{{item.kindText}} · {{item.ownerText}}</text>
+              </view>
+              <pv-tag text="{{item.statusText}}" type="{{item.statusTag}}" />
+            </view>
+          </view>
+
+          <view class="ui-card ui-card--row">
+            <view class="ui-row-between info-row">
+              <text class="ui-sub">{{L.k03}}</text>
+              <text class="ui-body">{{item.conditionText}}</text>
+            </view>
+          </view>
+
+          <view wx:if="{{item.detail}}" class="ui-card ui-card--row">
+            <view class="ui-row-between info-row">
+              <text class="ui-sub">{{L.k04}}</text>
+              <text class="ui-body">{{item.detail}}</text>
+            </view>
+          </view>
+
+          <view wx:if="{{item.pickupPlace}}" class="ui-card ui-card--row">
+            <view class="ui-row-between info-row">
+              <text class="ui-sub">{{L.k05}}</text>
+              <text class="ui-body">{{item.pickupPlace}}</text>
+            </view>
+          </view>
+
+          <view class="ui-card ui-card--row">
+            <view class="ui-row-between info-row">
+              <text class="ui-sub">{{L.k07}}</text>
+              <text class="ui-body ui-num">{{item.timeText}}</text>
+            </view>
+          </view>
+
+          <view wx:if="{{item.body}}" class="ui-card ui-card--row">
+            <text class="ui-field__label">{{L.k08}}</text>
+            <text class="ui-body desc">{{item.body}}</text>
+          </view>
+
+          <view wx:if="{{item.contactValue}}" class="ui-card ui-card--row ui-card--last">
+            <view class="ui-row-between info-row">
+              <text class="ui-sub">{{L.k09}}</text>
+              <text class="ui-body ui-num">{{item.contactValue}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 物主看申請人：每列兩顆按鈕（給這位／婉拒） -->
+        <block wx:if="{{isOwner}}">
+          <view class="section-title">{{L.k16}}<text wx:if="{{requests.length}}" class="section-count"> · {{requests.length}}</text></view>
+          <view wx:if="{{requests.length}}" class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{requests}}"
+              wx:key="id"
+              class="ui-card ui-card--row {{index === requests.length - 1 ? 'ui-card--last' : ''}}"
+            >
+              <view class="req-row">
+                <view class="req-main">
+                  <text class="ui-body">{{item.whoText}}</text>
+                  <text wx:if="{{item.message}}" class="ui-meta">{{item.message}}</text>
+                  <text class="ui-meta">{{item.timeText}} · {{item.statusText}}</text>
+                </view>
+                <view wx:if="{{item.canDecide}}" class="req-actions">
+                  <pv-button type="tinted" size="sm" data-id="{{item.id}}" data-action="REJECT" data-who="{{item.whoText}}" bind:tap="decide">{{L.k18}}</pv-button>
+                  <pv-button type="filled" size="sm" data-id="{{item.id}}" data-action="ACCEPT" data-who="{{item.whoText}}" bind:tap="decide">{{L.k17}}</pv-button>
+                </view>
+                <pv-tag wx:else text="{{item.statusText}}" type="{{item.statusTag}}" />
+              </view>
+            </view>
+          </view>
+          <view wx:else class="ui-list ui-list--grouped">
+            <view class="ui-card ui-card--row ui-card--last">
+              <text class="ui-meta empty-inline">{{L.k38}}</text>
+            </view>
+          </view>
+        </block>
+
+        <!-- 我申請過：顯示狀態，待回覆可以取消 -->
+        <block wx:if="{{!isOwner && item.myRequest}}">
+          <view class="section-title">{{L.k10}}</view>
+          <view class="ui-list ui-list--grouped">
+            <view class="ui-card ui-card--row {{item.myRequest.status === 'PENDING' ? '' : 'ui-card--last'}}">
+              <view class="ui-row-between info-row">
+                <text class="ui-body">{{item.title}}</text>
+                <pv-tag text="{{item.myRequestText}}" type="{{item.myRequestTag}}" />
+              </view>
+            </view>
+            <view wx:if="{{item.myRequest.status === 'PENDING'}}" class="ui-card ui-card--row ui-card--last">
+              <view class="row-action" bindtap="cancelMine">{{L.k15}}</view>
+            </view>
+          </view>
+        </block>
+
+        <view wx:if="{{isOwner && item.status === 'CLOSED'}}" class="hint-row">{{L.k39}}</view>
+
+        <view class="bar-space"></view>
+      </block>
+    </view>
+  </scroll-view>
+
+  <!-- 底部主按鈕：放 scroll-view 外面，否則會被裁掉 -->
+  <view wx:if="{{item}}" class="bottom-bar">
+    <pv-button type="filled" block disabled="{{barDisabled}}" bind:tap="onPrimary">{{barText}}</pv-button>
+  </view>
+</view>

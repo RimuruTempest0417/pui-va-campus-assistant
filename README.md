@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.87.1-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.88.0-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -32,8 +32,9 @@
 | 家長端（綁定子女） | 首頁「我的子女」切換、代報名／取消、子女的報名／認領／未讀公告 | ✅ 1 頁 ＋ 首頁卡 | ✅ 兩道門（role PARENT ＋ parent_links）＋ 與學生共用 `lib/signup.ts` |
 | 成績與出缺席（家校通） | 家長用自己的家校通帳號連結，**分批同步**成績與出缺席（由近而遠、每批 25 秒、游標續傳，畫面顯示「還有 N 段」）；**家校通掛掉時老師／校務處可手動補登**（小程序後台「成績」分頁與網頁後台「成績與出勤」兩邊都能補，補完學生端立刻看得到並標「手動補登」）；同步來的資料不可覆蓋、不可刪。**v0.83.0 起家長用家校通帳號登入就自動對應子女，成績頁可切換子女、一鍵同步子女資料，不必等學校綁定** | ✅ 成績頁 ＋ 後台 1 分頁 | ✅ AES-256-GCM 存帳密、`school:manage` 七支端點、家長 `parent_links` 自動對應（正則由帳號前綴判斷）、e2e 19＋25＋18 項 | 
 | 場地／器材借用 | 場地（實驗室／球場／多媒體室）與器材（投影機／音響）清單、開放時間與「現在開放中」、**送出借用申請（時段重疊在交易內用列鎖擋下，10 人搶同一時段只會成立 1 筆）**、需老師批准的進待審、免審批的送出即生效、我的申請與取消（取消即釋放時段）、批准／駁回通知；後台「場地」分頁：待審批（駁回要寫原因）＋場地清單（新增／修改／下架、版本衝突保護） | ✅ 3 頁 ＋ 首頁入口 | ✅ 2 張表、10 支端點、e2e 22 項（含 10 併發搶同一時段） |
-| 校內管理（小程序內建） | 概況（**第一屏「本週概況」五張卡：本週新使用者／本週報名／待審認領／未解決錯誤／未領失物，點卡片跳到對應分頁**）、認領、失物、**垃圾桶（誤刪的公告／下架的失物可一鍵還原）**、活動、公告、**成績（補登成績與出缺席）**、使用者、家長、檢舉、**錯誤**、**推送**、審計、名單、菜單、**圖書館**、**場地**；**CSV 批次匯入活動／菜單**（先檢查再匯入、逐列回報）；**校內職員（STAFF）登入只看到「公告」「認領」「成績」「菜單」「圖書館」「場地」「名單」**，不能開活動、不能發公告 | ✅ 17 個分頁 | ✅ 依能力矩陣分權 |
-| 資料備份（維運） | 全庫匯出成一份 JSON（19 張表）、終端一支指令還原、還原後逐表對帳 | ✅ 網頁後台「下載備份」（只有最高權限看得到） | ✅ `GET /admin/export.json`（`backup:export`）＋後端 repo 的 `restore.mjs` |
+| 二手書／校服轉贈 | 送出用不到的教科書與換季校服（種類／新舊／年級或尺碼／面交地點／說明）、清單分類與關鍵字、**申請索取（一人對同一件只留一筆，可取消）**、**物主自己決定給誰：接受後物品轉「已贈出」、其他申請同一交易一起婉拒**（兩個視窗同時按接受只有一個成立）、聯絡方式只給物主與被選中的人、下架與重新上架；後台「轉贈」分頁：四張統計＋狀態篩選＋下架／重新上架 | ✅ 4 頁 ＋ 首頁入口 | ✅ 2 張表、9 支端點、e2e 19 項 |
+| 校內管理（小程序內建） | 概況（**第一屏「本週概況」五張卡：本週新使用者／本週報名／待審認領／未解決錯誤／未領失物，點卡片跳到對應分頁**）、認領、失物、**垃圾桶（誤刪的公告／下架的失物可一鍵還原）**、活動、公告、**成績（補登成績與出缺席）**、使用者、家長、檢舉、**錯誤**、**推送**、審計、名單、菜單、**圖書館**、**場地**、**轉贈**；**CSV 批次匯入活動／菜單**（先檢查再匯入、逐列回報）；**校內職員（STAFF）登入只看到「公告」「認領」「成績」「菜單」「圖書館」「場地」「轉贈」「名單」**，不能開活動、不能發公告 | ✅ 18 個分頁 | ✅ 依能力矩陣分權 |
+| 資料備份（維運） | 全庫匯出成一份 JSON（33 張表）、終端一支指令還原、還原後逐表對帳 | ✅ 網頁後台「下載備份」（只有最高權限看得到） | ✅ `GET /admin/export.json`（`backup:export`）＋後端 repo 的 `restore.mjs` |
 | 錯誤日誌（觀測） | 手機端的白屏／閃退／未處理 Promise 自動送上報；**「按鈕沒反應」這類不拋錯的問題可由使用者在設定頁手動回報（附頁面／機型／系統）**。後台按出現次數排序、可標記已解決、可依來源（使用者回報／自動上報）篩選 | ✅ 自動上報 ＋ 手動回報（不影響使用者） | ✅ `error_logs`（`kind`／`level`／機型）＋ 4 支端點（`error:read`） |
 | 推送紀錄（觀測） | 每一次通知發送都留一筆：站內通知與微信訂閱消息的成敗、失敗原因（沒同意過／沒帳號／微信錯誤碼）、微信模板是否已設定；後台可只看失敗、可依通路篩選 | ✅ 自動寫入（不影響通知流程） | ✅ `push_logs` ＋ `GET /admin/push-logs`（`push:read`） |
 | 列印版（A4 黑白） | 失物清單、活動名單兩頁紙版：白底黑字、無品牌色塊、每頁列數固定；「列印預覽」收起按鈕、「複製表格」貼進 Word／Excel 即可列印（小程序沒有列印 API，這是手機端真實可走的路） | ✅ 2 頁 | — （失物走公開列表、名單走 `event:export`） |
@@ -77,7 +78,7 @@
 
 ```
 .
-├── app.js / app.json / app.wxss          # 全局入口（32 個頁面註冊）
+├── app.js / app.json / app.wxss          # 全局入口（36 個頁面註冊）
 ├── pages/
 │   ├── index/                            # 首頁：四模組入口、緊急公告、今日午餐
 │   ├── search/                           # 全校搜尋（公告／活動／失物一次搜）
@@ -86,6 +87,9 @@
 │   ├── menu/{index,dish}/                # 午餐與小賣部
 │   ├── notices/{list,detail}/            # 公告與提示
 │   ├── calendar/                         # 校曆：月視圖（公告＋活動同框）
+│   ├── library/{list,detail,mine}/       # 圖書館：館藏、掃書號借書、我的借閱
+│   ├── venues/{list,detail,mine}/        # 場地／器材借用：時段申請、我的申請
+│   ├── giveaway/{list,detail,create,mine}/ # 二手書／校服轉贈：送出、申請、物主決定給誰
 │   ├── parent/                           # 家長端：切換子女、代報名／取消
 │   ├── print/{items,event}/              # 列印版（A4 黑白）：失物清單、活動名單
 │   ├── style-guide/                      # 設計系統展示頁
@@ -94,17 +98,17 @@
 │   └── …                                 # pv-avatar / pv-empty / pv-skeleton / pv-tabs / pv-sheet
 ├── styles/{tokens.wxss,ui.wxss,print.wxss} # design tokens、共用樣式、列印版面
 ├── services/{api.js,mock.js,data.js}     # 真 API／示範資料／唯一資料入口
-├── utils/{request,errors,reporter,date,event,week,notice,item,nav,print}.js
+├── utils/{request,errors,reporter,date,event,week,notice,item,nav,print,book,venue,giveaway}.js
 ├── config/config.js                      # API_BASE_URL、DEMO_MODE
 ├── scripts/
 │   ├── check-project.mjs                 # 結構／WXSS／白屏守門
 │   ├── check-openapi.mjs                 # API 契約守門（重複鍵／可解析／操作數；--parity 對後端路由）
-│   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，93 項）
+│   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，158 項）
 │   ├── check-i18n.mjs                    # 繁簡介面守門（pick 抽樣／對照表殘留／L.* 供應）
 │   ├── i18n-js-scan.mjs／i18n-wrap-js.mjs # 掃出／包裝頁面 JS 的中文字面值（W-20b 工具）
 │   ├── build-i18n-phrases.py             # 用 opencc tw2sp 重建繁→簡對照表
-│   ├── check-states.mjs                  # 32 頁三態（載入／空／失敗）對照表守門
-│   ├── check-console.mjs                 # 32 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
+│   ├── check-states.mjs                  # 36 頁三態（載入／空／失敗）對照表守門
+│   ├── check-console.mjs                 # 36 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
 │   └── verify-all.mjs                    # 一鍵驗收：上面四支串起來跑完並彙總（失敗貼完整輸出）
 ├── docs/
 │   ├── 01-藍圖與評分對標.md
@@ -135,11 +139,11 @@ node scripts/package.mjs     # → dist/pui-va-campus-assistant-vX.Y.Z.zip
 node scripts/verify-all.mjs        # 4 通過／0 失敗；--no-console 跳過走查、--strict 讓略過也算失敗
 
 # 也可以單獨跑（CI 也會跑）
-node scripts/check-project.mjs     # 32 頁面 / 0 警告
-node scripts/check-openapi.mjs     # 119 條路徑／138 個操作、0 重複鍵（--parity 印出與後端路由表的差）
-node scripts/check-data-layer.mjs  # ALL PASS 101/101（固定跑示範資料層，含 data↔api↔mock 方法對齊）
-node scripts/check-states.mjs      # 32 頁三態全部符合（--table 印出對照表）
-node scripts/check-console.mjs     # 32 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
+node scripts/check-project.mjs     # 36 頁面 / 0 警告
+node scripts/check-openapi.mjs     # 154 條路徑／183 個操作、0 重複鍵（--parity 印出與後端路由表的差）
+node scripts/check-data-layer.mjs  # ALL PASS 158/158（固定跑示範資料層，含 data↔api↔mock 方法對齊）
+node scripts/check-states.mjs      # 36 頁三態全部符合（--table 印出對照表）
+node scripts/check-console.mjs     # 36 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
 ```
 
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄
@@ -170,6 +174,7 @@ node scripts/check-console.mjs     # 32 頁 console 走查：0 error／0 warn（
 
 ## 目前進度
 
+- [x] **用不到的課本與穿不下的校服，有地方去了（v0.88.0）**：首頁多一條「二手轉贈」。送出東西只要選種類（書籍／校服／其他）、寫標題與新舊，年級或尺碼、面交地點填一句就好，聯絡方式只有你選中的那位看得到。想要的人按「我想要」並留一句話，最後由**物主自己決定給誰** —— 不是先搶先贏，也不是等老師審。按「給這位」之後東西就標成已贈出、清單上自動消失，其他同時在等的人會收到「這次沒留給你」，不會一直卡在等回覆。暫時不想送了就按「下架」，之後還能重新上架；後台「轉贈」分頁讓校內職員把不合適的貼文收起來
 - [x] **實驗室、球場、投影機，不用再去群組問（v0.87.0）**：以前借場地要問一句「星期三下午實驗室有人用嗎」，兩個人都問、兩個人以為借到了。現在首頁多一條「場地借用」：點進去看每個場地現在開不開放、接下來誰借了哪個時段，選好日期與時間（半小時為一格）、寫一句用途就送出。要老師批准的會標「待審批」，批了會通知你；投影機這類小器材免審批，送出就生效。同一個時段只會有一組人借到，別人先送出時畫面會直接寫「這個時段已被預約」。想改時間就按「取消申請」把時段放出來，再重新選 —— 不用麻煩老師
 - [x] **書想借就借，借完了排隊也看得到第幾位（v0.86.0）**：圖書館的書現在查得到、借得到、也排得到。首頁「圖書館」可以搜書名或直接掃書背的條碼，書在架上按一下就借出，有人先借走就排候補並寫你是第幾位；有人還書時系統會通知你、幫你留 48 小時，逾時才讓給下一位。借期快到的會標色，續借同樣按一下（一本只能續一次、有人在排隊時不能續）。圖書館職員在後台就能登記新書、看誰還沒還、一鍵催還
 - [x] **我那次認領到底通過了沒有（v0.77.0）**：以前提出認領之後，結果只會變成一則通知 —— 沒按過「允許接收通知」的人，在自己手機上永遠查不到後續。現在失物招領 → 右上「我的」→ 上方切到「我申請的」，一列一列寫著你送出的每一筆：待審核、已通過、未通過，還有送出的時間與通過／拒絕的時間，點一下就回到那件物品。別人的申請你看不到，你的也不會出現在別人手機上

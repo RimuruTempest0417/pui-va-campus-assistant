@@ -1,0 +1,113 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="form-inner">
+      <view class="ui-list ui-list--grouped">
+        <view class="ui-card ui-card--row">
+          <picker mode="selector" range="{{kindLabels}}" value="{{kindIndex}}" bindchange="onKindChange">
+            <view class="field-row">
+              <text class="field-label">{{L.k02}}</text>
+              <text class="field-value">{{kindLabel}}</text>
+              <text class="field-arrow">›</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="ui-card ui-card--row">
+          <text class="ui-field__label">{{L.k03}}</text>
+          <input
+            class="ui-input"
+            placeholder="{{L.k04}}"
+            placeholder-class="ui-placeholder"
+            value="{{title}}"
+            maxlength="80"
+            data-field="title"
+            bindinput="onInput"
+          />
+        </view>
+
+        <view class="ui-card ui-card--row">
+          <picker mode="selector" range="{{conditionLabels}}" value="{{conditionIndex}}" bindchange="onConditionChange">
+            <view class="field-row">
+              <text class="field-label">{{L.k05}}</text>
+              <text class="field-value">{{conditionLabel}}</text>
+              <text class="field-arrow">›</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="ui-card ui-card--row">
+          <text class="ui-field__label">{{L.k06}}</text>
+          <input
+            class="ui-input"
+            placeholder="{{L.k07}}"
+            placeholder-class="ui-placeholder"
+            value="{{detail}}"
+            maxlength="40"
+            data-field="detail"
+            bindinput="onInput"
+          />
+        </view>
+
+        <view class="ui-card ui-card--row ui-card--last">
+          <text class="ui-field__label">{{L.k08}}</text>
+          <input
+            class="ui-input"
+            placeholder="{{L.k09}}"
+            placeholder-class="ui-placeholder"
+            value="{{pickupPlace}}"
+            maxlength="60"
+            data-field="pickupPlace"
+            bindinput="onInput"
+          />
+        </view>
+      </view>
+
+      <view class="ui-list ui-list--grouped">
+        <view class="ui-card ui-card--row ui-card--last">
+          <text class="ui-field__label">{{L.k10}}</text>
+          <textarea
+            class="ui-textarea"
+            placeholder="{{L.k11}}"
+            placeholder-class="ui-placeholder"
+            value="{{body}}"
+            maxlength="2000"
+            data-field="body"
+            bindinput="onInput"
+          />
+        </view>
+      </view>
+
+      <view class="ui-list ui-list--grouped">
+        <view class="ui-card ui-card--row">
+          <text class="ui-field__label">{{L.k12}}</text>
+          <input
+            class="ui-input"
+            placeholder="{{L.k13}}"
+            placeholder-class="ui-placeholder"
+            value="{{contactValue}}"
+            maxlength="80"
+            data-field="contactValue"
+            bindinput="onInput"
+          />
+        </view>
+        <view class="ui-card ui-card--row ui-card--last">
+          <text class="ui-field__label">{{L.k14}}</text>
+          <input
+            class="ui-input"
+            placeholder="{{L.k15}}"
+            placeholder-class="ui-placeholder"
+            value="{{imageUrl}}"
+            maxlength="512"
+            data-field="imageUrl"
+            bindinput="onInput"
+          />
+        </view>
+      </view>
+
+      <view class="submit-row">
+        <pv-button type="filled" block loading="{{submitting}}" bind:tap="submit">{{submitting ? L.k17 : L.k16}}</pv-button>
+      </view>
+    </view>
+  </scroll-view>
+</view>

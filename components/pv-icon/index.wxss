@@ -62,3 +62,8 @@
 
 /* 右箭頭：旋轉的兩條邊（只畫 border-top + border-right） */
 .i-chev { position: absolute; top: 34%; left: 36%; width: 26%; height: 26%; border-top: 2rpx solid var(--ico); border-right: 2rpx solid var(--ico); transform: rotate(45deg); }
+
+/* 轉贈（W-68）：禮物盒（上蓋略寬、盒身在下、中間一條緞帶） */
+.i-gift-lid { position: absolute; top: 30%; left: 10%; width: 80%; height: 18%; border: 2rpx solid var(--ico); border-radius: 3rpx; }
+.i-gift-body { position: absolute; top: 50%; left: 18%; width: 64%; height: 34%; border: 2rpx solid var(--ico); border-top-width: 0; border-radius: 0 0 3rpx 3rpx; }
+.i-gift-ribbon { position: absolute; top: 30%; left: 48%; width: 4%; height: 54%; background: var(--ico); }

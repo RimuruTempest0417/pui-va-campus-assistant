@@ -838,6 +838,55 @@
         </block>
       </block>
 
+      <block wx:elif="{{tab === 'giveaways'}}">
+        <view class="stat-grid">
+          <view class="stat"><text class="stat__num ui-num">{{gvStats.available}}</text><text class="stat__label">{{L.k330}}</text></view>
+          <view class="stat"><text class="stat__num ui-num">{{gvStats.given}}</text><text class="stat__label">{{L.k335}}</text></view>
+          <view class="stat"><text class="stat__num ui-num">{{gvStats.closed}}</text><text class="stat__label">{{L.k332}}</text></view>
+          <view class="stat"><text class="stat__num ui-num">{{gvStats.pendingRequests}}</text><text class="stat__label">{{L.k334}}</text></view>
+        </view>
+
+        <view class="filter-row">
+          <view
+            wx:for="{{gvStatuses}}"
+            wx:key="key"
+            class="chip {{gvStatus === item.key ? 'chip--on' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="switchGvStatus"
+          >{{item.label}}</view>
+        </view>
+
+        <view wx:if="{{gvItems.length}}" class="ui-list ui-list--grouped">
+          <view
+            wx:for="{{gvItems}}"
+            wx:key="id"
+            class="signup-row {{index === gvItems.length - 1 ? 'signup-row--last' : ''}}"
+          >
+            <view class="lib-row">
+              <view class="lib-row__main">
+                <text class="signup-row__name">{{item.title}}</text>
+                <text class="ui-meta">{{item.kindText}} · {{item.metaText}}</text>
+                <text class="ui-meta">{{item.ownerNickname}}<block wx:if="{{item.ownerClass}}"> · {{item.ownerClass}}</block></text>
+                <text class="ui-meta">{{item.applyText}}</text>
+              </view>
+              <view class="row-actions">
+                <pv-tag text="{{item.statusText}}" type="{{item.statusTag}}" />
+                <pv-button
+                  wx:if="{{item.status !== 'GIVEN'}}"
+                  size="sm"
+                  type="plain"
+                  data-id="{{item.id}}"
+                  data-next="{{item.status === 'CLOSED' ? 'AVAILABLE' : 'CLOSED'}}"
+                  data-title="{{item.title}}"
+                  bind:tap="gvToggle"
+                >{{item.status === 'CLOSED' ? L.k332 : L.k331}}</pv-button>
+              </view>
+            </view>
+          </view>
+        </view>
+        <pv-empty wx:else title="{{L.k333}}" desc="" />
+      </block>
+
       <block wx:elif="{{tab === 'venues'}}">
         <view class="filter-row">
           <view

@@ -212,4 +212,16 @@ module.exports = {
   createResource(body) { return http.post('/resources', body); },
   updateResource(id, body) { return http.patch('/resources/' + id, body); },
   archiveResource(id) { return http.del('/resources/' + id); },
+
+  // ── W-68 二手書／校服轉贈 ──
+  listGiveaways(query) { return http.get('/giveaways', query); },
+  getGiveaway(id) { return http.get('/giveaways/' + id); },
+  myGiveaways() { return http.get('/giveaways/mine'); },
+  createGiveaway(body) { return http.post('/giveaways', body); },
+  updateGiveaway(id, body) { return http.patch('/giveaways/' + id, body); },
+  /** 下架／重新上架（轉贈的「刪除」就是下架，不做硬刪） */
+  setGiveawayStatus(id, status) { return http.post('/giveaways/' + id + '/status', { status: status }); },
+  requestGiveaway(id, message) { return http.post('/giveaways/' + id + '/requests', { message: message }); },
+  cancelGiveawayRequest(id) { return http.del('/giveaways/requests/' + id); },
+  decideGiveawayRequest(id, action) { return http.patch('/giveaways/requests/' + id, { action: action }); },
 };

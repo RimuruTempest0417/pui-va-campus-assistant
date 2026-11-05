@@ -61,6 +61,8 @@ Page({
     libPressed: false,
     venueText: '',
     venuePressed: false,
+    giveawayText: '',
+    giveawayPressed: false,
     // 家長：只在家長身分時才有值（切換子女就在首頁做，不必先點進別的頁）
     parentChildren: [],
     parentActiveId: '',
@@ -95,6 +97,7 @@ Page({
       k18: i18n.pick(" 本"),
       k19: i18n.pick("查看館藏 ›"),
       k20: i18n.pick('場地借用'),
+      k21: i18n.pick('二手轉贈'),
       brand: i18n.pick('培華校園助手'),
       brandSub: i18n.pick('PUI VA CAMPUS'),
       demoTag: i18n.t('home.demoTag'),
@@ -239,7 +242,7 @@ Page({
       // 首次進入先嘗試登入（沒有後端就當訪客，不阻塞畫面）
       await data.ensureLogin();
 
-      const [me, items, events, menu, notices, lib, resources] = await Promise.all([
+      const [me, items, events, menu, notices, lib, resources, giveaways] = await Promise.all([
         // 未登入時 me() 會 401；首頁是公開頁，訪客照樣要能看到四個模組
         data.me().catch(() => null),
         data.listItems({}),
@@ -250,6 +253,8 @@ Page({
         data.listBooks({ available: '1', limit: 1 }).catch(() => ({ total: 0 })),
         // 場地入口的副標（現在開放的場地數）；訪客也看得到，失敗就顯示「—」
         data.listResources({ limit: 50 }).catch(() => ({ items: [] })),
+        // 轉贈入口的副標（有幾件東西可以拿）；同樣失敗不影響首頁
+        data.listGiveaways({ limit: 50 }).catch(() => ({ items: [] })),
       ]);
 
       // 緊急公告：只在真的有 URGENT 時顯示第一則
@@ -305,6 +310,8 @@ Page({
         isDemo: data.isDemo(),
         libraryText: lib && lib.total ? i18n.pick('可借 ') + lib.total + i18n.pick(' 本') : '—',
         venueText: resources && resources.items ? venueOpenText(resources.items) : '—',
+        giveawayText:
+          giveaways && giveaways.items ? (giveaways.items.length ? giveaways.items.length + i18n.pick(' 件等你拿') : i18n.pick('目前沒有人送東西')) : '—',
         user: me || {},
         parentChildren: parentChildren,
         parentActiveId: parentActiveId,
@@ -382,6 +389,19 @@ Page({
 
   goVenues() {
     wx.navigateTo({ url: '/pages/venues/list/index' });
+  },
+
+  // ── 二手轉贈入口（W-68）：第三條列，與圖書館／場地同一個語彙 ──
+  onGvTouchStart() {
+    this.setData({ giveawayPressed: true });
+  },
+
+  onGvTouchEnd() {
+    this.setData({ giveawayPressed: false });
+  },
+
+  goGiveaway() {
+    wx.navigateTo({ url: '/pages/giveaway/list/index' });
   },
 
   onRetry() {

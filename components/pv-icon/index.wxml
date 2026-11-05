@@ -57,4 +57,11 @@
     <view class="i-chev" />
   </block>
 
+  <!-- 轉贈（W-68）：禮物盒（盒身＋上蓋＋緞帶） -->
+  <block wx:elif="{{name === 'gift'}}">
+    <view class="i-gift-body" />
+    <view class="i-gift-lid" />
+    <view class="i-gift-ribbon" />
+  </block>
+
 </view>

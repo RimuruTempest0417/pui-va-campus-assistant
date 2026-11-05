@@ -1,0 +1,22 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.mine-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+
+.chips { display: flex; flex-direction: row; flex-wrap: wrap; gap: var(--pv-sp-2); margin-bottom: var(--pv-sp-2); }
+.chip {
+  flex-shrink: 0;
+  font-size: var(--pv-fs-subhead);
+  color: var(--pv-label-2);
+  background: var(--pv-surface);
+  border-radius: var(--pv-r-pill);
+  padding: 8rpx var(--pv-sp-3);
+}
+.chip.is-active { background: var(--pv-tint); color: var(--pv-on-tint); font-weight: 600; }
+
+.mine-row { display: flex; flex-direction: row; align-items: center; gap: var(--pv-sp-2); }
+.mine-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mine-side { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: var(--pv-sp-1); }
+
+.cancel-link { color: var(--pv-danger); font-size: var(--pv-fs-footnote); font-weight: 600; padding: 8rpx 0; }
+.empty-action { color: var(--pv-tint); font-weight: 600; }

@@ -697,6 +697,114 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-68 二手書／校服轉贈（示範層也要走完整流程：送出 → 申請 → 給誰 → 下架）──
+{
+  const list1 = await data.listGiveaways({});
+  const hasGiven = list1.items.some((i) => i.id === 'gv5');
+  check('轉贈：列表只回可申請（已贈出隱藏）', !hasGiven && list1.items.length === 4, `${list1.items.length} 件／含已贈出=${hasGiven}`);
+
+  const books = await data.listGiveaways({ kind: 'BOOK' });
+  check('轉贈：分類過濾', books.items.length === 2 && books.items.every((i) => i.kind === 'BOOK'), `${books.items.length} 本書`);
+
+  const hit = await data.listGiveaways({ q: '外套' });
+  check('轉贈：關鍵字命中', hit.items.length === 1 && hit.items[0].id === 'gv2', hit.items.length ? hit.items[0].title : '沒有結果');
+
+  const otherItem = await data.getGiveaway('gv1');
+  check(
+    '轉贈：別人的物品看不到聯絡方式',
+    otherItem.item.contactValue === null && otherItem.canRequest === true,
+    `contact=${otherItem.item.contactValue}／可申請=${otherItem.canRequest}`,
+  );
+
+  const ownItem = await data.getGiveaway('gv2');
+  check(
+    '轉贈：自己的物品看得到聯絡方式且不能申請',
+    ownItem.item.contactValue === '3201201002' && ownItem.canRequest === false && ownItem.isOwner === true,
+    `contact=${ownItem.item.contactValue}／可申請=${ownItem.canRequest}`,
+  );
+
+  const mine1 = await data.myGiveaways();
+  check(
+    '轉贈：我的轉贈分得出我送出的與我申請的',
+    mine1.posted.some((i) => i.id === 'gv2') && mine1.requests.some((r) => r.item.id === 'gv3' && r.status === 'PENDING') && mine1.requests.length === 2,
+    `送出 ${mine1.posted.length} 件／申請 ${mine1.requests.length} 筆`,
+  );
+
+  const ownReq = await data.requestGiveaway('gv2', '自己申請自己').then(() => null).catch((e) => e);
+  check('轉贈：不能申請自己的東西', ownReq && ownReq.code === 'VALIDATION_FAILED', ownReq ? ownReq.code : '沒有拒絕');
+
+  const dupReq = await data.requestGiveaway('gv3', '再申請一次').then(() => null).catch((e) => e);
+  check('轉贈：重複申請被擋（CONFLICT）', dupReq && dupReq.code === 'CONFLICT', dupReq ? dupReq.code : '沒有拒絕');
+
+  const made = await data.requestGiveaway('gv1', '我這學期要修化學');
+  check('轉贈：可申請別人的東西', made && made.ok === true, String(made && made.requestId));
+
+  const mine2 = await data.myGiveaways();
+  check(
+    '轉贈：申請後出現在「我申請的」且狀態待回覆',
+    mine2.requests.some((r) => r.item.id === 'gv1' && r.status === 'PENDING'),
+    `${mine2.requests.length} 筆`,
+  );
+
+  const cancelled = await data.cancelGiveawayRequest(made.requestId);
+  const mine3 = await data.myGiveaways();
+  check(
+    '轉贈：取消申請後狀態變已取消',
+    cancelled.ok === true && mine3.requests.some((r) => r.id === made.requestId && r.status === 'CANCELLED'),
+    'CANCELLED',
+  );
+
+  // 物主接受 gv2 的申請（申請人是另一位同學）→ 物品變已贈出
+  const before = await data.getGiveaway('gv2');
+  const pendingId = before.requests.filter((r) => r.status === 'PENDING')[0].id;
+  const accepted = await data.decideGiveawayRequest(pendingId, 'ACCEPT');
+  const after = await data.getGiveaway('gv2');
+  check('轉贈：物主接受後物品變已贈出', accepted.action === 'ACCEPT' && after.item.status === 'GIVEN', after.item.status);
+
+  const listAfterGive = await data.listGiveaways({});
+  check(
+    '轉贈：贈出後前台清單看不到',
+    !listAfterGive.items.some((i) => i.id === 'gv2') && listAfterGive.items.length === 3,
+    `${listAfterGive.items.length} 件`,
+  );
+
+  await data.setGiveawayStatus('gv1', 'CLOSED').then(
+    () => {
+      throw new Error('未預期：學生不該能下架別人的貼文');
+    },
+    () => null,
+  );
+
+  // 自己的東西才可以下架／重新上架：先建一件自己的
+  const created = await data.createGiveaway({ kind: 'UNIFORM', title: '運動服外套', condition: 'GOOD', detail: 'L' });
+  const listNew = await data.listGiveaways({});
+  check(
+    '轉贈：送出東西後清單 +1',
+    created && created.item && created.item.status === 'AVAILABLE' && listNew.items.length === listAfterGive.items.length + 1,
+    `${listNew.items.length} 件`,
+  );
+
+  await data.setGiveawayStatus(created.item.id, 'CLOSED');
+  const listClosed = await data.listGiveaways({});
+  check('轉贈：下架後清單看不到', !listClosed.items.some((i) => i.id === created.item.id), `${listClosed.items.length} 件`);
+
+  await data.setGiveawayStatus(created.item.id, 'AVAILABLE');
+  const listReopen = await data.listGiveaways({});
+  check('轉贈：重新上架回到清單', listReopen.items.some((i) => i.id === created.item.id), `${listReopen.items.length} 件`);
+
+  const deny = await data.setGiveawayStatus('gv3', 'CLOSED').then(() => null).catch((e) => e);
+  check('轉贈：學生下架不了別人的貼文（FORBIDDEN）', deny && deny.code === 'FORBIDDEN', deny ? deny.code : '沒有拒絕');
+
+  const detailWxml = readFileSync(join(here, '..', 'pages', 'giveaway', 'detail', 'index.wxml'), 'utf8');
+  const homeWxml3 = readFileSync(join(here, '..', 'pages', 'index', 'index.wxml'), 'utf8');
+  const apiSrc5 = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  check(
+    '轉贈：有畫面入口＋真 API 端點',
+    detailWxml.indexOf('bind:tap="onPrimary"') !== -1 && homeWxml3.indexOf('goGiveaway') !== -1 && apiSrc5.indexOf("'/giveaways/'") !== -1,
+    '首頁 → 列表 → 詳情（我想要／給這位）',
+  );
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

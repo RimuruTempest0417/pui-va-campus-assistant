@@ -290,4 +290,11 @@ module.exports = {
   resourceArchive(id) {
     return http.del('/resources/' + id);
   },
+  // W-68 二手書／校服轉贈：後台只有「下架」與「重新上架」兩種操作
+  giveaways(status) {
+    return http.get('/admin/giveaways', status && status !== 'all' ? { status: status } : {});
+  },
+  setGiveawayStatus(id, status) {
+    return http.post('/giveaways/' + id + '/status', { status: status });
+  },
 };
