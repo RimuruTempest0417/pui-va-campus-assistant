@@ -235,6 +235,20 @@ check(
 );
 const apiSrcSearch = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
 check('搜尋：真 API 走 /search', apiSrcSearch.indexOf("'/search'") !== -1, 'services/api.js');
+// W-74 菜單進搜尋：示範層也要搜得到，而且只回今天以後
+const sMenu = await data.search({ q: '咖喱', types: 'menu' });
+const sMenuGroup = sMenu.groups.filter((g) => g.type === 'menu')[0] || { count: 0, items: [] };
+check(
+  '搜尋：菜單也搜得到（打「咖喱」找得到哪一天有）',
+  sMenuGroup.count > 0 && sMenuGroup.items.every((i) => i.badge === 'LUNCH' || i.badge === 'SNACK'),
+  sMenuGroup.items.map((i) => i.title + '·' + i.badge).join(' / ') || '沒有結果',
+);
+const sMenuOnly = await data.search({ q: '咖喱', types: 'notice' });
+check(
+  '搜尋：types=notice 不會混進菜單',
+  !sMenuOnly.groups.some((g) => g.type === 'menu'),
+  sMenuOnly.groups.map((g) => g.type).join(' ') || '沒有結果',
+);
 
 
 

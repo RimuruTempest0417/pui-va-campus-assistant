@@ -19,6 +19,7 @@ function typeLabel(type) {
   if (type === 'event') return i18n.pick('活動');
   if (type === 'item') return i18n.pick('失物招領');
   if (type === 'giveaway') return i18n.pick('二手轉贈');
+  if (type === 'menu') return i18n.pick('菜單');
   return i18n.pick('公告');
 }
 
@@ -49,7 +50,13 @@ const ROUTE = {
   event: '/pages/events/detail/index?id=',
   item: '/pages/items/detail/index?id=',
   giveaway: '/pages/giveaway/detail/index?id=',
+  menu: '/pages/menu/dish/index?id=',
 };
+
+/** 餐別文字：午餐／小賣部。與菜單頁同一個語彙，不另造新詞 */
+function mealLabel(mealType) {
+  return mealType === 'SNACK' ? i18n.pick('小賣部') : i18n.pick('午餐');
+}
 
 function readRecent() {
   try {
@@ -86,6 +93,11 @@ function decorateRow(row) {
     badgeLabel = giveaway.kindLabel(row.badge);
     badgeTag = 'tint';
     metaText = fromNow(row.date);
+  } else if (row.type === 'menu') {
+    // 菜單：徽章是餐別，時間寫「哪天有」而不是「多久以前」—— 搜菜的用途是安排這一週吃飯
+    badgeLabel = mealLabel(row.badge);
+    badgeTag = 'tint';
+    metaText = dateTimeText(row.date).split(' ')[0];
   } else {
     const t = (row.badge || '').split(':')[0];
     const s = (row.badge || '').split(':')[1];
@@ -109,9 +121,9 @@ Page({
   labels() {
     return {
       title: i18n.pick('搜尋'),
-      placeholder: i18n.pick('搜尋公告、活動、失物、轉贈'),
+      placeholder: i18n.pick('搜尋公告、活動、失物、轉贈、菜單'),
       hintTitle: i18n.pick('想找什麼？'),
-      hintDesc: i18n.pick('輸入關鍵字，一次搜遍公告、活動、失物與轉贈'),
+      hintDesc: i18n.pick('輸入關鍵字，一次搜遍公告、活動、失物、轉贈與菜單'),
       recent: i18n.pick('最近搜尋'),
       clearRecent: i18n.pick('清除'),
       failed: i18n.pick('搜尋失敗'),

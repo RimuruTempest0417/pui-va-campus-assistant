@@ -1023,7 +1023,7 @@ module.exports = {
     const low = q.toLowerCase();
     const data = db();
     const now = Date.now();
-    const wanted = (opts.types || 'notice,event,item,giveaway').split(',').map((s) => s.trim());
+    const wanted = (opts.types || 'notice,event,item,giveaway,menu').split(',').map((s) => s.trim());
     const groups = [];
 
     const hitScore = (title) => (String(title || '').toLowerCase().indexOf(low) !== -1 ? 2 : 1);
@@ -1095,6 +1095,36 @@ module.exports = {
         .sort(byScore)
         .slice(0, limit);
       groups.push({ type: 'giveaway', count: items.length, items: items });
+    }
+
+    // W-74：菜單只搜「今天以後」—— 搜菜的用途是安排這一週吃什麼，翻上個月的菜色沒有意義
+    if (wanted.indexOf('menu') !== -1) {
+      const d0 = new Date();
+      const p2 = (n) => (n < 10 ? '0' + n : '' + n);
+      const todayKey = d0.getFullYear() + '-' + p2(d0.getMonth() + 1) + '-' + p2(d0.getDate());
+      const items = [];
+      (data.menu || [])
+        .filter((m) => String(m.date || '') >= todayKey)
+        .forEach((m) => {
+          (m.lunch || []).forEach((d) => {
+            if (![d.name, d.description].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1)) return;
+            items.push({
+              id: d.id, type: 'menu', title: d.name, snippet: bestSnippet([d.description]),
+              badge: 'LUNCH', date: new Date(m.date).toISOString(), score: hitScore(d.name),
+            });
+          });
+          (m.snack || []).forEach((d) => {
+            if (![d.name, d.description].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1)) return;
+            items.push({
+              id: d.id, type: 'menu', title: d.name, snippet: bestSnippet([d.description]),
+              badge: 'SNACK', date: new Date(m.date).toISOString(), score: hitScore(d.name),
+            });
+          });
+        });
+      const sorted = items
+        .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)))
+        .slice(0, limit);
+      groups.push({ type: 'menu', count: sorted.length, items: sorted });
     }
 
     const kept = groups.filter((g) => g.count > 0);

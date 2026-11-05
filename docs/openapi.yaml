@@ -808,15 +808,16 @@ paths:
   /search:
     get:
       tags: [search]
-      summary: 全校搜尋（公告／活動／失物／二手轉贈；只看得到的人搜得到）
+      summary: 全校搜尋（公告／活動／失物／二手轉贈／菜單；只看得到的人搜得到）
       description: |
         可見性規則由各模組自己決定：公告沿用 `visibleNoticeWhere`（排除軟刪除／預約未到／已過期），
-        活動與失物排除軟刪除，轉贈只回 `status = AVAILABLE`（已贈出／已下架不算還拿得到）。
+        活動與失物排除軟刪除，轉贈只回 `status = AVAILABLE`（已贈出／已下架不算還拿得到），
+        菜單只回「今天以後」的排菜（翻上個月的菜色沒有意義）。
         失物與轉贈的聯絡方式（contactValue）一律不回傳。
-        標題命中（score 2）排在只有內文命中（score 1）之前，同分依日期新到舊。
+        標題命中（score 2）排在只有內文命中（score 1）之前，同分依日期新到舊（菜單同分依日期由近到遠）。
       parameters:
         - { in: query, name: q, required: true, schema: { type: string, minLength: 1, maxLength: 50 } }
-        - { in: query, name: types, schema: { type: string, example: notice,event,item,giveaway }, description: '逗號分隔：notice／event／item／giveaway，預設四類全搜' }
+        - { in: query, name: types, schema: { type: string, example: notice,event,item,giveaway,menu }, description: '逗號分隔：notice／event／item／giveaway／menu，預設五類全搜' }
         - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 20, default: 5 }, description: 每一類最多幾筆 }
       responses:
         '200':
@@ -833,7 +834,7 @@ paths:
                     items:
                       type: object
                       properties:
-                        type: { type: string, enum: [notice, event, item, giveaway] }
+                        type: { type: string, enum: [notice, event, item, giveaway, menu] }
                         count: { type: integer }
                         items:
                           type: array
