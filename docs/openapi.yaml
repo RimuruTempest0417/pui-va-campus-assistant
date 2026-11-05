@@ -4510,6 +4510,143 @@ paths:
                   next: { $ref: '#/components/schemas/TimetableSlot' }
                   nextText: { type: string, example: '數學 · 302（10:30）' }
 
+  /homework:
+    get:
+      tags: [homework]
+      summary: 自己班級的功課清單（登入後才有班級；逾期由後端算）
+      description: 學生只能看自己那一班，帶 className 也一樣；沒班級的人回 needsClass=true 與空清單，不是錯誤。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: scope, in: query, schema: { type: string, enum: [all, todo, done], default: all }, description: todo＝還沒打勾、done＝已打勾 }
+        - { name: className, in: query, schema: { type: string, maxLength: 32 }, description: 只有老師以上有效；學生一律用自己那一班 }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 60 } }
+      responses:
+        '200':
+          description: 功課清單與統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  className: { type: string }
+                  needsClass: { type: boolean }
+                  canCreate: { type: boolean, description: 老師以上才有「出功課」按鈕 }
+                  message: { type: string }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        className: { type: string }
+                        subject: { type: string, example: 數學 }
+                        title: { type: string, example: 習作 4.2 第 1–10 題 }
+                        detail: { type: string }
+                        dueAt: { type: string, format: date-time }
+                        dueMs: { type: integer }
+                        done: { type: boolean }
+                        doneAt: { type: string }
+                        overdue: { type: boolean }
+                        mine: { type: boolean, description: 是不是自己出的（只有自己出的可以收回） }
+                        version: { type: integer }
+                  stats:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      done: { type: integer }
+                      todo: { type: integer }
+                      overdue: { type: integer }
+        '401':
+          description: 未登入（功課不是公開內容）
+    post:
+      tags: [homework]
+      summary: 為班級出一項功課（老師）
+      description: 同一班同一科同一天同一個標題回 409，避免連點兩下建兩筆。只帶日期時視為當天 23:59（澳門時間）。
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, title, dueAt]
+              properties:
+                className: { type: string, description: 留空＝自己那一班 }
+                subject: { type: string, maxLength: 40 }
+                title: { type: string, maxLength: 120 }
+                detail: { type: string, maxLength: 500 }
+                dueAt: { type: string, example: '2026-11-09' }
+      responses:
+        '201':
+          description: 已建立
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  className: { type: string }
+                  dueAt: { type: string, format: date-time }
+                  version: { type: integer }
+        '409':
+          description: 同一班今天已經有同一科的同一項功課
+
+  /homework/{id}:
+    patch:
+      tags: [homework]
+      summary: 修改一項功課（作者本人或管理員；帶 version 擋併發覆蓋）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject: { type: string, maxLength: 40 }
+                title: { type: string, maxLength: 120 }
+                detail: { type: string, maxLength: 500 }
+                dueAt: { type: string }
+                version: { type: integer, description: 選填；帶了才做條件式更新 }
+      responses:
+        '200':
+          description: 已更新（回新版號）
+        '409':
+          description: 版號不符（別人先改了）
+    delete:
+      tags: [homework]
+      summary: 收回一項功課（軟刪除；作者本人或管理員）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已收回（資料列保留，前台不再出現）
+
+  /homework/{id}/done:
+    post:
+      tags: [homework]
+      summary: 打勾（我交了）；連按兩次也只有一列
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已打勾
+        '403':
+          description: 不是你們班的功課
+    delete:
+      tags: [homework]
+      summary: 取消打勾
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已取消
+
   /admin/timetable:
     get:
       tags: [admin]

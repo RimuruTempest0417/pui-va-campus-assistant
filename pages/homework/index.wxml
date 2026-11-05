@@ -1,0 +1,104 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="hw-inner">
+      <view class="hw-head">
+        <view class="hw-head__main">
+          <text class="hw-head__class">{{className}}</text>
+          <text wx:if="{{!loading && !failed && !needLogin && !needsClass}}" class="hw-head__stats">{{L.k05}} {{stats.todo}} · {{L.k06}} {{stats.overdue}} · {{L.k07}} {{stats.done}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{!loading && !failed && !needLogin && !needsClass}}" class="hw-seg">
+        <view class="hw-seg__item {{scope === 'todo' ? 'is-on' : ''}}" data-key="todo" bindtap="switchScope">{{L.k02}}</view>
+        <view class="hw-seg__item {{scope === 'done' ? 'is-on' : ''}}" data-key="done" bindtap="switchScope">{{L.k03}}</view>
+        <view class="hw-seg__item {{scope === 'all' ? 'is-on' : ''}}" data-key="all" bindtap="switchScope">{{L.k04}}</view>
+      </view>
+
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="3" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="3" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{needLogin}}" title="{{L.k22}}" desc="{{L.k23}}">
+        <pv-button type="tinted" size="sm" bind:tap="goLogin">{{L.k22}}</pv-button>
+      </pv-empty>
+
+      <pv-empty wx:elif="{{failed}}" tone="warning" title="{{L.k11}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k12}}</pv-button>
+      </pv-empty>
+
+      <pv-empty wx:elif="{{needsClass}}" title="{{L.k20}}" desc="{{L.k21}}" />
+
+      <block wx:elif="{{items.length}}">
+        <view class="ui-list ui-list--grouped">
+          <view
+            wx:for="{{items}}"
+            wx:key="id"
+            class="ui-card ui-card--row {{index === items.length - 1 ? 'ui-card--last' : ''}}"
+            data-id="{{item.id}}"
+            data-title="{{item.title}}"
+            bindtouchstart="press"
+            bindtouchend="release"
+            bindtap="toggle"
+          >
+            <view class="hw-row {{pressedId === item.id ? 'is-pressed' : ''}}">
+              <view class="hw-tick {{item.done ? 'is-done' : ''}}">
+                <text wx:if="{{item.done}}" class="hw-tick__mark">✓</text>
+              </view>
+              <view class="hw-row__main">
+                <view class="ui-row-between">
+                  <text class="ui-title hw-row__title {{item.done ? 'is-done' : ''}}">{{item.subject}} · {{item.title}}</text>
+                </view>
+                <text wx:if="{{item.detail}}" class="ui-meta">{{item.detail}}</text>
+                <view class="hw-row__foot">
+                  <text class="hw-row__due {{item.overdue ? 'is-overdue' : ''}}">{{item.dueText}}</text>
+                  <pv-tag wx:if="{{item.overdue}}" text="{{item.dueBadge}}" type="warning" />
+                  <view wx:if="{{item.mine}}" class="hw-del" data-id="{{item.id}}" data-title="{{item.title}}" catchtap="remove">
+                    <text class="hw-del__text">{{L.k30}}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{scope === 'todo'}}" title="{{L.k14}}" desc="{{L.k15}}" />
+      <pv-empty wx:elif="{{scope === 'done'}}" title="{{L.k16}}" desc="{{L.k17}}" />
+      <pv-empty wx:else title="{{L.k18}}" desc="{{L.k19}}" />
+
+      <view wx:if="{{canCreate && !loading && !needLogin}}" class="hw-foot">
+        <pv-button type="filled" size="md" block="true" bind:tap="openForm">{{L.k24}}</pv-button>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view wx:if="{{formOpen}}" class="hw-sheet" catchtouchmove="noop">
+    <view class="hw-sheet__panel">
+      <view class="hw-sheet__head">
+        <text class="hw-sheet__title">{{L.k24}}</text>
+        <text class="hw-sheet__cancel" bindtap="closeForm">{{L.k29}}</text>
+      </view>
+      <view class="hw-field">
+        <text class="hw-field__label">{{L.k25}}</text>
+        <input class="hw-input" value="{{formSubject}}" placeholder="{{L.k35}}" bindinput="onSubject" maxlength="40" />
+      </view>
+      <view class="hw-field">
+        <text class="hw-field__label">{{L.k26}}</text>
+        <input class="hw-input" value="{{formTitle}}" placeholder="{{L.k34}}" bindinput="onTitle" maxlength="120" />
+      </view>
+      <view class="hw-field">
+        <text class="hw-field__label">{{L.k27}}</text>
+        <picker mode="date" value="{{formDue}}" bindchange="onDue">
+          <view class="hw-input hw-input--picker">{{formDue}}</view>
+        </picker>
+      </view>
+      <view class="hw-sheet__actions">
+        <pv-button type="filled" size="md" block="true" bind:tap="submit">{{L.k28}}</pv-button>
+      </view>
+    </view>
+  </view>
+</view>

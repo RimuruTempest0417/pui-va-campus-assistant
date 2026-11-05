@@ -69,6 +69,8 @@ Page({
     leavePressed: false,
     timetableText: '',
     timetablePressed: false,
+    homeworkText: '',
+    homeworkPressed: false,
     // 家長：只在家長身分時才有值（切換子女就在首頁做，不必先點進別的頁）
     parentChildren: [],
     parentActiveId: '',
@@ -112,6 +114,7 @@ Page({
       k27: i18n.pick('請假申請'),
       k28: i18n.pick('送出後班主任會收到'),
       k29: i18n.pick('今日課表'),
+      k31: i18n.pick('功課'),
       k30: i18n.pick('今天不用上課'),
       brand: i18n.pick('培華校園助手'),
       brandSub: i18n.pick('PUI VA CAMPUS'),
@@ -257,7 +260,7 @@ Page({
       // 首次進入先嘗試登入（沒有後端就當訪客，不阻塞畫面）
       await data.ensureLogin();
 
-      const [me, items, events, menu, notices, lib, resources, giveaways, timetable] = await Promise.all([
+      const [me, items, events, menu, notices, lib, resources, giveaways, timetable, homework] = await Promise.all([
         // 未登入時 me() 會 401；首頁是公開頁，訪客照樣要能看到四個模組
         data.me().catch(() => null),
         data.listItems({}),
@@ -272,6 +275,8 @@ Page({
         data.listGiveaways({ limit: 50 }).catch(() => ({ items: [] })),
         // 今日課表入口的副標「下一節」：失敗不影響首頁
         data.timetableToday().catch(() => null),
+        // 功課入口的副標（未交幾項）：未登入或沒班級時失敗，副標顯示「—」
+        data.listHomework({ scope: 'todo' }).catch(() => null),
       ]);
 
       // 緊急公告：只在真的有 URGENT 時顯示第一則
@@ -350,6 +355,15 @@ Page({
           ? timetable.schoolDay
             ? timetable.nextText || i18n.pick('今天沒有下一節了')
             : i18n.pick('今天不用上課')
+          : '—',
+        homeworkText: homework
+          ? homework.needsClass
+            ? i18n.pick('還沒有班級資料')
+            : homework.stats && homework.stats.todo
+              ? homework.stats.overdue
+                ? homework.stats.todo + i18n.pick(' 項未交（含逾期）')
+                : homework.stats.todo + i18n.pick(' 項未交')
+              : i18n.pick('功課都交了')
           : '—',
         user: me || {},
         parentChildren: parentChildren,
@@ -480,6 +494,19 @@ Page({
 
   goTimetable() {
     wx.navigateTo({ url: '/pages/timetable/index' });
+  },
+
+  // ── 功課入口（W-76）：第七條列；副標是「未交 N 項」──
+  onHwTouchStart() {
+    this.setData({ homeworkPressed: true });
+  },
+
+  onHwTouchEnd() {
+    this.setData({ homeworkPressed: false });
+  },
+
+  goHomework() {
+    wx.navigateTo({ url: '/pages/homework/index' });
   },
 
   onRetry() {

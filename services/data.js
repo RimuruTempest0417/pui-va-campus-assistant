@@ -223,4 +223,12 @@ module.exports = {
   saveTimetableSlot: (...a) => call('saveTimetableSlot', a),
   deleteTimetableSlot: (...a) => call('deleteTimetableSlot', a),
   importTimetable: (...a) => call('importTimetable', a),
+
+  // ── W-76 功課清單（依班級；打勾是每人一列）──
+  listHomework: (...a) => call('listHomework', a),
+  createHomework: (...a) => call('createHomework', a),
+  updateHomework: (...a) => call('updateHomework', a),
+  removeHomework: (...a) => call('removeHomework', a),
+  markHomework: (...a) => call('markHomework', a),
+  unmarkHomework: (...a) => call('unmarkHomework', a),
 };

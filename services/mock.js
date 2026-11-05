@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 13;
+const SEED_VERSION = 14;
 
 const weekUtil = require('../utils/week');
 const venue = require('../utils/venue');
@@ -231,6 +231,13 @@ function seed() {
     // ── 班級課表（W-73）──
     // 示範班級「高二 仁」：一週五天、每天幾節，讓首頁「下一節」與課表頁在離線演示時都有東西看
     timetableSlots: buildDemoTimetable(),
+    // ── 功課（W-76）：兩筆未交（一筆今天、一筆已逾期）、一筆已交，示範「打勾」與「逾期」兩種樣子
+    homework: [
+      { id: 'hw1', className: DEMO_CLASS, subject: '數學', title: '習作 4.2 第 1–10 題', detail: '課本 p.88 例題也要看', dueAt: now + 6 * h, createdById: 'demo-teacher' },
+      { id: 'hw2', className: DEMO_CLASS, subject: '中文', title: '默書：課文三、四', detail: '', dueAt: now - 20 * h, createdById: 'demo-teacher' },
+      { id: 'hw3', className: DEMO_CLASS, subject: '英文', title: '作文 200 字（My School）', detail: '用本週學的連接詞', dueAt: now + 42 * h, createdById: 'demo-teacher' },
+    ],
+    homeworkDone: [{ id: 'hd1', homeworkId: 'hw3', userId: 'demo-user', doneAt: now - 2 * h }],
   };
 }
 
@@ -2437,5 +2444,136 @@ module.exports = {
       save(data);
     }
     return Promise.resolve({ dryRun: input.dryRun !== false, total: rows.length, ok: ok.length, created: created, errors: errors, rows: rows });
+  },
+
+  // ── W-76 功課清單（示範層同一套規則：按班級、每人一列打勾、老師可出功課與收回）──
+  listHomework(query) {
+    const data = db();
+    const me = data.user;
+    const q = query || {};
+    const myClass = [me.grade, me.className].filter(Boolean).join('') || DEMO_CLASS;
+    const isTeacher = me.role === 'TEACHER' || me.role === 'ADMIN' || me.role === 'SUPER_ADMIN';
+    const className = (isTeacher && q.className) || myClass;
+    const scope = q.scope || 'all';
+    const nowMs = Date.now();
+    const doneRows = data.homeworkDone || [];
+    const items = (data.homework || [])
+      .filter((h) => h.className === className && !h.deletedAt)
+      .sort((a, b) => a.dueAt - b.dueAt)
+      .map((h) => {
+        const done = doneRows.filter((d) => d.homeworkId === h.id && d.userId === me.id)[0];
+        return {
+          id: h.id,
+          className: h.className,
+          subject: h.subject,
+          title: h.title,
+          detail: h.detail || '',
+          dueAt: new Date(h.dueAt).toISOString(),
+          dueMs: h.dueAt,
+          done: !!done,
+          doneAt: done ? new Date(done.doneAt).toISOString() : '',
+          overdue: !done && h.dueAt < nowMs,
+          mine: h.createdById === me.id,
+          version: h.version || 0,
+        };
+      });
+    const filtered = scope === 'todo' ? items.filter((i) => !i.done) : scope === 'done' ? items.filter((i) => i.done) : items;
+    return Promise.resolve({
+      className: className,
+      needsClass: !myClass,
+      canCreate: me.role === 'TEACHER' || me.role === 'ADMIN' || me.role === 'SUPER_ADMIN',
+      items: filtered,
+      stats: {
+        total: items.length,
+        done: items.filter((i) => i.done).length,
+        todo: items.filter((i) => !i.done).length,
+        overdue: items.filter((i) => i.overdue).length,
+      },
+    });
+  },
+
+  createHomework(body) {
+    const data = db();
+    const me = data.user;
+    const input = body || {};
+    if (me.role !== 'TEACHER' && me.role !== 'ADMIN' && me.role !== 'SUPER_ADMIN') {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只有老師可以出功課' });
+    }
+    const className = input.className || [me.grade, me.className].filter(Boolean).join('') || DEMO_CLASS;
+    if (!className) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請填班級' });
+    const title = String(input.title || '').trim();
+    if (title.length < 2) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請寫清楚要做什麼' });
+    const dueMs = new Date(String(input.dueAt || '')).getTime();
+    if (Number.isNaN(dueMs)) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請選截止時間' });
+    const dup = (data.homework || []).filter(
+      (h) => h.className === className && h.subject === input.subject && h.title === title && !h.deletedAt
+        && new Date(h.dueAt).toDateString() === new Date(dueMs).toDateString(),
+    ).length;
+    if (dup) return Promise.reject({ code: 'CONFLICT', message: '這一班今天已經有同一科的同一項功課了' });
+    const row = {
+      id: 'hw' + Date.now(),
+      className: className,
+      subject: String(input.subject || '').trim(),
+      title: title,
+      detail: String(input.detail || '').trim(),
+      dueAt: dueMs,
+      createdById: me.id,
+      version: 0,
+    };
+    data.homework = data.homework || [];
+    data.homework.push(row);
+    save(data);
+    return Promise.resolve({ id: row.id, className: row.className, dueAt: new Date(row.dueAt).toISOString(), version: 0 });
+  },
+
+  removeHomework(id) {
+    const data = db();
+    const row = (data.homework || []).filter((h) => h.id === id && !h.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這項功課' });
+    row.deletedAt = Date.now();
+    save(data);
+    return Promise.resolve({ ok: true });
+  },
+
+  updateHomework(id, body) {
+    const data = db();
+    const row = (data.homework || []).filter((h) => h.id === id && !h.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這項功課' });
+    const input = body || {};
+    if (input.version !== undefined && Number(input.version) !== (row.version || 0)) {
+      return Promise.reject({ code: 'CONFLICT', message: '這項功課剛被其他人改過了，請重新整理' });
+    }
+    if (input.subject !== undefined) row.subject = String(input.subject).trim();
+    if (input.title !== undefined) row.title = String(input.title).trim();
+    if (input.detail !== undefined) row.detail = String(input.detail || '').trim();
+    if (input.dueAt !== undefined) {
+      const ms = new Date(String(input.dueAt)).getTime();
+      if (Number.isNaN(ms)) return Promise.reject({ code: 'VALIDATION_FAILED', message: '截止時間格式不正確' });
+      row.dueAt = ms;
+    }
+    row.version = (row.version || 0) + 1;
+    save(data);
+    return Promise.resolve({ ok: true, version: row.version });
+  },
+
+  markHomework(id) {
+    const data = db();
+    const me = data.user;
+    const row = (data.homework || []).filter((h) => h.id === id && !h.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這項功課' });
+    data.homeworkDone = data.homeworkDone || [];
+    if (!data.homeworkDone.filter((d) => d.homeworkId === id && d.userId === me.id).length) {
+      data.homeworkDone.push({ id: 'hd' + Date.now(), homeworkId: id, userId: me.id, doneAt: Date.now() });
+      save(data);
+    }
+    return Promise.resolve({ ok: true, done: true });
+  },
+
+  unmarkHomework(id) {
+    const data = db();
+    const me = data.user;
+    data.homeworkDone = (data.homeworkDone || []).filter((d) => !(d.homeworkId === id && d.userId === me.id));
+    save(data);
+    return Promise.resolve({ ok: true, done: false });
   },
 };

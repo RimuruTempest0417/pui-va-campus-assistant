@@ -243,4 +243,12 @@ module.exports = {
   saveTimetableSlot(body) { return http.post('/admin/timetable', body); },
   deleteTimetableSlot(id) { return http.del('/admin/timetable/' + id); },
   importTimetable(body) { return http.post('/admin/timetable/import', body); },
+
+  // ── W-76 功課清單（登入後才有班級；打勾是每人一列）──
+  listHomework(query) { return http.get('/homework', query || {}); },
+  createHomework(body) { return http.post('/homework', body); },
+  updateHomework(id, body) { return http.patch('/homework/' + id, body); },
+  removeHomework(id) { return http.del('/homework/' + id); },
+  markHomework(id) { return http.post('/homework/' + id + '/done', {}); },
+  unmarkHomework(id) { return http.del('/homework/' + id + '/done'); },
 };
