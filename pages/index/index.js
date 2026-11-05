@@ -67,6 +67,8 @@ Page({
     studyText: '',
     studyPressed: false,
     leavePressed: false,
+    timetableText: '',
+    timetablePressed: false,
     // 家長：只在家長身分時才有值（切換子女就在首頁做，不必先點進別的頁）
     parentChildren: [],
     parentActiveId: '',
@@ -109,6 +111,8 @@ Page({
       k26: i18n.pick('目前沒有測驗安排'),
       k27: i18n.pick('請假申請'),
       k28: i18n.pick('送出後班主任會收到'),
+      k29: i18n.pick('今日課表'),
+      k30: i18n.pick('今天不用上課'),
       brand: i18n.pick('培華校園助手'),
       brandSub: i18n.pick('PUI VA CAMPUS'),
       demoTag: i18n.t('home.demoTag'),
@@ -253,7 +257,7 @@ Page({
       // 首次進入先嘗試登入（沒有後端就當訪客，不阻塞畫面）
       await data.ensureLogin();
 
-      const [me, items, events, menu, notices, lib, resources, giveaways] = await Promise.all([
+      const [me, items, events, menu, notices, lib, resources, giveaways, timetable] = await Promise.all([
         // 未登入時 me() 會 401；首頁是公開頁，訪客照樣要能看到四個模組
         data.me().catch(() => null),
         data.listItems({}),
@@ -266,6 +270,8 @@ Page({
         data.listResources({ limit: 50 }).catch(() => ({ items: [] })),
         // 轉贈入口的副標（有幾件東西可以拿）；同樣失敗不影響首頁
         data.listGiveaways({ limit: 50 }).catch(() => ({ items: [] })),
+        // 今日課表入口的副標「下一節」：失敗不影響首頁
+        data.timetableToday().catch(() => null),
       ]);
 
       // 緊急公告：只在真的有 URGENT 時顯示第一則
@@ -340,6 +346,11 @@ Page({
         giveawayText:
           giveaways && giveaways.items ? (giveaways.items.length ? giveaways.items.length + i18n.pick(' 件等你拿') : i18n.pick('目前沒有人送東西')) : '—',
         studyText: studyText,
+        timetableText: timetable
+          ? timetable.schoolDay
+            ? timetable.nextText || i18n.pick('今天沒有下一節了')
+            : i18n.pick('今天不用上課')
+          : '—',
         user: me || {},
         parentChildren: parentChildren,
         parentActiveId: parentActiveId,
@@ -456,6 +467,19 @@ Page({
 
   goLeaves() {
     wx.navigateTo({ url: '/pages/leaves/mine/index' });
+  },
+
+  // ── 今日課表入口（W-73）：第六條列；副標是「下一節」（後端算好，前端不重算時區）──
+  onTtTouchStart() {
+    this.setData({ timetablePressed: true });
+  },
+
+  onTtTouchEnd() {
+    this.setData({ timetablePressed: false });
+  },
+
+  goTimetable() {
+    wx.navigateTo({ url: '/pages/timetable/index' });
   },
 
   onRetry() {

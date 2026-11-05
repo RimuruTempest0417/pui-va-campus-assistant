@@ -305,4 +305,18 @@ module.exports = {
   reviewLeave(id, body) {
     return http.patch('/admin/leaves/' + id, body);
   },
+
+  // ── W-73 班級課表（校內職員）──
+  timetableAll() {
+    return http.get('/admin/timetable');
+  },
+  saveTimetableSlot(body) {
+    return http.post('/admin/timetable', body);
+  },
+  deleteTimetableSlot(id) {
+    return http.del('/admin/timetable/' + id);
+  },
+  importTimetable(body) {
+    return http.post('/admin/timetable/import', body);
+  },
 };

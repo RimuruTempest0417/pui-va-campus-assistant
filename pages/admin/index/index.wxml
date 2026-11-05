@@ -924,6 +924,67 @@
         <pv-empty wx:else title="{{L.k337}}" desc="{{L.k338}}" />
       </block>
 
+      <!-- W-73 課表：貼 CSV → 先檢查 → 確認匯入；下面列出每個班幾格 -->
+      <block wx:elif="{{tab === 'timetable'}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row ui-card--last">
+            <text class="ui-field__label">{{L.k348}}</text>
+            <textarea
+              class="ui-textarea"
+              placeholder="{{L.k354}}"
+              placeholder-class="ui-placeholder"
+              value="{{ttCsv}}"
+              maxlength="20000"
+              bindinput="onTtCsv"
+            />
+          </view>
+        </view>
+
+        <view class="row-actions" style="margin-top:12rpx">
+          <pv-button size="sm" type="plain" loading="{{ttBusy}}" data-dry="1" bind:tap="ttRun">{{L.k349}}</pv-button>
+          <pv-button size="sm" type="tinted" loading="{{ttBusy}}" data-dry="0" bind:tap="ttRun">{{ttBusy ? L.k351 : L.k350}}</pv-button>
+        </view>
+
+        <text wx:if="{{ttSummary}}" class="ui-meta" style="margin-top:12rpx">{{ttSummary}}</text>
+
+        <view wx:if="{{ttErrors.length}}" class="ui-list ui-list--grouped" style="margin-top:12rpx">
+          <view
+            wx:for="{{ttErrors}}"
+            wx:key="line"
+            class="signup-row {{index === ttErrors.length - 1 ? 'signup-row--last' : ''}}"
+          >
+            <text class="ui-meta">{{item.line}}：{{item.message}}</text>
+          </view>
+        </view>
+
+        <view wx:if="{{ttRows.length}}" class="ui-list ui-list--grouped" style="margin-top:12rpx">
+          <view
+            wx:for="{{ttRows}}"
+            wx:key="line"
+            class="signup-row {{index === ttRows.length - 1 ? 'signup-row--last' : ''}}"
+          >
+            <text class="ui-meta">{{item.className}} · {{item.weekday}} · {{item.period}} · {{item.subject}} {{item.statusText}}</text>
+          </view>
+        </view>
+
+        <block wx:if="{{ttClasses.length}}">
+          <text class="group-sub">{{L.k347}}</text>
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{ttClasses}}"
+              wx:key="name"
+              class="signup-row {{index === ttClasses.length - 1 ? 'signup-row--last' : ''}}"
+            >
+              <view class="lib-row">
+                <text class="signup-row__name">{{item.name}}</text>
+                <text class="ui-meta">{{item.slots}} 格</text>
+              </view>
+            </view>
+          </view>
+        </block>
+        <pv-empty wx:else title="{{L.k353}}" desc="{{L.k354}}" />
+      </block>
+
       <block wx:elif="{{tab === 'venues'}}">
         <view class="filter-row">
           <view

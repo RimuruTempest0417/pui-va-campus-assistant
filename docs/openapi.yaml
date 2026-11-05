@@ -4448,6 +4448,150 @@ paths:
         '409': { description: 這張已經被其他老師處理過了 }
         '422': { description: 駁回沒寫原因 }
 
+  # ── W-73 班級課表 ──────────────────────────────────────────────
+  /timetable:
+    get:
+      tags: [timetable]
+      summary: 班級課表（訪客可看；沒帶 className 就用登入者自己的班級）
+      description: 節次時間全校共用一份（第一次讀取自動補第 1–8 節預設值），回傳每格的 timeText 由後端組好。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: className, in: query, schema: { type: string, maxLength: 32 }, description: 例「高二仁」；留空時登入者用自己的班級 }
+      responses:
+        '200':
+          description: 該班整週課表＋可選班級＋節次
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  className: { type: string }
+                  classes: { type: array, items: { type: string } }
+                  periods:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        period: { type: integer }
+                        startTime: { type: string, example: '08:10' }
+                        endTime: { type: string, example: '08:50' }
+                  weekdays:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        weekday: { type: integer }
+                        label: { type: string }
+                  slots: { type: array, items: { $ref: '#/components/schemas/TimetableSlot' } }
+
+  /timetable/today:
+    get:
+      tags: [timetable]
+      summary: 今天的課與「現在／下一節」（澳門時間；週末回 schoolDay=false）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: className, in: query, schema: { type: string, maxLength: 32 } }
+        - { name: at, in: query, schema: { type: string, format: date-time }, description: 指定時間算節次（測試／示範用；不帶就是現在） }
+      responses:
+        '200':
+          description: 今天課表＋current／next＋給首頁一行的 nextText
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  className: { type: string }
+                  schoolDay: { type: boolean }
+                  date: { type: string, example: '2026-11-06' }
+                  weekday: { type: integer }
+                  weekdayLabel: { type: string }
+                  slots: { type: array, items: { $ref: '#/components/schemas/TimetableSlot' } }
+                  current: { $ref: '#/components/schemas/TimetableSlot' }
+                  next: { $ref: '#/components/schemas/TimetableSlot' }
+                  nextText: { type: string, example: '數學 · 302（10:30）' }
+
+  /admin/timetable:
+    get:
+      tags: [admin]
+      summary: 全部班級課表（timetable:manage）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 每個班幾格＋全部格子＋節次
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  classes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name: { type: string }
+                        slots: { type: integer }
+                  items: { type: array, items: { $ref: '#/components/schemas/TimetableSlot' } }
+        '403': { description: 能力不足 }
+    post:
+      tags: [admin]
+      summary: 新增／覆蓋一格（同一班同一節再送一次就是改那一格）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [className, weekday, period, subject]
+              properties:
+                className: { type: string, maxLength: 32 }
+                weekday: { type: integer, minimum: 1, maximum: 5 }
+                period: { type: integer, minimum: 1, maximum: 8 }
+                subject: { type: string, maxLength: 40 }
+                teacherName: { type: string, maxLength: 40 }
+                room: { type: string, maxLength: 40 }
+      responses:
+        '201': { description: 已寫入 }
+        '403': { description: 能力不足 }
+        '422': { description: 欄位驗證失敗 }
+
+  /admin/timetable/{id}:
+    delete:
+      tags: [admin]
+      summary: 刪除一格課表（timetable:manage）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已刪除 }
+        '403': { description: 能力不足 }
+        '404': { description: 找不到這一格 }
+
+  /admin/timetable/import:
+    post:
+      tags: [admin]
+      summary: CSV 匯入（預設 dryRun：先檢查再寫入）
+      description: |
+        `班級,星期,節次,科目,老師,課室`；星期可寫 1–5 或 一–五，節次 1–8。
+        已存在的格子回 `EXISTS`（不覆蓋）、同一份檔案裡重複回 `DUPLICATE`、
+        格式錯的列放進 `errors` 並帶行號。
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [csv]
+              properties:
+                csv: { type: string, maxLength: 20000 }
+                dryRun: { type: boolean, default: true }
+      responses:
+        '200':
+          description: 逐列結果（ok／created／errors／rows）
+        '403': { description: 能力不足 }
+        '422': { description: CSV 空白或太長 }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -4659,6 +4803,20 @@ components:
         role: { type: string, enum: [STUDENT, TEACHER, ADMIN] }
         grade: { type: string, nullable: true }
         className: { type: string, nullable: true }
+
+    TimetableSlot:
+      type: object
+      description: 課表的一格（W-73）。timeText 由後端用節次表組好，前端不再拼時間
+      nullable: true
+      properties:
+        id: { type: string }
+        className: { type: string, example: 高二仁 }
+        weekday: { type: integer, minimum: 1, maximum: 5 }
+        period: { type: integer, minimum: 1, maximum: 8 }
+        subject: { type: string, example: 數學 }
+        teacherName: { type: string, nullable: true }
+        room: { type: string, nullable: true, example: '302' }
+        timeText: { type: string, example: '09:45–10:25' }
 
     LeaveRequest:
       type: object

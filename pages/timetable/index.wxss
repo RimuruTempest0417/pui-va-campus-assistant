@@ -1,0 +1,69 @@
+@import "../../styles/tokens.wxss";
+@import "../../styles/ui.wxss";
+
+.tt-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+
+.tt-head {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: var(--pv-sp-2);
+  margin-bottom: var(--pv-sp-2);
+}
+.tt-head__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4rpx; }
+.tt-head__class { font-size: var(--pv-fs-title-2); color: var(--pv-label); }
+.tt-head__date { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+
+/* 分段控制：兩段固定寬度、88rpx 可點高度 */
+.tt-seg {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 4rpx;
+  padding: 4rpx;
+  border-radius: var(--pv-r-pill);
+  background: var(--pv-fill);
+}
+.tt-seg__item {
+  flex-shrink: 0;
+  min-height: 72rpx;
+  padding: 0 var(--pv-sp-3);
+  display: flex;
+  align-items: center;
+  border-radius: var(--pv-r-pill);
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-label-2);
+}
+.tt-seg__item.is-on { background: var(--pv-surface); color: var(--pv-label); }
+
+/* 「下一節」一行：一眼看到重點，不做成卡片 */
+.tt-next {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--pv-sp-2);
+  padding: var(--pv-sp-2) var(--pv-sp-1) var(--pv-sp-2);
+}
+.tt-next__label { flex-shrink: 0; font-size: var(--pv-fs-footnote); color: var(--pv-label-3); }
+.tt-next__value { flex: 1; min-width: 0; font-size: var(--pv-fs-body); color: var(--pv-tint); }
+
+.tt-row { display: flex; flex-direction: row; align-items: center; gap: var(--pv-sp-2); }
+.tt-row__no {
+  flex-shrink: 0;
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--pv-r-sm);
+  background: var(--pv-fill);
+  color: var(--pv-label-2);
+}
+.tt-row__no-text { font-size: var(--pv-fs-footnote); }
+.tt-row__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4rpx; }
+.tt-row__subject { flex: 1; min-width: 0; }
+
+/* 現在這一節：左側一條紫線，不換底色（換底色會和「今天」的日期標記撞義） */
+.is-current { box-shadow: inset 4rpx 0 0 var(--pv-tint); }
+
+.tt-day { margin-top: var(--pv-sp-2); }

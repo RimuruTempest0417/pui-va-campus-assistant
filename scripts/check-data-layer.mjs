@@ -891,6 +891,28 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-73 班級課表（示範層也要有資料，首頁「下一節」斷網時不能空白）──
+{
+  const today = await data.timetableToday();
+  check('課表：今天有課或有「不用上課」的說明', !!today && typeof today.schoolDay === 'boolean', today ? `${today.weekdayLabel || '—'}／${today.slots.length} 節` : '沒有回應');
+
+  const week = await data.timetable({});
+  check('課表：整週有 5 天且每格帶 timeText', (week.weekdays || []).length === 5 && week.slots.every((s) => !!s.timeText), `${week.slots.length} 格`);
+
+  const dry = await data.importTimetable({ csv: '高二仁,1,1,數學\n高二仁,9,1,地理', dryRun: true });
+  check('課表：CSV 先檢查（壞行回報、不寫入）', dry.dryRun === true && dry.errors.length === 1 && dry.created === 0, `${dry.ok}/${dry.total}、錯 ${dry.errors.length}`);
+
+  const saved = await data.saveTimetableSlot({ className: '高二仁', weekday: 3, period: 8, subject: '自習', room: '302' });
+  const again = await data.saveTimetableSlot({ className: '高二仁', weekday: 3, period: 8, subject: '自習（代課）', room: '302' });
+  const week2 = await data.timetable({ className: '高二仁' });
+  const cell = week2.slots.filter((s) => s.weekday === 3 && s.period === 8)[0];
+  check('課表：同一班同一節是「改那一格」不是長第二格', !!saved && !!again && week2.slots.filter((s) => s.weekday === 3 && s.period === 8).length === 1 && cell.subject === '自習（代課）', cell ? cell.subject : '沒有寫入');
+
+  const apiSrcTt = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  const homeWxmlTt = readFileSync(join(here, '..', 'pages', 'index', 'index.wxml'), 'utf8');
+  check('課表：有畫面入口＋真 API 端點', homeWxmlTt.indexOf('goTimetable') !== -1 && apiSrcTt.indexOf("'/timetable/today'") !== -1, '首頁 → 課表（今日／整週）');
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

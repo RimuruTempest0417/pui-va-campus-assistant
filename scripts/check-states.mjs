@@ -34,6 +34,7 @@ const REQUIRE = {
   'pages/giveaway/mine/index': { loading: true, empty: true, failed: true },
   'pages/leaves/create/index': { loading: true, empty: true, failed: false, why: '送出失敗用彈窗；讀不到身分時顯示「請先登入」或「還沒對應到子女」，不另做重試卡' },
   'pages/leaves/mine/index': { loading: true, empty: true, failed: true },
+  'pages/timetable/index': { loading: true, empty: true, failed: true },
   'pages/events/list/index': { loading: true, empty: true, failed: true },
   'pages/events/detail/index': { loading: true, empty: true, failed: true },
   'pages/events/mine/index': { loading: true, empty: true, failed: true },

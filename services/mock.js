@@ -228,6 +228,9 @@ function seed() {
       { id: 'lv2', studentId: 'demo-user', createdById: 'demo-user', kind: 'PERSONAL', from: leaveDate(-14), to: leaveDate(-13), reason: '家中事務，已先向班主任口頭報告。', status: 'APPROVED', rejectReason: null, reviewedAt: now - 300 * h, createdAt: now - 320 * h },
       { id: 'lv3', studentId: 'demo-user', createdById: 'demo-user', kind: 'OFFICIAL', from: leaveDate(-30), to: leaveDate(-30), reason: '代表學校參加校際辯論比賽。', status: 'REJECTED', rejectReason: '請附帶比賽通知截圖', reviewedAt: now - 700 * h, createdAt: now - 720 * h },
     ],
+    // ── 班級課表（W-73）──
+    // 示範班級「高二 仁」：一週五天、每天幾節，讓首頁「下一節」與課表頁在離線演示時都有東西看
+    timetableSlots: buildDemoTimetable(),
   };
 }
 
@@ -512,6 +515,61 @@ function shapeLeave(row, me) {
     createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
     canCancel: row.status === 'PENDING',
   };
+}
+
+/** 示範層的節次（與後端 DEFAULT_PERIODS 同一個時間表） */
+const DEMO_PERIODS = [
+  { period: 1, startTime: '08:10', endTime: '08:50' },
+  { period: 2, startTime: '08:55', endTime: '09:35' },
+  { period: 3, startTime: '09:45', endTime: '10:25' },
+  { period: 4, startTime: '10:30', endTime: '11:10' },
+  { period: 5, startTime: '11:20', endTime: '12:00' },
+  { period: 6, startTime: '14:00', endTime: '14:40' },
+  { period: 7, startTime: '14:45', endTime: '15:25' },
+  { period: 8, startTime: '15:35', endTime: '16:15' },
+];
+const DEMO_CLASS = '高二仁';
+const WEEKDAY_LABEL = { 1: '星期一', 2: '星期二', 3: '星期三', 4: '星期四', 5: '星期五' };
+
+/** 示範課表：五天都有課，星期一到五第 1–6 節 */
+function buildDemoTimetable() {
+  const grid = [
+    ['數學', '英文', '化學', '物理', '中文', '體育'],
+    ['中文', '數學', '英文', '歷史', '化學', '地理'],
+    ['英文', '物理', '數學', '中文', '生物', '音樂'],
+    ['化學', '中文', '地理', '數學', '英文', '視藝'],
+    ['物理', '英文', '中文', '生物', '數學', '資訊'],
+  ];
+  const rooms = ['302', '302', '實驗室 B', '實驗室 A', '302', '操場'];
+  const out = [];
+  grid.forEach((row, dayIdx) => {
+    row.forEach((subject, i) => {
+      out.push({
+        id: 'ts' + (dayIdx + 1) + '-' + (i + 1),
+        className: DEMO_CLASS,
+        weekday: dayIdx + 1,
+        period: i + 1,
+        subject: subject,
+        teacherName: '',
+        room: rooms[i] || '',
+      });
+    });
+  });
+  return out;
+}
+
+function hhmm(v) {
+  const [h, m] = String(v).split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+function shapeSlot(slot) {
+  const p = DEMO_PERIODS.filter((row) => row.period === slot.period)[0];
+  return Object.assign({}, slot, {
+    teacherName: slot.teacherName || null,
+    room: slot.room || null,
+    timeText: p ? p.startTime + '–' + p.endTime : '',
+  });
 }
 
 module.exports = {
@@ -2208,5 +2266,176 @@ module.exports = {
     row.reviewedBy = { id: me.id, nickname: me.nickname || '老師' };
     save(data);
     return Promise.resolve({ leave: shapeLeave(row, me) });
+  },
+
+  // ── W-73 班級課表（示範層也有資料，首頁「下一節」斷網時不會空白）──
+  timetable(query) {
+    const data = db();
+    const q = query || {};
+    const className = q.className || DEMO_CLASS;
+    const slots = (data.timetableSlots || [])
+      .filter((s) => s.className === className)
+      .sort((a, b) => a.weekday - b.weekday || a.period - b.period)
+      .map(shapeSlot);
+    const classes = [];
+    (data.timetableSlots || []).forEach((s) => {
+      if (classes.indexOf(s.className) === -1) classes.push(s.className);
+    });
+    return Promise.resolve({
+      className: className,
+      classes: classes.sort(),
+      periods: DEMO_PERIODS,
+      weekdays: Object.keys(WEEKDAY_LABEL).map((k) => ({ weekday: Number(k), label: WEEKDAY_LABEL[k] })),
+      slots: slots,
+    });
+  },
+
+  timetableToday(query) {
+    const data = db();
+    const q = query || {};
+    const className = q.className || DEMO_CLASS;
+    const now = new Date();
+    const weekday = now.getDay() === 0 ? 7 : now.getDay(); // 0=日 → 7
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    const schoolDay = weekday >= 1 && weekday <= 5;
+    const slots = schoolDay
+      ? (data.timetableSlots || [])
+          .filter((s) => s.className === className && s.weekday === weekday)
+          .sort((a, b) => a.period - b.period)
+          .map(shapeSlot)
+      : [];
+    const cur = DEMO_PERIODS.filter((p) => minutes >= hhmm(p.startTime) && minutes < hhmm(p.endTime))[0] || null;
+    const nxt = DEMO_PERIODS.filter((p) => hhmm(p.startTime) > minutes)[0] || null;
+    const current = cur ? slots.filter((s) => s.period === cur.period)[0] || null : null;
+    const next = nxt ? slots.filter((s) => s.period === nxt.period)[0] || null : null;
+    return Promise.resolve({
+      className: className,
+      schoolDay: schoolDay,
+      date: (function () {
+        const p2 = (n) => (n < 10 ? '0' + n : '' + n);
+        return now.getFullYear() + '-' + p2(now.getMonth() + 1) + '-' + p2(now.getDate());
+      })(),
+      weekday: weekday,
+      weekdayLabel: WEEKDAY_LABEL[weekday] || '',
+      periods: DEMO_PERIODS,
+      slots: slots,
+      current: current,
+      next: next,
+      nextText: next && nxt ? next.subject + (next.room ? ' · ' + next.room : '') + '（' + nxt.startTime + '）' : '',
+    });
+  },
+
+  adminTimetable() {
+    const data = db();
+    const items = (data.timetableSlots || []).slice().sort((a, b) => String(a.className).localeCompare(String(b.className)) || a.weekday - b.weekday || a.period - b.period).map(shapeSlot);
+    const map = {};
+    items.forEach((s) => {
+      map[s.className] = (map[s.className] || 0) + 1;
+    });
+    return Promise.resolve({
+      classes: Object.keys(map).sort().map((name) => ({ name: name, slots: map[name] })),
+      items: items,
+      periods: DEMO_PERIODS,
+    });
+  },
+
+  saveTimetableSlot(body) {
+    const data = db();
+    const input = body || {};
+    if (!input.className || !input.subject) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '請填班級與科目' });
+    }
+    data.timetableSlots = data.timetableSlots || [];
+    const hit = data.timetableSlots.filter(
+      (s) => s.className === input.className && s.weekday === Number(input.weekday) && s.period === Number(input.period),
+    )[0];
+    if (hit) {
+      hit.subject = input.subject;
+      hit.teacherName = input.teacherName || '';
+      hit.room = input.room || '';
+      save(data);
+      return Promise.resolve({ slot: shapeSlot(hit) });
+    }
+    const row = {
+      id: 'ts' + Date.now(),
+      className: input.className,
+      weekday: Number(input.weekday),
+      period: Number(input.period),
+      subject: input.subject,
+      teacherName: input.teacherName || '',
+      room: input.room || '',
+    };
+    data.timetableSlots.push(row);
+    save(data);
+    return Promise.resolve({ slot: shapeSlot(row) });
+  },
+
+  deleteTimetableSlot(id) {
+    const data = db();
+    const before = (data.timetableSlots || []).length;
+    data.timetableSlots = (data.timetableSlots || []).filter((s) => s.id !== id);
+    if (data.timetableSlots.length === before) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這一格課表' });
+    save(data);
+    return Promise.resolve({ ok: true });
+  },
+
+  /** CSV：班級,星期,節次,科目,老師,課室 —— 示範層同一套「先檢查再匯入」 */
+  importTimetable(body) {
+    const data = db();
+    const input = body || {};
+    const CN = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5 };
+    const rows = [];
+    const errors = [];
+    String(input.csv || '')
+      .split(/\r?\n/)
+      .forEach((raw, i) => {
+        const line = i + 1;
+        const v = raw.trim();
+        if (!v) return;
+        if (line === 1 && /班級|科目/.test(v)) return;
+        const cells = v.split(',').map((c) => c.trim());
+        if (cells.length < 4) {
+          errors.push({ line: line, message: '至少要四欄：班級,星期,節次,科目' });
+          return;
+        }
+        const weekday = CN[cells[1]] || Number(cells[1]);
+        const period = Number(cells[2]);
+        if (!cells[0] || !(weekday >= 1 && weekday <= 5) || !(period >= 1 && period <= 8) || !cells[3]) {
+          errors.push({ line: line, message: '班級／星期 1–5／節次 1–8／科目 有誤' });
+          return;
+        }
+        const exists = (data.timetableSlots || []).filter(
+          (s) => s.className === cells[0] && s.weekday === weekday && s.period === period,
+        ).length;
+        rows.push({
+          line: line,
+          className: cells[0],
+          weekday: weekday,
+          period: period,
+          subject: cells[3],
+          teacherName: cells[4] || '',
+          room: cells[5] || '',
+          status: exists ? 'EXISTS' : 'OK',
+          message: exists ? '這一格已經有課，不覆蓋' : '',
+        });
+      });
+    const ok = rows.filter((r) => r.status === 'OK');
+    let created = 0;
+    if (!input.dryRun && ok.length) {
+      ok.forEach((r) => {
+        data.timetableSlots.push({
+          id: 'ts' + Date.now() + Math.round(Math.random() * 1000),
+          className: r.className,
+          weekday: r.weekday,
+          period: r.period,
+          subject: r.subject,
+          teacherName: r.teacherName,
+          room: r.room,
+        });
+      });
+      created = ok.length;
+      save(data);
+    }
+    return Promise.resolve({ dryRun: input.dryRun !== false, total: rows.length, ok: ok.length, created: created, errors: errors, rows: rows });
   },
 };

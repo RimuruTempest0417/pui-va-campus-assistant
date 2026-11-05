@@ -29,6 +29,7 @@ const TABS = [
   { key: 'venues', label: i18n.pick('場地') },
   { key: 'giveaways', label: i18n.pick('轉贈') },
   { key: 'leaves', label: i18n.pick('假單') },
+  { key: 'timetable', label: i18n.pick('課表') },
 ];
 
 // 學段三個固定值（後端 TERMS）：key 必須送原文，簡體下字形相同所以直接用 pick 的結果當 key
@@ -36,10 +37,10 @@ const TERM_KEYS = [i18n.pick('第一段'), i18n.pick('第二段'), i18n.pick('�
 
 const ROLE_TABS = {
   // 校內職員：排菜單＋匯出報名名單＋補登成績。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
-  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'export'],
+  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'export'],
   TEACHER: ['notice', 'school', 'events', 'venues', 'leaves'],
-  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves'],
+  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -425,6 +426,18 @@ Page({
       k344: i18n.pick("已駁回"),
       k345: i18n.pick("天"),
       k346: i18n.pick("家長代送"),
+      // ── W-73 課表分頁（k347 起）──
+      k347: i18n.pick("班級課表"),
+      k348: i18n.pick("貼上 CSV：班級,星期,節次,科目,老師,課室"),
+      k349: i18n.pick("先檢查"),
+      k350: i18n.pick("確認匯入"),
+      k351: i18n.pick("匯入中…"),
+      k352: i18n.pick("讀不到課表："),
+      k353: i18n.pick("目前還沒有任何班級的課表"),
+      k354: i18n.pick("貼上 CSV 後按「先檢查」，確認沒問題再匯入"),
+      k355: i18n.pick("這一格已經有課，不覆蓋"),
+      k356: i18n.pick("同一份裡重複"),
+      k357: i18n.pick("刪除"),
     };
   },
 
@@ -482,6 +495,13 @@ Page({
     ],
     leaveItems: [],
     leaveCounts: { PENDING: 0, APPROVED: 0, REJECTED: 0, CANCELLED: 0 },
+    // ── 課表（W-73）：匯入 CSV 先檢查再寫入；下面列出每個班幾格 ──
+    ttCsv: '',
+    ttBusy: false,
+    ttClasses: [],
+    ttRows: [],
+    ttErrors: [],
+    ttSummary: '',
     role: '',
     stats: { users: 0, items: { open: 0, claimed: 0, added7d: 0 }, claimsPending: 0, signups: { confirmed: 0, waitlist: 0 }, noticesActive: 0, ratings: { count: 0, avg: 0 } },
     // 第一屏五張數字卡：值與標籤在 loadStats 一起備好（WXML 不做運算）
@@ -692,6 +712,7 @@ Page({
     else if (t === 'venues') p = this.loadVenues();
     else if (t === 'giveaways') p = this.loadGiveaways();
     else if (t === 'leaves') p = this.loadLeaves();
+    else if (t === 'timetable') p = this.loadTimetable();
 
     if (!p || typeof p.then !== 'function') {
       this.setData({ tabLoading: false });
@@ -2670,6 +2691,68 @@ Page({
           .then(() => {
             wx.showToast({ title: this.data.L.k344, icon: 'success' });
             this.loadLeaves();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // ───────── 課表（W-73）─────────
+  async loadTimetable() {
+    try {
+      const res = await admin.timetableAll();
+      this.setData({ ttClasses: res.classes || [], ttRows: [], ttErrors: [], ttSummary: '' });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到課表：') + (e.message || e.code) });
+    }
+  },
+
+  onTtCsv(e) {
+    this.setData({ ttCsv: e.detail.value });
+  },
+
+  async ttRun(e) {
+    if (this.data.ttBusy) return;
+    const dryRun = e.currentTarget.dataset.dry !== '0';
+    if (!String(this.data.ttCsv || '').trim()) {
+      wx.showToast({ title: this.data.L.k354, icon: 'none' });
+      return;
+    }
+    this.setData({ ttBusy: true });
+    try {
+      const res = await admin.importTimetable({ csv: this.data.ttCsv, dryRun: dryRun });
+      const rows = (res.rows || []).map((row) =>
+        Object.assign({}, row, {
+          statusText: row.status === 'EXISTS' ? this.data.L.k355 : row.status === 'DUPLICATE' ? this.data.L.k356 : '',
+        }),
+      );
+      this.setData({
+        ttBusy: false,
+        ttRows: rows,
+        ttErrors: res.errors || [],
+        ttSummary: (res.dryRun ? this.data.L.k349 : this.data.L.k350) + '：' + res.ok + '/' + res.total + (res.created ? ' → ' + res.created : ''),
+      });
+      if (!dryRun) this.loadTimetable();
+    } catch (err) {
+      this.setData({ ttBusy: false });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
+    }
+  },
+
+  ttDelete(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title: this.data.L.k357,
+      content: i18n.pick('刪除這一格課表？'),
+      confirmText: this.data.L.k357,
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .deleteTimetableSlot(id)
+          .then(() => {
+            wx.showToast({ title: i18n.pick('已刪除'), icon: 'success' });
+            this.loadTimetable();
           })
           .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
       },

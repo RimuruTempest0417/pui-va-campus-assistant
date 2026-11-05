@@ -234,4 +234,13 @@ module.exports = {
   // 批假單（老師／校務處）：待審清單與審批
   adminLeaves(query) { return http.get('/admin/leaves', query); },
   reviewLeave(id, body) { return http.patch('/admin/leaves/' + id, body); },
+
+  // ── W-73 班級課表 ──
+  timetable(query) { return http.get('/timetable', query || {}); },
+  timetableToday(query) { return http.get('/timetable/today', query || {}); },
+  // 管理（校內職員）：全部班級、單格 upsert／刪除、CSV 先檢查再匯入
+  adminTimetable() { return http.get('/admin/timetable'); },
+  saveTimetableSlot(body) { return http.post('/admin/timetable', body); },
+  deleteTimetableSlot(id) { return http.del('/admin/timetable/' + id); },
+  importTimetable(body) { return http.post('/admin/timetable/import', body); },
 };

@@ -215,4 +215,12 @@ module.exports = {
   cancelLeave: (...a) => call('cancelLeave', a),
   adminLeaves: (...a) => call('adminLeaves', a),
   reviewLeave: (...a) => call('reviewLeave', a),
+
+  // ── W-73 班級課表（讀取訪客可看；匯入與修改是校內職員）──
+  timetable: (...a) => call('timetable', a),
+  timetableToday: (...a) => call('timetableToday', a),
+  adminTimetable: (...a) => call('adminTimetable', a),
+  saveTimetableSlot: (...a) => call('saveTimetableSlot', a),
+  deleteTimetableSlot: (...a) => call('deleteTimetableSlot', a),
+  importTimetable: (...a) => call('importTimetable', a),
 };
