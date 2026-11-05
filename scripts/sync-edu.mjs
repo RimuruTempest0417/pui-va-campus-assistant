@@ -58,6 +58,9 @@ if (existsSync(join(dest, 'minitest'))) console.log('   （minitest 未同步，
 // 不同步：.git、node_modules、minitest、dist、各自的 project.config.json / project.private.config.json
 const KEEP_TARGET_ONLY = new Set(['project.config.json', 'project.private.config.json']);
 const IGNORE_DIR = new Set(['.git', 'node_modules', 'minitest', 'dist', '.DS_Store']);
+// 使用者自己的文件（報告／簡報／試算表）常常只存在教育版那一份，不在來源 repo 裡。
+// 實測曾因此刪掉 docs/第一段_高二級_資訊考查報告.docx —— 這類檔案一律不動，只提示。
+const USER_DOC = /\.(docx?|pptx?|xlsx?|pdf|pages|key|numbers)$/i;
 
 function pruneTarget(srcRoot, dstRoot) {
   let removed = 0;
@@ -72,6 +75,10 @@ function pruneTarget(srcRoot, dstRoot) {
       const isDir = statSync(dstPath).isDirectory();
       if (rel === '' && KEEP_TARGET_ONLY.has(name)) continue;
       if (!existsSync(srcPath)) {
+        if (USER_DOC.test(name)) {
+          console.log(`   - 保留（來源已無，屬使用者文件）：${relPath}`);
+          continue;
+        }
         rmSync(dstPath, { recursive: true, force: true });
         removed += 1;
         console.log(`   - 移除（來源已無）：${relPath}`);
