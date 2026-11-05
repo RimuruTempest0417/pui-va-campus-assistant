@@ -253,4 +253,5 @@ module.exports = {
   unmarkHomework(id) { return http.del('/homework/' + id + '/done'); },
   parentChildHomework(childId) { return http.get('/parents/me/children/' + childId + '/homework'); },
   homeworkStats(query) { return http.get('/homework/stats', query || {}); },
+  homeworkPending(id) { return http.get('/homework/' + id + '/pending'); },
 };

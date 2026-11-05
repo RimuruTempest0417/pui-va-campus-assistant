@@ -56,11 +56,12 @@
                 <view class="hw-row__foot">
                   <text class="hw-row__due {{item.overdue ? 'is-overdue' : ''}}">{{item.dueText}}</text>
                   <pv-tag wx:if="{{item.overdue}}" text="{{item.dueBadge}}" type="warning" />
-                  <text wx:if="{{item.countText}}" class="hw-row__count">{{item.countText}}{{L.k38}}</text>
+                  <text wx:if="{{item.countText}}" class="hw-row__count" data-id="{{item.id}}" catchtap="openPending">{{item.countText}}{{L.k38}}</text>
                   <view wx:if="{{item.mine}}" class="hw-del" data-id="{{item.id}}" data-title="{{item.title}}" catchtap="remove">
                     <text class="hw-del__text">{{L.k30}}</text>
                   </view>
                 </view>
+                <text wx:if="{{pendingId === item.id}}" class="hw-row__pending">{{L.k39}}：{{pendingNames}}</text>
               </view>
             </view>
           </view>

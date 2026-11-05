@@ -2630,4 +2630,19 @@ module.exports = {
       .map((h) => ({ id: h.id, done: (data.homeworkDone || []).filter((d) => d.homeworkId === h.id).length }));
     return Promise.resolve({ className: className, total: total, items: items });
   },
+
+  // 老師：某一項功課的未交名單（示範層給兩個假名字，演示「點數字看名單」）
+  homeworkPending(id) {
+    const data = db();
+    const row = (data.homework || []).filter((h) => h.id === id && !h.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這項功課' });
+    const doneIds = (data.homeworkDone || []).filter((d) => d.homeworkId === id).map((d) => d.userId);
+    const all = [
+      { id: 'demo-user', nickname: '示範學生' },
+      { id: 'demo-mate-1', nickname: '培華同學甲' },
+      { id: 'demo-mate-2', nickname: '培華同學乙' },
+    ];
+    const pending = all.filter((m) => doneIds.indexOf(m.id) === -1);
+    return Promise.resolve({ id: id, className: row.className, total: all.length, done: all.length - pending.length, pending: pending });
+  },
 };

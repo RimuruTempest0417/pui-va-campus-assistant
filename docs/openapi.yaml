@@ -4675,6 +4675,38 @@ paths:
         '403':
           description: 不是老師（學生／家長沒有 homework:create）
 
+  /homework/{id}/pending:
+    get:
+      tags: [homework]
+      summary: 某一項功課的未交名單（老師）
+      description: 只回暱稱與 id（不回帳號）；封禁帳號不計入。清單一次幾十項，每項都帶名單會變幾百筆，所以名單獨立一支、點下去才抓。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 班上人數、已交數與未交名單
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  className: { type: string }
+                  total: { type: integer }
+                  done: { type: integer }
+                  pending:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        nickname: { type: string }
+        '403':
+          description: 不是老師
+        '404':
+          description: 找不到這項功課（含已收回）
+
   /parents/me/children/{studentId}/homework:
     get:
       tags: [parent, homework]

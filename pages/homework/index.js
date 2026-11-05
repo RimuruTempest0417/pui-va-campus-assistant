@@ -59,6 +59,7 @@ Page({
       k36: i18n.pick('送出失敗'),
       k37: i18n.pick('班'),
       k38: i18n.pick(' 人交了'),
+      k39: i18n.pick('未交'),
     };
   },
 
@@ -75,6 +76,8 @@ Page({
     items: [],
     stats: { total: 0, done: 0, todo: 0, overdue: 0 },
     pressedId: '',
+    pendingId: '',
+    pendingNames: '',
     formOpen: false,
     formSubject: '',
     formTitle: '',
@@ -265,6 +268,22 @@ Page({
 
   retry() {
     this.load();
+  },
+
+  /** 老師點「N/M 人交了」→ 展開未交名單（再點一次收起） */
+  async openPending(e) {
+    const id = e.currentTarget.dataset.id;
+    if (this.data.pendingId === id) {
+      this.setData({ pendingId: '', pendingNames: '' });
+      return;
+    }
+    try {
+      const res = await data.homeworkPending(id);
+      const names = (res.pending || []).map((p) => p.nickname).join('、');
+      this.setData({ pendingId: id, pendingNames: names });
+    } catch (err) {
+      wx.showToast({ title: data.messageOf(err), icon: 'none' });
+    }
   },
 
   /** 彈層背景不讓內容跟著滾 */

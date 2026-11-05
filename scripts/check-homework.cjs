@@ -118,6 +118,10 @@ async function main() {
   check('完成率涵蓋每一項功課', hwStats.items.length >= 1, hwStats.items.length);
   check('完成率每項都有 done 數字', hwStats.items.every((i) => typeof i.done === 'number'));
 
+  const pend = await data.homeworkPending(hwStats.items[0].id);
+  check('未交名單有名稱', pend.pending.length > 0 && !!pend.pending[0].nickname, pend.pending.length);
+  check('未交名單不含已交的人', pend.total - pend.done === pend.pending.length);
+
   // ── ⑧ 舊版號不能蓋掉新版 ──
   const keep = afterRemove.items[0];
   await data.updateHomework(keep.id, { title: '改過的新標題', version: keep.version });
