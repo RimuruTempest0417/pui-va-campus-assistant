@@ -73,6 +73,7 @@
           </view>
 
           <text class="login-hint">{{L.k19}}</text>
+          <text class="login-hint">{{L.k22}}</text>
           <text class="login-hint login-hint--muted">{{L.k20}}</text>
         </form>
 

@@ -331,6 +331,31 @@ function cancelCore(id, userId) {
 
 let schoolLinked = false;
 
+/**
+ * 家校通示範資料（模組層函式，不是 `this.xxx`）。
+ * data.js 是把 mock 的方法拆出來呼叫的（`mock[name](...)`），`this` 會是 null ——
+ * 所以「子女的成績」不能寫 `this.schoolGrades()`，只能共用同一支純函式。
+ */
+function demoSchoolGrades() {
+  return {
+    years: ['2026/2027', '2025/2026'],
+    items: [
+      { id: 'g1', yearTerm: '2026/2027', term: '第一段', courseName: '化學', content: '原子結構及元素周期表', testType: '大測一', testDate: '2026-10-09', score: 100.5 },
+      { id: 'g2', yearTerm: '2026/2027', term: '第一段', courseName: '數學', content: '函數與圖像', testType: '大測一', testDate: '2026-10-10', score: 86 },
+      { id: 'g3', yearTerm: '2026/2027', term: '第一段', courseName: '中文', content: '閱讀理解', testType: '小測', testDate: '2026-10-12', score: 78 },
+    ],
+  };
+}
+
+function demoSchoolAttendance() {
+  const items = [
+    { id: 'a1', date: '2026-10-23', amIn: '08:16:06', pmOut: '16:32:32', isAmLate: false, isPmLate: false, amStatus: 'normal', pmStatus: 'normal', remark: null },
+    { id: 'a2', date: '2026-10-22', amIn: '08:32:10', pmOut: '16:30:02', isAmLate: true, isPmLate: false, amStatus: 'late', pmStatus: 'normal', remark: '交通延誤' },
+    { id: 'a3', date: '2026-10-21', amIn: '', pmOut: '', isAmLate: false, isPmLate: false, amStatus: 'leave', pmStatus: 'leave', remark: '病假' },
+  ];
+  return { items, summary: { total: items.length, late: 1, absent: 1 } };
+}
+
 module.exports = {
   reset() {
     const fresh = seed();
@@ -592,6 +617,35 @@ module.exports = {
       return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
     }
     return cancelCore(eventId, studentId);
+  },
+
+  /** 子女的成績（示範層）：與後端同形狀；未綁定一樣 403，不讓示範模式比真 API 寬鬆 */
+  parentChildGrades(studentId) {
+    const data = db();
+    if (!childOf(data, studentId)) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
+    }
+    return Promise.resolve(demoSchoolGrades());
+  },
+
+  /** 子女的出缺席（示範層） */
+  parentChildAttendance(studentId) {
+    const data = db();
+    if (!childOf(data, studentId)) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
+    }
+    return Promise.resolve(demoSchoolAttendance());
+  },
+
+  /** 家長同步子女（示範層）：真 API 會打家校通，這裡只回筆數；規則一樣要已綁定 */
+  parentChildSync(studentId) {
+    const data = db();
+    if (!childOf(data, studentId)) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
+    }
+    const g = demoSchoolGrades();
+    const a = demoSchoolAttendance();
+    return Promise.resolve({ ok: true, demo: true, grades: g.items.length, attendance: a.items.length, yearTerms: g.years.slice(0, 1) });
   },
 
   /**
@@ -993,22 +1047,10 @@ module.exports = {
   schoolUnlink() { schoolLinked = false; return Promise.resolve({ linked: false }); },
   schoolSync() { return Promise.resolve({ ok: true, grades: 6, attendance: 35 }); },
   schoolGrades() {
-    return Promise.resolve({
-      years: ['2026/2027', '2025/2026'],
-      items: [
-        { id: 'g1', yearTerm: '2026/2027', term: '第一段', courseName: '化學', content: '原子結構及元素周期表', testType: '大測一', testDate: '2026-10-09', score: 100.5 },
-        { id: 'g2', yearTerm: '2026/2027', term: '第一段', courseName: '數學', content: '函數與圖像', testType: '大測一', testDate: '2026-10-10', score: 86 },
-        { id: 'g3', yearTerm: '2026/2027', term: '第一段', courseName: '中文', content: '閱讀理解', testType: '小測', testDate: '2026-10-12', score: 78 },
-      ],
-    });
+    return Promise.resolve(demoSchoolGrades());
   },
   schoolAttendance() {
-    const items = [
-      { id: 'a1', date: '2026-10-23', amIn: '08:16:06', pmOut: '16:32:32', isAmLate: false, isPmLate: false, amStatus: 'normal', pmStatus: 'normal', remark: null },
-      { id: 'a2', date: '2026-10-22', amIn: '08:32:10', pmOut: '16:30:02', isAmLate: true, isPmLate: false, amStatus: 'late', pmStatus: 'normal', remark: '交通延誤' },
-      { id: 'a3', date: '2026-10-21', amIn: '', pmOut: '', isAmLate: false, isPmLate: false, amStatus: 'leave', pmStatus: 'leave', remark: '病假' },
-    ];
-    return Promise.resolve({ items, summary: { total: items.length, late: 1, absent: 1 } });
+    return Promise.resolve(demoSchoolAttendance());
   },
 
   schoolManualGrade(body) { return Promise.resolve({ ...body, id: 'gm', source: 'MANUAL' }); },

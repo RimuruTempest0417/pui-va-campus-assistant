@@ -1,7 +1,19 @@
 const appearance = require('../../utils/appearance');
 const i18n = require('../../utils/i18n');
 const data = require('../../services/data');
+const config = require('../../config/config');
 
+/**
+ * 成績與出缺席。
+ *
+ * 兩種身分共用同一頁（第 0 項「家長免綁定」的落地）：
+ *  - 學生／職員：讀自己那一列（`/school/grades`），要先連結家校通才能同步。
+ *  - 家長：家校通帳號登入時後端已自動對應子女，這裡只負責選子女 + 讀
+ *    `/parents/me/children/:id/grades|attendance`。
+ *
+ * 家長的「連結家校通」仍然保留 —— 那是同步用的憑證（同步會寫在子女那一列），
+ * 和「有沒有子女」是兩件事，所以畫面上分成 `children.length` 與 `credLinked` 兩個旗標。
+ */
 Page({
   data: {
     themeClass: appearance.themeClass(),
@@ -9,7 +21,10 @@ Page({
     needLogin: false,
     failed: false,
     errorText: '',
-    linked: false,
+    isParent: false,
+    credLinked: false, // 有沒有存家校通帳密（同步的前提）
+    children: [],
+    activeChildId: '',
     tab: 'grades',
     account: '',
     password: '',
@@ -40,9 +55,11 @@ Page({
       account: i18n.pick('家校通帳號（學號）'),
       password: i18n.pick('家校通密碼'),
       sync: i18n.pick('立即同步'),
+      syncChild: i18n.pick('同步子女成績'),
       unlink: i18n.pick('解除連結'),
       linked: i18n.pick('已連結'),
       emptyGrades: i18n.pick('還沒有成績資料，按「立即同步」抓取'),
+      emptyGradesChild: i18n.pick('還沒有成績資料。可以先按「同步子女成績」。'),
       emptyAttend: i18n.pick('還沒有出缺席資料'),
       manual: i18n.pick('同步不到？可以在後台手動輸入，或請老師代為補登。'),
       manualTag: i18n.pick('手動補登'),
@@ -60,6 +77,11 @@ Page({
       goLogin: i18n.pick('去登入'),
       failHint: i18n.pick('請稍後再試'),
       retry: i18n.pick('重試'),
+      myChildren: i18n.pick('我的子女'),
+      childUnit: i18n.pick(' 位'),
+      noChildren: i18n.pick('還沒有對應到子女'),
+      noChildrenHint: i18n.pick('用家長的家校通帳號登入後會自動對應子女；如果沒有，請聯絡學校。'),
+      viewing: i18n.pick('目前查看'),
     };
   },
 
@@ -73,6 +95,16 @@ Page({
     this.init();
   },
 
+  /** 目前身分（讀 storage 的 role，與首頁／家長頁同一份快取） */
+  cachedRole() {
+    try {
+      const u = wx.getStorageSync(config.STORAGE_KEYS.user) || {};
+      return u.role || '';
+    } catch (e) {
+      return '';
+    }
+  },
+
   async init() {
     // 沒登入就不要打 API（否則只會看到「載入失敗」，看不出其實是沒登入）
     const request = require('../../utils/request');
@@ -80,13 +112,25 @@ Page({
       this.setData({ loading: false, needLogin: true });
       return;
     }
+    const isParent = this.cachedRole() === 'PARENT';
     try {
-      const st = await data.schoolStatus();
-      this.setData({ status: st, loading: false, failed: false });
-      if (st && st.linked) {
-        this.setData({ linked: true });
-        await this.loadAll();
-      }
+      // 家長要兩件事：有沒有存家校通帳密（同步用）＋ 有沒有自動對應到子女（看資料用）
+      const results = await Promise.all([
+        data.schoolStatus(),
+        isParent ? data.parentChildren() : Promise.resolve({ items: [] }),
+      ]);
+      const st = results[0];
+      const children = (results[1] && results[1].items) || [];
+      this.setData({
+        status: st,
+        isParent,
+        credLinked: !!(st && st.linked),
+        children,
+        activeChildId: children.length ? children[0].studentId : '',
+        loading: false,
+        failed: false,
+      });
+      if (isParent ? children.length > 0 : !!(st && st.linked)) await this.loadAll();
     } catch (e) {
       // token 過期／失效：清掉並回到「請先登入」，不要讓使用者以為是系統壞了
       const code = (e && e.code) || '';
@@ -107,7 +151,12 @@ Page({
 
   async loadAll() {
     try {
-      const [g, a] = await Promise.all([data.schoolGrades(), data.schoolAttendance()]);
+      const childId = this.data.activeChildId;
+      const pair = this.data.isParent
+        ? await Promise.all([data.parentChildGrades(childId), data.parentChildAttendance(childId)])
+        : await Promise.all([data.schoolGrades(), data.schoolAttendance()]);
+      const g = pair[0];
+      const a = pair[1];
       const grades = (g.items || []).map((x) => ({ ...x, dateText: (x.testDate || '').slice(0, 10), scoreText: x.score === null || x.score === undefined ? '—' : String(x.score), manual: x.source === 'MANUAL' }));
       const attendance = (a.items || []).map((x) => ({
         ...x,
@@ -120,6 +169,14 @@ Page({
     } catch (e) {
       this.setData({ failed: true, errorText: data.messageOf(e) });
     }
+  },
+
+  /** 切換子女：換人就重抓，不要只換標題（否則畫面還是上一位的成績） */
+  async pickChild(e) {
+    const id = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id;
+    if (!id || id === this.data.activeChildId) return;
+    this.setData({ activeChildId: id, grades: [], attendance: [], summary: { total: 0, late: 0, absent: 0 } });
+    await this.loadAll();
   },
 
   pickTab(e) {
@@ -137,9 +194,9 @@ Page({
     this.setData({ linking: true });
     try {
       await data.schoolLink(this.data.account.trim(), this.data.password);
-      this.setData({ linked: true, password: '', linking: false });
+      this.setData({ credLinked: true, password: '', linking: false });
       wx.showToast({ title: i18n.pick('已連結'), icon: 'success' });
-      this.sync();
+      await this.sync();
     } catch (e) {
       this.setData({ linking: false });
       wx.showToast({ title: data.messageOf(e), icon: 'none' });
@@ -149,7 +206,9 @@ Page({
   async sync() {
     this.setData({ syncing: true });
     try {
-      const r = await data.schoolSync();
+      const r = this.data.isParent
+        ? await data.parentChildSync(this.data.activeChildId)
+        : await data.schoolSync();
       this.setData({ syncing: false });
       wx.showToast({ title: this.data.L.syncedPrefix + (r.grades || 0) + this.data.L.gradeUnit, icon: 'none' });
       await this.loadAll();
@@ -167,7 +226,7 @@ Page({
         if (!r.confirm) return;
         try {
           await data.schoolUnlink();
-          this.setData({ linked: false, status: null });
+          this.setData({ credLinked: false, status: null });
         } catch (e) {
           wx.showToast({ title: data.messageOf(e), icon: 'none' });
         }

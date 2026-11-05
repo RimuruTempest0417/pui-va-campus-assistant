@@ -13,6 +13,11 @@
 .sch-tab { flex: 1; text-align: center; height: 64rpx; line-height: 64rpx; border-radius: var(--pv-r-sm); background: var(--pv-fill); color: var(--pv-label-2); font-size: var(--pv-fs-subhead); }
 .sch-tab--on { background: var(--pv-tint); color: var(--pv-on-tint); font-weight: 600; }
 
+/* 家長：多位子女時的切換 chips（≤5 位不用 scroll-x，一次看得到全部） */
+.sch-kids { display: flex; flex-direction: row; flex-wrap: wrap; gap: 12rpx; margin-top: var(--pv-sp-2); }
+.sch-kid { flex-shrink: 0; height: 64rpx; line-height: 64rpx; padding: 0 var(--pv-sp-2); border-radius: var(--pv-r-sm); background: var(--pv-fill); color: var(--pv-label-2); font-size: var(--pv-fs-subhead); }
+.sch-kid--on { background: var(--pv-tint); color: var(--pv-on-tint); font-weight: 600; }
+
 .g-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: var(--pv-sp-2) 0; border-bottom: 1rpx solid var(--pv-sep); }
 .g-main { flex: 1; min-width: 0; }
 .g-course { display: block; font-size: var(--pv-fs-subhead); font-weight: 600; color: var(--pv-label); }

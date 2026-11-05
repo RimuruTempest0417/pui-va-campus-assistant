@@ -61,6 +61,17 @@ module.exports = {
   parentChild(studentId) {
     return http.get('/parents/me/children/' + studentId);
   },
+  /** 子女的成績／出缺席（家長端專用；閘門在後端 parent-scope，未綁定 403） */
+  parentChildGrades(studentId, q) {
+    return http.get('/parents/me/children/' + studentId + '/grades', q || {});
+  },
+  parentChildAttendance(studentId, q) {
+    return http.get('/parents/me/children/' + studentId + '/attendance', q || {});
+  },
+  /** 用家長自己的家校通連結同步子女的成績（寫在子女身上；未連結後端回 422） */
+  parentChildSync(studentId) {
+    return http.post('/parents/me/children/' + studentId + '/sync', {});
+  },
   parentSignupEvent(studentId, eventId) {
     return http.post('/parents/me/children/' + studentId + '/events/' + eventId + '/signup', {});
   },

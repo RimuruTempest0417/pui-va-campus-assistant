@@ -166,6 +166,10 @@ module.exports = {
   schoolSync: (...a) => call('schoolSync', a),
   schoolGrades: (...a) => call('schoolGrades', a),
   schoolAttendance: (...a) => call('schoolAttendance', a),
+  // 家長讀子女的成績／出缺席（與上面同形狀；閘門在後端 parent-scope，未綁定 403）
+  parentChildGrades: (...a) => call('parentChildGrades', a),
+  parentChildAttendance: (...a) => call('parentChildAttendance', a),
+  parentChildSync: (...a) => call('parentChildSync', a),
   schoolManualGrade: (...a) => call('schoolManualGrade', a),
   schoolManualAttendance: (...a) => call('schoolManualAttendance', a),
 };

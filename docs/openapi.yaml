@@ -100,6 +100,9 @@ paths:
         **密碼不落庫**：只換 token；要同步成績才另外走 `/school/link`（AES-256-GCM 加密保存）。
         連續失敗 5 次鎖 15 分鐘；帳號不存在與密碼錯誤回同一句話。
         家校通連不上回 503 `SCHOOL_UNAVAILABLE`（可改用校內帳號），不是密碼錯。
+        **帳號前綴決定角色**（只在第一次建立時用）：`s…` → `STUDENT`、純數字或 `pv…` → `PARENT`、
+        其他格式 → `STUDENT` 並回 `accountType: other`。家長登入時自動把「他看得到的學號」
+        （家校通首頁列出的 ＋ 帳號本身的數字）建成 `parent_links`，**不需要管理員先綁定**。
       requestBody:
         required: true
         content:
@@ -124,6 +127,16 @@ paths:
                   account: { type: string, description: '本系統帳號（sc:<家校通帳號>）' }
                   created: { type: boolean, description: 是否本次才建立 }
                   source: { type: string, enum: [school] }
+                  accountType: { type: string, enum: [student, parent, other], description: 由帳號前綴判斷的類型；other 代表格式不在規範內（建成學生，等指示） }
+                  children:
+                    type: array
+                    description: 家長本次自動對應到的子女（學生為空陣列）
+                    items:
+                      type: object
+                      properties:
+                        studentId: { type: string }
+                        studentNo: { type: string }
+                        nickname: { type: string, nullable: true }
                   user:
                     type: object
                     properties:
@@ -983,6 +996,112 @@ paths:
                             status: { type: string }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  /parents/me/children/{studentId}/grades:
+    parameters:
+      - { in: path, name: studentId, required: true, schema: { type: string } }
+    get:
+      tags: [parents]
+      summary: 子女的成績（家長端；形狀與 /school/grades 一致）
+      parameters:
+        - { in: query, name: yearTerm, schema: { type: string } }
+        - { in: query, name: term, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        studentId: { type: string }
+                        yearTerm: { type: string }
+                        term: { type: string }
+                        className: { type: string, nullable: true }
+                        courseName: { type: string }
+                        content: { type: string, nullable: true }
+                        testType: { type: string }
+                        testDate: { type: string, format: date }
+                        score: { type: number, nullable: true }
+                        source: { type: string, enum: [SYNC, MANUAL] }
+                  years:
+                    type: array
+                    items: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /parents/me/children/{studentId}/attendance:
+    parameters:
+      - { in: path, name: studentId, required: true, schema: { type: string } }
+    get:
+      tags: [parents]
+      summary: 子女的出缺席（家長端；含 summary）
+      parameters:
+        - { in: query, name: yearTerm, schema: { type: string } }
+        - { in: query, name: term, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/AttendanceRecord' }
+                  summary:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      late: { type: integer }
+                      absent: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /parents/me/children/{studentId}/sync:
+    parameters:
+      - { in: path, name: studentId, required: true, schema: { type: string } }
+    post:
+      tags: [parents]
+      summary: 用家長自己的家校通連結同步子女的成績／出缺席（寫在子女那列）
+      description: |
+        家長的家校通帳號本來就能看到子女，所以用**家長自己**已加密保存的 `SchoolLink`
+        登入家校通，抓回來的資料寫在**子女**身上。閘門為角色 PARENT ＋ 已存在 `parent_links`。
+        尚未連結家校通回 422；家校通帳密失效回 401。
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                yearTerms:
+                  type: array
+                  maxItems: 6
+                  items: { type: string }
+      responses:
+        '200':
+          description: 同步完成
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  yearTerms: { type: array, items: { type: string } }
+                  grades: { type: integer }
+                  attendance: { type: integer }
+                  syncedAt: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /parents/me/children/{studentId}/events/{eventId}/signup:
     parameters:

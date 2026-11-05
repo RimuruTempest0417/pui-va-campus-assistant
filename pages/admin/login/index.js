@@ -34,6 +34,7 @@ Page({
       k19: i18n.pick("用你在家校通的帳號密碼登入，不必用微信授權。"),
       k20: i18n.pick("登入後不會儲存你的家校通密碼。"),
       k21: i18n.pick("學校系統暫時連不上，可改用校內帳號"),
+      k22: i18n.pick("家長用 pv 開頭或純數字帳號，學生用 s 開頭帳號；登入後會自動對應子女。"),
     };
   },
 
@@ -233,6 +234,7 @@ Page({
    * 家校通帳密直接登入：後端先向家校通驗證，通過才建／對應本系統帳號。
    * 失敗時「帳號不存在」與「密碼錯」是同一句話；學校系統掛掉（SCHOOL_UNAVAILABLE）
    * 會明講可以改用校內帳號，不會讓人以為是自己打錯密碼。
+   * 成功時如果後端自動對應到子女（家長），要講出來 —— 否則家長不知道自己的資料在哪。
    */
   async _loginSchool(account, password) {
     if (this.data.submitting) return;
@@ -240,7 +242,11 @@ Page({
     this.armWatchdog();
     try {
       const res = await admin.schoolLogin(account, password);
+      const kids = (res && res.children) || [];
       this.afterLogin(res);
+      if (kids.length) {
+        setTimeout(() => wx.showToast({ title: i18n.pick('已對應子女：') + kids.length + i18n.pick(' 位'), icon: 'none' }), 500);
+      }
     } catch (e) {
       const code = (e && e.code) || 'UNKNOWN';
       const msg = (e && e.message) || i18n.pick('登入失敗');

@@ -5,13 +5,33 @@
     <view class="school-inner">
       <pv-skeleton wx:if="{{loading}}" rows="{{4}}" />
 
+      <pv-empty wx:elif="{{needLogin}}" title="{{L.needLoginTitle}}" desc="{{L.needLoginHint}}">
+        <pv-button type="tinted" size="sm" bind:tap="goLogin">{{L.goLogin}}</pv-button>
+      </pv-empty>
+
       <pv-empty wx:elif="{{failed}}" title="{{L.failTitle}}" desc="{{errorText || L.failHint}}">
         <pv-button type="tinted" size="sm" bind:tap="retry">{{L.retry}}</pv-button>
       </pv-empty>
 
       <block wx:else>
-        <!-- 未連結：輸入自己的家校通帳密 -->
-        <pv-card wx:if="{{!linked}}">
+        <!-- 家長：登入時已自動對應的子女（一位就直接顯示名字，多位給 chips 切換） -->
+        <pv-card wx:if="{{isParent && children.length}}">
+          <view class="ui-row-between">
+            <text class="sch-title">{{L.myChildren}}</text>
+            <pv-tag text="{{children.length}}{{L.childUnit}}" type="tint" />
+          </view>
+          <view class="sch-kids" wx:if="{{children.length > 1}}">
+            <view wx:for="{{children}}" wx:key="studentId"
+                  class="sch-kid {{item.studentId === activeChildId ? 'sch-kid--on' : ''}}"
+                  data-id="{{item.studentId}}" bindtap="pickChild">{{item.nickname}}</view>
+          </view>
+          <text wx:else class="sch-hint">{{L.viewing}} · {{children[0].nickname}}</text>
+        </pv-card>
+
+        <pv-empty wx:elif="{{isParent}}" title="{{L.noChildren}}" desc="{{L.noChildrenHint}}" />
+
+        <!-- 家校通帳密（同步用）：沒連結才顯示輸入框 -->
+        <pv-card wx:if="{{!credLinked}}">
           <text class="sch-title">{{L.link}}</text>
           <text class="sch-hint">{{L.linkHint}}</text>
           <input class="sch-input" value="{{account}}" bindinput="onAccount" placeholder="{{L.account}}" />
@@ -21,18 +41,18 @@
           </view>
         </pv-card>
 
-        <block wx:else>
-          <pv-card>
-            <view class="ui-row-between">
-              <text class="sch-title">{{L.linked}} · {{status.studentNo}}</text>
-              <pv-tag text="{{status.className}}" type="tint" />
-            </view>
-            <view class="sch-actions">
-              <pv-button size="sm" type="filled" loading="{{syncing}}" disabled="{{syncing}}" bind:tap="sync">{{L.sync}}</pv-button>
-              <pv-button size="sm" type="plain" bind:tap="unlink">{{L.unlink}}</pv-button>
-            </view>
-          </pv-card>
+        <pv-card wx:else>
+          <view class="ui-row-between">
+            <text class="sch-title">{{L.linked}} · {{status.studentNo}}</text>
+            <pv-tag text="{{status.className}}" type="tint" />
+          </view>
+          <view class="sch-actions">
+            <pv-button size="sm" type="filled" loading="{{syncing}}" disabled="{{syncing}}" bind:tap="sync">{{isParent ? L.syncChild : L.sync}}</pv-button>
+            <pv-button size="sm" type="plain" bind:tap="unlink">{{L.unlink}}</pv-button>
+          </view>
+        </pv-card>
 
+        <block wx:if="{{(isParent && children.length) || (!isParent && credLinked)}}">
           <view class="sch-tabs">
             <view class="sch-tab {{tab === 'grades' ? 'sch-tab--on' : ''}}" data-tab="grades" bindtap="pickTab">{{L.grades}}</view>
             <view class="sch-tab {{tab === 'attendance' ? 'sch-tab--on' : ''}}" data-tab="attendance" bindtap="pickTab">{{L.attendance}}</view>
@@ -49,7 +69,7 @@
                 <text class="g-score ui-num">{{item.scoreText}}</text>
               </view>
             </pv-card>
-            <pv-empty wx:else title="{{L.emptyGrades}}" />
+            <pv-empty wx:else title="{{isParent ? L.emptyGradesChild : L.emptyGrades}}" />
           </block>
 
           <block wx:else>
