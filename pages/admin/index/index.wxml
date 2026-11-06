@@ -1237,22 +1237,35 @@
           <text class="ui-meta demo-hint">{{L.k382}}</text>
 
           <view class="ui-list ui-list--grouped demo-sum">
-            <view class="ui-card ui-card--row">
-              <text class="ui-field__label">{{L.k383}}</text>
-              <text class="ui-meta">{{demoCounts.venues}}{{L.k395}}</text>
+            <view class="ui-card ui-card--row demo-row">
+              <text class="ui-field__label demo-row__label">{{L.k383}}</text>
+              <view class="demo-row__ops">
+                <text class="ui-meta demo-row__num">{{demoCounts.venues}}{{L.k395}}</text>
+                <pv-button size="sm" type="plain" disabled="{{demoBusy}}" data-kind="venues" bind:tap="demoKindSeed">{{L.k416}}</pv-button>
+                <pv-button size="sm" type="destructive" disabled="{{demoBusy}}" data-kind="venues" bind:tap="demoKindClear">{{L.k417}}</pv-button>
+              </view>
             </view>
-            <view class="ui-card ui-card--row">
-              <text class="ui-field__label">{{L.k384}}</text>
-              <text class="ui-meta">{{demoCounts.books}}{{L.k395}}</text>
+            <view class="ui-card ui-card--row demo-row">
+              <text class="ui-field__label demo-row__label">{{L.k384}}</text>
+              <view class="demo-row__ops">
+                <text class="ui-meta demo-row__num">{{demoCounts.books}}{{L.k395}}</text>
+                <pv-button size="sm" type="plain" disabled="{{demoBusy}}" data-kind="library" bind:tap="demoKindSeed">{{L.k416}}</pv-button>
+                <pv-button size="sm" type="destructive" disabled="{{demoBusy}}" data-kind="library" bind:tap="demoKindClear">{{L.k417}}</pv-button>
+              </view>
             </view>
-            <view class="ui-card ui-card--row ui-card--last">
-              <text class="ui-field__label">{{L.k385}}</text>
-              <text class="ui-meta">{{demoCounts.timetableSlots}}{{L.k392}}{{demoClassText ? ' · ' + demoClassText : ''}}</text>
+            <view class="ui-card ui-card--row ui-card--last demo-row">
+              <text class="ui-field__label demo-row__label">{{L.k385}}</text>
+              <view class="demo-row__ops">
+                <text class="ui-meta demo-row__num">{{demoCounts.timetableSlots}}{{L.k392}}</text>
+                <pv-button size="sm" type="plain" disabled="{{demoBusy}}" data-kind="timetable" bind:tap="demoKindSeed">{{L.k416}}</pv-button>
+                <pv-button size="sm" type="destructive" disabled="{{demoBusy}}" data-kind="timetable" bind:tap="demoKindClear">{{L.k417}}</pv-button>
+              </view>
             </view>
           </view>
 
           <text class="ui-section ui-mt-2">{{L.k386}}</text>
           <input class="field__input" value="{{demoClass}}" placeholder="高二仁" bindinput="onDemoClass" />
+          <text wx:if="{{demoClassText}}" class="ui-meta demo-hint">{{L.k419}}：{{demoClassText}}</text>
 
           <view class="row-actions">
             <pv-button type="filled" loading="{{demoBusy}}" disabled="{{demoBusy}}" bind:tap="demoSeed">{{L.k387}}</pv-button>

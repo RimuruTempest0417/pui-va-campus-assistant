@@ -476,6 +476,11 @@ Page({
       k393: i18n.pick("還沒有匯入任何示範資料"),
       k394: i18n.pick("匯入時遇到同名的真實資料會跳過，不會覆蓋"),
       k395: i18n.pick("項"),
+      // W-87 分項匯入：每列右側兩顆小按鈕（匯入／清除只作用在那一類）
+      k416: i18n.pick("匯入"),
+      k417: i18n.pick("清除"),
+      k418: i18n.pick("只清掉這一類的示範資料，真實資料不會動。"),
+      k419: i18n.pick("已匯入課表的班級"),
       // ── W-84 功課完成率趨勢 ──
       k396: i18n.pick("最近 7 天還沒有派出的功課"),
       k397: i18n.pick("平均"),
@@ -3219,7 +3224,7 @@ Page({
 
   demoSeed() {
     if (this.data.demoBusy) return;
-    this.runDemo('SEED');
+    this.runDemo('all', 'SEED');
   },
 
   demoClear() {
@@ -3232,23 +3237,57 @@ Page({
       cancelText: i18n.pick('取消'),
       success: (r) => {
         if (!r.confirm) return;
-        this.runDemo('CLEAR');
+        this.runDemo('all', 'CLEAR');
       },
     });
   },
 
-  async runDemo(action) {
+  /** W-87：某一類的類名（確認框標題與結果文字共用，不要各寫一份） */
+  demoKindName(kind) {
+    if (kind === 'venues') return this.data.L.k383;
+    if (kind === 'library') return this.data.L.k384;
+    return this.data.L.k385;
+  },
+
+  /** W-87：只匯入某一類（data-kind = venues|library|timetable） */
+  demoKindSeed(e) {
+    if (this.data.demoBusy) return;
+    this.runDemo(e.currentTarget.dataset.kind, 'SEED');
+  },
+
+  /** W-87：只清除某一類。確認框要寫出「只清這一類」，否則沒人敢按 */
+  demoKindClear(e) {
+    if (this.data.demoBusy) return;
+    const kind = e.currentTarget.dataset.kind;
+    wx.showModal({
+      title: this.data.L.k417 + this.demoKindName(kind) + this.data.L.k380,
+      content: this.data.L.k418,
+      confirmText: this.data.L.k417,
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        this.runDemo(kind, 'CLEAR');
+      },
+    });
+  },
+
+  async runDemo(kind, action) {
+    const k = kind || 'all';
     this.setData({ demoBusy: true, demoHint: '' });
     try {
-      const res = await admin.demoData('all', action, this.data.demoClass || '');
+      const res = await admin.demoData(k, action, this.data.demoClass || '');
       const n = action === 'SEED' ? res.seeded || {} : res.cleared || {};
-      const parts = [
-        this.data.L.k383 + ' ' + (n.venues || 0),
-        this.data.L.k384 + ' ' + (n.books || 0),
-        this.data.L.k385 + ' ' + (n.timetableSlots || 0) + ' ' + this.data.L.k392,
-      ];
+      // 只列這次真的動到的類別（分類匯入時不要把另外兩類的 0 也唸一遍）
+      const parts = [];
+      if (k === 'all' || k === 'venues') parts.push(this.data.L.k383 + ' ' + (n.venues || 0));
+      if (k === 'all' || k === 'library') parts.push(this.data.L.k384 + ' ' + (n.books || 0));
+      if (k === 'all' || k === 'timetable') {
+        parts.push(this.data.L.k385 + ' ' + (n.timetableSlots || 0) + ' ' + this.data.L.k392);
+      }
       const skipped = res.skipped || {};
-      const skippedTotal = (skipped.venues || 0) + (skipped.books || 0) + (skipped.timetableSlots || 0);
+      const skippedTotal = (k === 'all' || k === 'venues' ? skipped.venues || 0 : 0)
+        + (k === 'all' || k === 'library' ? skipped.books || 0 : 0)
+        + (k === 'all' || k === 'timetable' ? skipped.timetableSlots || 0 : 0);
       const head = action === 'SEED' ? this.data.L.k390 : this.data.L.k391;
       this.setData({
         demoBusy: false,

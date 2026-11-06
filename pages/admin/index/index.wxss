@@ -44,7 +44,6 @@
   gap: var(--pv-sp-2);
   flex-wrap: wrap;
 }
-.row-actions pv-button { margin-right: var(--pv-sp-2); }
 
 .filter-row { display: flex; flex-direction: row; flex-wrap: wrap; margin: var(--pv-sp-1) 0; }
 .chip {
@@ -174,6 +173,13 @@
 /* 示範資料（W-81）：說明文字與三個數字的清單 */
 .demo-hint { display: block; margin-top: var(--pv-sp-1); line-height: 1.5; }
 .demo-sum { margin-top: var(--pv-sp-2); }
+
+/* 示範資料分項匯入（W-87）：左側類名可壓縮、右側「數字＋兩顆小按鈕」不換行。
+   小按鈕之間用 gap，不對自訂組件寫 margin（Skyline 下 margin 不穿透宿主）。 */
+.demo-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: var(--pv-sp-2); }
+.demo-row__label { flex: 1; min-width: 0; margin-bottom: 0; }
+.demo-row__ops { display: flex; flex-direction: row; align-items: center; gap: var(--pv-sp-1); flex-shrink: 0; }
+.demo-row__num { flex-shrink: 0; min-width: 56rpx; text-align: right; }
 
 /* 功課完成率趨勢（W-84）：七根柱、無陰影、只有主題紫一種顏色 */
 .hw-trend { margin: var(--pv-sp-2) 0 var(--pv-sp-3); }
