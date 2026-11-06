@@ -10,4 +10,8 @@ module.exports = {
   // W-32 分享卡（canvas 只能用字面色值）
   surface: '#FFFFFF',  // --pv-surface
   onTintSoft: 'rgba(255, 255, 255, 0.75)', // --pv-on-tint-2
+  // W-83 課表列印圖：紙永遠是白的，所以列印圖不跟深色主題（黑字白底）
+  ink: '#000000',                    // --pv-label
+  inkSoft: 'rgba(60, 60, 67, 0.6)',  // --pv-label-2
+  rule: 'rgba(60, 60, 67, 0.29)',    // --pv-sep
 };

@@ -14,6 +14,9 @@
 .tt-head__class { font-size: var(--pv-fs-title-2); color: var(--pv-label); }
 .tt-head__date { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
 
+/* 列印／存圖入口：靠右一顆小按鈕，不搶版面（班會才用得到） */
+.tt-actions { display: flex; flex-direction: row; justify-content: flex-end; margin-bottom: var(--pv-sp-2); }
+
 /* 分段控制：兩段固定寬度、88rpx 可點高度 */
 .tt-seg {
   flex-shrink: 0;

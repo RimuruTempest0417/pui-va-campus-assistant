@@ -40,7 +40,8 @@
     "pages/admin/login/index",
     "pages/admin/index/index",
     "pages/print/items/index",
-    "pages/print/event/index"
+    "pages/print/event/index",
+    "pages/print/timetable/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",

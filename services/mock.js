@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 14;
+const SEED_VERSION = 15;
 
 const weekUtil = require('../utils/week');
 const venue = require('../utils/venue');
@@ -549,18 +549,34 @@ function buildDemoTimetable() {
     ['化學', '中文', '地理', '數學', '英文', '視藝'],
     ['物理', '英文', '中文', '生物', '數學', '資訊'],
   ];
-  const rooms = ['302', '302', '實驗室 B', '實驗室 A', '302', '操場'];
+  // 課室與老師「按科目」給，不是按節次：以前六節共用一個 room，
+  // 印出來的課表會出現「音樂在操場上課」這種一眼假的資料。
+  const BY_SUBJECT = {
+    數學: { room: '302', teacher: '陳老師' },
+    中文: { room: '302', teacher: '李老師' },
+    英文: { room: '302', teacher: '黃老師' },
+    歷史: { room: '302', teacher: '鄭老師' },
+    地理: { room: '302', teacher: '鄭老師' },
+    化學: { room: '實驗室 B', teacher: '吳老師' },
+    物理: { room: '實驗室 A', teacher: '吳老師' },
+    生物: { room: '實驗室 B', teacher: '何老師' },
+    體育: { room: '操場', teacher: '馬老師' },
+    音樂: { room: '音樂室', teacher: '林老師' },
+    視藝: { room: '美術室', teacher: '蘇老師' },
+    資訊: { room: '電腦室', teacher: '羅老師' },
+  };
   const out = [];
   grid.forEach((row, dayIdx) => {
     row.forEach((subject, i) => {
+      const where = BY_SUBJECT[subject] || {};
       out.push({
         id: 'ts' + (dayIdx + 1) + '-' + (i + 1),
         className: DEMO_CLASS,
         weekday: dayIdx + 1,
         period: i + 1,
         subject: subject,
-        teacherName: '',
-        room: rooms[i] || '',
+        teacherName: where.teacher || '',
+        room: where.room || '',
       });
     });
   });

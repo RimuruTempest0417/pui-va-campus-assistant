@@ -29,6 +29,7 @@ Page({
       k14: i18n.pick('第'),
       k15: i18n.pick('節'),
       k16: i18n.pick('今天沒有下一節了'),
+      k17: i18n.pick('列印／存成圖片'),
     };
   },
 
@@ -104,5 +105,13 @@ Page({
 
   retry() {
     this.load();
+  },
+
+  /** W-83：把整週課表交給列印頁（紙上版＋存成圖片） */
+  openPrint() {
+    if (!this.data.className) return;
+    wx.navigateTo({
+      url: '/pages/print/timetable/index?className=' + encodeURIComponent(this.data.className),
+    });
   },
 });

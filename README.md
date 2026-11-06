@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.101.0-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.102.0-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -83,7 +83,7 @@
 
 ```
 .
-├── app.js / app.json / app.wxss          # 全局入口（41 個頁面註冊）
+├── app.js / app.json / app.wxss          # 全局入口（42 個頁面註冊）
 ├── pages/
 │   ├── index/                            # 首頁：四模組入口、緊急公告、今日午餐
 │   ├── search/                           # 全校搜尋（公告／活動／失物／二手轉贈／菜單一次搜）
@@ -98,26 +98,27 @@
 │   ├── giveaway/{list,detail,create,mine}/ # 二手書／校服轉贈：送出、申請、物主決定給誰
 │   ├── study/                            # 測驗倒數與溫習計劃（校曆＋成績推算）
 │   ├── parent/                           # 家長端：切換子女、代報名／取消
-│   ├── print/{items,event}/              # 列印版（A4 黑白）：失物清單、活動名單
+│   ├── print/{items,event,timetable}/    # 列印版（A4 黑白）：失物清單、活動名單、班級課表（可存成圖片）
 │   ├── style-guide/                      # 設計系統展示頁
 │   └── dev/api-check/                    # 開發自檢頁（9 項互動檢查）
 ├── components/                           # pv-navbar / pv-button / pv-card / pv-tag
 │   └── …                                 # pv-avatar / pv-empty / pv-skeleton / pv-tabs / pv-sheet
 ├── styles/{tokens.wxss,ui.wxss,print.wxss} # design tokens、共用樣式、列印版面
 ├── services/{api.js,mock.js,data.js}     # 真 API／示範資料／唯一資料入口
-├── utils/{request,errors,reporter,date,event,week,notice,item,nav,print,book,venue,giveaway,study}.js
+├── utils/{request,errors,reporter,date,event,week,notice,item,nav,print,book,venue,giveaway,study,timetableGrid}.js
 ├── config/config.js                      # API_BASE_URL、DEMO_MODE
 ├── scripts/
 │   ├── check-project.mjs                 # 結構／WXSS／白屏守門
 │   ├── check-openapi.mjs                 # API 契約守門（重複鍵／可解析／操作數；--parity 對後端路由）
-│   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，158 項）
+│   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，184 項）
 │   ├── check-i18n.mjs                    # 繁簡介面守門（pick 抽樣／對照表殘留／L.* 供應）
 │   ├── i18n-js-scan.mjs／i18n-wrap-js.mjs # 掃出／包裝頁面 JS 的中文字面值（W-20b 工具）
 │   ├── build-i18n-phrases.py             # 用 opencc tw2sp 重建繁→簡對照表
-│   ├── check-states.mjs                  # 41 頁三態（載入／空／失敗）對照表守門
+│   ├── check-states.mjs                  # 42 頁三態（載入／空／失敗）對照表守門
 │   ├── check-study.cjs                   # 測驗倒數／溫習排序的邏輯守門（40 項，不需開發者工具）
 │   ├── check-homework.cjs                # 功課清單的邏輯守門（26 項：幂等打勾／權限／版號／家長唯讀／完成率／未交名單，不需開發者工具）
-│   ├── check-console.mjs                 # 41 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
+│   ├── check-timetable-print.cjs         # 課表列印／存圖的邏輯守門（63 項：格子攤平／版面尺寸／繪圖座標與顏色／參數解碼，不需開發者工具）
+│   ├── check-console.mjs                 # 42 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
 │   └── verify-all.mjs                    # 一鍵驗收：上面四支串起來跑完並彙總（失敗貼完整輸出）
 ├── docs/
 │   ├── 01-藍圖與評分對標.md
@@ -144,17 +145,18 @@ node scripts/package.mjs     # → dist/pui-va-campus-assistant-vX.Y.Z.zip
 ## 本地開發
 
 ```bash
-# 一鍵驗收：六支守門串起來跑完並彙總（console 那步要 DevTools 開著，沒開會標「略過」）
-node scripts/verify-all.mjs        # 4 通過／0 失敗；--no-console 跳過走查、--strict 讓略過也算失敗
+# 一鍵驗收：14 支守門串起來跑完並彙總（console 那步要 DevTools 開著，沒開會標「略過」）
+node scripts/verify-all.mjs        # 13 通過／0 失敗（console 略過時）；--no-console 跳過走查、--strict 讓略過也算失敗
 
 # 也可以單獨跑（CI 也會跑）
-node scripts/check-project.mjs     # 41 頁面 / 0 警告
-node scripts/check-openapi.mjs     # 170 條路徑／204 個操作、0 重複鍵（--parity 印出與後端路由表的差）
-node scripts/check-data-layer.mjs  # ALL PASS 181/181（固定跑示範資料層，含 data↔api↔mock 方法對齊）
-node scripts/check-states.mjs      # 41 頁三態全部符合（--table 印出對照表）
+node scripts/check-project.mjs     # 42 頁面 / 0 警告
+node scripts/check-openapi.mjs     # 174 條路徑／211 個操作、0 重複鍵（--parity 印出與後端路由表的差）
+node scripts/check-data-layer.mjs  # ALL PASS 184/184（固定跑示範資料層，含 data↔api↔mock 方法對齊）
+node scripts/check-states.mjs      # 42 頁三態全部符合（--table 印出對照表）
 node scripts/check-study.cjs       # 測驗倒數／溫習排序：40 項邏輯斷言（不需要開發者工具）
 node scripts/check-homework.cjs    # 功課清單：26 項邏輯斷言（幂等打勾／權限／重複出題／版號／家長唯讀／完成率／未交名單）
-node scripts/check-console.mjs     # 41 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
+node scripts/check-timetable-print.cjs # 課表列印／存圖：63 項邏輯斷言（格子／版面／繪圖座標與顏色／參數解碼）
+node scripts/check-console.mjs     # 42 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
 ```
 
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄
@@ -185,6 +187,7 @@ node scripts/check-console.mjs     # 41 頁 console 走查：0 error／0 warn（
 
 ## 目前進度
 
+- [x] **班會要貼的那張課表，現在印得出來也存得成圖片（v0.102.0）**：進「班級課表」，標題下面靠右多一顆「列印／存成圖片」。點進去是紙上版的週課表 —— 標題寫班級與本週日期，左邊節次與上課時間，右邊星期一到星期五，每一格寫科目、課室、老師；沒課的格子留白，跟學校發的紙本課表同一個樣子。要印先按「列印預覽」把按鈕收起來再截圖，或直接把這頁給老師；要貼班群就按「存成圖片」，一張 1080 寬的白底黑字 PNG 直接存進相簿（第一次會問相簿權限）。手機開著深色模式也一樣是白底黑字，印出來不會變成一片黑。順手把示範課表修好：課室與老師改成按科目給，不會再出現「音樂在操場上課」這種一眼假的資料
 - [x] **放假那天課表不會再叫你上課（v0.101.0）**：以前課表只看「今天是不是週末」，所以重陽節一打開還是列著當天 7 節課，看起來像系統不準。現在校曆與課表接上了：老師在後台「公告」發一則**校曆**公告（標題寫「重陽節假期」這種），當天課表頁就顯示「今天不用上課」，下面一行直接寫原因「重陽節假期（校曆公告）」，首頁那條「今日課表」也把原因寫出來，不再只是四個字。全校性活動（運動會、旅行日這種壓到上課時間三小時以上的）當天同樣算停課並寫出活動名稱；傍晚才辦的家長會不影響課表。公告撤回或改期後自動恢復正常，週末不會被誤標成「放假」
 - [x] **演示前按一下，場地、館藏、課表就有資料（v0.100.0）**：老師來看的時候，空的畫面最尷尬 —— 以前只能現場手打，打完還要記得清掉。現在後台（小程序與網頁都有）多一個「示範資料」分頁：按「匯入示範資料」會寫進 5 個場地與器材、6 本館藏、一整週 35 格班級課表（課表班級可以自己填，留空就用你自己的班級），**前台三個頁面真的讀得到**，不是畫面上假裝有資料；演示完按「清除示範資料」只刪這一批，真實資料一筆不動。兩條保險：匯入遇到同名的真實資料會跳過（不會覆蓋），清除時掛在示範場地上的測試申請會一起清掉並回報筆數。這支能力只給最高權限
 - [x] **「線上跑的是哪一版」不再是猜的（v0.99.0）**：後端的 `/health` 一直有一個版本欄位，但它從第一版就硬編成 `0.1.0`，所以每次問「線上是不是新版本」都只能去看 Vercel 的部署紀錄，而那個紀錄又會因為 commit 作者不是連結帳號而停在舊版或顯示 BLOCKED。現在這個數字改成直接讀 `package.json`（版本只剩一個來源），並在部署檢查腳本裡加一條「線上版號 ＝ 本機版號」，換版換錯會直接紅燈。驗證方式也改了：先在本機用建置後的 `dist` 真的跑起來打一次 `/health`，推上去後再輪詢線上，看到數字從 `0.1.0` 變成 `0.53.1` 才算完成

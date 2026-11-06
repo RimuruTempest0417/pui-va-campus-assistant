@@ -53,6 +53,7 @@ const REQUIRE = {
   'pages/settings/index': { loading: false, empty: false, failed: false, why: '設定頁，偏好全在本機 storage，沒有網路載入' },
   'pages/print/items/index': { loading: true, empty: true, failed: true },
   'pages/print/event/index': { loading: true, empty: true, failed: true },
+  'pages/print/timetable/index': { loading: true, empty: true, failed: true },
   'pages/notifications/index': { loading: true, empty: true, failed: true },
   'pages/help/index': { loading: false, empty: false, failed: false, why: '站內說明，內容寫死沒有網路載入' },
   'pages/school/index': { loading: true, empty: true, failed: true },

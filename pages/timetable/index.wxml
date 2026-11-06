@@ -13,6 +13,10 @@
         </view>
       </view>
 
+      <view wx:if="{{className}}" class="tt-actions">
+        <pv-button size="sm" type="plain" bind:tap="openPrint">{{L.k17}}</pv-button>
+      </view>
+
       <block wx:if="{{loading}}">
         <view class="ui-list ui-list--grouped">
           <view class="ui-card ui-card--row"><pv-skeleton rows="4" /></view>

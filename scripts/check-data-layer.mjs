@@ -898,6 +898,12 @@ check('簽到：我的報名帶簽到時間',
 
   const week = await data.timetable({});
   check('課表：整週有 5 天且每格帶 timeText', (week.weekdays || []).length === 5 && week.slots.every((s) => !!s.timeText), `${week.slots.length} 格`);
+  // 印出來／存成圖片的課表要像真的：每格都要有課室與老師（以前按節次給 room，音樂會排在操場）
+  check(
+    '課表：示範資料每格都有課室與老師',
+    week.slots.every((s) => !!s.room && !!s.teacherName),
+    `${week.slots.filter((s) => !!s.room && !!s.teacherName).length}/${week.slots.length} 格`,
+  );
 
   const dry = await data.importTimetable({ csv: '高二仁,1,1,數學\n高二仁,9,1,地理', dryRun: true });
   check('課表：CSV 先檢查（壞行回報、不寫入）', dry.dryRun === true && dry.errors.length === 1 && dry.created === 0, `${dry.ok}/${dry.total}、錯 ${dry.errors.length}`);
