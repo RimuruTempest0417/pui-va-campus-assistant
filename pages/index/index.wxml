@@ -236,6 +236,7 @@
           <view class="kids__sum-main">
             <text class="kids__sum-line">{{parentSummary.grade}}{{parentSummary.className ? ' · ' + parentSummary.className + L.k14 : ''}}{{parentSummary ? '' : L.k15}}</text>
             <text class="kids__sum-meta" wx:if="{{parentSummary}}">{{parentSummary.signupCount}} 個報名 · {{parentSummary.claimCount}} 件認領 · {{parentSummary.unreadNotices}} 則未讀</text>
+            <text class="kids__sum-hw {{parentSummary.homeworkOverdue ? 'is-warn' : ''}}" wx:if="{{parentSummary}}">{{parentSummary.homeworkText}}</text>
           </view>
           <text class="kids__go">{{L.k09}}</text>
         </view>

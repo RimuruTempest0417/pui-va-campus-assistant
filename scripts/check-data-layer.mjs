@@ -913,6 +913,26 @@ check('簽到：我的報名帶簽到時間',
   check('課表：有畫面入口＋真 API 端點', homeWxmlTt.indexOf('goTimetable') !== -1 && apiSrcTt.indexOf("'/timetable/today'") !== -1, '首頁 → 課表（今日／整週）');
 }
 
+// ── W-79 首頁家長摘要：子女功課未交數（示範層要有非 0，交付現場斷網時這格才有東西看）──
+{
+  const kidsHw = await data.parentChildren();
+  const kid = (kidsHw.items || [])[0];
+  const kidHw = await data.parentChildHomework(kid.studentId);
+  check(
+    '家長摘要：子女功課未交數（示範層非 0）',
+    kidHw && kidHw.stats && kidHw.stats.todo > 0 && kidHw.stats.todo + kidHw.stats.done === kidHw.stats.total,
+    `todo ${kidHw.stats.todo}／total ${kidHw.stats.total}（${kid.nickname}）`,
+  );
+
+  const homeJsHw = readFileSync(join(here, '..', 'pages', 'index', 'index.js'), 'utf8');
+  const homeWxmlHw = readFileSync(join(here, '..', 'pages', 'index', 'index.wxml'), 'utf8');
+  check(
+    '家長摘要：畫面有那行且接得到功課端點',
+    homeJsHw.indexOf('parentChildHomework') !== -1 && homeWxmlHw.indexOf('parentSummary.homeworkText') !== -1,
+    'pages/index',
+  );
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

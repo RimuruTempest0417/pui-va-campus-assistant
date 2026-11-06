@@ -77,6 +77,56 @@ function buildHarness(role) {
   return { inst, calls };
 }
 
+/**
+ * 首頁家長摘要（W-79）：`loadKidSummary` 除了子女概況，還會多讀一支「子女功課」。
+ * 這支失敗（沒設班級／後端暫時取不到）時，**只准那一行變「—」**，
+ * 不能讓整張家長卡變空白、也不能顯示 0（家長會以為小孩功課交齊了）。
+ */
+function buildHomeHarness(homeworkImpl) {
+  const dataStub = {
+    parentChild: () =>
+      Promise.resolve({
+        student: { nickname: '甲同學', grade: '初二', className: '忠' },
+        signups: [{ id: 's1' }, { id: 's2' }],
+        claimCount: 1,
+        unreadNotices: 3,
+      }),
+    parentChildHomework: homeworkImpl,
+  };
+  let pageObj = null;
+  const sandbox = {
+    Page: (o) => { pageObj = o; },
+    getApp: () => ({ globalData: {} }),
+    getCurrentPages: () => [],
+    wx: new Proxy({}, { get: (t, p) => (p in t ? t[p] : () => ({})) }),
+    console: { log() {}, info() {}, warn() {}, error() {} },
+    setTimeout: (f) => { try { f && f(); } catch (e) { /* 計時器不影響斷言 */ } return 0; },
+    clearTimeout: () => {},
+    Promise, Date, Math, JSON, Object, Array, String, Number, Boolean, Error, RegExp, Map, Set,
+    require: (p) => {
+      if (p.includes('services/data')) return dataStub;
+      if (p.includes('utils/date')) return { dateKey: () => '2026-11-06', weekday: () => '五', fromNow: () => '' };
+      if (p.includes('utils/i18n')) return { pick: (s) => s, t: (k) => k, greetingByHour: () => '' };
+      if (p.includes('utils/nav')) return { getNav: () => ({ navTotal: 0 }) };
+      if (p.includes('utils/appearance')) return { themeClass: () => 'theme-light' };
+      if (p.includes('utils/venue')) return { shapeResource: () => ({ openNow: false }) };
+      if (p.includes('utils/study')) return {};
+      if (p.includes('utils/reporter')) return { reportError: () => {} };
+      throw new Error('unexpected require: ' + p);
+    },
+    module: { exports: {} }, exports: {},
+  };
+  sandbox.global = sandbox;
+
+  const code = fs.readFileSync(path.join(root, 'pages/index/index.js'), 'utf8');
+  vm.runInNewContext(code, sandbox, { filename: 'pages/index/index.js' });
+  const inst = Object.assign(Object.create(null), pageObj);
+  inst.data = JSON.parse(JSON.stringify(pageObj.data || {}));
+  inst.setData = function (patch, cb) { Object.assign(this.data, patch || {}); if (typeof cb === 'function') cb.call(this); };
+  inst.route = 'pages/index/index';
+  return inst;
+}
+
 const checks = [];
 const check = (name, ok) => checks.push({ name, ok: Boolean(ok) });
 
@@ -112,12 +162,38 @@ const check = (name, ok) => checks.push({ name, ok: Boolean(ok) });
   check('學生：完全不碰子女端點', student.calls.childGrades === null && student.calls.children === 0);
   check('學生：成績有渲染（91）', sd.grades.length === 1 && sd.grades[0].scoreText === '91');
 
+  // ── 首頁家長摘要（W-79）：子女功課未交數 ──
+  const homeTodo = buildHomeHarness(() =>
+    Promise.resolve({ className: '初二忠', needsClass: false, items: [], stats: { total: 3, done: 1, todo: 2, overdue: 1 } }),
+  );
+  const sumTodo = await homeTodo.loadKidSummary.call(homeTodo, 'c1');
+  check('首頁家長卡：功課未交數 = 2', sumTodo.homeworkTodo === 2);
+  check('首頁家長卡：有逾期時文案寫「含逾期」', /2/.test(sumTodo.homeworkText) && sumTodo.homeworkText.indexOf('（含逾期）') !== -1);
+  check('首頁家長卡：功課沒有蓋掉報名／認領／未讀', sumTodo.signupCount === 2 && sumTodo.claimCount === 1 && sumTodo.unreadNotices === 3);
+
+  const homeFail = buildHomeHarness(() => Promise.reject({ code: 'NETWORK', message: 'boom' }));
+  const sumFail = await homeFail.loadKidSummary.call(homeFail, 'c1');
+  check('首頁家長卡：功課取不到顯示「—」而不是 0', sumFail.homeworkTodo === null && sumFail.homeworkText.indexOf('—') !== -1);
+  check('首頁家長卡：功課取不到時其他資料仍在', sumFail.signupCount === 2 && sumFail.nickname === '甲同學');
+
+  const homeDone = buildHomeHarness(() =>
+    Promise.resolve({ className: '初二忠', needsClass: false, items: [], stats: { total: 2, done: 2, todo: 0, overdue: 0 } }),
+  );
+  const sumDone = await homeDone.loadKidSummary.call(homeDone, 'c1');
+  check('首頁家長卡：全部交齊寫「功課都交了」', sumDone.homeworkText === '功課都交了');
+
+  const homeNoClass = buildHomeHarness(() =>
+    Promise.resolve({ className: '', needsClass: true, items: [], stats: { total: 0, done: 0, todo: 0, overdue: 0 } }),
+  );
+  const sumNoClass = await homeNoClass.loadKidSummary.call(homeNoClass, 'c1');
+  check('首頁家長卡：未設定班級顯示「—」', sumNoClass.homeworkText.indexOf('—') !== -1);
+
   const bad = checks.filter((c) => !c.ok);
   for (const c of bad) console.error(`  ✗ ${c.name}`);
   if (bad.length) {
     console.error(`❌ 家長視角模擬：${checks.length} 項中 ${bad.length} 項失敗`);
     process.exitCode = 1;
   } else {
-    console.log(`✅ 家長視角模擬通過（${checks.length} 項：家長讀子女、學生讀自己，兩條路徑不互相污染）`);
+    console.log(`✅ 家長視角模擬通過（${checks.length} 項：家長讀子女、學生讀自己、首頁子女功課未交數，三條路徑互不污染）`);
   }
 })();

@@ -22,6 +22,16 @@ const ADMIN_SUB = {
 const appearance = require('../../utils/appearance');
 const venue = require('../../utils/venue');
 const study = require('../../utils/study');
+const reporter = require('../../utils/reporter');
+
+/** W-79：家長卡那行「功課未交」的文字（取不到就「—」，不要顯示 0 讓人誤會已交清） */
+function homeworkLine(hw) {
+  const st = (hw && hw.stats) || null;
+  if (!st || (hw && hw.needsClass)) return i18n.pick('功課') + ' —';
+  if (!st.todo) return i18n.pick('功課都交了');
+  const tail = st.overdue ? i18n.pick(' 項未交（含逾期）') : i18n.pick(' 項未交');
+  return i18n.pick('功課') + ' ' + st.todo + tail;
+}
 
 /** 首頁場地入口的副標：現在開放的場地／器材數（澳門時間判定，與詳情頁同一套） */
 function venueOpenText(items) {
@@ -206,10 +216,20 @@ Page({
     wx.navigateTo({ url: '/pages/admin/index/index' });
   },
 
-  /** 家長卡片用：子女概況（報名數／認領數／未讀公告） */
+  /** 家長卡片用：子女概況（報名數／認領數／未讀公告／功課未交數） */
   async loadKidSummary(studentId) {
     const d = await data.parentChild(studentId);
     const s = d.student || {};
+    // W-79：子女功課未交數。這支失敗（沒班級／後端暫時取不到）只讓那一行顯示「—」，
+    // 不能把整張家長卡打掉 —— 家長最有感的仍是報名／認領那幾個數字。
+    let hw = null;
+    try {
+      hw = await data.parentChildHomework(studentId);
+    } catch (err) {
+      hw = null;
+      reporter.reportError('[index.loadKidSummary.homework] ' + (err && err.message ? err.message : err));
+    }
+    const st = (hw && hw.stats) || null;
     return {
       studentId: studentId,
       nickname: s.nickname || i18n.pick('同學'),
@@ -218,6 +238,9 @@ Page({
       signupCount: (d.signups || []).length,
       claimCount: d.claimCount || 0,
       unreadNotices: d.unreadNotices || 0,
+      homeworkTodo: st ? st.todo : null,
+      homeworkOverdue: st ? st.overdue : 0,
+      homeworkText: homeworkLine(hw),
     };
   },
 
