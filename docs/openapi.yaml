@@ -4022,6 +4022,86 @@ paths:
         '401': { description: 密鑰不正確或沒有帶 }
         '503': { description: 後端未設定 CRON_SECRET（端點停用） }
 
+  /cron/homework-reminders:
+    get:
+      tags: [admin]
+      summary: 功課提醒（24 小時內到期＋已逾期，只發給還沒打勾的學生）
+      description: >-
+        認證同 /cron/reminders（CRON_SECRET，不是 JWT）；未設定時回 503 CRON_DISABLED。
+        同一天重跑不會重複發（去重窗口是澳門時區的當天）。已打勾的學生、別班學生、已收回的功課都不會收到。
+      security: []
+      responses:
+        '200':
+          description: 這一輪檢查與送出的統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checked: { type: integer, description: 檢查了幾則功課 }
+                  sent: { type: integer, description: 實際送出的通知數 }
+                  skipped: { type: integer, description: 同一天已提醒過而跳過的人數 }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        className: { type: string }
+                        subject: { type: string }
+                        title: { type: string }
+                        stage: { type: string, enum: [soon, overdue] }
+                        targets: { type: integer }
+                        sent: { type: integer }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+    post:
+      tags: [admin]
+      summary: 功課提醒（手動觸發用 POST）
+      security: []
+      responses:
+        '200': { description: 同 GET }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+
+  /cron/daily:
+    get:
+      tags: [admin]
+      summary: 每日一次（圖書館催還＋功課提醒）
+      description: >-
+        Vercel Cron 每天打這支。兩件事各自 try/catch，其中一件失敗不會讓另一件沒跑；
+        回應固定列出兩邊的結果與 errors，排程 log 一眼看得出哪一段沒做。
+      security: []
+      responses:
+        '200':
+          description: 兩個任務各自的結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  elapsedMs: { type: integer }
+                  library: { type: object, nullable: true }
+                  homework: { type: object, nullable: true }
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        task: { type: string }
+                        message: { type: string }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+    post:
+      tags: [admin]
+      summary: 每日一次（手動觸發）
+      security: []
+      responses:
+        '200': { description: 同 GET }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+
   # ── 二手書／校服轉贈（W-68） ──
   # 清單與詳情對訪客開放；送出、修改、申請要登入；後台總表限 giveaway:manage。
   # 聯絡方式只回物主本人與「被接受」的申請人，前端不要自己藏。

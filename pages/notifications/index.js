@@ -9,6 +9,7 @@ const KIND_KEYS = {
   NOTICE: i18n.pick('公告'),
   ITEM: i18n.pick('失物'),
   SYSTEM: i18n.pick('系統'),
+  HOMEWORK: i18n.pick('功課'),
 };
 const kindText = (kind) => KIND_KEYS[kind] || KIND_KEYS.SYSTEM;
 
