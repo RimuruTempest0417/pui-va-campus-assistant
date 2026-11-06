@@ -377,7 +377,8 @@ Page({
         timetableText: timetable
           ? timetable.schoolDay
             ? timetable.nextText || i18n.pick('今天沒有下一節了')
-            : i18n.pick('今天不用上課')
+            : // W-82：放假時把原因寫出來（重陽節假期／全校旅行日），不只四個字
+              timetable.dayOffReason || i18n.pick('今天不用上課')
           : '—',
         homeworkText: homework
           ? homework.needsClass

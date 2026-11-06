@@ -4567,21 +4567,31 @@ paths:
   /timetable/today:
     get:
       tags: [timetable]
-      summary: 今天的課與「現在／下一節」（澳門時間；週末回 schoolDay=false）
+      summary: 今天的課與「現在／下一節」（澳門時間；週末或放假回 schoolDay=false）
       security: [{ bearerAuth: [] }]
       parameters:
         - { name: className, in: query, schema: { type: string, maxLength: 32 } }
         - { name: at, in: query, schema: { type: string, format: date-time }, description: 指定時間算節次（測試／示範用；不帶就是現在） }
       responses:
         '200':
-          description: 今天課表＋current／next＋給首頁一行的 nextText
+          description: 今天課表＋current／next＋給首頁一行的 nextText；放假時再回 dayOff 與原因
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   className: { type: string }
-                  schoolDay: { type: boolean }
+                  schoolDay: { type: boolean, description: 週末或當天停課都是 false }
+                  dayOff:
+                    type: object
+                    nullable: true
+                    description: 停課依據（週末為 null）。W-82：當天的 CALENDAR 公告或壓到上課時段 ≥3 小時的全校活動
+                    properties:
+                      source: { type: string, enum: [notice, event] }
+                      id: { type: string }
+                      title: { type: string }
+                      reason: { type: string, example: 重陽節假期（校曆公告） }
+                  dayOffReason: { type: string, example: 重陽節假期（校曆公告）, description: 空字串＝不是放假（含週末） }
                   date: { type: string, example: '2026-11-06' }
                   weekday: { type: integer }
                   weekdayLabel: { type: string }

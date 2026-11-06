@@ -42,6 +42,8 @@ Page({
     weekdayLabel: '',
     dateText: '',
     schoolDay: true,
+    dayOffReason: '',
+    dayOffDesc: '',
     todaySlots: [],
     groups: [],
     currentPeriod: 0,
@@ -65,6 +67,7 @@ Page({
       const today = await data.timetableToday();
       const week = await data.timetable({ className: today.className });
       const L = this.data.L;
+      const reason = today.dayOffReason || '';
       const groups = [];
       (week.weekdays || []).forEach((day) => {
         const slots = (week.slots || [])
@@ -79,6 +82,9 @@ Page({
         weekdayLabel: today.weekdayLabel || '',
         dateText: (today.date || '').replace(/-/g, '/'),
         schoolDay: today.schoolDay !== false,
+        dayOffReason: reason,
+        // 停課有原因就寫原因（校曆公告／全校活動），週末才用「週末愉快」
+        dayOffDesc: reason || L.k07 || '',
         todaySlots: (today.slots || []).map((slot) =>
           Object.assign({}, slot, { periodText: (L.k14 || '') + slot.period + (L.k15 || '') }),
         ),

@@ -581,6 +581,42 @@ function shapeSlot(slot) {
   });
 }
 
+/** 上課時段（第一節開始 → 最後一節結束）與停課門檻，跟後端 src/lib/timetable.ts 同一組數字 */
+const SCHOOL_WINDOW = { start: '08:10', end: '16:15' };
+const DAY_OFF_MIN_OVERLAP_MINUTES = 180;
+
+function dateKeyOf(value) {
+  const d = value instanceof Date ? value : new Date(value);
+  if (isNaN(d.getTime())) return '';
+  const p2 = (n) => (n < 10 ? '0' + n : '' + n);
+  return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+}
+
+/**
+ * 示範層的「這一天放假了嗎」（W-82）。
+ * 規則與後端一致：①當天發布的 CALENDAR 公告 ②當天壓到上課時段 ≥3 小時的全校活動（沒有社團）。
+ * 寫成真規則而不是寫死 null，示範模式才驗得到這個功能。
+ */
+function demoDayOff(data, dayKey, now) {
+  const notice = (data.notices || []).filter(
+    (n) => n.kind === 'CALENDAR' && !n.deletedAt && dateKeyOf(n.publishedAt) === dayKey,
+  )[0];
+  if (notice) return { source: 'notice', id: notice.id, title: notice.title, reason: notice.title + '（校曆公告）' };
+
+  const winFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() + hhmm(SCHOOL_WINDOW.start) * 60000;
+  const winTo = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() + hhmm(SCHOOL_WINDOW.end) * 60000;
+  const allDay = (data.events || []).filter((e) => {
+    if (e.deletedAt || e.club) return false;
+    if (e.status === 'DRAFT' || e.status === 'CANCELLED') return false;
+    if (dateKeyOf(e.startAt) !== dayKey) return false;
+    const s = new Date(e.startAt).getTime();
+    const t = e.endAt ? new Date(e.endAt).getTime() : s + 60 * 60000;
+    return Math.min(t, winTo) - Math.max(s, winFrom) >= DAY_OFF_MIN_OVERLAP_MINUTES * 60000;
+  })[0];
+  if (allDay) return { source: 'event', id: allDay.id, title: allDay.title, reason: allDay.title + '（全校活動）' };
+  return null;
+}
+
 module.exports = {
   reset() {
     const fresh = seed();
@@ -2306,7 +2342,14 @@ module.exports = {
     const now = new Date();
     const weekday = now.getDay() === 0 ? 7 : now.getDay(); // 0=日 → 7
     const minutes = now.getHours() * 60 + now.getMinutes();
-    const schoolDay = weekday >= 1 && weekday <= 5;
+    const dayKey = (function () {
+      const p2 = (n) => (n < 10 ? '0' + n : '' + n);
+      return now.getFullYear() + '-' + p2(now.getMonth() + 1) + '-' + p2(now.getDate());
+    })();
+    // W-82：示範層用同一套規則算放假（當天 CALENDAR 公告 → 當天壓到上課時段 ≥3 小時的全校活動），
+    // 不是寫死 null —— 否則示範模式永遠看不到「今天不用上課：<原因>」。
+    const dayOff = weekday >= 1 && weekday <= 5 ? demoDayOff(data, dayKey, now) : null;
+    const schoolDay = weekday >= 1 && weekday <= 5 && !dayOff;
     const slots = schoolDay
       ? (data.timetableSlots || [])
           .filter((s) => s.className === className && s.weekday === weekday)
@@ -2320,10 +2363,9 @@ module.exports = {
     return Promise.resolve({
       className: className,
       schoolDay: schoolDay,
-      date: (function () {
-        const p2 = (n) => (n < 10 ? '0' + n : '' + n);
-        return now.getFullYear() + '-' + p2(now.getMonth() + 1) + '-' + p2(now.getDate());
-      })(),
+      dayOff: dayOff,
+      dayOffReason: dayOff ? dayOff.reason : '',
+      date: dayKey,
       weekday: weekday,
       weekdayLabel: WEEKDAY_LABEL[weekday] || '',
       periods: DEMO_PERIODS,

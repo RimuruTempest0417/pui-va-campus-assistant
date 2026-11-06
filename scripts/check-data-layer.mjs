@@ -911,6 +911,38 @@ check('簽到：我的報名帶簽到時間',
   const apiSrcTt = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
   const homeWxmlTt = readFileSync(join(here, '..', 'pages', 'index', 'index.wxml'), 'utf8');
   check('課表：有畫面入口＋真 API 端點', homeWxmlTt.indexOf('goTimetable') !== -1 && apiSrcTt.indexOf("'/timetable/today'") !== -1, '首頁 → 課表（今日／整週）');
+
+  // ── W-82 放假：示範層要跑同一套規則（不是寫死 null），否則示範模式永遠看不到「今天不用上課：<原因>」──
+  check(
+    '課表：回 dayOff／dayOffReason 兩個欄位（真 API 與示範層契約一致）',
+    'dayOff' in today && typeof today.dayOffReason === 'string',
+    today.dayOffReason || '今天不是放假',
+  );
+  const demoKey = 'pv_demo_seed'; // config.STORAGE_KEYS.demo（不要用 includes('demo') 抓：會抓到 pv_force_demo）
+  const demoDB = store.get(demoKey) || null;
+  if (demoDB && today.weekday >= 1 && today.weekday <= 5) {
+    // 造一則「今天」的 CALENDAR 公告 → 應該停課並寫出原因；移除後要恢復（兩件一起算一條）
+    demoDB.notices = (demoDB.notices || []).concat([
+      { id: 'w82-holiday', title: '重陽節假期', kind: 'CALENDAR', isPinned: false, publishedAt: new Date(today.date + 'T08:00:00'), expiresAt: null, content: '自我檢查用：放假一天。' },
+    ]);
+    store.set(demoKey, demoDB);
+    const hol = await data.timetableToday();
+    const fired = hol.schoolDay === false && hol.dayOffReason === '重陽節假期（校曆公告）' && hol.slots.length === 0;
+    demoDB.notices = demoDB.notices.filter((n) => n.id !== 'w82-holiday');
+    store.set(demoKey, demoDB);
+    const back = await data.timetableToday();
+    check(
+      '課表：當天有校曆公告 → 停課並寫出原因，移除後恢復（示範層同一套規則）',
+      fired && back.schoolDay === true && back.slots.length === today.slots.length,
+      fired ? `${hol.dayOffReason}／移除後 ${back.slots.length} 節` : '（未生效）',
+    );
+  } else {
+    check(
+      '課表：放假規則（今天是週末：schoolDay=false 但 dayOff 為 null，不誤標成放假）',
+      today.schoolDay === false && today.dayOff === null && today.dayOffReason === '',
+      today.weekday >= 6 ? `週${today.weekday}` : '沒有示範資料',
+    );
+  }
 }
 
 // ── W-79 首頁家長摘要：子女功課未交數（示範層要有非 0，交付現場斷網時這格才有東西看）──

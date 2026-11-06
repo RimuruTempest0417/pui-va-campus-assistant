@@ -26,7 +26,7 @@
       </pv-empty>
 
       <block wx:elif="{{mode === 'today'}}">
-        <pv-empty wx:if="{{!schoolDay}}" title="{{L.k06}}" desc="{{L.k07}}" />
+        <pv-empty wx:if="{{!schoolDay}}" title="{{L.k06}}" desc="{{dayOffDesc}}" />
 
         <block wx:elif="{{!todaySlots.length}}">
           <pv-empty title="{{L.k08}}" desc="{{L.k10}}" />
