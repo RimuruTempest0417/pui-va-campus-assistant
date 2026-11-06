@@ -4888,6 +4888,82 @@ paths:
                         version: { type: integer }
         '403': { description: "能力不足（老師只有 homework:create，看不到全校）" }
 
+  /admin/demo-data:
+    get:
+      tags: [admin, demo]
+      summary: 目前有多少示範資料（system:config，只有最高權限）
+      description: "後台「示範資料」分頁上方三個數字：示範場地／器材、示範館藏、示範課表格數，以及課表用了哪些班級。數字一律由後端算，前端不要用「我剛按了幾次」推。"
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 示範資料統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  counts:
+                    type: object
+                    properties:
+                      venues: { type: integer }
+                      books: { type: integer }
+                      timetableSlots: { type: integer }
+                  classes:
+                    type: array
+                    description: 有示範課表的班級
+                    items: { type: string }
+        '403': { description: "能力不足（system:config 只有最高權限）" }
+    post:
+      tags: [admin, demo]
+      summary: 示範資料一鍵匯入／清除（system:config，只有最高權限）
+      description: "給老師演示用的真資料：寫進資料庫後前台（場地借用／圖書館／班級課表）真的讀得到，不是前端寫死的假資料。`SEED` 是幂等的（同名／同書號的示範資料會更新、不重複新增），遇到**非示範**的同名資料會跳過並在 `skipped` 回報、絕不覆蓋；`CLEAR` 只刪 `demo = true` 的那批，真實資料一筆不動。寫入與清除都會寫一筆審計紀錄。"
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, action]
+              properties:
+                kind: { type: string, enum: [venues, library, timetable, all], description: "venues＝場地與器材、library＝館藏、timetable＝班級課表、all＝三種一起" }
+                action: { type: string, enum: [SEED, CLEAR] }
+                className: { type: string, maxLength: 32, description: "課表班級；留空＝管理者自己的班級，再沒有就用示範班級" }
+      responses:
+        '200':
+          description: 這次匯入／清除了什麼
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  kind: { type: string }
+                  action: { type: string }
+                  className: { type: string }
+                  seeded:
+                    type: object
+                    properties:
+                      venues: { type: integer }
+                      books: { type: integer }
+                      timetableSlots: { type: integer }
+                  cleared:
+                    type: object
+                    properties:
+                      venues: { type: integer }
+                      books: { type: integer }
+                      timetableSlots: { type: integer }
+                      bookings: { type: integer, description: 跟著示範場地一起刪掉的借用申請 }
+                      loans: { type: integer, description: 跟著示範館藏一起刪掉的借閱紀錄 }
+                  skipped:
+                    type: object
+                    description: 因為已有非示範的同名資料而沒寫入的筆數
+                    properties:
+                      venues: { type: integer }
+                      books: { type: integer }
+                      timetableSlots: { type: integer }
+        '403': { description: "能力不足（system:config 只有最高權限）" }
+
   /admin/timetable:
     get:
       tags: [admin]

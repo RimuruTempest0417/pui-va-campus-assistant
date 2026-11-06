@@ -170,3 +170,7 @@
   letter-spacing: var(--pv-ls-section);
 }
 .filter-row--tight { margin: var(--pv-sp-2) 0 0; gap: var(--pv-sp-2); }
+
+/* 示範資料（W-81）：說明文字與三個數字的清單 */
+.demo-hint { display: block; margin-top: var(--pv-sp-1); line-height: 1.5; }
+.demo-sum { margin-top: var(--pv-sp-2); }

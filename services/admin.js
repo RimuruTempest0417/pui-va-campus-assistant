@@ -335,4 +335,16 @@ module.exports = {
   deleteHomework(id) {
     return http.del('/homework/' + id);
   },
+
+  // ── W-81 示範資料一鍵匯入／清除（能力 system:config：只有最高權限）──
+  /** 目前有多少示範資料（按鈕旁顯示「場地 5 · 館藏 6 · 課表 35 格」） */
+  demoSummary() {
+    return http.get('/admin/demo-data');
+  },
+  /** kind = venues|library|timetable|all；action = SEED|CLEAR */
+  demoData(kind, action, className) {
+    const body = { kind: kind, action: action };
+    if (className) body.className = className;
+    return http.post('/admin/demo-data', body);
+  },
 };

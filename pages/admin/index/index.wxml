@@ -1177,6 +1177,45 @@
         </block>
       </block>
 
+      <!-- W-81 示範資料（只有最高權限）：匯入會真的寫進資料庫，清除只刪示範那批 -->
+      <block wx:elif="{{tab === 'demo'}}">
+        <pv-card>
+          <text class="ui-title">{{L.k381}}</text>
+          <text class="ui-meta demo-hint">{{L.k382}}</text>
+
+          <view class="ui-list ui-list--grouped demo-sum">
+            <view class="ui-card ui-card--row">
+              <text class="ui-field__label">{{L.k383}}</text>
+              <text class="ui-meta">{{demoCounts.venues}}{{L.k395}}</text>
+            </view>
+            <view class="ui-card ui-card--row">
+              <text class="ui-field__label">{{L.k384}}</text>
+              <text class="ui-meta">{{demoCounts.books}}{{L.k395}}</text>
+            </view>
+            <view class="ui-card ui-card--row ui-card--last">
+              <text class="ui-field__label">{{L.k385}}</text>
+              <text class="ui-meta">{{demoCounts.timetableSlots}}{{L.k392}}{{demoClassText ? ' · ' + demoClassText : ''}}</text>
+            </view>
+          </view>
+
+          <text class="ui-section ui-mt-2">{{L.k386}}</text>
+          <input class="field__input" value="{{demoClass}}" placeholder="高二仁" bindinput="onDemoClass" />
+
+          <view class="row-actions">
+            <pv-button type="filled" loading="{{demoBusy}}" disabled="{{demoBusy}}" bind:tap="demoSeed">{{L.k387}}</pv-button>
+            <pv-button type="destructive" loading="{{demoBusy}}" disabled="{{demoBusy}}" bind:tap="demoClear">{{L.k388}}</pv-button>
+          </view>
+
+          <text wx:if="{{demoHint}}" class="ui-meta demo-hint">{{demoHint}}</text>
+        </pv-card>
+
+        <pv-empty
+          wx:if="{{!demoCounts.venues && !demoCounts.books && !demoCounts.timetableSlots}}"
+          title="{{L.k393}}"
+          desc="{{L.k394}}"
+        />
+      </block>
+
       <!-- 批次匯入（活動／菜單共用同一塊面板） -->
       <pv-card wx:if="{{importType}}">
         <view class="ui-row-between">

@@ -31,6 +31,7 @@ const TABS = [
   { key: 'leaves', label: i18n.pick('假單') },
   { key: 'timetable', label: i18n.pick('課表') },
   { key: 'homework', label: i18n.pick('功課') },
+  { key: 'demo', label: i18n.pick('示範資料') },
 ];
 
 // 學段三個固定值（後端 TERMS）：key 必須送原文，簡體下字形相同所以直接用 pick 的結果當 key
@@ -41,7 +42,7 @@ const ROLE_TABS = {
   STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'export'],
   TEACHER: ['notice', 'school', 'events', 'venues', 'leaves'],
   ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework', 'demo'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -458,12 +459,37 @@ Page({
       k375: i18n.pick("全部班級"),
       k376: i18n.pick("項已過期"),
       k377: i18n.pick("各班完成率"),
+      // ── W-81 示範資料 ──
+      k380: i18n.pick("示範資料"),
+      k381: i18n.pick("示範資料一鍵匯入"),
+      k382: i18n.pick("匯入的是真實資料，只是多一個「示範」標記；清除時只刪這一批，真資料一筆不動。"),
+      k383: i18n.pick("場地與器材"),
+      k384: i18n.pick("館藏圖書"),
+      k385: i18n.pick("班級課表"),
+      k386: i18n.pick("課表班級（留空用你自己的班級）"),
+      k387: i18n.pick("匯入示範資料"),
+      k388: i18n.pick("清除示範資料"),
+      k389: i18n.pick("確定要清除示範資料？只會刪掉示範那批，真實資料不會動。"),
+      k390: i18n.pick("匯入完成"),
+      k391: i18n.pick("已清除示範資料"),
+      k392: i18n.pick("格"),
+      k393: i18n.pick("還沒有匯入任何示範資料"),
+      k394: i18n.pick("匯入時遇到同名的真實資料會跳過，不會覆蓋"),
+      k395: i18n.pick("項"),
     };
   },
 
   data: {
     themeClass: appearance.themeClass(),
     theme,
+    // ── W-81 示範資料（只有最高權限看得到）──
+    demoBusy: false,
+    demoCounts: { venues: 0, books: 0, timetableSlots: 0 },
+    demoClasses: [],
+    demoClassText: '',
+    demoClass: '',
+    demoHint: '',
+    demoTotals: [],
     tabs: TABS,
     tab: 'stats',
     // ── W-66 圖書館分頁 ──
@@ -753,6 +779,7 @@ Page({
     else if (t === 'leaves') p = this.loadLeaves();
     else if (t === 'timetable') p = this.loadTimetable();
     else if (t === 'homework') p = this.loadHomework();
+    else if (t === 'demo') p = this.loadDemo();
 
     if (!p || typeof p.then !== 'function') {
       this.setData({ tabLoading: false });
@@ -3009,5 +3036,80 @@ Page({
           .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
       },
     });
+  },
+
+  // ── W-81 示範資料（最高權限）：按一下寫進資料庫、再按一下只清掉這一批 ──
+  /**
+   * 按鈕旁的摘要：場地／館藏／課表各有幾筆示範資料。
+   * 數字一定要來自後端（`GET /admin/demo-data`），不要在前端用「我剛按了幾次」推 ——
+   * 換一台手機登入就會對不上。
+   */
+  async loadDemo() {
+    try {
+      const res = await admin.demoSummary();
+      const counts = res.counts || {};
+      this.setData({
+        demoCounts: {
+          venues: counts.venues || 0,
+          books: counts.books || 0,
+          timetableSlots: counts.timetableSlots || 0,
+        },
+        demoClasses: res.classes || [],
+        // WXML 不能呼叫方法（demoClasses.join），班級文字在這裡算好
+        demoClassText: (res.classes || []).join('、'),
+        demoHint: '',
+      });
+    } catch (err) {
+      this.setData({ hint: i18n.pick('讀不到示範資料數量：') + (err.message || err.code) });
+    }
+  },
+
+  onDemoClass(e) {
+    this.setData({ demoClass: e.detail.value });
+  },
+
+  demoSeed() {
+    if (this.data.demoBusy) return;
+    this.runDemo('SEED');
+  },
+
+  demoClear() {
+    if (this.data.demoBusy) return;
+    // 確認一律用原生 wx.showModal（自製兩段式在 Skyline 下第二次點擊會落空）
+    wx.showModal({
+      title: this.data.L.k388,
+      content: this.data.L.k389,
+      confirmText: this.data.L.k388,
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        this.runDemo('CLEAR');
+      },
+    });
+  },
+
+  async runDemo(action) {
+    this.setData({ demoBusy: true, demoHint: '' });
+    try {
+      const res = await admin.demoData('all', action, this.data.demoClass || '');
+      const n = action === 'SEED' ? res.seeded || {} : res.cleared || {};
+      const parts = [
+        this.data.L.k383 + ' ' + (n.venues || 0),
+        this.data.L.k384 + ' ' + (n.books || 0),
+        this.data.L.k385 + ' ' + (n.timetableSlots || 0) + ' ' + this.data.L.k392,
+      ];
+      const skipped = res.skipped || {};
+      const skippedTotal = (skipped.venues || 0) + (skipped.books || 0) + (skipped.timetableSlots || 0);
+      const head = action === 'SEED' ? this.data.L.k390 : this.data.L.k391;
+      this.setData({
+        demoBusy: false,
+        demoHint: head + '：' + parts.join(' · ') + (skippedTotal ? '（' + skippedTotal + this.data.L.k395 + this.data.L.k394 + '）' : ''),
+      });
+      wx.showToast({ title: head, icon: 'success' });
+      this.loadDemo();
+    } catch (err) {
+      this.setData({ demoBusy: false });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
+    }
   },
 });
