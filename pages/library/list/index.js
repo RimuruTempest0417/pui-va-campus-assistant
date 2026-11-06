@@ -25,6 +25,10 @@ Page({
       k16: i18n.pick('全部'),
       k17: i18n.pick('輸入 ISBN'),
       k18: i18n.pick('送出'),
+      k19: i18n.pick('熱門'),
+      k20: i18n.pick('最近還沒有人借書'),
+      k21: i18n.pick('有人借過之後，這裡就會出現排行'),
+      k22: i18n.pick('近 90 天借出 N 次'),
     };
   },
 
@@ -38,7 +42,10 @@ Page({
     page: 1,
     hasMore: false,
     keyword: '',
-    onlyAvailable: false,
+    /** 'all' 全部／'available' 只看可借／'hot' 熱門排行：一個欄位決定清單顯示什麼，不要在 WXML 疊兩個布林 */
+    mode: 'all',
+    hotLoading: false,
+    top: [],
     pressedId: '',
     tabs: [],
   },
@@ -50,8 +57,11 @@ Page({
 
   onShow() {
     this.setData({ L: this.labels(), themeClass: appearance.themeClass(), tabs: this.buildTabs() });
-    // 從詳情頁借完／還完回來，清單上的可借量要跟著變
-    if (this._loadedOnce) this.load(true);
+    // 從詳情頁借完／還完回來，清單上的可借量與熱門次數都要跟著變
+    if (this._loadedOnce) {
+      if (this.data.mode === 'hot') this.loadHot();
+      else this.load(true);
+    }
     this._loadedOnce = true;
   },
 
@@ -59,6 +69,7 @@ Page({
     return [
       { key: 'all', label: i18n.pick('全部') },
       { key: 'available', label: i18n.pick('只看可借') },
+      { key: 'hot', label: i18n.pick('熱門') },
     ];
   },
 
@@ -69,7 +80,7 @@ Page({
     try {
       const res = await data.listBooks({
         q: this.data.keyword || undefined,
-        available: this.data.onlyAvailable ? '1' : undefined,
+        available: this.data.mode === 'available' ? '1' : undefined,
         page: reset ? 1 : this.data.page + 1,
         limit: 20,
       });
@@ -94,8 +105,32 @@ Page({
     }
   },
 
+  /**
+   * 熱門排行：近 90 天借出次數前 5 名。
+   * 借閱次數由後端算（groupBy），前端只負責把數字排成看得懂的一列 ——
+   * 在頁面自己數一遍是兩份真相，換了窗口天數就會跟詳情頁的「近 90 天借出」對不上。
+   */
+  async loadHot() {
+    this.setData({ hotLoading: true });
+    try {
+      const res = await data.hotBooks({ limit: 5 });
+      const label = this.data.L.k22;
+      const top = (res.items || []).map((b, i) => ({
+        id: b.id,
+        title: b.title,
+        rank: i + 1,
+        metaText: String(label).replace('N', String(b.loans)) + (b.author ? ' · ' + b.author : ''),
+      }));
+      this.setData({ hotLoading: false, top });
+    } catch (e) {
+      this.setData({ hotLoading: false, top: [] });
+      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+    }
+  },
+
   retry() {
     this.setData({ loading: true, failed: false, errorText: '' });
+    if (this.data.mode === 'hot') return this.loadHot();
     return this.load(true);
   },
 
@@ -116,15 +151,21 @@ Page({
   },
 
   onTabChange(e) {
-    this.setData({ onlyAvailable: e.detail.key === 'available' }, () => this.load(true));
+    const mode = e.detail.key;
+    this.setData({ mode }, () => {
+      if (mode === 'hot') this.loadHot();
+      else this.load(true);
+    });
   },
 
   onRefresh() {
     this.setData({ refreshing: true });
-    this.load(true).then(() => this.setData({ refreshing: false }));
+    const task = this.data.mode === 'hot' ? this.loadHot() : this.load(true);
+    Promise.resolve(task).then(() => this.setData({ refreshing: false }));
   },
 
   onReachBottom() {
+    if (this.data.mode === 'hot') return;
     if (this.data.hasMore && !this.data.loadingMore) this.load(false);
   },
 

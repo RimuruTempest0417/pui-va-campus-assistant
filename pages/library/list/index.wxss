@@ -67,4 +67,20 @@
 }
 .book-mark__text { font-size: var(--pv-fs-title-3); font-weight: 600; color: var(--pv-tint); }
 
+/* 熱門排行：名次用單字圓徽章，不用 emoji 也不用獎盃圖（跨裝置長得不一樣） */
+.top-row { display: flex; flex-direction: row; align-items: center; }
+.top-rank {
+  width: 44rpx;
+  height: 44rpx;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--pv-tint-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--pv-sp-2);
+}
+.top-rank__text { font-size: var(--pv-fs-caption-1); font-weight: 700; color: var(--pv-tint); }
+.top-meta { margin-top: 6rpx; }
+
 .list-foot { text-align: center; color: var(--pv-label-3); font-size: var(--pv-fs-caption-1); padding: var(--pv-sp-2) 0 var(--pv-sp-6); }

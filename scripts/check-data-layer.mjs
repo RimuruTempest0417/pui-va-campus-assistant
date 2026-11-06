@@ -654,6 +654,32 @@ check('簽到：我的報名帶簽到時間',
     pageWxml.indexOf('bindtap="scan"') !== -1 && homeWxml.indexOf('goLibrary') !== -1 && apiSrc3.indexOf("'/library/loans'") !== -1,
     '首頁 → 列表（掃碼）→ 借還',
   );
+
+  // W-85 熱門榜：示範層（斷網交付現場）也要排得出來，且必須依借出次數遞減
+  const hot = await data.hotBooks({ limit: 5 });
+  const hotItems = hot.items || [];
+  const hotSorted = hotItems.every((b, i) => i === 0 || hotItems[i - 1].loans >= b.loans);
+  check(
+    '圖書館：熱門榜有資料且依借出次數遞減',
+    hotItems.length >= 1 && hotSorted && hotItems.every((b) => b.title && typeof b.loans === 'number'),
+    `${hotItems.length} 筆／次數 ${hotItems.map((b) => b.loans).join('>')}`,
+  );
+
+  const pageJs3 = readFileSync(join(here, '..', 'pages', 'library', 'list', 'index.js'), 'utf8');
+  check(
+    '圖書館：熱門榜有畫面入口（列表頁「熱門」分頁）',
+    pageWxml.indexOf("mode === 'hot'") !== -1 && pageJs3.indexOf('data.hotBooks') !== -1 && apiSrc3.indexOf("'/library/hot'") !== -1,
+    'pages/library/list → 熱門 chip',
+  );
+
+  // W-85 預約到書：排候補時要問一次訂閱同意，且場景是 hold（不是共用 event）
+  const detailJs3 = readFileSync(join(here, '..', 'pages', 'library', 'detail', 'index.js'), 'utf8');
+  const cfgSrc = readFileSync(join(here, '..', 'config', 'config.js'), 'utf8');
+  check(
+    '圖書館：排候補時請求 hold 訂閱，模板鍵存在',
+    detailJs3.indexOf("subscribe.request('hold')") !== -1 && cfgSrc.indexOf('hold:') !== -1,
+    'pages/library/detail → subscribe.request(hold)',
+  );
 }
 
 // ── W-67 場地／器材（示範層也要借得動、批得了）──

@@ -3678,7 +3678,16 @@ paths:
   /library/hot:
     get:
       tags: [library]
-      summary: 熱門榜（近 90 天借出次數 TOP 5）
+      summary: 熱門榜（近 N 天借出次數前 5 名，可調筆數與窗口）
+      parameters:
+        - name: limit
+          in: query
+          description: 取幾本（1–10，預設 5；後台用 10）
+          schema: { type: integer, minimum: 1, maximum: 10, default: 5 }
+        - name: days
+          in: query
+          description: 統計窗口天數（7–365，預設 90）
+          schema: { type: integer, minimum: 7, maximum: 365, default: 90 }
       responses:
         '200':
           description: 熱門書清單
@@ -3696,6 +3705,8 @@ paths:
                         title: { type: string }
                         author: { type: string, nullable: true }
                         loans: { type: integer }
+                  limit: { type: integer }
+                  days: { type: integer }
 
   /library/loans:
     post:

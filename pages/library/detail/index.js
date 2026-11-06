@@ -4,6 +4,7 @@ const i18n = require('../../../utils/i18n');
 const appearance = require('../../../utils/appearance');
 const { decorateBook, decorateLoan, decorateReservation } = require('../../../utils/book');
 const { dateTimeText } = require('../../../utils/date');
+const subscribe = require('../../../utils/subscribe');
 
 Page({
   labels() {
@@ -174,7 +175,10 @@ Page({
     try {
       const res = await data.borrowBook({ bookId: this.data.id });
       this.setData({ busy: false });
-      wx.showToast({ title: res && res.kind === 'reservation' ? i18n.pick('已排候補') : i18n.pick('借書成功'), icon: 'success' });
+      const reserved = Boolean(res && res.kind === 'reservation');
+      wx.showToast({ title: reserved ? i18n.pick('已排候補') : i18n.pick('借書成功'), icon: 'success' });
+      // 排了候補就順便問一次「書到貨要不要通知我」；模板 ID 沒填時 subscribe.request 直接跳過
+      if (reserved) await subscribe.request('hold');
       await this.load();
     } catch (e) {
       this.setData({ busy: false });

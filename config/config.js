@@ -8,7 +8,7 @@
 // 想臨時離線演示又不想改程式：到「開發自檢頁」把「離線示範模式」打開，
 // 這個開關存在 storage（pv_force_demo），關掉就回到真 API。
 module.exports = {
-  VERSION: '0.103.0', // 版本號唯一來源（設定頁「關於」顯示；發版時改這裡＋docs/releases）
+  VERSION: '0.104.0', // 版本號唯一來源（設定頁「關於」顯示；發版時改這裡＋docs/releases）
   API_BASE_URL: 'https://pui-va-campus-server.vercel.app/api/v1', // 雲端 API（Vercel + Neon）；本機開發改成 http://127.0.0.1:3100/api/v1
   DEMO_MODE: 'off',
 
@@ -23,6 +23,7 @@ module.exports = {
     claim: '', // 認領結果通知
     event: '', // 候補補位／活動通知
     notice: '', // 緊急公告
+    hold: '', // 圖書館預約到書（有人還書、書已為你保留）
   },
   // 介面語言：'zh-Hant'（繁體，預設）／'zh-Hans'（簡體）。只影響介面文案，不改資料內容。
   // 使用者可在開發自檢頁切換，存在 storage（pv_locale）。
