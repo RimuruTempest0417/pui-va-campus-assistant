@@ -341,8 +341,43 @@
                 data-role="{{item.key}}" bindtap="filterUsers">{{item.label}}</view>
         </view>
 
+        <!-- W-86 班級：班級＝使用者的 className 集合，這裡只做篩選與批次指派（不另建班級表） -->
+        <view class="filter-row">
+          <view class="chip {{userQuery.className === '' ? 'chip--on' : ''}}" data-cls="" bindtap="filterUsersClass">{{L.k400}}</view>
+          <view class="chip {{userQuery.className === '__none__' ? 'chip--on' : ''}}" data-cls="__none__" bindtap="filterUsersClass">{{L.k401}} {{classStats.unassigned}}</view>
+          <view class="chip {{classPanel ? 'chip--on' : ''}}" bindtap="toggleClassPanel">{{L.k402}}</view>
+        </view>
+        <view wx:if="{{classes.length}}" class="filter-row">
+          <view wx:for="{{classes}}" wx:key="className"
+                class="chip {{userQuery.className === item.className ? 'chip--on' : ''}}"
+                data-cls="{{item.className}}" bindtap="filterUsersClass">{{item.className}} {{item.students}}</view>
+        </view>
+
+        <view wx:if="{{classPanel}}" class="class-panel">
+          <view class="ui-row-between">
+            <text class="ui-section">{{L.k415}}</text>
+            <text class="ui-meta">{{L.k411}}</text>
+          </view>
+          <view class="filter-row">
+            <input class="field__input" style="flex:1" value="{{classPick}}" bindinput="onClassPick" placeholder="{{L.k404}}" />
+            <pv-button size="sm" type="plain" bind:tap="pickUnassigned">{{L.k405}}</pv-button>
+          </view>
+          <text class="ui-meta">{{pickedCount ? (L.k410 + pickedCount) : L.k413}}</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="filled" loading="{{classBusy}}" disabled="{{classBusy}}" data-action="ADD" bind:tap="applyClassMembers">{{L.k408}}</pv-button>
+            <pv-button size="sm" type="plain" disabled="{{classBusy}}" data-action="REMOVE" bind:tap="applyClassMembers">{{L.k409}}</pv-button>
+          </view>
+        </view>
+
         <view wx:if="{{users.length}}" class="ui-list ui-list--grouped">
         <view wx:for="{{users}}" wx:key="id" class="ui-card ui-card--row {{index === users.length - 1 ? 'ui-card--last' : ''}}">
+          <!-- W-86 批次指派：整列 88rpx 都可點，不必瞄準小圓圈 -->
+          <view wx:if="{{classPanel}}" class="pick-row" data-index="{{index}}" bindtap="togglePickUser">
+            <view class="pick {{item.picked ? 'pick--on' : ''}}">
+              <text wx:if="{{item.picked}}" class="pick__mark">✓</text>
+            </view>
+            <text class="ui-meta">{{item.className || L.k412}}</text>
+          </view>
           <view class="ui-row-between">
             <text class="ui-title">{{item.nickname || item.openid}}</text>
             <pv-tag text="{{item.role}} Lv{{item.level}}" type="{{(item.bannedAt || item.locked) ? 'danger' : 'neutral'}}" />

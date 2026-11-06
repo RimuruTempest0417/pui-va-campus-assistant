@@ -100,6 +100,20 @@ module.exports = {
   users(query) {
     return http.get('/admin/users', query || {});
   },
+  /**
+   * W-86 班級名單：班級不是一張表，而是 `User.className` 的集合視圖。
+   * 回 `{ items: [{ className, students, hasTimetable, hasHomework }], unassigned, total }`。
+   */
+  classes() {
+    return http.get('/admin/classes');
+  },
+  /** 批次指派／移出（action: 'ADD' | 'REMOVE'） */
+  assignClass(className, userIds, action) {
+    return http.post('/admin/classes/' + encodeURIComponent(className) + '/members', {
+      userIds: userIds,
+      action: action || 'ADD',
+    });
+  },
   setRole(id, role) {
     return http.patch('/admin/users/' + id + '/role', { role: role });
   },

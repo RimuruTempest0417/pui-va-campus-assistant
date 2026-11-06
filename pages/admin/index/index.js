@@ -481,6 +481,19 @@ Page({
       k397: i18n.pick("平均"),
       k398: i18n.pick("最近 7 天完成率"),
       k399: i18n.pick("按「派功課那天」分組；柱子越高代表當天派出的功課交得越齊"),
+      // ── W-86 班級名單（k400 起固定號，不要重跑遷移腳本重新編號）──
+      k400: i18n.pick("全部班級"),
+      k401: i18n.pick("未分班"),
+      k402: i18n.pick("批次分班"),
+      k404: i18n.pick("班級名稱（例：高二仁）"),
+      k405: i18n.pick("只看未分班"),
+      k408: i18n.pick("加入這一班"),
+      k409: i18n.pick("移出這一班"),
+      k410: i18n.pick("已選 "),
+      k411: i18n.pick("先填班名，再勾選下面的學生"),
+      k412: i18n.pick("（未分班）"),
+      k413: i18n.pick("還沒選學生，按學生卡片上的圓圈勾選"),
+      k415: i18n.pick("班級名單"),
     };
   },
 
@@ -676,10 +689,17 @@ Page({
       { key: 'leave', label: i18n.pick('請假') },
     ],
     roles: ROLES,
-    userQuery: { q: '', role: '' },
+    userQuery: { q: '', role: '', className: '' },
     meLevel: 0,
     userForm: { account: '', password: '', nickname: '', role: 'STUDENT' },
     creatingUser: false,
+    // W-86 班級名單：班級＝User.className 的集合視圖；這裡只放選單與批次指派的狀態
+    classes: [],
+    classStats: { unassigned: 0, total: 0 },
+    classPanel: false,
+    classPick: '',
+    pickedCount: 0,
+    classBusy: false,
     editingId: '',
     editForm: { nickname: '', account: '', password: '', role: 'STUDENT' },
     reports: [],
@@ -774,7 +794,7 @@ Page({
     else if (t === 'trash') p = this.loadTrash();
     else if (t === 'export') p = this.loadEventsForExport();
     else if (t === 'events') p = this.loadEventsAdmin();
-    else if (t === 'users') p = this.loadUsers();
+    else if (t === 'users') p = Promise.all([this.loadUsers(), this.loadClasses()]);
     else if (t === 'parents') p = this.loadParents();
     else if (t === 'school') p = this.loadSchool();
     else if (t === 'reports') p = this.loadReports();
@@ -1855,7 +1875,12 @@ Page({
   async loadUsers() {
     try {
       const q = this.data.userQuery;
-      const res = await admin.users({ q: q.q || undefined, role: q.role || undefined });
+      const res = await admin.users({
+        q: q.q || undefined,
+        role: q.role || undefined,
+        // W-86：`__none__` 是「還沒分班」的哨符，後端認得
+        className: q.className || undefined,
+      });
       // roles 用後端回來的（帶 level 與 label，單一來源）；離線或舊後端才退回本地 ROLES
       const roles = (res.roles && res.roles.length) ? res.roles : ROLES;
       // W-41：最後登入時間換成本地時區、加上鎖定旗標（locked 由後端算，前端不比時間）
@@ -1863,10 +1888,25 @@ Page({
         ...u,
         locked: Boolean(u.locked),
         lastLoginText: u.lastLoginAt ? dateTimeText(u.lastLoginAt) : '',
+        picked: false,
       }));
-      this.setData({ users: users, meLevel: (res.me || {}).level || 0, roles: roles });
+      this.setData({ users: users, meLevel: (res.me || {}).level || 0, roles: roles, pickedCount: 0 });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到使用者：') + (e.message || e.code) });
+    }
+  },
+
+  /** W-86：班級清單（人數／有沒有課表／有沒有功課），給篩選 chips 與批次指派用 */
+  async loadClasses() {
+    try {
+      const res = await admin.classes();
+      this.setData({
+        classes: res.items || [],
+        classStats: { unassigned: res.unassigned || 0, total: res.total || 0 },
+      });
+    } catch (e) {
+      // 班級名單是加值資訊：讀不到不要讓整個使用者分頁變成失敗畫面
+      this.setData({ classes: [], classStats: { unassigned: 0, total: 0 } });
     }
   },
 
@@ -1882,6 +1922,89 @@ Page({
     const role = e.currentTarget.dataset.role;
     this.setData({ 'userQuery.role': this.data.userQuery.role === role ? '' : role });
     this.loadUsers();
+  },
+
+  /** 按班級篩選（點同一顆再點一次＝取消） */
+  filterUsersClass(e) {
+    const cls = e.currentTarget.dataset.cls || '';
+    const next = this.data.userQuery.className === cls ? '' : cls;
+    const patch = { 'userQuery.className': next };
+    // 點一個真實班級時，順手把它填進批次指派的班名，少打一次字
+    if (next && next !== '__none__') patch.classPick = next;
+    this.setData(patch);
+    this.loadUsers();
+  },
+
+  toggleClassPanel() {
+    const open = !this.data.classPanel;
+    const patch = { classPanel: open };
+    if (open && !this.data.classPick && this.data.userQuery.className && this.data.userQuery.className !== '__none__') {
+      patch.classPick = this.data.userQuery.className;
+    }
+    this.setData(patch);
+  },
+
+  onClassPick(e) {
+    this.setData({ classPick: e.detail.value });
+  },
+
+  /** 只看未分班的學生，班級名單一次補齊 */
+  pickUnassigned() {
+    this.setData({ 'userQuery.className': '__none__', classPanel: true });
+    this.loadUsers();
+  },
+
+  /** 勾選／取消一位學生（用索引，因為 users 是這一頁自己的副本） */
+  togglePickUser(e) {
+    const idx = Number(e.currentTarget.dataset.index);
+    const users = this.data.users || [];
+    if (!users[idx]) return;
+    const patch = {};
+    patch['users[' + idx + '].picked'] = !users[idx].picked;
+    const picked = users.filter((u, i) => (i === idx ? !u.picked : u.picked)).length;
+    patch.pickedCount = picked;
+    this.setData(patch);
+  },
+
+  async applyClassMembers(e) {
+    if (this.data.classBusy) return;
+    const action = e.currentTarget.dataset.action === 'REMOVE' ? 'REMOVE' : 'ADD';
+    const className = (this.data.classPick || '').trim();
+    const picked = (this.data.users || []).filter((u) => u.picked);
+    if (!className) {
+      wx.showToast({ title: i18n.pick('請先填班級名稱'), icon: 'none' });
+      return;
+    }
+    if (!picked.length) {
+      wx.showToast({ title: i18n.pick('請先選學生（勾選右邊的圓圈）'), icon: 'none' });
+      return;
+    }
+    const ok = await new Promise((resolve) => {
+      wx.showModal({
+        title: action === 'ADD' ? i18n.pick('加入班級') : i18n.pick('移出班級'),
+        content:
+          (action === 'ADD' ? i18n.pick('把這 ') : i18n.pick('從「') + className + i18n.pick('」移出這 ')) +
+          picked.length +
+          i18n.pick(' 位學生') +
+          (action === 'ADD' ? i18n.pick('加入「') + className + i18n.pick('」？') : i18n.pick('？')),
+        confirmText: action === 'ADD' ? i18n.pick('加入') : i18n.pick('移出'),
+        success: (r) => resolve(Boolean(r.confirm)),
+        fail: () => resolve(false),
+      });
+    });
+    if (!ok) return;
+
+    this.setData({ classBusy: true });
+    try {
+      const res = await admin.assignClass(className, picked.map((u) => u.id), action);
+      const n = (res && res.updated) || 0;
+      wx.showToast({ title: i18n.pick('已更新 ') + n + i18n.pick(' 位'), icon: 'success' });
+      this.setData({ classBusy: false, pickedCount: 0 });
+      await Promise.all([this.loadUsers(), this.loadClasses()]);
+    } catch (err) {
+      this.setData({ classBusy: false });
+      wx.showToast({ title: (err && err.message) || i18n.pick('更新失敗'), icon: 'none' });
+    }
   },
 
   onUserField(e) {

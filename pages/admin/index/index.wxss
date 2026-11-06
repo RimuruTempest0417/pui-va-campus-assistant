@@ -194,3 +194,26 @@
 .hw-bar__fill { width: 100%; border-radius: 6rpx 6rpx 0 0; background: var(--pv-tint); }
 .hw-bar__fill.is-empty { background: var(--pv-fill-2); }
 .hw-bar__label { font-size: var(--pv-fs-caption-2); color: var(--pv-label-3); }
+
+/* W-86 班級名單：批次指派面板與勾選列（不用 checkbox 元件，狀態自己畫，按壓回饋才一致） */
+.class-panel { padding: var(--pv-sp-1) 0 var(--pv-sp-2); }
+.pick-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--pv-sp-2);
+  min-height: 88rpx;
+}
+.pick {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 22rpx;
+  border: 2rpx solid var(--pv-sep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.pick--on { background: var(--pv-tint); border-color: var(--pv-tint); }
+.pick__mark { color: var(--pv-on-tint); font-size: var(--pv-fs-caption-2); line-height: 1; }

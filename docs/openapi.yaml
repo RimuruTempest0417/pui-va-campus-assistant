@@ -3015,6 +3015,37 @@ paths:
       responses:
         '200': { description: OK }
 
+  /admin/classes:
+    get:
+      tags: [admin]
+      summary: 班級名單視圖（班級＝User.className 的集合，含各班人數、是否有課表／功課、未分班人數）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+        '403': { description: '需要 user:assign:teacher（資訊管理員以上）' }
+
+  /admin/classes/{className}/members:
+    post:
+      tags: [admin]
+      summary: 批次把帳號加入／移出某一班（action ADD／REMOVE，REMOVE 只清本來就在這一班的人）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: className, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userIds]
+              properties:
+                userIds: { type: array, items: { type: string } }
+                action: { type: string, enum: [ADD, REMOVE], default: ADD }
+      responses:
+        '200': { description: OK }
+        '422': { description: 班名不合法或沒有選人 }
+        '403': { description: 能力不足或想調整同等／更高權限帳號 }
+
   /admin/users/{id}/password:
     patch:
       tags: [admin]
