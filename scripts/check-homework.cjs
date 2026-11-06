@@ -122,6 +122,59 @@ async function main() {
   check('未交名單有名稱', pend.pending.length > 0 && !!pend.pending[0].nickname, pend.pending.length);
   check('未交名單不含已交的人', pend.total - pend.done === pend.pending.length);
 
+  // ── ⑦.8 附件連結（W-84）：示範層與後端同一套規則（http(s)、上限 5、去重）──
+  check('示範資料至少一項帶附件', all.items.some((i) => (i.links || []).length > 0));
+  const withLinks = await data.createHomework({
+    subject: '地理',
+    title: '查資料：澳門海岸線變化',
+    dueAt: '2026-12-02',
+    links: [{ name: '參考地圖', url: 'https://example.com/map.html' }, 'https://example.com/ws.pdf'],
+  });
+  eq('附件存了兩條', withLinks.links.length, 2);
+  const listed = await data.listHomework({ scope: 'all' });
+  const withLinksRow = listed.items.filter((i) => i.id === withLinks.id)[0];
+  eq('清單讀得回名稱與網址', [withLinksRow.links[0].name, withLinksRow.links[1].url], [
+    '參考地圖',
+    'https://example.com/ws.pdf',
+  ]);
+
+  let ftpBlocked = false;
+  try {
+    await data.createHomework({ subject: '地理', title: '壞連結', dueAt: '2026-12-02', links: ['ftp://example.com/a'] });
+  } catch (e) {
+    ftpBlocked = e && e.code === 'VALIDATION_FAILED';
+  }
+  check('非 http(s) 連結被擋（VALIDATION_FAILED）', ftpBlocked);
+
+  let tooManyBlocked = false;
+  try {
+    await data.createHomework({
+      subject: '地理',
+      title: '太多連結',
+      dueAt: '2026-12-02',
+      links: [1, 2, 3, 4, 5, 6].map((n) => 'https://example.com/' + n + '.pdf'),
+    });
+  } catch (e) {
+    tooManyBlocked = e && e.code === 'VALIDATION_FAILED';
+  }
+  check('超過 5 條被擋（VALIDATION_FAILED）', tooManyBlocked);
+
+  const dupLinks = await data.createHomework({
+    subject: '公民',
+    title: '同一條貼兩次',
+    dueAt: '2026-12-03',
+    links: ['https://example.com/x.pdf', 'https://example.com/x.pdf'],
+  });
+  eq('重複的連結只留一條', dupLinks.links.length, 1);
+
+  const cleared = await data.updateHomework(withLinks.id, { links: [] });
+  check('清空附件回 ok', !!cleared && cleared.ok === true);
+  const afterClear = await data.listHomework({ scope: 'all' });
+  eq('清空後那一項沒有附件', afterClear.items.filter((i) => i.id === withLinks.id)[0].links.length, 0);
+  // 收拾：把這一輪多建的兩筆收回，後面的檢查沿用原本的三筆
+  await data.removeHomework(withLinks.id);
+  await data.removeHomework(dupLinks.id);
+
   // ── ⑧ 舊版號不能蓋掉新版 ──
   const keep = afterRemove.items[0];
   await data.updateHomework(keep.id, { title: '改過的新標題', version: keep.version });

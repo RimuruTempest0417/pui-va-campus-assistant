@@ -326,6 +326,8 @@ module.exports = {
     const query = {};
     if (q.className) query.className = q.className;
     if (q.scope && q.scope !== 'all') query.scope = q.scope;
+    // W-84：完成率趨勢要看幾天（後端預設 7、上限 30）
+    if (q.days) query.days = q.days;
     return http.get('/admin/homework', query);
   },
   homeworkPending(id) {

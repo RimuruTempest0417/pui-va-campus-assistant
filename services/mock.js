@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 15;
+const SEED_VERSION = 16;
 
 const weekUtil = require('../utils/week');
 const venue = require('../utils/venue');
@@ -233,7 +233,7 @@ function seed() {
     timetableSlots: buildDemoTimetable(),
     // ── 功課（W-76）：兩筆未交（一筆今天、一筆已逾期）、一筆已交，示範「打勾」與「逾期」兩種樣子
     homework: [
-      { id: 'hw1', className: DEMO_CLASS, subject: '數學', title: '習作 4.2 第 1–10 題', detail: '課本 p.88 例題也要看', dueAt: now + 6 * h, createdById: 'demo-teacher' },
+      { id: 'hw1', className: DEMO_CLASS, subject: '數學', title: '習作 4.2 第 1–10 題', detail: '課本 p.88 例題也要看', dueAt: now + 6 * h, createdById: 'demo-teacher', links: [{ name: '習作 PDF', url: 'https://example.com/hw/math-4-2.pdf' }] },
       { id: 'hw2', className: DEMO_CLASS, subject: '中文', title: '默書：課文三、四', detail: '', dueAt: now - 20 * h, createdById: 'demo-teacher' },
       { id: 'hw3', className: DEMO_CLASS, subject: '英文', title: '作文 200 字（My School）', detail: '用本週學的連接詞', dueAt: now + 42 * h, createdById: 'demo-teacher' },
       // 家長端示範用：初二忠（示範家長的其中一位子女）也有一筆，登入家長帳號才看得到
@@ -600,6 +600,51 @@ function shapeSlot(slot) {
 /** 上課時段（第一節開始 → 最後一節結束）與停課門檻，跟後端 src/lib/timetable.ts 同一組數字 */
 const SCHOOL_WINDOW = { start: '08:10', end: '16:15' };
 const DAY_OFF_MIN_OVERLAP_MINUTES = 180;
+
+/**
+ * 功課附件（W-84）：只收 http(s)、上限 5 條、同一條只留一次。
+ * 規則與後端 `src/routes/homework.ts` 的 normalizeLinks 一致 ——
+ * 示範模式若放行 ftp://，使用者切回真 API 時才會被 422 擋下，落差就變成了 bug。
+ */
+const MAX_HOMEWORK_LINKS = 5;
+
+/** 回 `{ links }` 或 `{ error }`：示範層的呼叫端一律先看 error 再寫入（不要拋，會穿透到畫面） */
+function normalizeHomeworkLinks(input) {
+  if (input === null || input === undefined) return { links: null };
+  if (!Array.isArray(input)) return { error: { code: 'VALIDATION_FAILED', message: '附件格式不正確' } };
+  const out = [];
+  const seen = {};
+  for (const raw of input) {
+    const isObj = raw && typeof raw === 'object';
+    const url = String(isObj ? raw.url || '' : raw || '').trim();
+    const name = String(isObj ? raw.name || '' : '').trim().slice(0, 60);
+    if (!url) continue;
+    if (!/^https?:\/\/[^\s<>"']+$/i.test(url)) {
+      return { error: { code: 'VALIDATION_FAILED', message: '附件連結只接受 http:// 或 https:// 開頭' } };
+    }
+    if (url.length > 300) {
+      return { error: { code: 'VALIDATION_FAILED', message: '附件連結太長了（最多 300 個字元）' } };
+    }
+    if (seen[url]) continue;
+    seen[url] = true;
+    out.push({ name: name, url: url });
+  }
+  if (out.length > MAX_HOMEWORK_LINKS) {
+    return { error: { code: 'VALIDATION_FAILED', message: '最多只能加 ' + MAX_HOMEWORK_LINKS + ' 條附件連結' } };
+  }
+  return { links: out };
+}
+
+/** 讀回時只留形狀正確的，舊資料不要讓畫面炸掉 */
+function readHomeworkLinks(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((raw) => {
+      const isObj = raw && typeof raw === 'object';
+      return { name: String(isObj ? raw.name || '' : '').trim(), url: String(isObj ? raw.url || '' : raw || '').trim() };
+    })
+    .filter((l) => /^https?:\/\//i.test(l.url));
+}
 
 function dateKeyOf(value) {
   const d = value instanceof Date ? value : new Date(value);
@@ -2528,6 +2573,7 @@ module.exports = {
           subject: h.subject,
           title: h.title,
           detail: h.detail || '',
+          links: readHomeworkLinks(h.links),
           dueAt: new Date(h.dueAt).toISOString(),
           dueMs: h.dueAt,
           done: !!done,
@@ -2570,12 +2616,15 @@ module.exports = {
         && new Date(h.dueAt).toDateString() === new Date(dueMs).toDateString(),
     ).length;
     if (dup) return Promise.reject({ code: 'CONFLICT', message: '這一班今天已經有同一科的同一項功課了' });
+    const norm = normalizeHomeworkLinks(input.links);
+    if (norm.error) return Promise.reject(norm.error);
     const row = {
       id: 'hw' + Date.now(),
       className: className,
       subject: String(input.subject || '').trim(),
       title: title,
       detail: String(input.detail || '').trim(),
+      links: norm.links || [],
       dueAt: dueMs,
       createdById: me.id,
       version: 0,
@@ -2583,7 +2632,13 @@ module.exports = {
     data.homework = data.homework || [];
     data.homework.push(row);
     save(data);
-    return Promise.resolve({ id: row.id, className: row.className, dueAt: new Date(row.dueAt).toISOString(), version: 0 });
+    return Promise.resolve({
+      id: row.id,
+      className: row.className,
+      dueAt: new Date(row.dueAt).toISOString(),
+      links: readHomeworkLinks(row.links),
+      version: 0,
+    });
   },
 
   removeHomework(id) {
@@ -2606,6 +2661,11 @@ module.exports = {
     if (input.subject !== undefined) row.subject = String(input.subject).trim();
     if (input.title !== undefined) row.title = String(input.title).trim();
     if (input.detail !== undefined) row.detail = String(input.detail || '').trim();
+    if (input.links !== undefined) {
+      const norm = normalizeHomeworkLinks(input.links);
+      if (norm.error) return Promise.reject(norm.error);
+      row.links = norm.links || [];
+    }
     if (input.dueAt !== undefined) {
       const ms = new Date(String(input.dueAt)).getTime();
       if (Number.isNaN(ms)) return Promise.reject({ code: 'VALIDATION_FAILED', message: '截止時間格式不正確' });
@@ -2655,6 +2715,7 @@ module.exports = {
           subject: h.subject,
           title: h.title,
           detail: h.detail || '',
+          links: readHomeworkLinks(h.links),
           dueAt: new Date(h.dueAt).toISOString(),
           dueMs: h.dueAt,
           done: !!done,

@@ -60,6 +60,13 @@ Page({
       k37: i18n.pick('班'),
       k38: i18n.pick(' 人交了'),
       k39: i18n.pick('未交'),
+      // ── W-84 附件連結 ──
+      k40: i18n.pick('附件連結（選填）'),
+      k41: i18n.pick('一行一條，只收 http(s) 連結'),
+      k42: i18n.pick('已複製連結'),
+      k43: i18n.pick('附件'),
+      k44: i18n.pick('連結要 http:// 或 https:// 開頭'),
+      k45: i18n.pick('最多 5 條連結'),
     };
   },
 
@@ -84,6 +91,7 @@ Page({
     formDetail: '',
     formDue: '',
     formDueText: '',
+    formLinks: '',
     saving: false,
     L: {},
   },
@@ -127,10 +135,16 @@ Page({
       if (stats && stats.items) stats.items.forEach((s) => { countById[s.id] = s; });
       const items = (res.items || []).map((item) => {
         const s = countById[item.id];
+        const links = (item.links || []).map((l, i) => ({
+          url: l.url,
+          // 沒填名稱就給「附件 1／附件 2」，不要讓一整排網址在畫面上亂換行
+          text: (l.name || '').trim() || (this.data.L.k43 || '') + ' ' + (i + 1),
+        }));
         return Object.assign({}, item, {
           dueText: this.dueText(item.dueAt, item.done),
           dueBadge: item.overdue ? (this.data.L.k10 || '') : '',
           countText: s && stats.total ? s.done + '/' + stats.total : '',
+          links: links,
         });
       });
       this.setData({
@@ -204,7 +218,7 @@ Page({
   },
 
   openForm() {
-    this.setData({ formOpen: true, formSubject: '', formTitle: '', formDetail: '', formDue: this.tomorrow() });
+    this.setData({ formOpen: true, formSubject: '', formTitle: '', formDetail: '', formLinks: '', formDue: this.tomorrow() });
   },
 
   closeForm() {
@@ -227,6 +241,34 @@ Page({
     this.setData({ formDue: e.detail.value });
   },
 
+  onLinks(e) {
+    this.setData({ formLinks: e.detail.value });
+  },
+
+  /**
+   * 表單的「一行一條」→ `[{ url }]`。
+   * 前端先擋一次是為了讓老師在彈層裡就看到原因；後端仍會再驗一次（前端不是閘門）。
+   */
+  parseLinks() {
+    const L = this.data.L;
+    const raw = String(this.data.formLinks || '')
+      .split('\n')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    if (raw.length > 5) return { error: L.k45 || '' };
+    for (const url of raw) {
+      if (!/^https?:\/\/[^\s]+$/i.test(url)) return { error: L.k44 || '' };
+    }
+    const seen = {};
+    const links = [];
+    for (const url of raw) {
+      if (seen[url]) continue;
+      seen[url] = true;
+      links.push({ name: '', url: url });
+    }
+    return { links: links };
+  },
+
   async submit() {
     const L = this.data.L;
     const subject = String(this.data.formSubject || '').trim();
@@ -236,9 +278,20 @@ Page({
       return;
     }
     if (this.data.saving) return;
+    const parsed = this.parseLinks();
+    if (parsed.error) {
+      wx.showToast({ title: parsed.error, icon: 'none' });
+      return;
+    }
     this.setData({ saving: true });
     try {
-      await data.createHomework({ subject: subject, title: title, detail: this.data.formDetail, dueAt: this.data.formDue });
+      await data.createHomework({
+        subject: subject,
+        title: title,
+        detail: this.data.formDetail,
+        dueAt: this.data.formDue,
+        links: parsed.links,
+      });
       this.setData({ saving: false, formOpen: false });
       this.load();
     } catch (e) {
@@ -284,6 +337,16 @@ Page({
     } catch (err) {
       wx.showToast({ title: data.messageOf(err), icon: 'none' });
     }
+  },
+
+  /** 附件連結：小程序沒有瀏覽器，一律複製讓他自己貼（與活動附件同一套做法） */
+  copyLink(e) {
+    const url = e.currentTarget.dataset.url || '';
+    if (!url) return;
+    wx.setClipboardData({
+      data: url,
+      success: () => wx.showToast({ title: this.data.L.k42 || '', icon: 'none' }),
+    });
   },
 
   /** 彈層背景不讓內容跟著滾 */

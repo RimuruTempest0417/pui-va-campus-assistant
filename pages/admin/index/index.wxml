@@ -1010,6 +1010,24 @@
 
         <text wx:if="{{hwSummary}}" class="ui-meta" style="margin:8rpx 0 12rpx">{{hwSummary}}</text>
 
+        <!-- W-84 完成率趨勢：最近 7 天按「派功課那天」分組（CSS 柱狀，不引圖表庫） -->
+        <view wx:if="{{hwTrend.length}}" class="hw-trend">
+          <view class="hw-trend__head">
+            <text class="group-sub">{{L.k398}}</text>
+            <text class="ui-meta">{{hwTrendText}}</text>
+          </view>
+          <view class="hw-trend__bars">
+            <view wx:for="{{hwTrend}}" wx:key="date" class="hw-bar">
+              <text class="hw-bar__rate">{{item.rateText}}</text>
+              <view class="hw-bar__track">
+                <view class="hw-bar__fill {{item.items > 0 ? '' : 'is-empty'}}" style="height: {{item.barH}}rpx"></view>
+              </view>
+              <text class="hw-bar__label">{{item.label}}</text>
+            </view>
+          </view>
+          <text class="ui-meta">{{L.k399}}</text>
+        </view>
+
         <block wx:if="{{hwClasses.length}}">
           <text class="group-sub">{{L.k377}}</text>
           <view class="ui-list ui-list--grouped">

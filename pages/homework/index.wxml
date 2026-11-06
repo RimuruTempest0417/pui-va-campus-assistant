@@ -53,6 +53,18 @@
                   <text class="ui-title hw-row__title {{item.done ? 'is-done' : ''}}">{{item.subject}} · {{item.title}}</text>
                 </view>
                 <text wx:if="{{item.detail}}" class="ui-meta">{{item.detail}}</text>
+                <view wx:if="{{item.links.length}}" class="hw-links">
+                  <view
+                    wx:for="{{item.links}}"
+                    wx:for-item="link"
+                    wx:key="url"
+                    class="hw-link"
+                    data-url="{{link.url}}"
+                    catchtap="copyLink"
+                  >
+                    <text class="hw-link__text">{{link.text}}</text>
+                  </view>
+                </view>
                 <view class="hw-row__foot">
                   <text class="hw-row__due {{item.overdue ? 'is-overdue' : ''}}">{{item.dueText}}</text>
                   <pv-tag wx:if="{{item.overdue}}" text="{{item.dueBadge}}" type="warning" />
@@ -97,6 +109,17 @@
         <picker mode="date" value="{{formDue}}" bindchange="onDue">
           <view class="hw-input hw-input--picker">{{formDue}}</view>
         </picker>
+      </view>
+      <view class="hw-field">
+        <text class="hw-field__label">{{L.k40}}</text>
+        <textarea
+          class="hw-input hw-input--area"
+          value="{{formLinks}}"
+          placeholder="{{L.k41}}"
+          maxlength="1600"
+          auto-height
+          bindinput="onLinks"
+        />
       </view>
       <view class="hw-sheet__actions">
         <pv-button type="filled" size="md" block="true" bind:tap="submit">{{L.k28}}</pv-button>

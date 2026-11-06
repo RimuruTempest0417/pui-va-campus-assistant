@@ -174,3 +174,23 @@
 /* 示範資料（W-81）：說明文字與三個數字的清單 */
 .demo-hint { display: block; margin-top: var(--pv-sp-1); line-height: 1.5; }
 .demo-sum { margin-top: var(--pv-sp-2); }
+
+/* 功課完成率趨勢（W-84）：七根柱、無陰影、只有主題紫一種顏色 */
+.hw-trend { margin: var(--pv-sp-2) 0 var(--pv-sp-3); }
+.hw-trend__head { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; gap: var(--pv-sp-2); }
+.hw-trend__head .group-sub { margin: var(--pv-sp-2) 0 var(--pv-sp-1); }
+.hw-trend__bars {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: var(--pv-sp-1);
+  padding: var(--pv-sp-2) var(--pv-sp-1) 0;
+  background: var(--pv-surface);
+  border-radius: var(--pv-r);
+}
+.hw-bar { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4rpx; }
+.hw-bar__rate { font-size: var(--pv-fs-caption-2); color: var(--pv-label-2); }
+.hw-bar__track { width: 100%; height: 140rpx; display: flex; flex-direction: row; align-items: flex-end; }
+.hw-bar__fill { width: 100%; border-radius: 6rpx 6rpx 0 0; background: var(--pv-tint); }
+.hw-bar__fill.is-empty { background: var(--pv-fill-2); }
+.hw-bar__label { font-size: var(--pv-fs-caption-2); color: var(--pv-label-3); }

@@ -476,6 +476,11 @@ Page({
       k393: i18n.pick("還沒有匯入任何示範資料"),
       k394: i18n.pick("匯入時遇到同名的真實資料會跳過，不會覆蓋"),
       k395: i18n.pick("項"),
+      // ── W-84 功課完成率趨勢 ──
+      k396: i18n.pick("最近 7 天還沒有派出的功課"),
+      k397: i18n.pick("平均"),
+      k398: i18n.pick("最近 7 天完成率"),
+      k399: i18n.pick("按「派功課那天」分組；柱子越高代表當天派出的功課交得越齊"),
     };
   },
 
@@ -567,6 +572,11 @@ Page({
     hwPendingTotal: 0,
     hwPendingNames: '',
     hwPendingHint: '',
+    // ── W-84 完成率趨勢：最近 7 天「派出去的有多少人交」（CSS 柱狀，不引圖表庫）──
+    hwTrend: [],
+    hwTrendAvg: null,
+    hwTrendText: '',
+    hwTrendFrom: '',
     role: '',
     stats: { users: 0, items: { open: 0, claimed: 0, added7d: 0 }, claimsPending: 0, signups: { confirmed: 0, waitlist: 0 }, noticesActive: 0, ratings: { count: 0, avg: 0 } },
     // 第一屏五張數字卡：值與標籤在 loadStats 一起備好（WXML 不做運算）
@@ -2958,11 +2968,27 @@ Page({
           progressText: i.total > 0 ? i.done + '/' + i.total + ' · ' + (i.rate === null ? L.k366 : i.rate + '%') : L.k366,
         }),
       );
+      // 趨勢：rate 換成柱高（0–120rpx）。沒有資料的那天給 4rpx 的底線，不要留一個洞
+      const trend = res.trend || { days: 7, items: [], average: null, local: { from: '', to: '' } };
+      const trendBars = (trend.items || []).map((d) =>
+        Object.assign({}, d, {
+          barH: d.rate === null ? 4 : Math.max(8, Math.round((d.rate / 100) * 120)),
+          rateText: d.rate === null ? '' : d.rate + '%',
+          itemsText: d.items > 0 ? d.items + ' ' + L.k369 : '',
+        }),
+      );
       this.setData({
         hwClasses: classes,
         hwItems: items,
         hwClassNames: res.classNames || [],
         hwCounts: counts,
+        hwTrend: trendBars,
+        hwTrendAvg: trend.average === null || trend.average === undefined ? null : trend.average,
+        hwTrendText:
+          trend.average === null || trend.average === undefined
+            ? L.k396
+            : L.k397 + ' ' + trend.average + '%',
+        hwTrendFrom: trend.local && trend.local.from && trend.local.to ? trend.local.from + ' – ' + trend.local.to : '',
         hwSummary: counts.items
           ? counts.classes + ' ' + L.k368 + ' · ' + counts.items + ' ' + L.k369 + ' · ' + counts.overdue + ' ' + L.k376
           : '',

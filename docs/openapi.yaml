@@ -4632,6 +4632,14 @@ paths:
                         subject: { type: string, example: 數學 }
                         title: { type: string, example: 習作 4.2 第 1–10 題 }
                         detail: { type: string }
+                        links:
+                          type: array
+                          description: "附件連結（W-84）：只收 http(s)、上限 5 條；name 可空，前端沒名稱時顯示「附件 N」"
+                          items:
+                            type: object
+                            properties:
+                              name: { type: string, maxLength: 60 }
+                              url: { type: string, maxLength: 300 }
                         dueAt: { type: string, format: date-time }
                         dueMs: { type: integer }
                         done: { type: boolean }
@@ -4665,6 +4673,17 @@ paths:
                 subject: { type: string, maxLength: 40 }
                 title: { type: string, maxLength: 120 }
                 detail: { type: string, maxLength: 500 }
+                links:
+                  type: array
+                  maxItems: 5
+                  description: "附件連結（W-84）：只收 http(s) 開頭，上限 5 條；重複的只留一條，非 http(s) 回 422。字串或 { name, url } 都收。"
+                  items:
+                    oneOf:
+                      - { type: string, maxLength: 300 }
+                      - type: object
+                        properties:
+                          name: { type: string, maxLength: 60 }
+                          url: { type: string, maxLength: 300 }
                 dueAt: { type: string, example: '2026-11-09' }
       responses:
         '201':
@@ -4677,6 +4696,13 @@ paths:
                   id: { type: string }
                   className: { type: string }
                   dueAt: { type: string, format: date-time }
+                  links:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name: { type: string }
+                        url: { type: string }
                   version: { type: integer }
         '409':
           description: 同一班今天已經有同一科的同一項功課
@@ -4698,6 +4724,17 @@ paths:
                 subject: { type: string, maxLength: 40 }
                 title: { type: string, maxLength: 120 }
                 detail: { type: string, maxLength: 500 }
+                links:
+                  type: array
+                  maxItems: 5
+                  description: "附件連結（W-84）：帶空陣列＝清空附件；不帶就維持原樣（不要用 null 當清空）。"
+                  items:
+                    oneOf:
+                      - { type: string, maxLength: 300 }
+                      - type: object
+                        properties:
+                          name: { type: string, maxLength: 60 }
+                          url: { type: string, maxLength: 300 }
                 dueAt: { type: string }
                 version: { type: integer, description: 選填；帶了才做條件式更新 }
       responses:
@@ -4825,6 +4862,14 @@ paths:
                         subject: { type: string }
                         title: { type: string }
                         detail: { type: string }
+                        links:
+                          type: array
+                          description: "附件連結（W-84）：只收 http(s)、上限 5 條；name 可空，前端沒名稱時顯示「附件 N」"
+                          items:
+                            type: object
+                            properties:
+                              name: { type: string, maxLength: 60 }
+                              url: { type: string, maxLength: 300 }
                         dueAt: { type: string, format: date-time }
                         dueMs: { type: integer }
                         done: { type: boolean }
@@ -4850,9 +4895,10 @@ paths:
         - { name: className, in: query, schema: { type: string, maxLength: 32 }, description: 留空＝全部班級 }
         - { name: scope, in: query, schema: { type: string, enum: [all, open, overdue], default: all }, description: "all＝全部、open＝還沒到期、overdue＝已過期" }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 300, default: 120 } }
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 30, default: 7 }, description: "完成率趨勢要看幾天（W-84）；按「派功課那天」分組，不是按截止日" }
       responses:
         '200':
-          description: 每班統計與功課清單
+          description: 每班統計、功課清單與完成率趨勢
           content:
             application/json:
               schema:
@@ -4888,6 +4934,14 @@ paths:
                         className: { type: string }
                         subject: { type: string }
                         title: { type: string }
+                        links:
+                          type: array
+                          description: 附件連結（W-84）
+                          items:
+                            type: object
+                            properties:
+                              name: { type: string }
+                              url: { type: string }
                         dueAt: { type: string, format: date-time }
                         done: { type: integer }
                         total: { type: integer }
@@ -4896,6 +4950,28 @@ paths:
                         createdByName: { type: string }
                         mine: { type: boolean }
                         version: { type: integer }
+                  trend:
+                    type: object
+                    description: "完成率趨勢（W-84）：按「派功課那天」分組；分母是「當天派了幾項 × 班上幾人」，沒有資料的那天 rate 為 null、average 也為 null（不要顯示 0%）"
+                    properties:
+                      days: { type: integer }
+                      local:
+                        type: object
+                        properties:
+                          from: { type: string, example: '2026-11-01' }
+                          to: { type: string, example: '2026-11-07' }
+                      average: { type: integer, nullable: true, description: 整個窗口的加權完成率 }
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            date: { type: string, example: '2026-11-07' }
+                            label: { type: string, example: '11/7' }
+                            items: { type: integer, description: 那天派了幾項功課 }
+                            done: { type: integer }
+                            total: { type: integer, description: 項目數 × 班上人數 }
+                            rate: { type: integer, nullable: true }
         '403': { description: "能力不足（老師只有 homework:create，看不到全校）" }
 
   /admin/demo-data:
