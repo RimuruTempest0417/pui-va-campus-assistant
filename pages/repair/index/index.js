@@ -79,7 +79,7 @@ Page({
 
   async load() {
     this.setData({ loading: true });
-    const L = this.data.L;
+    const L = this.labels();
     try {
       await data.ensureLogin();
       const res = await data.myRepairs();
