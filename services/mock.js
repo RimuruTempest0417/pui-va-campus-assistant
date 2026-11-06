@@ -1490,7 +1490,7 @@ module.exports = {
     const low = q.toLowerCase();
     const data = db();
     const now = Date.now();
-    const wanted = (opts.types || 'notice,event,item,giveaway,menu,homework,proposal').split(',').map((s) => s.trim());
+    const wanted = (opts.types || 'notice,event,item,giveaway,menu,homework,proposal,book,resource').split(',').map((s) => s.trim());
     const groups = [];
 
     const hitScore = (title) => (String(title || '').toLowerCase().indexOf(low) !== -1 ? 2 : 1);
@@ -1628,6 +1628,38 @@ module.exports = {
         .sort(byScore)
         .slice(0, limit);
       groups.push({ type: 'proposal', count: items.length, items: items });
+    }
+
+    // W-92：館藏與後端同一條規則 —— 只算 ACTIVE 且未刪；借完了照樣搜得到（徽章 OUT）。
+    // 不搜 summary 以外的內文（後端也只比對書名／作者／索書號），兩邊要一致。
+    if (wanted.indexOf('book') !== -1) {
+      const items = (data.books || [])
+        .filter((b) => b.status === 'ACTIVE' && !b.deletedAt)
+        .filter((b) => [b.title, b.author, b.callNumber].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((b) => ({
+          id: b.id, type: 'book', title: b.title, snippet: bestSnippet([b.author, b.callNumber, b.summary]),
+          badge: (b.availableCopies || 0) > 0 ? 'AVAILABLE' : 'OUT',
+          date: new Date(b.createdAt || now).toISOString(), score: hitScore(b.title),
+          available: b.availableCopies || 0, total: b.totalCopies || 0,
+        }))
+        .sort((a, b) => b.score - a.score || String(a.title).localeCompare(String(b.title)))
+        .slice(0, limit);
+      groups.push({ type: 'book', count: items.length, items: items });
+    }
+
+    // W-92：場地器材 —— 比對名稱與位置，已下架／已刪的不出現（與後端同一條規則）
+    if (wanted.indexOf('resource') !== -1) {
+      const items = (data.resources || [])
+        .filter((r) => r.status !== 'ARCHIVED' && !r.deletedAt)
+        .filter((r) => [r.name, r.location].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((r) => ({
+          id: r.id, type: 'resource', title: r.name, snippet: bestSnippet([r.description]),
+          badge: r.kind + ':ACTIVE', date: new Date(r.createdAt || now).toISOString(), score: hitScore(r.name),
+          location: r.location || '',
+        }))
+        .sort((a, b) => b.score - a.score || String(a.title).localeCompare(String(b.title)))
+        .slice(0, limit);
+      groups.push({ type: 'resource', count: items.length, items: items });
     }
 
     const kept = groups.filter((g) => g.count > 0);

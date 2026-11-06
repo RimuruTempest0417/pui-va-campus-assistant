@@ -302,6 +302,56 @@ check(
   'pages/search/index.js',
 );
 
+// ── W-92 館藏與場地進搜尋 ──
+const sBook = await data.search({ q: '澳門街巷誌', types: 'book' });
+const sBookGroup = sBook.groups.filter((g) => g.type === 'book')[0] || { count: 0, items: [] };
+check(
+  '搜尋：館藏也搜得到（書名）',
+  sBookGroup.count > 0 && sBookGroup.items[0].title === '澳門街巷誌',
+  sBookGroup.items.map((i) => i.title).join(' / ') || '沒有結果',
+);
+check(
+  '搜尋：館藏帶可借數與總冊數，徽章是 AVAILABLE／OUT',
+  typeof sBookGroup.items[0].available === 'number' &&
+    typeof sBookGroup.items[0].total === 'number' &&
+    ['AVAILABLE', 'OUT'].indexOf(sBookGroup.items[0].badge) !== -1,
+  JSON.stringify({ badge: sBookGroup.items[0].badge, available: sBookGroup.items[0].available, total: sBookGroup.items[0].total }),
+);
+// 借完了照樣搜得到（b3 演算法圖解 availableCopies = 0）：借不到 ≠ 搜不到
+const sOut = await data.search({ q: '演算法圖解', types: 'book' });
+const sOutGroup = sOut.groups.filter((g) => g.type === 'book')[0] || { count: 0, items: [] };
+check(
+  '搜尋：借完的書照樣搜得到（徽章 OUT）',
+  sOutGroup.count === 1 && sOutGroup.items[0].badge === 'OUT' && sOutGroup.items[0].available === 0,
+  sOutGroup.items.map((i) => i.title + '·' + i.badge + '·' + i.available).join(' / ') || '沒有結果',
+);
+// b9 氣候緊急時代來了是 ARCHIVED：與館藏列表同一條可見規則
+const sArchived = await data.search({ q: '氣候緊急', types: 'book' });
+check('搜尋：已下架的書不出現', sArchived.total === 0, `total ${sArchived.total}`);
+
+const sVenue = await data.search({ q: '三樓', types: 'resource' });
+const sVenueGroup = sVenue.groups.filter((g) => g.type === 'resource')[0] || { count: 0, items: [] };
+check(
+  '搜尋：可按位置搜到場地（打「三樓」找到物理實驗室）',
+  sVenueGroup.count > 0 && sVenueGroup.items[0].location === '三樓',
+  sVenueGroup.items.map((i) => i.title + '@' + i.location).join(' / ') || '沒有結果',
+);
+check(
+  '搜尋：場地徽章是「種類:狀態」',
+  /^[A-Z]+:[A-Z]+$/.test(String((sVenueGroup.items[0] || {}).badge || '')),
+  (sVenueGroup.items[0] || {}).badge || '沒有結果',
+);
+const sArchivedRes = await data.search({ q: '舊投影機', types: 'resource' });
+check('搜尋：已下架的器材不出現', sArchivedRes.total === 0, `total ${sArchivedRes.total}`);
+check(
+  '搜尋：館藏與場地有類型 chip、都跳詳情頁',
+  searchPageJs.indexOf("key: 'book'") !== -1 &&
+    searchPageJs.indexOf("key: 'resource'") !== -1 &&
+    searchPageJs.indexOf("book: '/pages/library/detail/index?id='") !== -1 &&
+    searchPageJs.indexOf("resource: '/pages/venues/detail/index?id='") !== -1,
+  'pages/search/index.js',
+);
+
 
 
 

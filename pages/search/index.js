@@ -24,6 +24,8 @@ function typeLabel(type) {
   if (type === 'menu') return i18n.pick('菜單');
   if (type === 'homework') return i18n.pick('功課');
   if (type === 'proposal') return i18n.pick('校園提案');
+  if (type === 'book') return i18n.pick('圖書館館藏');
+  if (type === 'resource') return i18n.pick('場地與器材');
   return i18n.pick('公告');
 }
 
@@ -58,6 +60,8 @@ const ROUTE = {
   // 功課只有一頁（清單＋打勾同一頁），沒有詳情頁，所以不接 id
   homework: '/pages/homework/index',
   proposal: '/pages/proposals/detail/index?id=',
+  book: '/pages/library/detail/index?id=',
+  resource: '/pages/venues/detail/index?id=',
 };
 
 /** 哪些類別的網址要吃 id（功課不吃：它跳的是整頁清單） */
@@ -69,6 +73,8 @@ const NEEDS_ID = {
   menu: true,
   homework: false,
   proposal: true,
+  book: true,
+  resource: true,
 };
 
 /** 餐別文字：午餐／小賣部。與菜單頁同一個語彙，不另造新詞 */
@@ -131,6 +137,19 @@ function decorateRow(row) {
     const count = Number(row.supportCount || 0);
     const goal = Number(row.goal || 0);
     metaText = i18n.pick('連署 ') + count + ' / ' + goal + ' · ' + fromNow(row.date);
+  } else if (row.type === 'book') {
+    // 館藏（W-92）：徽章寫「可借／已借完」，第二行直接寫可借冊數 ——
+    // 搜書的人要知道的是「現在借不借得到」，不是「多久以前上架」。借完的照樣列出來。
+    badgeLabel = row.badge === 'OUT' ? i18n.pick('已借完') : i18n.pick('可借');
+    badgeTag = row.badge === 'OUT' ? 'warning' : 'tint';
+    metaText = i18n.pick('可借') + ' ' + Number(row.available || 0) + ' / ' + Number(row.total || 0) + ' ' + i18n.pick('冊');
+  } else if (row.type === 'resource') {
+    // 場地器材（W-92）：badge 是「種類:狀態」，這裡只取種類；第二行寫位置 ——
+    // 「有鋼琴的那間房」按進去之前就要知道在哪一層樓。
+    const kind = (row.badge || '').split(':')[0];
+    badgeLabel = kind === 'EQUIPMENT' ? i18n.pick('器材') : i18n.pick('場地');
+    badgeTag = 'tint';
+    metaText = row.location || '';
   } else {
     const t = (row.badge || '').split(':')[0];
     const s = (row.badge || '').split(':')[1];
@@ -154,9 +173,9 @@ Page({
   labels() {
     return {
       title: i18n.pick('搜尋'),
-      placeholder: i18n.pick('搜尋公告、活動、失物、轉贈、菜單、功課與提案'),
+      placeholder: i18n.pick('搜尋公告、活動、失物、轉贈、館藏、場地、菜單、功課與提案'),
       hintTitle: i18n.pick('想找什麼？'),
-      hintDesc: i18n.pick('輸入關鍵字，一次搜遍公告、活動、失物、轉贈、菜單、功課與提案'),
+      hintDesc: i18n.pick('輸入關鍵字，一次搜遍公告、活動、失物、轉贈、館藏、場地、菜單、功課與提案'),
       recent: i18n.pick('最近搜尋'),
       clearRecent: i18n.pick('清除'),
       failed: i18n.pick('搜尋失敗'),
@@ -228,6 +247,9 @@ Page({
       { key: 'event', label: i18n.pick('活動') },
       { key: 'item', label: i18n.pick('失物') },
       { key: 'giveaway', label: i18n.pick('轉贈') },
+      // 館藏與場地（W-92）：library:read／resource:read 連訪客都有，所以不必看角色
+      { key: 'book', label: i18n.pick('館藏') },
+      { key: 'resource', label: i18n.pick('場地') },
       { key: 'menu', label: i18n.pick('菜單') },
     ];
     if (canHomework) list.push({ key: 'homework', label: i18n.pick('功課') });
