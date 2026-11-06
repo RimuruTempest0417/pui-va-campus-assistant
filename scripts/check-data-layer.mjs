@@ -997,6 +997,94 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-88 校園提案（示範層也要提得動、連署得了、校方回覆得了）──
+{
+  const listAll = await data.listProposals({});
+  const counts = listAll.counts || {};
+  const sumOf = ['OPEN', 'REVIEWING', 'PLANNED', 'DONE', 'DECLINED'].reduce((s, k) => s + (counts[k] || 0), 0);
+  check(
+    '提案：示範清單有資料且計數對得上',
+    (listAll.items || []).length >= 4 && counts.ALL === sumOf && counts.OPEN >= 1,
+    `${(listAll.items || []).length} 筆／OPEN ${counts.OPEN}／DONE ${counts.DONE}`,
+  );
+
+  const created = await data.createProposal({ title: '樓梯加裝扶手', body: '三樓到四樓的樓梯沒有扶手，下雨天很滑，希望加裝。', category: 'FACILITY' });
+  check(
+    '提案：作者自動算第一票且狀態是收集中',
+    created.supportCount === 1 && created.isMine === true && created.status === 'OPEN' && created.mySupported === true,
+    `${created.supportCount}/${created.goal}`,
+  );
+
+  const tooShort = await data.createProposal({ title: '太短', body: '太短' }).then((r) => r).catch((e) => e);
+  check('提案：標題或內容太短會被擋', tooShort && tooShort.code === 'VALIDATION_FAILED', tooShort && tooShort.code);
+
+  // 換一個人來連署：示範層要真的走「另一個人」的路徑，不是自己加自己
+  await data.switchDemoUser('李同學', 'demo-mate-1', 'STUDENT');
+  const first = await data.supportProposal('pp2');
+  const again = await data.supportProposal('pp2');
+  check(
+    '提案：連署加票，重複按不再加（already）',
+    first.already === false && again.already === true && first.supportCount === again.supportCount,
+    `${first.supportCount} → ${again.supportCount}`,
+  );
+
+  const closed = await data.supportProposal('pp3').then((r) => r).catch((e) => e);
+  check('提案：已完成的提案不能再連署', closed && closed.code === 'CONFLICT', closed && closed.code);
+
+  const sorted = await data.listProposals({ sort: 'support', limit: 20 });
+  const descending = (sorted.items || []).every((p, i) => i === 0 || sorted.items[i - 1].supportCount >= p.supportCount);
+  check('提案：最多連署排序遞減', descending, (sorted.items || []).map((p) => p.supportCount).join('>'));
+
+  const supported = await data.listProposals({ scope: 'supported', limit: 20 });
+  const allMine = (supported.items || []).every((p) => p.mySupported === true);
+  check('提案：我連署的清單只回我參與過的', allMine && (supported.items || []).length >= 1, `${(supported.items || []).length} 筆`);
+
+  // 作者不能取消自己那一票
+  await data.switchDemoUser('示範學生', 'demo-user', 'STUDENT');
+  const own = await data.unsupportProposal('pp2').then((r) => r).catch((e) => e);
+  check('提案：提案人不能取消自己的連署', own && own.code === 'VALIDATION_FAILED', own && own.code);
+
+  const studentReply = await data.replyProposal('pp2', { reply: '不應該成功' }).then((r) => r).catch((e) => e);
+  check('提案：學生不能回覆', studentReply && studentReply.code === 'FORBIDDEN', studentReply && studentReply.code);
+
+  await data.switchDemoUser('校務處', 'demo-staff', 'STAFF');
+  const replied = await data.replyProposal('pp2', { reply: '已請總務評估扶手位置。', status: 'REVIEWING' });
+  check(
+    '提案：校方回覆會改狀態並算出通知人數',
+    replied.reply && replied.reply.body.indexOf('扶手') !== -1 && replied.status === 'REVIEWING' && replied.notified >= 1,
+    `${replied.status}／通知 ${replied.notified} 人`,
+  );
+
+  const admin = await data.adminProposals({});
+  check(
+    '提案：後台統計由資料層算（不用前端加總）',
+    admin.stats.proposals === admin.counts.ALL && admin.stats.supports >= admin.stats.proposals && !!admin.categories,
+    `${admin.stats.proposals} 個／${admin.stats.supports} 人次`,
+  );
+
+  const removed = await data.removeProposal('pp4');
+  const afterRemove = await data.listProposals({ limit: 20 });
+  check(
+    '提案：下架後前台清單看不到',
+    removed.deleted === true && !(afterRemove.items || []).some((p) => p.id === 'pp4'),
+    `剩 ${(afterRemove.items || []).length} 筆`,
+  );
+
+  await data.switchDemoUser('示範學生', 'demo-user', 'STUDENT');
+  const homeWxmlPp = readFileSync(join(here, '..', 'pages', 'index', 'index.wxml'), 'utf8');
+  const apiSrcPp = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  const appJsonPp = JSON.parse(readFileSync(join(here, '..', 'app.json'), 'utf8'));
+  check(
+    '提案：有畫面入口＋真 API 端點＋頁面已登記',
+    homeWxmlPp.indexOf('goProposals') !== -1 &&
+      apiSrcPp.indexOf("'/proposals'") !== -1 &&
+      appJsonPp.pages.indexOf('pages/proposals/list/index') !== -1 &&
+      appJsonPp.pages.indexOf('pages/proposals/detail/index') !== -1 &&
+      appJsonPp.pages.indexOf('pages/proposals/create/index') !== -1,
+    '首頁 → 列表 → 詳情／提出建議',
+  );
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

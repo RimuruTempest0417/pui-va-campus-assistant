@@ -363,4 +363,22 @@ module.exports = {
     if (className) body.className = className;
     return http.post('/admin/demo-data', body);
   },
+
+  // ── W-88 校園提案後台（能力 proposal:reply：校內職員以上）──
+  proposalsAll(params) {
+    const q = params || {};
+    const query = {};
+    if (q.status && q.status !== 'ALL') query.status = q.status;
+    if (q.category) query.category = q.category;
+    if (q.q) query.q = q.q;
+    return http.get('/admin/proposals', query);
+  },
+  /** 回覆會同時改狀態，並通知提案人與所有連署人（後端一次做完） */
+  replyProposal(id, body) {
+    return http.post('/admin/proposals/' + id + '/reply', body);
+  },
+  /** 下架＝軟刪除，回收桶救得回來 */
+  removeProposal(id) {
+    return http.del('/proposals/' + id);
+  },
 };

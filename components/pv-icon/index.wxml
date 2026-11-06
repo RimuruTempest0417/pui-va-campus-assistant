@@ -72,4 +72,13 @@
     <view class="i-form-stamp" />
   </block>
 
+  <!-- 校園提案（W-88）：燈泡（圓＋底座兩條＋上方兩道射線） -->
+  <block wx:elif="{{name === 'idea'}}">
+    <view class="i-bulb" />
+    <view class="i-bulb-base i-bulb-base--1" />
+    <view class="i-bulb-base i-bulb-base--2" />
+    <view class="i-bulb-ray i-bulb-ray--l" />
+    <view class="i-bulb-ray i-bulb-ray--r" />
+  </block>
+
 </view>

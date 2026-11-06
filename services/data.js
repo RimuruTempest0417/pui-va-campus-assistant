@@ -234,4 +234,15 @@ module.exports = {
   parentChildHomework: (...a) => call('parentChildHomework', a),
   homeworkStats: (...a) => call('homeworkStats', a),
   homeworkPending: (...a) => call('homeworkPending', a),
+
+  // ── W-88 校園提案與連署（讀取訪客可看；提案／連署要登入；回覆是校內職員）──
+  listProposals: (...a) => call('listProposals', a),
+  getProposal: (...a) => call('getProposal', a),
+  createProposal: (...a) => call('createProposal', a),
+  updateProposal: (...a) => call('updateProposal', a),
+  supportProposal: (...a) => call('supportProposal', a),
+  unsupportProposal: (...a) => call('unsupportProposal', a),
+  removeProposal: (...a) => call('removeProposal', a),
+  adminProposals: (...a) => call('adminProposals', a),
+  replyProposal: (...a) => call('replyProposal', a),
 };

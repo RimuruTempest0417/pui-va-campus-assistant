@@ -5174,6 +5174,294 @@ paths:
         '403': { description: 能力不足 }
         '422': { description: CSV 空白或太長 }
 
+  # ── W-88 校園提案與連署 ──────────────────────────────────────────────
+  /proposals:
+    get:
+      tags: [proposals]
+      summary: 提案清單（訪客可看；票數由後端算）
+      description: 已刪除的提案一律不出現。counts 是各狀態件數（ALL 為總數），goal 是新提案的預設門檻。
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [ALL, OPEN, REVIEWING, PLANNED, DONE, DECLINED], default: ALL } }
+        - { name: category, in: query, schema: { type: string, enum: [FACILITY, STUDY, ACTIVITY, CANTEEN, OTHER] } }
+        - { name: q, in: query, schema: { type: string, maxLength: 60 }, description: 比對標題與內容 }
+        - { name: sort, in: query, schema: { type: string, enum: [new, support], default: new } }
+        - { name: scope, in: query, schema: { type: string, enum: [all, mine, supported], default: all }, description: supported 是「我連署過的」；未登入時 mine 與 supported 回空清單 }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 清單與統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  page: { type: integer }
+                  goal: { type: integer, example: 20 }
+                  counts:
+                    type: object
+                    properties:
+                      OPEN: { type: integer }
+                      REVIEWING: { type: integer }
+                      PLANNED: { type: integer }
+                      DONE: { type: integer }
+                      DECLINED: { type: integer }
+                      ALL: { type: integer }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Proposal' }
+    post:
+      tags: [proposals]
+      summary: 提出建議（作者自動算第一位連署人）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, body]
+              properties:
+                title: { type: string, minLength: 4, maxLength: 80 }
+                body: { type: string, minLength: 10, maxLength: 2000 }
+                category: { type: string, enum: [FACILITY, STUDY, ACTIVITY, CANTEEN, OTHER], default: OTHER }
+      responses:
+        '201':
+          description: 已建立（supportCount 從 1 起算）
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Proposal' }
+        '401': { description: 未登入 }
+        '403': { description: 家長沒有權限提出建議 }
+        '422': { description: 標題或內容太短 }
+
+  /proposals/{id}:
+    get:
+      tags: [proposals]
+      summary: 提案詳情（含回覆、前 12 位連署人與我的權限旗標）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 詳情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/Proposal' }
+                  - type: object
+                    properties:
+                      body: { type: string }
+                      reply:
+                        type: object
+                        nullable: true
+                        properties:
+                          body: { type: string }
+                          byName: { type: string, nullable: true }
+                          at: { type: string, format: date-time }
+                      supporters:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            nickname: { type: string }
+                            role: { type: string }
+                      canEdit: { type: boolean, description: 作者且狀態仍是 OPEN }
+                      canReply: { type: boolean, description: "需要 proposal:reply（校內職員以上）" }
+                      canModerate: { type: boolean }
+        '404': { description: 找不到或已撤回 }
+    patch:
+      tags: [proposals]
+      summary: 作者改內容（只有 OPEN；帶 version 防覆蓋）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string, minLength: 4, maxLength: 80 }
+                body: { type: string, minLength: 10, maxLength: 2000 }
+                category: { type: string, enum: [FACILITY, STUDY, ACTIVITY, CANTEEN, OTHER] }
+                version: { type: integer, minimum: 0, description: 選填；不帶就照舊成功並遞增 }
+      responses:
+        '200':
+          description: 已更新
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Proposal' }
+        '403': { description: 不是提案人 }
+        '404': { description: 找不到 }
+        '409': { description: 版本不符或校方已開始處理 }
+    delete:
+      tags: [proposals]
+      summary: 撤回／下架（軟刪除，回收桶救得回來）
+      description: "作者只能在狀態仍是 OPEN 時撤回；校方（proposal:moderate）任何狀態都可以下架。"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已刪除
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  deleted: { type: boolean }
+                  id: { type: string }
+        '403': { description: 不是提案人也不是校方 }
+        '404': { description: 找不到 }
+        '409': { description: 校方已開始處理，作者不能撤回 }
+
+  /proposals/{id}/support:
+    post:
+      tags: [proposals]
+      summary: 連署（一人一票；重複按回 already 為 true，不加票）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 目前票數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  already: { type: boolean, description: 之前已經連署過（這次沒有加票） }
+                  supportCount: { type: integer }
+                  goal: { type: integer }
+                  reached: { type: boolean }
+        '401': { description: 未登入 }
+        '403': { description: 家長沒有連署權限 }
+        '404': { description: 找不到 }
+        '409': { description: 提案已結案（DONE 或 DECLINED）不能再連署 }
+    delete:
+      tags: [proposals]
+      summary: 取消連署（提案人不能取消自己那一票）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 目前票數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  supportCount: { type: integer }
+                  goal: { type: integer }
+                  reached: { type: boolean }
+        '403': { description: 家長沒有連署權限 }
+        '404': { description: 找不到 }
+        '422': { description: 提案人不能取消自己的連署 }
+
+  /admin/proposals:
+    get:
+      tags: [admin, proposals]
+      summary: 後台提案清單與統計（校內職員以上）
+      description: counts／categories／stats 都由後端算，前端不要自己再加總。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [ALL, OPEN, REVIEWING, PLANNED, DONE, DECLINED], default: ALL } }
+        - { name: category, in: query, schema: { type: string, enum: [FACILITY, STUDY, ACTIVITY, CANTEEN, OTHER] } }
+        - { name: q, in: query, schema: { type: string, maxLength: 60 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 清單與統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Proposal' }
+                  counts:
+                    type: object
+                    properties:
+                      OPEN: { type: integer }
+                      REVIEWING: { type: integer }
+                      PLANNED: { type: integer }
+                      DONE: { type: integer }
+                      DECLINED: { type: integer }
+                      ALL: { type: integer }
+                  categories:
+                    type: object
+                    properties:
+                      FACILITY: { type: integer }
+                      STUDY: { type: integer }
+                      ACTIVITY: { type: integer }
+                      CANTEEN: { type: integer }
+                      OTHER: { type: integer }
+                  stats:
+                    type: object
+                    properties:
+                      proposals: { type: integer }
+                      supports: { type: integer, description: 連署人次的總和 }
+                      reached: { type: integer, description: 已達門檻的提案數 }
+        '403': { description: 老師與學生沒有提案回覆權限 }
+
+  /admin/proposals/{id}:
+    get:
+      tags: [admin, proposals]
+      summary: 單一提案（含回覆內容，供後台編輯）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 詳情
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Proposal' }
+        '403': { description: 權限不足 }
+        '404': { description: 找不到 }
+
+  /admin/proposals/{id}/reply:
+    post:
+      tags: [admin, proposals]
+      summary: 回覆並改狀態（通知提案人與所有連署人）
+      description: 不帶 status 時，OPEN 會自動變 REVIEWING；其他狀態原樣保留。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reply]
+              properties:
+                reply: { type: string, minLength: 2, maxLength: 2000 }
+                status: { type: string, enum: [OPEN, REVIEWING, PLANNED, DONE, DECLINED] }
+      responses:
+        '200':
+          description: 已回覆（notified 是實際送出通知的人數）
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/Proposal' }
+                  - type: object
+                    properties:
+                      notified: { type: integer, example: 6 }
+        '403': { description: 權限不足 }
+        '404': { description: 找不到 }
+        '422': { description: 回覆太短 }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -5209,6 +5497,31 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
 
   schemas:
+    Proposal:
+      type: object
+      description: 一個校園提案（W-88）。supportCount 與 goal 一起看才有意義；reached 代表是否已達門檻。
+      properties:
+        id: { type: string }
+        title: { type: string, example: 圖書館段考前延長開放時間 }
+        category: { type: string, enum: [FACILITY, STUDY, ACTIVITY, CANTEEN, OTHER] }
+        status: { type: string, enum: [OPEN, REVIEWING, PLANNED, DONE, DECLINED] }
+        supportCount: { type: integer, example: 6 }
+        goal: { type: integer, example: 20 }
+        reached: { type: boolean }
+        reachedAt: { type: string, format: date-time, nullable: true }
+        repliedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        isMine: { type: boolean }
+        mySupported: { type: boolean }
+        version: { type: integer }
+        author:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+            grade: { type: string, nullable: true }
+            className: { type: string, nullable: true }
     ResourceBooking:
       type: object
       description: 一筆場地／器材借用申請（W-67）

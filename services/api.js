@@ -254,4 +254,16 @@ module.exports = {
   parentChildHomework(childId) { return http.get('/parents/me/children/' + childId + '/homework'); },
   homeworkStats(query) { return http.get('/homework/stats', query || {}); },
   homeworkPending(id) { return http.get('/homework/' + id + '/pending'); },
+
+  // ── W-88 校園提案（查詢訪客可看；提案／連署要登入；回覆是校內職員）──
+  listProposals(query) { return http.get('/proposals', query || {}); },
+  getProposal(id) { return http.get('/proposals/' + id); },
+  createProposal(body) { return http.post('/proposals', body); },
+  updateProposal(id, body) { return http.patch('/proposals/' + id, body); },
+  supportProposal(id) { return http.post('/proposals/' + id + '/support', {}); },
+  unsupportProposal(id) { return http.del('/proposals/' + id + '/support'); },
+  /** 撤回／下架＝軟刪除，回收桶救得回來 */
+  removeProposal(id) { return http.del('/proposals/' + id); },
+  adminProposals(query) { return http.get('/admin/proposals', query || {}); },
+  replyProposal(id, body) { return http.post('/admin/proposals/' + id + '/reply', body); },
 };

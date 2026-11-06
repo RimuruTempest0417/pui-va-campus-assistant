@@ -74,3 +74,13 @@
 .i-form-line--1 { top: 32%; width: 44%; }
 .i-form-line--2 { top: 44%; width: 28%; }
 .i-form-stamp { position: absolute; right: 10%; bottom: 8%; width: 24%; height: 24%; border: 2rpx solid var(--ico); border-radius: 50%; background: var(--pv-surface); }
+
+/* 校園提案（W-88）：燈泡（圓形燈身＋底座兩條＋左右各一道射線）
+   射線用兩條短線旋轉 ±35°，比畫一個完整星芒乾淨，縮到 24rpx 也還看得出來是「想法」。 */
+.i-bulb { position: absolute; top: 8%; left: 26%; width: 48%; height: 48%; border: 2rpx solid var(--ico); border-radius: 50%; }
+.i-bulb-base { position: absolute; height: 2rpx; background: var(--ico); border-radius: 2rpx; }
+.i-bulb-base--1 { top: 62%; left: 34%; width: 32%; }
+.i-bulb-base--2 { top: 76%; left: 42%; width: 16%; }
+.i-bulb-ray { position: absolute; top: 6%; width: 2rpx; height: 12%; background: var(--ico); border-radius: 2rpx; }
+.i-bulb-ray--l { left: 12%; transform: rotate(-32deg); }
+.i-bulb-ray--r { right: 12%; transform: rotate(32deg); }

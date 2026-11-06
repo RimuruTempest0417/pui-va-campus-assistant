@@ -33,6 +33,16 @@ function homeworkLine(hw) {
   return i18n.pick('功課') + ' ' + st.todo + tail;
 }
 
+/** 首頁提案入口的副標：有幾個還在收集中、其中幾個我還沒連署（後端已排除結案） */
+function proposalsTextOf(res, meId) {
+  const items = (res && res.items) || [];
+  if (!items.length) return i18n.pick('還沒有提案，你可以當第一個');
+  const open = (res.counts && res.counts.OPEN) || items.length;
+  const todo = items.filter((p) => !p.mySupported && !p.isMine && meId).length;
+  if (todo > 0) return open + i18n.pick(' 個提案 · ') + todo + i18n.pick(' 個等你連署');
+  return open + i18n.pick(' 個提案收集中');
+}
+
 /** 首頁場地入口的副標：現在開放的場地／器材數（澳門時間判定，與詳情頁同一套） */
 function venueOpenText(items) {
   const now = Date.now();
@@ -81,6 +91,8 @@ Page({
     timetablePressed: false,
     homeworkText: '',
     homeworkPressed: false,
+    proposalsText: '',
+    proposalPressed: false,
     // 家長：只在家長身分時才有值（切換子女就在首頁做，不必先點進別的頁）
     parentChildren: [],
     parentActiveId: '',
@@ -125,6 +137,8 @@ Page({
       k28: i18n.pick('送出後班主任會收到'),
       k29: i18n.pick('今日課表'),
       k31: i18n.pick('功課'),
+      k32: i18n.pick('校園提案'),
+      k33: i18n.pick('提出改善建議，同學連署'),
       k30: i18n.pick('今天不用上課'),
       brand: i18n.pick('培華校園助手'),
       brandSub: i18n.pick('PUI VA CAMPUS'),
@@ -283,7 +297,7 @@ Page({
       // 首次進入先嘗試登入（沒有後端就當訪客，不阻塞畫面）
       await data.ensureLogin();
 
-      const [me, items, events, menu, notices, lib, resources, giveaways, timetable, homework] = await Promise.all([
+      const [me, items, events, menu, notices, lib, resources, giveaways, timetable, homework, proposals] = await Promise.all([
         // 未登入時 me() 會 401；首頁是公開頁，訪客照樣要能看到四個模組
         data.me().catch(() => null),
         data.listItems({}),
@@ -300,6 +314,8 @@ Page({
         data.timetableToday().catch(() => null),
         // 功課入口的副標（未交幾項）：未登入或沒班級時失敗，副標顯示「—」
         data.listHomework({ scope: 'todo' }).catch(() => null),
+        // 提案入口的副標（幾個提案、幾個等我連署）：失敗不影響首頁
+        data.listProposals({ status: 'OPEN', sort: 'support', limit: 10 }).catch(() => null),
       ]);
 
       // 緊急公告：只在真的有 URGENT 時顯示第一則
@@ -389,6 +405,7 @@ Page({
                 : homework.stats.todo + i18n.pick(' 項未交')
               : i18n.pick('功課都交了')
           : '—',
+        proposalsText: proposalsTextOf(proposals, (me && me.id) || ''),
         user: me || {},
         parentChildren: parentChildren,
         parentActiveId: parentActiveId,
@@ -531,6 +548,19 @@ Page({
 
   goHomework() {
     wx.navigateTo({ url: '/pages/homework/index' });
+  },
+
+  // ── 校園提案入口（W-88）：第八條列；副標是「N 個提案 · M 個等你連署」──
+  onPpTouchStart() {
+    this.setData({ proposalPressed: true });
+  },
+
+  onPpTouchEnd() {
+    this.setData({ proposalPressed: false });
+  },
+
+  goProposals() {
+    wx.navigateTo({ url: '/pages/proposals/list/index' });
   },
 
   onRetry() {

@@ -52,6 +52,20 @@
   font-size: var(--pv-fs-footnote); color: var(--pv-label-2);
 }
 .chip--on { background: var(--pv-tint-soft); color: var(--pv-tint); font-weight: 600; }
+.chip--ghost { background: var(--pv-surface); color: var(--pv-label-3); }
+
+/* W-88 提案回覆輸入框：與後台其他 textarea 同一個高度策略（auto-height，最少三行） */
+.pp-reply {
+  width: 100%;
+  min-height: 120rpx;
+  margin: var(--pv-sp-1) 0;
+  padding: var(--pv-sp-2);
+  box-sizing: border-box;
+  background: var(--pv-fill);
+  border-radius: var(--pv-r-sm);
+  font-size: var(--pv-fs-subhead);
+  color: var(--pv-label);
+}
 
 .field__input {
   padding: 18rpx var(--pv-sp-2); background: var(--pv-fill);

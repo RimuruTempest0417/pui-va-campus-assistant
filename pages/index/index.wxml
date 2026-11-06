@@ -193,6 +193,22 @@
       <pv-icon name="chevron" size="24" tone="muted" />
     </view>
 
+    <!-- 校園提案（W-88）：第八條入口列；副標是「N 個提案 · M 個等你連署」 -->
+    <view
+      class="lib {{proposalPressed ? 'lib--pressed' : ''}}"
+      bindtouchstart="onPpTouchStart"
+      bindtouchend="onPpTouchEnd"
+      bindtouchcancel="onPpTouchEnd"
+      bindtap="goProposals"
+    >
+      <view class="lib__icon"><pv-icon name="idea" size="40" tone="tint" /></view>
+      <view class="lib__main">
+        <text class="lib__title">{{L.k32}}</text>
+        <text class="lib__sub">{{proposalsText}}</text>
+      </view>
+      <pv-icon name="chevron" size="24" tone="muted" />
+    </view>
+
     <!-- 今日午餐 ＋ 小賣部（合成一張卡，內部用小標題與髮絲線分組） -->
     <view class="pv-group-title">{{L.k03}}</view>
     <pv-card>

@@ -1,0 +1,75 @@
+<view class="{{themeClass}} ui-page page-root {{item ? 'ui-page--withbar' : ''}}">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="detail-inner">
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="4" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="3" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{notFound}}" title="{{L.k04}}" desc="{{L.k05}}" />
+      <pv-empty wx:elif="{{failed}}" title="{{L.k02}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k03}}</pv-button>
+      </pv-empty>
+
+      <block wx:else>
+        <view class="ui-card">
+          <view class="head">
+            <view class="head__mark"><text class="head__mark-text">{{item.mark}}</text></view>
+            <view class="head__main">
+              <text class="head__title">{{item.title}}</text>
+              <text class="ui-meta head__meta">{{item.authorText}} · {{item.categoryText}} · {{item.dateText}}</text>
+            </view>
+            <pv-tag text="{{item.statusText}}" type="{{item.statusTag}}" />
+          </view>
+
+          <view class="bar">
+            <view class="bar__track">
+              <view class="bar__fill" style="width: {{item.percent}}%"></view>
+            </view>
+            <text class="bar__text">{{item.countText}}</text>
+          </view>
+          <text wx:if="{{item.reached}}" class="bar__hint">{{L.k27}}</text>
+
+          <view class="sep"></view>
+          <text class="section-title">{{L.k06}}</text>
+          <text class="body-text">{{item.body}}</text>
+
+          <block wx:if="{{item.supporters.length}}">
+            <view class="sep"></view>
+            <text class="section-title">{{L.k25}}</text>
+            <view class="supporters">
+              <view wx:for="{{item.supporters}}" wx:key="id" class="supporter">{{item.nickname}}</view>
+            </view>
+          </block>
+        </view>
+
+        <view class="ui-card ui-card--last reply-card">
+          <text class="section-title">{{L.k08}}</text>
+          <block wx:if="{{item.reply}}">
+            <text class="body-text">{{item.reply.body}}</text>
+            <text class="ui-meta reply__meta">{{item.reply.byName}} · {{item.replyText}}</text>
+          </block>
+          <text wx:else class="ui-meta">{{L.k09}}</text>
+
+          <view wx:if="{{item.canModerate}}" class="moderate">
+            <view class="moderate__link" bindtap="onWithdraw">{{L.k15}}</view>
+          </view>
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+
+  <view wx:if="{{item && barKind !== 'none'}}" class="bar-fixed">
+    <pv-button
+      type="{{barKind === 'support' ? 'filled' : 'tinted'}}"
+      block="{{true}}"
+      disabled="{{barDisabled || busy}}"
+      loading="{{busy}}"
+      bind:tap="onPrimary"
+    >{{busy ? L.k28 : barText}}</pv-button>
+    <view wx:if="{{item.isMine && item.status === 'OPEN'}}" class="bar-fixed__link" bindtap="onWithdraw">{{L.k14}}</view>
+  </view>
+</view>

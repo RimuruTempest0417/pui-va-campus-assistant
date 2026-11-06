@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 16;
+const SEED_VERSION = 17;
 
 const weekUtil = require('../utils/week');
 const venue = require('../utils/venue');
@@ -240,6 +240,98 @@ function seed() {
       { id: 'hw4', className: '初二忠', subject: '數學', title: '工作紙 3（小數四則）', detail: '', dueAt: now + 30 * h, createdById: 'demo-teacher' },
     ],
     homeworkDone: [{ id: 'hd1', homeworkId: 'hw3', userId: 'demo-user', doneAt: now - 2 * h }],
+    // ── 校園提案（W-88）──
+    // 四種狀態各一筆，讓「連署／校方回覆／已完成／撤回」在離線演示時都走得到。
+    // 票數不另存，一律由 supporters 陣列長度算出來 —— 示範層若同時存 supportCount 與名單，
+    // 兩者一定會有一天對不上（後端也是以唯一鍵的列數為準）。
+    proposals: [
+      {
+        id: 'pp1',
+        title: '圖書館段考前兩週延長開放至晚上七點',
+        body: '段考前一週圖書館五點就關，住得遠的同學只能回家讀。建議段考前兩週開到晚上七點，並開放二樓自習室。',
+        category: 'FACILITY',
+        status: 'REVIEWING',
+        authorId: 'demo-teacher',
+        authorNickname: '陳老師',
+        authorClass: '',
+        goal: 8,
+        reachedAt: null,
+        reply: { body: '已排入本學期圖書館開放時間檢討，會先試辦兩週再評估人力。', byName: '校務處', at: now - 20 * h },
+        version: 1,
+        createdAt: now - 3 * 24 * h,
+        supporters: [
+          { userId: 'demo-mate-1', nickname: '李同學', createdAt: now - 3 * 24 * h },
+          { userId: 'demo-mate-2', nickname: '黃同學', createdAt: now - 2 * 24 * h },
+          { userId: 'demo-mate-3', nickname: '周同學', createdAt: now - 2 * 24 * h },
+          { userId: 'demo-user', nickname: '示範學生', createdAt: now - 30 * h },
+          { userId: 'demo-mate-4', nickname: '吳同學', createdAt: now - 26 * h },
+          { userId: 'demo-mate-5', nickname: '何同學', createdAt: now - 24 * h },
+        ],
+      },
+      {
+        id: 'pp2',
+        title: '小賣部增加熱食選擇',
+        body: '冬天小賣部只有三文治，建議增加熱狗、燒賣這類可以即食的熱食，價格控制在十元以內。',
+        category: 'CANTEEN',
+        status: 'OPEN',
+        authorId: 'demo-user',
+        authorNickname: '示範學生',
+        authorClass: '高二 仁',
+        goal: 8,
+        reachedAt: null,
+        reply: null,
+        version: 0,
+        createdAt: now - 9 * h,
+        supporters: [{ userId: 'demo-user', nickname: '示範學生', createdAt: now - 9 * h }],
+      },
+      {
+        id: 'pp3',
+        title: '段考前一週增設晚自習班',
+        body: '希望段考前一週每天放學後留一間課室做晚自習，由老師輪值看堂。',
+        category: 'STUDY',
+        status: 'DONE',
+        authorId: 'demo-mate-2',
+        authorNickname: '黃同學',
+        authorClass: '高二 信',
+        goal: 10,
+        reachedAt: now - 12 * 24 * h,
+        reply: { body: '本學年第一次段考前一週已開設，共 46 人次使用，下學期會繼續。', byName: '資訊管理員', at: now - 6 * 24 * h },
+        version: 2,
+        createdAt: now - 26 * 24 * h,
+        supporters: [
+          { userId: 'demo-mate-2', nickname: '黃同學', createdAt: now - 26 * 24 * h },
+          { userId: 'demo-mate-1', nickname: '李同學', createdAt: now - 25 * 24 * h },
+          { userId: 'demo-mate-3', nickname: '周同學', createdAt: now - 25 * 24 * h },
+          { userId: 'demo-mate-4', nickname: '吳同學', createdAt: now - 24 * 24 * h },
+          { userId: 'demo-mate-5', nickname: '何同學', createdAt: now - 24 * 24 * h },
+          { userId: 'demo-mate-6', nickname: '鄭同學', createdAt: now - 23 * 24 * h },
+          { userId: 'demo-mate-7', nickname: '林同學', createdAt: now - 22 * 24 * h },
+          { userId: 'demo-mate-8', nickname: '梁同學', createdAt: now - 22 * 24 * h },
+          { userId: 'demo-user', nickname: '示範學生', createdAt: now - 21 * 24 * h },
+          { userId: 'demo-mate-9', nickname: '羅同學', createdAt: now - 20 * 24 * h },
+          { userId: 'demo-mate-10', nickname: '蘇同學', createdAt: now - 19 * 24 * h },
+        ],
+      },
+      {
+        id: 'pp4',
+        title: '每間課室加裝掛鐘',
+        body: '考試時看不到時間，只能一直問監考老師。建議每間課室前方加裝一個掛鐘，並統一校時。',
+        category: 'FACILITY',
+        status: 'OPEN',
+        authorId: 'demo-mate-3',
+        authorNickname: '周同學',
+        authorClass: '高一 忠',
+        goal: 8,
+        reachedAt: null,
+        reply: null,
+        version: 0,
+        createdAt: now - 40 * h,
+        supporters: [
+          { userId: 'demo-mate-3', nickname: '周同學', createdAt: now - 40 * h },
+          { userId: 'demo-mate-4', nickname: '吳同學', createdAt: now - 36 * h },
+        ],
+      },
+    ],
   };
 }
 
@@ -676,6 +768,91 @@ function demoDayOff(data, dayKey, now) {
   })[0];
   if (allDay) return { source: 'event', id: allDay.id, title: allDay.title, reason: allDay.title + '（全校活動）' };
   return null;
+}
+
+// ── W-88 校園提案：表單顯示欄位（與後端 shape() 同名同義）──
+const PROPOSAL_CATEGORY_LABEL = { FACILITY: '校園設施', STUDY: '課堂學習', ACTIVITY: '活動建議', CANTEEN: '餐飲', OTHER: '其他' };
+const PROPOSAL_STATUS_LABEL = { OPEN: '收集中', REVIEWING: '校方處理中', PLANNED: '已列入計劃', DONE: '已完成', DECLINED: '暫不採納' };
+
+function proposalRole(data) {
+  return (data.user && data.user.role) || 'STUDENT';
+}
+
+function shapeProposal(data, row, opts) {
+  const o = opts || {};
+  const me = (data.user && data.user.id) || '';
+  const supporters = row.supporters || [];
+  const count = supporters.length;
+  const goal = row.goal || 20;
+  const mine = supporters.filter((s) => s.userId === me)[0];
+  const role = proposalRole(data);
+  const out = {
+    id: row.id,
+    title: row.title,
+    category: row.category || 'OTHER',
+    categoryLabel: PROPOSAL_CATEGORY_LABEL[row.category] || '其他',
+    status: row.status || 'OPEN',
+    statusLabel: PROPOSAL_STATUS_LABEL[row.status] || '收集中',
+    supportCount: count,
+    goal: goal,
+    reached: count >= goal,
+    reachedAt: row.reachedAt ? new Date(row.reachedAt).toISOString() : null,
+    repliedAt: row.reply ? new Date(row.reply.at).toISOString() : null,
+    createdAt: new Date(row.createdAt).toISOString(),
+    author: { id: row.authorId, nickname: row.authorNickname || '同學', grade: '', className: row.authorClass || '' },
+    isMine: row.authorId === me,
+    mySupported: !!mine,
+    version: row.version || 0,
+  };
+  if (o.detail) {
+    out.body = row.body || '';
+    out.reply = row.reply
+      ? { body: row.reply.body, byName: row.reply.byName || '', at: new Date(row.reply.at).toISOString() }
+      : null;
+    out.supporters = supporters.map((s) => ({ id: s.userId, nickname: s.nickname }));
+    out.canEdit = row.authorId === me && row.status === 'OPEN';
+    out.canReply = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1;
+    out.canModerate = out.canReply;
+  }
+  return out;
+}
+
+/** 示範層的提案清單（票數＝supporters 長度，與後端「以唯一鍵列數為準」一致） */
+function proposalList(data, opts) {
+  const o = opts || {};
+  const me = (data.user && data.user.id) || '';
+  const status = o.status || 'ALL';
+  const category = o.category || '';
+  const scope = o.scope || 'all';
+  const q = (o.q || '').trim();
+  const sort = o.sort || 'new';
+  const page = o.page || 1;
+  const limit = o.limit || 20;
+
+  const all = (data.proposals || []).filter((p) => !p.deletedAt);
+  const counts = { OPEN: 0, REVIEWING: 0, PLANNED: 0, DONE: 0, DECLINED: 0, ALL: all.length };
+  all.forEach((p) => {
+    counts[p.status] = (counts[p.status] || 0) + 1;
+  });
+
+  let rows = all.slice();
+  if (status !== 'ALL') rows = rows.filter((p) => p.status === status);
+  if (category) rows = rows.filter((p) => p.category === category);
+  if (scope === 'mine') rows = rows.filter((p) => p.authorId === me);
+  if (scope === 'supported') rows = rows.filter((p) => (p.supporters || []).some((s) => s.userId === me));
+  if (q) rows = rows.filter((p) => (p.title + ' ' + (p.body || '')).indexOf(q) !== -1);
+
+  rows.sort((a, b) => {
+    if (sort === 'support') {
+      const d = (b.supporters || []).length - (a.supporters || []).length;
+      if (d !== 0) return d;
+    }
+    return b.createdAt - a.createdAt;
+  });
+
+  const total = rows.length;
+  const slice = rows.slice((page - 1) * limit, (page - 1) * limit + limit);
+  return { items: slice.map((p) => shapeProposal(data, p)), total: total, page: page, counts: counts, goal: 20 };
 }
 
 module.exports = {
@@ -2763,5 +2940,165 @@ module.exports = {
     ];
     const pending = all.filter((m) => doneIds.indexOf(m.id) === -1);
     return Promise.resolve({ id: id, className: row.className, total: all.length, done: all.length - pending.length, pending: pending });
+  },
+
+  // ── W-88 校園提案（示範層同一套規則：一人一票、結案不能連署、作者不能取消自己的連署）──
+  listProposals(query) {
+    const data = db();
+    return Promise.resolve(proposalList(data, query || {}));
+  },
+
+  getProposal(id) {
+    const data = db();
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    return Promise.resolve(shapeProposal(data, row, { detail: true }));
+  },
+
+  createProposal(body) {
+    const data = db();
+    const me = data.user || {};
+    const b = body || {};
+    const title = String(b.title || '').trim();
+    const text = String(b.body || '').trim();
+    if (title.length < 4) return Promise.reject({ code: 'VALIDATION_FAILED', message: '標題至少 4 個字' });
+    if (text.length < 10) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請把建議寫清楚（至少 10 個字）' });
+    const row = {
+      id: nextId('pp-'),
+      title: title,
+      body: text,
+      category: b.category || 'OTHER',
+      status: 'OPEN',
+      authorId: me.id,
+      authorNickname: me.nickname,
+      authorClass: [me.grade, me.className].filter(Boolean).join(' '),
+      goal: 8,
+      reachedAt: null,
+      reply: null,
+      version: 0,
+      createdAt: Date.now(),
+      supporters: [{ userId: me.id, nickname: me.nickname, createdAt: Date.now() }],
+    };
+    data.proposals = data.proposals || [];
+    data.proposals.unshift(row);
+    save(data);
+    return Promise.resolve(shapeProposal(data, row, { detail: true }));
+  },
+
+  updateProposal(id, body) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    if (row.authorId !== me.id) return Promise.reject({ code: 'FORBIDDEN', message: '只有提案人可以改內容' });
+    if (row.status !== 'OPEN') return Promise.reject({ code: 'CONFLICT', message: '校方已經開始處理，不能再改內容' });
+    const b = body || {};
+    if (b.version !== undefined && b.version !== row.version) {
+      return Promise.reject({ code: 'CONFLICT', message: '這個提案已經被改過，請重新載入再改' });
+    }
+    if (b.title !== undefined) row.title = String(b.title).trim();
+    if (b.body !== undefined) row.body = String(b.body).trim();
+    if (b.category !== undefined) row.category = b.category;
+    row.version += 1;
+    save(data);
+    return Promise.resolve(shapeProposal(data, row, { detail: true }));
+  },
+
+  supportProposal(id) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    if (row.status === 'DONE' || row.status === 'DECLINED') {
+      return Promise.reject({ code: 'CONFLICT', message: '這個提案已經結案，不能再連署' });
+    }
+    row.supporters = row.supporters || [];
+    const already = row.supporters.some((s) => s.userId === me.id);
+    if (!already) {
+      row.supporters.push({ userId: me.id, nickname: me.nickname, createdAt: Date.now() });
+      if (row.supporters.length >= (row.goal || 20) && !row.reachedAt) row.reachedAt = Date.now();
+      save(data);
+    }
+    return Promise.resolve({
+      ok: true,
+      already: already,
+      supportCount: row.supporters.length,
+      goal: row.goal || 20,
+      reached: row.supporters.length >= (row.goal || 20),
+    });
+  },
+
+  unsupportProposal(id) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    if (row.authorId === me.id) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '提案人不能取消自己的連署，要收回提案請用「撤回」' });
+    }
+    row.supporters = (row.supporters || []).filter((s) => s.userId !== me.id);
+    save(data);
+    return Promise.resolve({
+      ok: true,
+      supportCount: row.supporters.length,
+      goal: row.goal || 20,
+      reached: row.supporters.length >= (row.goal || 20),
+    });
+  },
+
+  removeProposal(id) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    const manager = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(proposalRole(data)) !== -1;
+    if (row.authorId !== me.id && !manager) return Promise.reject({ code: 'FORBIDDEN', message: '只有提案人或校方可以下架' });
+    row.deletedAt = Date.now();
+    save(data);
+    return Promise.resolve({ ok: true, deleted: true, id: id });
+  },
+
+  adminProposals(query) {
+    const data = db();
+    const role = proposalRole(data);
+    if (['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const list = proposalList(data, query || {});
+    const all = (data.proposals || []).filter((p) => !p.deletedAt);
+    const categories = { FACILITY: 0, STUDY: 0, ACTIVITY: 0, CANTEEN: 0, OTHER: 0 };
+    let supports = 0;
+    let reached = 0;
+    all.forEach((p) => {
+      categories[p.category || 'OTHER'] = (categories[p.category || 'OTHER'] || 0) + 1;
+      supports += (p.supporters || []).length;
+      if (p.reachedAt) reached += 1;
+    });
+    return Promise.resolve({
+      items: list.items.map((p) => shapeProposal(data, (data.proposals || []).filter((x) => x.id === p.id)[0], { detail: true })),
+      counts: list.counts,
+      categories: categories,
+      stats: { proposals: all.length, supports: supports, reached: reached },
+    });
+  },
+
+  replyProposal(id, body) {
+    const data = db();
+    const role = proposalRole(data);
+    if (['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    const b = body || {};
+    const reply = String(b.reply || '').trim();
+    if (reply.length < 2) return Promise.reject({ code: 'VALIDATION_FAILED', message: '回覆至少 2 個字' });
+    row.reply = { body: reply, byName: (data.user && data.user.nickname) || '校方', at: Date.now() };
+    row.status = b.status || (row.status === 'OPEN' ? 'REVIEWING' : row.status);
+    row.version = (row.version || 0) + 1;
+    save(data);
+    const shaped = shapeProposal(data, row, { detail: true });
+    shaped.notified = (row.supporters || []).length;
+    return Promise.resolve(shaped);
   },
 };

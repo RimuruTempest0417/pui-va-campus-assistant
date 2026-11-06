@@ -1,0 +1,99 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view
+    class="page-scroll"
+    scroll-y
+    bounces
+    show-scrollbar="{{false}}"
+    enhanced="{{true}}"
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+  >
+    <view class="list-inner">
+      <view class="segmented">
+        <view
+          class="seg {{scope === 'all' ? 'is-active' : ''}}"
+          data-scope="all"
+          bindtap="onScopeChange"
+        >{{L.k02}}</view>
+        <view
+          class="seg {{scope === 'supported' ? 'is-active' : ''}}"
+          data-scope="supported"
+          bindtap="onScopeChange"
+        >{{L.k03}}</view>
+      </view>
+
+      <view class="chips">
+        <view
+          wx:for="{{statusTabs}}"
+          wx:key="key"
+          class="chip {{status === item.key ? 'is-active' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onStatusChange"
+        >{{item.label}}</view>
+        <view class="chip chip--sort" bindtap="onSortToggle">{{sort === 'new' ? L.k09 : L.k10}}</view>
+      </view>
+
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="3" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="3" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{failed}}" title="{{L.k11}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k12}}</pv-button>
+      </pv-empty>
+
+      <pv-empty
+        wx:elif="{{!items.length}}"
+        title="{{status === 'ALL' ? L.k13 : L.k16}}"
+        desc="{{status === 'ALL' ? L.k14 : L.k17}}"
+      >
+        <view class="empty-action" bindtap="goCreate">{{L.k15}}</view>
+      </pv-empty>
+
+      <view wx:else class="ui-list ui-list--grouped">
+        <view
+          wx:for="{{items}}"
+          wx:key="id"
+          class="ui-card ui-card--row {{index === items.length - 1 ? 'ui-card--last' : ''}} {{pressedId === item.id ? 'ui-card--pressed' : ''}}"
+          data-id="{{item.id}}"
+          bindtouchstart="onItemTouchStart"
+          bindtouchend="onItemTouchEnd"
+          bindtouchcancel="onItemTouchEnd"
+          bindtap="goDetail"
+        >
+          <view class="pp-row">
+            <view class="pp-mark"><text class="pp-mark__text">{{item.mark}}</text></view>
+            <view class="pp-main">
+              <view class="ui-row-between">
+                <text class="ui-title pp-title">{{item.title}}</text>
+                <pv-tag text="{{item.statusText}}" type="{{item.statusTag}}" />
+              </view>
+              <text class="ui-meta pp-meta">{{item.authorText}} · {{item.categoryText}} · {{item.timeText}}</text>
+              <view class="pp-bar">
+                <view class="pp-bar__track">
+                  <view class="pp-bar__fill" style="width: {{item.percent}}%"></view>
+                </view>
+                <text class="pp-bar__text">{{item.supportCount}} / {{item.goal}}</text>
+              </view>
+              <view class="pp-foot">
+                <text wx:if="{{item.reached}}" class="pp-reached">{{L.k20}}</text>
+                <text wx:elif="{{item.mySupported}}" class="pp-mine">{{L.k21}}</text>
+                <text wx:else class="ui-meta">{{item.categoryText}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="list-foot">
+        <text wx:if="{{loading}}">{{L.k18}}</text>
+        <text wx:elif="{{items.length}}">{{L.k23}}</text>
+      </view>
+    </view>
+  </scroll-view>
+  <view class="fab" bindtap="goCreate">{{L.k15}}</view>
+</view>

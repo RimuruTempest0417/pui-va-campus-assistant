@@ -31,6 +31,7 @@ const TABS = [
   { key: 'leaves', label: i18n.pick('假單') },
   { key: 'timetable', label: i18n.pick('課表') },
   { key: 'homework', label: i18n.pick('功課') },
+  { key: 'proposals', label: i18n.pick('提案') },
   { key: 'demo', label: i18n.pick('示範資料') },
 ];
 
@@ -39,10 +40,10 @@ const TERM_KEYS = [i18n.pick('第一段'), i18n.pick('第二段'), i18n.pick('�
 
 const ROLE_TABS = {
   // 校內職員：排菜單＋匯出報名名單＋補登成績。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
-  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'export'],
+  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'proposals', 'export'],
   TEACHER: ['notice', 'school', 'events', 'venues', 'leaves'],
-  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework', 'demo'],
+  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework', 'proposals'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework', 'proposals', 'demo'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -481,6 +482,37 @@ Page({
       k417: i18n.pick("清除"),
       k418: i18n.pick("只清掉這一類的示範資料，真實資料不會動。"),
       k419: i18n.pick("已匯入課表的班級"),
+      // ── W-88 校園提案（k420 起固定號，不要重跑遷移腳本重新編號）──
+      k420: i18n.pick("全部狀態"),
+      k421: i18n.pick("已達門檻"),
+      k422: i18n.pick("個提案"),
+      k423: i18n.pick("人次連署"),
+      k424: i18n.pick("個已達門檻"),
+      k425: i18n.pick("讀不到提案："),
+      k426: i18n.pick("回覆至少 2 個字"),
+      k427: i18n.pick("已回覆"),
+      k428: i18n.pick("已通知 "),
+      k429: i18n.pick(" 人"),
+      k430: i18n.pick("回覆失敗"),
+      k431: i18n.pick("下架"),
+      k432: i18n.pick("（下架後前台看不到，可在回收桶救回）"),
+      k433: i18n.pick("已下架"),
+      k434: i18n.pick("還沒有人提案"),
+      k435: i18n.pick("學生提出改善建議、同學連署，這裡回覆處理狀態。"),
+      k436: i18n.pick("回覆提案人與所有連署人"),
+      k437: i18n.pick("寫下處理結果或下一步"),
+      k438: i18n.pick("送出回覆"),
+      k439: i18n.pick("連署進度"),
+      ppStatusOPEN: i18n.pick("收集中"),
+      ppStatusREVIEWING: i18n.pick("處理中"),
+      ppStatusPLANNED: i18n.pick("已列入計劃"),
+      ppStatusDONE: i18n.pick("已完成"),
+      ppStatusDECLINED: i18n.pick("暫不採納"),
+      ppCatFACILITY: i18n.pick("校園設施"),
+      ppCatSTUDY: i18n.pick("課堂學習"),
+      ppCatACTIVITY: i18n.pick("活動建議"),
+      ppCatCANTEEN: i18n.pick("餐飲"),
+      ppCatOTHER: i18n.pick("其他"),
       // ── W-84 功課完成率趨勢 ──
       k396: i18n.pick("最近 7 天還沒有派出的功課"),
       k397: i18n.pick("平均"),
@@ -595,6 +627,17 @@ Page({
     hwTrendAvg: null,
     hwTrendText: '',
     hwTrendFrom: '',
+    // ── W-88 校園提案：待處理清單、統計、回覆表單 ──
+    ppFilter: 'ALL',
+    ppItems: [],
+    ppCounts: { OPEN: 0, REVIEWING: 0, PLANNED: 0, DONE: 0, DECLINED: 0, ALL: 0 },
+    ppCategories: [],
+    ppStatsText: '',
+    ppReplyId: '',
+    ppReplyText: '',
+    ppReplyStatus: 'REVIEWING',
+    ppSaving: false,
+    ppStatusOptions: [],
     role: '',
     stats: { users: 0, items: { open: 0, claimed: 0, added7d: 0 }, claimsPending: 0, signups: { confirmed: 0, waitlist: 0 }, noticesActive: 0, ratings: { count: 0, avg: 0 } },
     // 第一屏五張數字卡：值與標籤在 loadStats 一起備好（WXML 不做運算）
@@ -814,6 +857,7 @@ Page({
     else if (t === 'leaves') p = this.loadLeaves();
     else if (t === 'timetable') p = this.loadTimetable();
     else if (t === 'homework') p = this.loadHomework();
+    else if (t === 'proposals') p = this.loadProposals();
     else if (t === 'demo') p = this.loadDemo();
 
     if (!p || typeof p.then !== 'function') {
@@ -3186,6 +3230,132 @@ Page({
           .then(() => {
             wx.showToast({ title: this.data.L.k361, icon: 'success' });
             this.loadHomework();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // ── W-88 校園提案（校內職員以上）：待處理清單、狀態統計、回覆 ──
+  /**
+   * 清單與統計都由後端算（`GET /admin/proposals` 回 counts／categories／stats）。
+   * 前端只把數字排版 —— 兩邊各算一次，早晚會出現「列表 4 筆、統計寫 5 筆」。
+   */
+  async loadProposals() {
+    const L = this.data.L;
+    try {
+      const res = await admin.proposalsAll({ status: this.data.ppFilter, limit: 50 });
+      const items = (res.items || []).map((p) => {
+        const author = p.author || {};
+        return Object.assign({}, p, {
+          authorText: [author.nickname || '', author.className || ''].filter(Boolean).join(' · '),
+          countText: p.supportCount + ' / ' + p.goal,
+          timeText: p.createdAt ? dateTimeText(p.createdAt) : '',
+          statusText: L['ppStatus' + p.status] || p.status,
+          categoryText: L['ppCat' + p.category] || p.category,
+          replyText: p.reply && p.reply.at ? dateTimeText(p.reply.at) : '',
+          replyBody: p.reply ? p.reply.body : '',
+          replyBy: p.reply ? p.reply.byName : '',
+          reachedText: p.reached ? L.k421 : '',
+        });
+      });
+      const cats = res.categories || {};
+      const catList = ['FACILITY', 'STUDY', 'ACTIVITY', 'CANTEEN', 'OTHER']
+        .map((key) => ({ key: key, label: L['ppCat' + key] || key, count: cats[key] || 0 }))
+        .filter((c) => c.count > 0);
+      const st = res.stats || { proposals: 0, supports: 0, reached: 0 };
+      this.setData({
+        ppItems: items,
+        ppCounts: res.counts || this.data.ppCounts,
+        ppCategories: catList,
+        ppStatsText: st.proposals + ' ' + L.k422 + ' · ' + st.supports + ' ' + L.k423 + ' · ' + st.reached + ' ' + L.k424,
+        ppStatusOptions: this.ppStatusOptions(),
+        ppReplyId: '',
+        ppReplyText: '',
+      });
+    } catch (e) {
+      this.setData({ hint: L.k425 + (e.message || e.code || '') });
+    }
+  },
+
+  ppStatusOptions() {
+    const L = this.data.L;
+    return [
+      { key: 'REVIEWING', label: L.ppStatusREVIEWING },
+      { key: 'PLANNED', label: L.ppStatusPLANNED },
+      { key: 'DONE', label: L.ppStatusDONE },
+      { key: 'DECLINED', label: L.ppStatusDECLINED },
+    ];
+  },
+
+  switchPpFilter(e) {
+    this.setData({ ppFilter: e.currentTarget.dataset.key || 'ALL' }, () => this.loadProposals());
+  },
+
+  /** 點一項展開回覆表單，再點一次收起（不另開頁：看完清單要直接回覆） */
+  ppToggle(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    if (this.data.ppReplyId === id) {
+      this.setData({ ppReplyId: '', ppReplyText: '' });
+      return;
+    }
+    const row = this.data.ppItems.filter((p) => p.id === id)[0];
+    this.setData({
+      ppReplyId: id,
+      ppReplyText: row && row.replyBody ? row.replyBody : '',
+      ppReplyStatus: row && row.status !== 'OPEN' ? row.status : 'REVIEWING',
+    });
+  },
+
+  ppReplyInput(e) {
+    this.setData({ ppReplyText: e.detail.value });
+  },
+
+  ppPickStatus(e) {
+    this.setData({ ppReplyStatus: e.currentTarget.dataset.key || 'REVIEWING' });
+  },
+
+  async ppSubmitReply() {
+    const id = this.data.ppReplyId;
+    if (!id || this.data.ppSaving) return;
+    const text = String(this.data.ppReplyText || '').trim();
+    if (text.length < 2) {
+      wx.showToast({ title: this.data.L.k426, icon: 'none' });
+      return;
+    }
+    this.setData({ ppSaving: true });
+    try {
+      const res = await admin.replyProposal(id, { reply: text, status: this.data.ppReplyStatus });
+      wx.showToast({ title: this.data.L.k427, icon: 'success' });
+      // 回覆會通知提案人與連署人，人數由後端回（不要前端自己數）
+      if (res && res.notified) {
+        wx.showToast({ title: this.data.L.k428 + res.notified + this.data.L.k429, icon: 'none' });
+      }
+      this.loadProposals();
+    } catch (err) {
+      wx.showModal({ title: this.data.L.k430, content: err.message || err.code || '', showCancel: false });
+    } finally {
+      this.setData({ ppSaving: false });
+    }
+  },
+
+  ppRemove(e) {
+    const id = e.currentTarget.dataset.id;
+    const title = e.currentTarget.dataset.title || '';
+    if (!id) return;
+    wx.showModal({
+      title: this.data.L.k431,
+      content: title + '　' + this.data.L.k432,
+      confirmText: this.data.L.k431,
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .removeProposal(id)
+          .then(() => {
+            wx.showToast({ title: this.data.L.k433, icon: 'success' });
+            this.loadProposals();
           })
           .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
       },
