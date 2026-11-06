@@ -261,6 +261,46 @@ check(
   apiSrcSearch.indexOf("typeof q === 'object'") !== -1,
   'services/api.js',
 );
+// W-91 功課與提案進搜尋：示範層與後端同一條規則 —— 功課只搜自己班、提案排除撤回
+const mockSrc = readFileSync(join(here, '..', 'services', 'mock.js'), 'utf8');
+const sHw = await data.search({ q: '習作', types: 'homework' });
+const sHwGroup = sHw.groups.filter((g) => g.type === 'homework')[0] || { count: 0, items: [] };
+check(
+  '搜尋：功課也搜得到（只限自己班）',
+  sHwGroup.count > 0 && sHwGroup.items.every((i) => i.className === '高二仁'),
+  sHwGroup.items.map((i) => i.className + '/' + i.title).join(' / ') || '沒有結果',
+);
+check('搜尋：功課徽章是科目、帶班級', (sHwGroup.items[0] || {}).badge === '數學' && sHwGroup.items[0].className === '高二仁', (sHwGroup.items[0] || {}).badge || '沒有結果');
+const sPp = await data.search({ q: '圖書館', types: 'proposal' });
+const sPpGroup = sPp.groups.filter((g) => g.type === 'proposal')[0] || { count: 0, items: [] };
+check(
+  '搜尋：提案也搜得到，且 badge 是「分類:狀態」',
+  sPpGroup.count > 0 && /^[A-Z]+:[A-Z]+$/.test(String((sPpGroup.items[0] || {}).badge || '')),
+  sPpGroup.items.map((i) => i.title + '·' + i.badge).join(' / ') || '沒有結果',
+);
+check(
+  '搜尋：轉贈與提案都排除已刪除的（示範層過濾條件）',
+  /\.filter\(\(p\) => !p\.deletedAt\)/.test(mockSrc) &&
+    mockSrc.indexOf('supportCount: (p.supporters || []).length') !== -1,
+  'services/mock.js',
+);
+check(
+  '搜尋：功課與提案有類型 chip',
+  searchPageJs.indexOf("key: 'homework'") !== -1 && searchPageJs.indexOf("key: 'proposal'") !== -1,
+  'pages/search/index.js',
+);
+check(
+  '搜尋：功課 chip 依角色決定（只有學生以上才給）',
+  searchPageJs.indexOf('canHomework') !== -1 &&
+    searchPageJs.indexOf("'STUDENT', 'TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'") !== -1,
+  'pages/search/index.js',
+);
+check(
+  '搜尋：功課跳清單頁（不接 id），提案跳詳情頁',
+  searchPageJs.indexOf("homework: '/pages/homework/index'") !== -1 &&
+    searchPageJs.indexOf("proposal: '/pages/proposals/detail/index?id='") !== -1,
+  'pages/search/index.js',
+);
 
 
 

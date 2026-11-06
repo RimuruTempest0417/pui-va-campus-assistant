@@ -1490,7 +1490,7 @@ module.exports = {
     const low = q.toLowerCase();
     const data = db();
     const now = Date.now();
-    const wanted = (opts.types || 'notice,event,item,giveaway,menu').split(',').map((s) => s.trim());
+    const wanted = (opts.types || 'notice,event,item,giveaway,menu,homework,proposal').split(',').map((s) => s.trim());
     const groups = [];
 
     const hitScore = (title) => (String(title || '').toLowerCase().indexOf(low) !== -1 ? 2 : 1);
@@ -1592,6 +1592,42 @@ module.exports = {
         .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)))
         .slice(0, limit);
       groups.push({ type: 'menu', count: sorted.length, items: sorted });
+    }
+
+    // W-91：功課只搜自己班（與後端同一條規則）。示範層的班級是「年級＋班」組出來的，
+    // 家長與訪客沒有 homework:read，這一組不會出現。
+    if (wanted.indexOf('homework') !== -1) {
+      const me = data.user || {};
+      const canReadHomework = ['STUDENT', 'TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+      const myClass = [me.grade, me.className].filter(Boolean).join('');
+      const items = !canReadHomework || !myClass
+        ? []
+        : (data.homework || [])
+            .filter((h) => !h.deletedAt && h.className === myClass)
+            .filter((h) => [h.subject, h.title, h.detail].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+            .map((h) => ({
+              id: h.id, type: 'homework', title: h.title, snippet: bestSnippet([h.detail]),
+              badge: h.subject, date: new Date(h.dueAt).toISOString(), score: hitScore(h.title), className: h.className,
+            }))
+            .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)))
+            .slice(0, limit);
+      groups.push({ type: 'homework', count: items.length, items: items });
+    }
+
+    // W-91：提案與 `proposalList` 同一條可見規則 —— 只排除軟刪除（撤回／下架），
+    // 「暫不採納」照樣留著；票數一律由 supporters 陣列長度算（不讀 supportCount，避免兩份數字）
+    if (wanted.indexOf('proposal') !== -1) {
+      const items = (data.proposals || [])
+        .filter((p) => !p.deletedAt)
+        .filter((p) => [p.title, p.body].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((p) => ({
+          id: p.id, type: 'proposal', title: p.title, snippet: bestSnippet([p.body]),
+          badge: p.category + ':' + p.status, date: new Date(p.createdAt).toISOString(), score: hitScore(p.title),
+          supportCount: (p.supporters || []).length, goal: p.goal || 0,
+        }))
+        .sort(byScore)
+        .slice(0, limit);
+      groups.push({ type: 'proposal', count: items.length, items: items });
     }
 
     const kept = groups.filter((g) => g.count > 0);

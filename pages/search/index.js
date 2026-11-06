@@ -1,9 +1,11 @@
 // 全校搜尋（W-59）：一支輸入框搜遍公告／活動／失物／轉贈。
 // 規則全部在後端 `/search`（可見性不能在前端重算），這裡只負責「輸入 → 去抖 → 分組顯示」。
 const data = require('../../services/data');
+const request = require('../../utils/request');
 const i18n = require('../../utils/i18n');
 const appearance = require('../../utils/appearance');
 const giveaway = require('../../utils/giveaway');
+const proposal = require('../../utils/proposal');
 const { fromNow, dateTimeText } = require('../../utils/date');
 
 const RECENT_KEY = 'pv_recent_searches';
@@ -20,6 +22,8 @@ function typeLabel(type) {
   if (type === 'item') return i18n.pick('失物招領');
   if (type === 'giveaway') return i18n.pick('二手轉贈');
   if (type === 'menu') return i18n.pick('菜單');
+  if (type === 'homework') return i18n.pick('功課');
+  if (type === 'proposal') return i18n.pick('校園提案');
   return i18n.pick('公告');
 }
 
@@ -51,6 +55,20 @@ const ROUTE = {
   item: '/pages/items/detail/index?id=',
   giveaway: '/pages/giveaway/detail/index?id=',
   menu: '/pages/menu/dish/index?id=',
+  // 功課只有一頁（清單＋打勾同一頁），沒有詳情頁，所以不接 id
+  homework: '/pages/homework/index',
+  proposal: '/pages/proposals/detail/index?id=',
+};
+
+/** 哪些類別的網址要吃 id（功課不吃：它跳的是整頁清單） */
+const NEEDS_ID = {
+  notice: true,
+  event: true,
+  item: true,
+  giveaway: true,
+  menu: true,
+  homework: false,
+  proposal: true,
 };
 
 /** 餐別文字：午餐／小賣部。與菜單頁同一個語彙，不另造新詞 */
@@ -98,6 +116,21 @@ function decorateRow(row) {
     badgeLabel = mealLabel(row.badge);
     badgeTag = 'tint';
     metaText = dateTimeText(row.date).split(' ')[0];
+  } else if (row.type === 'homework') {
+    // 功課：徽章是科目；時間寫「截止」而不是「多久以前」—— 搜功課是想知道哪天要交
+    badgeLabel = row.badge || '';
+    badgeTag = 'tint';
+    metaText = i18n.pick('截止') + ' ' + dateTimeText(row.date);
+  } else if (row.type === 'proposal') {
+    // 提案：badge 是「分類:狀態」（後端與示範層同一個形狀），顯示用 proposal 這支 util，
+    // 不在這裡抄第二份分類／狀態對照表
+    const cat = (row.badge || '').split(':')[0];
+    const st = (row.badge || '').split(':')[1];
+    badgeLabel = proposal.categoryLabel(cat) + ' · ' + proposal.statusLabel(st);
+    badgeTag = proposal.statusTag(st);
+    const count = Number(row.supportCount || 0);
+    const goal = Number(row.goal || 0);
+    metaText = i18n.pick('連署 ') + count + ' / ' + goal + ' · ' + fromNow(row.date);
   } else {
     const t = (row.badge || '').split(':')[0];
     const s = (row.badge || '').split(':')[1];
@@ -113,7 +146,7 @@ function decorateRow(row) {
     badgeLabel: badgeLabel,
     badgeTag: badgeTag,
     metaText: metaText,
-    url: (ROUTE[row.type] || '') + row.id,
+    url: NEEDS_ID[row.type] ? (ROUTE[row.type] || '') + row.id : ROUTE[row.type] || '',
   };
 }
 
@@ -121,9 +154,9 @@ Page({
   labels() {
     return {
       title: i18n.pick('搜尋'),
-      placeholder: i18n.pick('搜尋公告、活動、失物、轉贈、菜單'),
+      placeholder: i18n.pick('搜尋公告、活動、失物、轉贈、菜單、功課與提案'),
       hintTitle: i18n.pick('想找什麼？'),
-      hintDesc: i18n.pick('輸入關鍵字，一次搜遍公告、活動、失物、轉贈與菜單'),
+      hintDesc: i18n.pick('輸入關鍵字，一次搜遍公告、活動、失物、轉贈、菜單、功課與提案'),
       recent: i18n.pick('最近搜尋'),
       clearRecent: i18n.pick('清除'),
       failed: i18n.pick('搜尋失敗'),
@@ -157,7 +190,22 @@ Page({
   onLoad() {
     this._seq = 0;
     this._timer = null;
+    this._role = '';
     this.setData({ L: this.labels(), recent: readRecent(), typeFilters: this.filters() });
+    // 讀到角色後才決定要不要給「功課」chip（訪客與家長沒有 homework:read）
+    data
+      .me()
+      .then((me) => {
+        const role = (me && me.role) || '';
+        if (!role) return;
+        this._role = role;
+        const filters = this.filters();
+        const patch = { typeFilters: filters };
+        // 已經切到功課才發現沒權限（例如切了角色）→ 回到「全部」，不要停在一個空結果上
+        if (this.data.typeFilter === 'homework' && !filters.some((f) => f.key === 'homework')) patch.typeFilter = 'all';
+        this.setData(patch);
+      })
+      .catch(() => {});
   },
 
   onShow() {
@@ -167,7 +215,14 @@ Page({
 
   /** 類型篩選的 chips（W-75）：key 對應後端 `types` 的值，all 代表不帶參數 */
   filters() {
-    return [
+    const role = this._role || '';
+    // 功課要登入才有（後端 `homework:read`）：未登入與家長不給這顆 chip，
+    // 否則點下去只會得到「沒有找到相符的內容」，看起來像搜尋壞了。
+    // 角色還沒讀到時（第一輪）先看有沒有 token，寧可先給、讀到角色再收。
+    const canHomework = role
+      ? ['STUDENT', 'TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1
+      : !!request.getToken();
+    const list = [
       { key: 'all', label: i18n.pick('全部') },
       { key: 'notice', label: i18n.pick('公告') },
       { key: 'event', label: i18n.pick('活動') },
@@ -175,6 +230,9 @@ Page({
       { key: 'giveaway', label: i18n.pick('轉贈') },
       { key: 'menu', label: i18n.pick('菜單') },
     ];
+    if (canHomework) list.push({ key: 'homework', label: i18n.pick('功課') });
+    list.push({ key: 'proposal', label: i18n.pick('提案') });
+    return list;
   },
 
   /**
@@ -279,8 +337,10 @@ Page({
 
   goRow(e) {
     const { id, type } = e.currentTarget.dataset;
-    if (!id || !ROUTE[type]) return;
-    wx.navigateTo({ url: ROUTE[type] + id });
+    if (!ROUTE[type]) return;
+    const needsId = NEEDS_ID[type] !== false;
+    if (needsId && !id) return;
+    wx.navigateTo({ url: needsId ? ROUTE[type] + id : ROUTE[type] });
   },
 
   onRowTouchStart(e) {
