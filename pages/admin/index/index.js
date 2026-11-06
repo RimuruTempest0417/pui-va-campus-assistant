@@ -30,6 +30,7 @@ const TABS = [
   { key: 'giveaways', label: i18n.pick('轉贈') },
   { key: 'leaves', label: i18n.pick('假單') },
   { key: 'timetable', label: i18n.pick('課表') },
+  { key: 'homework', label: i18n.pick('功課') },
 ];
 
 // 學段三個固定值（後端 TERMS）：key 必須送原文，簡體下字形相同所以直接用 pick 的結果當 key
@@ -39,8 +40,8 @@ const ROLE_TABS = {
   // 校內職員：排菜單＋匯出報名名單＋補登成績。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
   STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'export'],
   TEACHER: ['notice', 'school', 'events', 'venues', 'leaves'],
-  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable'],
+  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -438,6 +439,25 @@ Page({
       k355: i18n.pick("這一格已經有課，不覆蓋"),
       k356: i18n.pick("同一份裡重複"),
       k357: i18n.pick("刪除"),
+      // ── W-77 功課分頁（k358 起）──
+      k358: i18n.pick("收回"),
+      k359: i18n.pick("收回這項功課？"),
+      k360: i18n.pick("收回後學生就看不到了，紀錄會留在垃圾桶"),
+      k361: i18n.pick("已收回"),
+      k362: i18n.pick("讀不到功課："),
+      k363: i18n.pick("還沒有任何功課"),
+      k364: i18n.pick("老師出功課後，這裡會列出每一班的派發情況"),
+      k366: i18n.pick("還沒有人交"),
+      k367: i18n.pick("完成率"),
+      k368: i18n.pick("班"),
+      k369: i18n.pick("項功課"),
+      k370: i18n.pick("讀取未交名單…"),
+      k371: i18n.pick("還沒交"),
+      k373: i18n.pick("位學生"),
+      k374: i18n.pick("已過期"),
+      k375: i18n.pick("全部班級"),
+      k376: i18n.pick("項已過期"),
+      k377: i18n.pick("各班完成率"),
     };
   },
 
@@ -502,6 +522,25 @@ Page({
     ttRows: [],
     ttErrors: [],
     ttSummary: '',
+    // ── 功課（W-77）：跨班一覽；點一項展開「誰還沒交」；收回＝軟刪除（回收桶看得到）──
+    hwScope: 'all',
+    hwScopes: [
+      { key: 'all', label: i18n.pick('全部') },
+      { key: 'open', label: i18n.pick('未到期') },
+      { key: 'overdue', label: i18n.pick('已過期') },
+    ],
+    hwClass: '',
+    hwClassNames: [],
+    hwClasses: [],
+    hwItems: [],
+    hwCounts: { classes: 0, items: 0, overdue: 0 },
+    hwSummary: '',
+    hwOpenId: '',
+    hwPending: [],
+    hwPendingCount: 0,
+    hwPendingTotal: 0,
+    hwPendingNames: '',
+    hwPendingHint: '',
     role: '',
     stats: { users: 0, items: { open: 0, claimed: 0, added7d: 0 }, claimsPending: 0, signups: { confirmed: 0, waitlist: 0 }, noticesActive: 0, ratings: { count: 0, avg: 0 } },
     // 第一屏五張數字卡：值與標籤在 loadStats 一起備好（WXML 不做運算）
@@ -713,6 +752,7 @@ Page({
     else if (t === 'giveaways') p = this.loadGiveaways();
     else if (t === 'leaves') p = this.loadLeaves();
     else if (t === 'timetable') p = this.loadTimetable();
+    else if (t === 'homework') p = this.loadHomework();
 
     if (!p || typeof p.then !== 'function') {
       this.setData({ tabLoading: false });
@@ -2852,6 +2892,119 @@ Page({
           .then(() => {
             wx.showToast({ title: i18n.pick('已下架'), icon: 'success' });
             this.loadVenues();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // ───────── 功課後台（W-77）─────────
+  /**
+   * 跨班一覽：老師只出自己班的功課（`/homework`），這一頁是校務處／資訊管理員視角 ——
+   * 哪一班派了幾項、哪一項全班沒人交、派錯的當場收回。
+   *
+   * 完成率在這裡是「這一班交了幾個 / 全班幾個」，點一項才去查未交名單：
+   * 一頁幾十項功課都帶全班姓名，手機端會卡在 setData。
+   */
+  async loadHomework() {
+    const L = this.data.L;
+    try {
+      const res = await admin.homeworkAll({ className: this.data.hwClass, scope: this.data.hwScope });
+      const counts = res.counts || { classes: 0, items: 0, overdue: 0 };
+      const classes = (res.classes || []).map((c) =>
+        Object.assign({}, c, {
+          metaText:
+            c.items +
+            ' ' +
+            L.k369 +
+            ' · ' +
+            c.students +
+            ' ' +
+            L.k373 +
+            ' · ' +
+            (c.rate === null ? L.k366 : L.k367 + ' ' + c.rate + '%'),
+        }),
+      );
+      const items = (res.items || []).map((i) =>
+        Object.assign({}, i, {
+          dueText: dateTimeText(i.dueAt),
+          progressText: i.total > 0 ? i.done + '/' + i.total + ' · ' + (i.rate === null ? L.k366 : i.rate + '%') : L.k366,
+        }),
+      );
+      this.setData({
+        hwClasses: classes,
+        hwItems: items,
+        hwClassNames: res.classNames || [],
+        hwCounts: counts,
+        hwSummary: counts.items
+          ? counts.classes + ' ' + L.k368 + ' · ' + counts.items + ' ' + L.k369 + ' · ' + counts.overdue + ' ' + L.k376
+          : '',
+        hwOpenId: '',
+        hwPending: [],
+        hwPendingCount: 0,
+        hwPendingTotal: 0,
+        hwPendingNames: '',
+        hwPendingHint: '',
+      });
+    } catch (e) {
+      this.setData({ hint: L.k362 + (e.message || e.code) });
+    }
+  },
+
+  switchHwScope(e) {
+    this.setData({ hwScope: e.currentTarget.dataset.key }, () => this.loadHomework());
+  },
+
+  switchHwClass(e) {
+    this.setData({ hwClass: e.currentTarget.dataset.key || '' }, () => this.loadHomework());
+  },
+
+  /** 點一項功課：展開「誰還沒交」，再點一次收起（不另開頁，免得老師看完名單還要按返回） */
+  hwToggle(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    if (this.data.hwOpenId === id) {
+      this.setData({ hwOpenId: '', hwPending: [], hwPendingCount: 0, hwPendingTotal: 0, hwPendingNames: '', hwPendingHint: '' });
+      return;
+    }
+    this.setData({ hwOpenId: id, hwPendingCount: 0, hwPendingTotal: 0, hwPendingNames: '', hwPendingHint: this.data.L.k370 });
+    admin
+      .homeworkPending(id)
+      .then((res) => {
+        // 使用者可能在等待時點了別項，回來就不要蓋掉新的那一項
+        if (this.data.hwOpenId !== id) return;
+        const pending = res.pending || [];
+        this.setData({
+          hwPendingCount: pending.length,
+          hwPendingTotal: res.total || 0,
+          hwPendingNames: pending
+            .slice(0, 40)
+            .map((p) => p.nickname)
+            .join('、'),
+          hwPendingHint: '',
+        });
+      })
+      .catch((err) => {
+        if (this.data.hwOpenId !== id) return;
+        this.setData({ hwPendingHint: (err.message || err.code || '') + '' });
+      });
+  },
+
+  hwDelete(e) {
+    const id = e.currentTarget.dataset.id;
+    const title = e.currentTarget.dataset.title || '';
+    wx.showModal({
+      title: this.data.L.k359,
+      content: title + (title ? '　' : '') + this.data.L.k360,
+      confirmText: this.data.L.k358,
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .deleteHomework(id)
+          .then(() => {
+            wx.showToast({ title: this.data.L.k361, icon: 'success' });
+            this.loadHomework();
           })
           .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
       },

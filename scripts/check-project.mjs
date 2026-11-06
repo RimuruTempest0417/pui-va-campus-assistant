@@ -822,6 +822,36 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   }
 }
 
+// 23) 後台分頁三向一致：TABS ↔ WXML 區塊 ↔ ROLE_TABS（W-77）
+//     實測過的錯法：加了 TABS 但忘了寫 <block wx:elif="{{tab === 'x'}}">，那一頁點下去是一片空白，
+//     編譯、console、其他守門全部綠；反過來（有區塊沒入口）就是永遠看不到的死代碼。
+{
+  const adminJs = join(root, 'pages/admin/index/index.js');
+  const adminWxml = join(root, 'pages/admin/index/index.wxml');
+  if (existsSync(adminJs) && existsSync(adminWxml)) {
+    const js = readFileSync(adminJs, 'utf8');
+    const wxml = readFileSync(adminWxml, 'utf8');
+    const tabsM = js.match(/const TABS = \[([\s\S]*?)\n\];/);
+    const keys = tabsM ? [...tabsM[1].matchAll(/key:\s*'([a-zA-Z]+)'/g)].map((m) => m[1]) : [];
+    const roleM = js.match(/const ROLE_TABS = \{([\s\S]*?)\n\};/);
+    const roleText = roleM ? roleM[1] : '';
+    const blocks = new Set([...wxml.matchAll(/tab === '([a-zA-Z]+)'/g)].map((m) => m[1]));
+    for (const k of keys) {
+      if (!blocks.has(k)) {
+        errors.push(`後台分頁「${k}」在 TABS 有、WXML 沒有對應區塊（tab === '${k}'）→ 點下去整頁空白`);
+      }
+      if (!roleText.includes(`'${k}'`)) {
+        errors.push(`後台分頁「${k}」沒有任何角色看得到（ROLE_TABS）→ 永遠進不去的死代碼`);
+      }
+    }
+    for (const b of blocks) {
+      if (!keys.includes(b)) {
+        errors.push(`後台 WXML 有分頁區塊「${b}」但 TABS 沒有登記 → 永遠顯示不到`);
+      }
+    }
+  }
+}
+
 for (const w of warnings) console.warn(`⚠️  ${w}`);
 if (errors.length) {
   for (const e of errors) console.error(`❌ ${e}`);

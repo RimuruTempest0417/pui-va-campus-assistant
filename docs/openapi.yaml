@@ -4750,6 +4750,64 @@ paths:
         '403':
           description: 沒有綁定這位學生（與「不存在」同一句）
 
+  /admin/homework:
+    get:
+      tags: [admin, homework]
+      summary: "後台功課一覽（跨班，需要 homework:manage）"
+      description: "校務處／資訊管理員視角 —— 每個班幾項功課、每項完成率、已過期幾項。只回數字不回姓名（要名單請打 /homework/{id}/pending）。完成率的分母是「這一班有幾個帳號」，班上還沒有人註冊時 rate 回 null（不要顯示成 0%）。"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: className, in: query, schema: { type: string, maxLength: 32 }, description: 留空＝全部班級 }
+        - { name: scope, in: query, schema: { type: string, enum: [all, open, overdue], default: all }, description: "all＝全部、open＝還沒到期、overdue＝已過期" }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 300, default: 120 } }
+      responses:
+        '200':
+          description: 每班統計與功課清單
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scope: { type: string }
+                  className: { type: string }
+                  classNames: { type: array, items: { type: string }, description: 篩選用的班級清單 }
+                  counts:
+                    type: object
+                    properties:
+                      classes: { type: integer }
+                      items: { type: integer }
+                      overdue: { type: integer }
+                  classes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        className: { type: string }
+                        items: { type: integer }
+                        overdue: { type: integer }
+                        done: { type: integer }
+                        total: { type: integer }
+                        students: { type: integer }
+                        rate: { type: integer, nullable: true }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        className: { type: string }
+                        subject: { type: string }
+                        title: { type: string }
+                        dueAt: { type: string, format: date-time }
+                        done: { type: integer }
+                        total: { type: integer }
+                        rate: { type: integer, nullable: true }
+                        overdue: { type: boolean }
+                        createdByName: { type: string }
+                        mine: { type: boolean }
+                        version: { type: integer }
+        '403': { description: "能力不足（老師只有 homework:create，看不到全校）" }
+
   /admin/timetable:
     get:
       tags: [admin]

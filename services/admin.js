@@ -319,4 +319,20 @@ module.exports = {
   importTimetable(body) {
     return http.post('/admin/timetable/import', body);
   },
+
+  // ── W-77 功課後台：跨班一覽、未交名單、收回（能力 homework:manage：資訊管理員以上）──
+  homeworkAll(params) {
+    const q = params || {};
+    const query = {};
+    if (q.className) query.className = q.className;
+    if (q.scope && q.scope !== 'all') query.scope = q.scope;
+    return http.get('/admin/homework', query);
+  },
+  homeworkPending(id) {
+    return http.get('/homework/' + id + '/pending');
+  },
+  /** 收回＝軟刪除（回收桶看得到、審計有紀錄）；不是真的刪掉 */
+  deleteHomework(id) {
+    return http.del('/homework/' + id);
+  },
 };

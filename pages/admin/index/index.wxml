@@ -985,6 +985,77 @@
         <pv-empty wx:else title="{{L.k353}}" desc="{{L.k354}}" />
       </block>
 
+      <!-- W-77 功課：跨班一覽（校務處視角）。點一項展開未交名單，右邊可收回（軟刪除） -->
+      <block wx:elif="{{tab === 'homework'}}">
+        <view class="filter-row">
+          <view
+            wx:for="{{hwScopes}}"
+            wx:key="key"
+            class="chip {{hwScope === item.key ? 'chip--on' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="switchHwScope"
+          >{{item.label}}</view>
+        </view>
+
+        <view wx:if="{{hwClassNames.length}}" class="filter-row">
+          <view class="chip {{hwClass === '' ? 'chip--on' : ''}}" data-key="" bindtap="switchHwClass">{{L.k375}}</view>
+          <view
+            wx:for="{{hwClassNames}}"
+            wx:key="*this"
+            class="chip {{hwClass === item ? 'chip--on' : ''}}"
+            data-key="{{item}}"
+            bindtap="switchHwClass"
+          >{{item}}</view>
+        </view>
+
+        <text wx:if="{{hwSummary}}" class="ui-meta" style="margin:8rpx 0 12rpx">{{hwSummary}}</text>
+
+        <block wx:if="{{hwClasses.length}}">
+          <text class="group-sub">{{L.k377}}</text>
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{hwClasses}}"
+              wx:key="className"
+              class="signup-row {{index === hwClasses.length - 1 ? 'signup-row--last' : ''}}"
+            >
+              <view class="lib-row">
+                <view class="lib-row__main">
+                  <text class="signup-row__name">{{item.className}}</text>
+                  <text class="ui-meta">{{item.metaText}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </block>
+
+        <view wx:if="{{hwItems.length}}" class="ui-list ui-list--grouped">
+          <view
+            wx:for="{{hwItems}}"
+            wx:key="id"
+            class="signup-row {{index === hwItems.length - 1 ? 'signup-row--last' : ''}}"
+          >
+            <view class="lib-row">
+              <view class="lib-row__main" data-id="{{item.id}}" bindtap="hwToggle">
+                <text class="signup-row__name">{{item.subject}} · {{item.title}}</text>
+                <text class="ui-meta">{{item.className}} · {{item.dueText}} · {{item.progressText}}</text>
+                <text wx:if="{{item.overdue}}" class="ui-meta">{{L.k374}}</text>
+                <block wx:if="{{hwOpenId === item.id}}">
+                  <text wx:if="{{hwPendingHint}}" class="ui-meta">{{hwPendingHint}}</text>
+                  <block wx:else>
+                    <text class="ui-meta">{{L.k371}}（{{hwPendingCount}}/{{hwPendingTotal}}）</text>
+                    <text wx:if="{{hwPendingNames}}" class="ui-meta">{{hwPendingNames}}</text>
+                  </block>
+                </block>
+              </view>
+              <view class="row-actions">
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" data-title="{{item.title}}" bind:tap="hwDelete">{{L.k358}}</pv-button>
+              </view>
+            </view>
+          </view>
+        </view>
+        <pv-empty wx:else title="{{L.k363}}" desc="{{L.k364}}" />
+      </block>
+
       <block wx:elif="{{tab === 'venues'}}">
         <view class="filter-row">
           <view
