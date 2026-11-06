@@ -1085,6 +1085,72 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-89 課室設備報修（示範層也要驗到「寫得進、接得走、算得對」）──
+{
+  const before = await data.myRepairs();
+  check('報修：示範清單有資料且進行中數對得上', (before.items || []).length > 0 && before.active >= 1, `${(before.items || []).length} 筆／進行中 ${before.active}`);
+
+  const created = await data.createRepair({
+    location: '化學實驗室',
+    equipment: '水龍頭',
+    description: '洗手台的水龍頭關不緊，一直在滴水。',
+    urgency: 'NORMAL',
+  });
+  check('報修：送出成功且狀態是待接單', created.repair.status === 'PENDING' && created.repair.statusText === '待接單', created.repair.statusText);
+
+  const after = await data.myRepairs();
+  check('報修：送出後我的清單多一筆', (after.items || []).length === (before.items || []).length + 1, `${(after.items || []).length} 筆`);
+
+  const shortDesc = await data.createRepair({ location: '304 室', equipment: '燈', description: '壞' }).then(() => null).catch((e) => e);
+  check('報修：描述太短被擋', shortDesc && shortDesc.code === 'VALIDATION_FAILED', shortDesc ? shortDesc.code : '沒有拒絕');
+
+  const badPhoto = await data.createRepair({ location: '304 室', equipment: '燈', description: '燈管在閃', photoUrl: 'cos://x.jpg' }).then(() => null).catch((e) => e);
+  check('報修：非 http(s) 照片被擋', badPhoto && badPhoto.code === 'VALIDATION_FAILED', badPhoto ? badPhoto.code : '沒有拒絕');
+
+  const cancelled = await data.cancelRepair(created.repair.id);
+  check('報修：待接單可以自己取消', cancelled && cancelled.status === 'CANCELLED', cancelled ? cancelled.status : '沒有成功');
+
+  // 老師沒有 repair:handle：後台清單要擋
+  await data.switchDemoUser('示範老師', 'demo-user', 'TEACHER');
+  const teacherAdmin = await data.adminRepairs({ status: 'PENDING' }).then(() => null).catch((e) => e);
+  check('報修：老師打後台清單被擋（沒有 repair:handle）', teacherAdmin && teacherAdmin.code === 'FORBIDDEN', teacherAdmin ? teacherAdmin.code : '沒有拒絕');
+
+  // 職員：接單 → 完成
+  await data.switchDemoUser('校務處', 'demo-staff', 'STAFF');
+  const pending = await data.adminRepairs({ status: 'PENDING' });
+  const target = (pending.items || []).filter((row) => row.status === 'PENDING')[0];
+  check('報修：後台清單有待接單的單子', !!target, target ? target.location + ' · ' + target.equipment : '沒有待接單');
+
+  if (target) {
+    const accepted = await data.acceptRepair(target.id);
+    check('報修：接單後變處理中並記下處理人', accepted.repair.status === 'IN_PROGRESS' && !!accepted.repair.handler, `${accepted.repair.status}／${(accepted.repair.handler || {}).nickname}`);
+    const again = await data.acceptRepair(target.id).then(() => null).catch((e) => e);
+    check('報修：同一張不能再接第二次', again && again.code === 'CONFLICT', again ? again.code : '沒有拒絕');
+    const finished = await data.finishRepair(target.id, { note: '換了水龍頭墊片' });
+    check('報修：完成後有備註與處理時數', finished.repair.status === 'DONE' && finished.repair.note === '換了水龍頭墊片' && typeof finished.repair.hours === 'number', `${finished.repair.status}／${finished.repair.hours} 小時`);
+  }
+
+  const stats = await data.repairStats();
+  const sum = Object.keys(stats.counts).reduce((n, k) => n + stats.counts[k], 0);
+  check('報修：統計總數等於各狀態加總', sum === stats.total, `${sum}／${stats.total}`);
+  check('報修：近 7 天序列是 7 格', (stats.timeline || []).length === 7, `${(stats.timeline || []).length} 格`);
+  check('報修：熱門地點有資料且數量遞減', (stats.byLocation || []).length > 0 && stats.byLocation[0].count >= (stats.byLocation[1] ? stats.byLocation[1].count : 0), `${(stats.byLocation || []).length} 個地點`);
+
+  await data.switchDemoUser('示範學生', 'demo-user', 'STUDENT');
+
+  const apiSrcRp = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  const appJsonRp = JSON.parse(readFileSync(join(here, '..', 'app.json'), 'utf8'));
+  const homeWxmlRp = readFileSync(join(here, '..', 'pages', 'index', 'index.wxml'), 'utf8');
+  check(
+    '報修：有畫面入口＋真 API 端點＋頁面已登記',
+    homeWxmlRp.indexOf('goRepair') !== -1 &&
+      apiSrcRp.indexOf("'/repairs'") !== -1 &&
+      appJsonRp.pages.indexOf('pages/repair/index/index') !== -1 &&
+      appJsonRp.pages.indexOf('pages/repair/create/index') !== -1,
+    '首頁 → 我的報修 → 報修',
+  );
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

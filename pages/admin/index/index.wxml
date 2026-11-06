@@ -1298,6 +1298,65 @@
         <pv-empty wx:else title="{{L.k434}}" desc="{{L.k435}}" />
       </block>
 
+      <!-- W-89 課室設備報修：待接單優先，接單／完成都在原地做完（不另開頁） -->
+      <block wx:elif="{{tab === 'repair'}}">
+        <view class="filter-row">
+          <view
+            wx:for="{{repairStatuses}}"
+            wx:key="key"
+            class="chip {{repairStatus === item.key ? 'chip--on' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="switchRepairStatus"
+          >{{item.label}}{{item.key === 'PENDING' && repairCounts.PENDING ? ' ' + repairCounts.PENDING : ''}}</view>
+        </view>
+
+        <text wx:if="{{repairStatsText}}" class="ui-meta" style="margin:8rpx 0 4rpx">{{repairStatsText}}</text>
+        <view wx:if="{{repairByLocation.length}}" class="filter-row">
+          <view wx:for="{{repairByLocation}}" wx:key="location" class="chip chip--ghost">{{item.location}} {{item.count}}</view>
+        </view>
+
+        <block wx:if="{{repairItems.length}}">
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{repairItems}}"
+              wx:key="id"
+              class="signup-row {{index === repairItems.length - 1 ? 'signup-row--last' : ''}}"
+            >
+              <view class="lib-row">
+                <view class="lib-row__main">
+                  <text class="signup-row__name">{{item.placeText}}</text>
+                  <view class="filter-row filter-row--tight">
+                    <pv-tag text="{{item.urgencyText}}" type="{{item.urgencyTone}}" />
+                    <pv-tag text="{{item.statusText}}" type="{{item.statusTone}}" />
+                  </view>
+                  <text class="ui-meta">{{L.k449}} {{item.reporterText}} · {{item.timeText}}</text>
+                  <text class="ui-meta">{{item.description}}</text>
+                  <text wx:if="{{item.handlerText}}" class="ui-meta">{{L.k447}} {{item.handlerText}}</text>
+                  <text wx:if="{{item.note}}" class="ui-meta">{{L.k447}}：{{item.note}}</text>
+                </view>
+                <view class="row-actions">
+                  <pv-button
+                    wx:if="{{item.status === 'PENDING'}}"
+                    size="sm"
+                    type="filled"
+                    data-id="{{item.id}}"
+                    bind:tap="repairAccept"
+                  >{{L.k440}}</pv-button>
+                  <pv-button
+                    wx:elif="{{item.status === 'IN_PROGRESS'}}"
+                    size="sm"
+                    type="plain"
+                    data-id="{{item.id}}"
+                    bind:tap="repairFinish"
+                  >{{L.k441}}</pv-button>
+                </view>
+              </view>
+            </view>
+          </view>
+        </block>
+        <pv-empty wx:else title="{{L.k442}}" desc="{{L.k443}}" />
+      </block>
+
       <!-- W-81 示範資料（只有最高權限）：匯入會真的寫進資料庫，清除只刪示範那批 -->
       <block wx:elif="{{tab === 'demo'}}">
         <pv-card>

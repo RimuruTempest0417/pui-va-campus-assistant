@@ -1,0 +1,84 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="repair-inner">
+      <view class="toolbar">
+        <text class="toolbar__summary">{{summary}}</text>
+        <view class="toolbar__action" bindtap="goCreate">{{L.k04}}</view>
+      </view>
+
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="3" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="3" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{guest}}" title="{{L.k13}}" desc="{{L.k14}}">
+        <pv-button type="tinted" size="sm" bind:tap="goLogin">{{L.k15}}</pv-button>
+      </pv-empty>
+
+      <pv-empty wx:elif="{{failed}}" title="{{L.k11}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k12}}</pv-button>
+      </pv-empty>
+
+      <pv-empty wx:elif="{{!items.length}}" title="{{L.k05}}" desc="{{L.k06}}">
+        <pv-button type="tinted" size="sm" bind:tap="goCreate">{{L.k04}}</pv-button>
+      </pv-empty>
+
+      <block wx:else>
+        <block wx:if="{{activeItems.length}}">
+          <view class="group-title">{{L.k02}}</view>
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{activeItems}}"
+              wx:key="id"
+              class="ui-card ui-card--row {{index === activeItems.length - 1 ? 'ui-card--last' : ''}}"
+            >
+              <view class="repair-row">
+                <view class="repair-main">
+                  <view class="ui-row-between">
+                    <text class="ui-title repair-title">{{item.placeText}}</text>
+                    <pv-tag text="{{item.statusText}}" type="{{item.statusTone}}" />
+                  </view>
+                  <text class="ui-meta">{{item.subText}}</text>
+                  <text class="ui-body repair-desc">{{item.description}}</text>
+                  <text wx:if="{{item.handler}}" class="ui-meta">{{L.k18}} {{item.handler.nickname}}</text>
+                </view>
+                <text
+                  wx:if="{{item.canCancel}}"
+                  class="repair-cancel"
+                  data-id="{{item.id}}"
+                  data-label="{{item.placeText}}"
+                  bindtap="cancelRepair"
+                >{{L.k07}}</text>
+              </view>
+            </view>
+          </view>
+        </block>
+
+        <block wx:if="{{doneItems.length}}">
+          <view class="group-title">{{L.k03}}</view>
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{doneItems}}"
+              wx:key="id"
+              class="ui-card ui-card--row {{index === doneItems.length - 1 ? 'ui-card--last' : ''}}"
+            >
+              <view class="repair-main">
+                <view class="ui-row-between">
+                  <text class="ui-title repair-title">{{item.placeText}}</text>
+                  <pv-tag text="{{item.statusText}}" type="{{item.statusTone}}" />
+                </view>
+                <text class="ui-meta">{{item.subText}}</text>
+                <text class="ui-body repair-desc">{{item.description}}</text>
+                <text wx:if="{{item.note}}" class="ui-meta">{{L.k21}}：{{item.note}}</text>
+                <text wx:if="{{item.handler}}" class="ui-meta">{{L.k18}} {{item.handler.nickname}}</text>
+              </view>
+            </view>
+          </view>
+        </block>
+      </block>
+    </view>
+  </scroll-view>
+</view>

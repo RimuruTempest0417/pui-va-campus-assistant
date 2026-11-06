@@ -381,4 +381,24 @@ module.exports = {
   removeProposal(id) {
     return http.del('/proposals/' + id);
   },
+
+  // ── W-89 課室設備報修後台（能力 repair:handle：總務／校務處）──
+  repairs(params) {
+    const q = params || {};
+    const query = {};
+    query.status = q.status || 'PENDING';
+    if (q.location) query.location = q.location;
+    if (q.q) query.q = q.q;
+    return http.get('/admin/repairs', query);
+  },
+  /** 接單：後端條件式更新，被別人接走時回 409（前端只提示，不重試） */
+  acceptRepair(id) {
+    return http.post('/admin/repairs/' + id + '/accept', {});
+  },
+  finishRepair(id, body) {
+    return http.post('/admin/repairs/' + id + '/done', body || {});
+  },
+  repairStats() {
+    return http.get('/admin/repairs/stats');
+  },
 };

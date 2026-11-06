@@ -11,6 +11,7 @@ const KIND_KEYS = {
   SYSTEM: i18n.pick('系統'),
   HOMEWORK: i18n.pick('功課'),
   PROPOSAL: i18n.pick('提案'),
+  REPAIR: i18n.pick('報修'),
 };
 const kindText = (kind) => KIND_KEYS[kind] || KIND_KEYS.SYSTEM;
 

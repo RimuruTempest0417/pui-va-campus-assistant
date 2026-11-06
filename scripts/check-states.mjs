@@ -61,6 +61,8 @@ const REQUIRE = {
   'pages/help/index': { loading: false, empty: false, failed: false, why: '站內說明，內容寫死沒有網路載入' },
   'pages/school/index': { loading: true, empty: true, failed: true },
   'pages/study/index': { loading: true, empty: true, failed: true },
+  'pages/repair/index/index': { loading: true, empty: true, failed: true },
+  'pages/repair/create/index': { loading: true, empty: false, failed: false, why: '純表單頁：載入時只有骨架，送出失敗用彈窗' },
 };
 
 const DETECT = {

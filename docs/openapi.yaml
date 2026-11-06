@@ -5462,6 +5462,210 @@ paths:
         '404': { description: 找不到 }
         '422': { description: 回覆太短 }
 
+  /repairs:
+    post:
+      tags: [repairs]
+      summary: 送出課室設備報修（學生／老師／職員）
+      description: |
+        送出後會以站內通知通知所有總務與管理員；報修人自己也會在「我的報修」看到這一筆。
+        照片目前只收 http(s) 連結（COS 直傳未接）。
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [location, equipment, description]
+              properties:
+                location: { type: string, minLength: 1, maxLength: 60, example: 304 室 }
+                equipment: { type: string, minLength: 1, maxLength: 40, example: 冷氣 }
+                description: { type: string, minLength: 4, maxLength: 500, example: 出風口滴水，滴到第二排的桌上 }
+                urgency: { type: string, enum: [LOW, NORMAL, HIGH], default: NORMAL }
+                photoUrl: { type: string, maxLength: 512 }
+      responses:
+        '201':
+          description: 已送出
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repair: { $ref: '#/components/schemas/Repair' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: 家長或訪客不能報修 }
+        '422': { description: 欄位不完整或照片不是 http(s) }
+
+  /repairs/mine:
+    get:
+      tags: [repairs]
+      summary: 我的報修（含進行中與已完成數量）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Repair' }
+                  active: { type: integer }
+                  done: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /repairs/{id}:
+    get:
+      tags: [repairs]
+      summary: 單張報修（報修人或總務）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repair: { $ref: '#/components/schemas/Repair' }
+        '403': { description: 不是報修人也不是總務 }
+        '404': { description: 找不到 }
+    delete:
+      tags: [repairs]
+      summary: 取消自己的報修（只有待接單時）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已取消 }
+        '403': { description: 只能取消自己送的 }
+        '409': { description: 已被接單或已處理 }
+
+  /admin/repairs:
+    get:
+      tags: [admin, repairs]
+      summary: 報修清單（總務／校務處）
+      description: |
+        待接單預設按急迫度（HIGH 先）再按送出時間排序；其他狀態按更新時間。
+        counts 是各狀態筆數。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [PENDING, IN_PROGRESS, DONE, CANCELLED, ALL], default: PENDING } }
+        - { name: location, in: query, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Repair' }
+                  total: { type: integer }
+                  page: { type: integer }
+                  counts:
+                    type: object
+                    properties:
+                      PENDING: { type: integer }
+                      IN_PROGRESS: { type: integer }
+                      DONE: { type: integer }
+                      CANCELLED: { type: integer }
+        '403': { description: '沒有 repair:handle 權限' }
+
+  /admin/repairs/{id}/accept:
+    post:
+      tags: [admin, repairs]
+      summary: 接單（條件式更新，誰先按誰拿到）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已接單
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repair: { $ref: '#/components/schemas/Repair' }
+        '404': { description: 找不到 }
+        '409': { description: 已被其他同事接走或已被送出者取消 }
+
+  /admin/repairs/{id}/done:
+    post:
+      tags: [admin, repairs]
+      summary: 標記完成（可寫處理備註）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string, maxLength: 300, example: 換了排水管，已測試 }
+      responses:
+        '200':
+          description: 已完成
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repair: { $ref: '#/components/schemas/Repair' }
+        '404': { description: 找不到 }
+        '409': { description: 還沒有人接單或已處理 }
+
+  /admin/repairs/stats:
+    get:
+      tags: [admin, repairs]
+      summary: 報修統計（狀態、平均處理時數、近 7 天、熱門地點）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  counts:
+                    type: object
+                    properties:
+                      PENDING: { type: integer }
+                      IN_PROGRESS: { type: integer }
+                      DONE: { type: integer }
+                      CANCELLED: { type: integer }
+                  avgHours: { type: number, nullable: true }
+                  doneCount: { type: integer }
+                  byLocation:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        location: { type: string }
+                        count: { type: integer }
+                  timeline:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, example: '2026-11-06' }
+                        label: { type: string, example: '11-06' }
+                        count: { type: integer }
+        '403': { description: 權限不足 }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -5522,6 +5726,38 @@ components:
             nickname: { type: string, nullable: true }
             grade: { type: string, nullable: true }
             className: { type: string, nullable: true }
+    Repair:
+      type: object
+      description: 一張課室設備報修單（W-89）。status 走 PENDING→IN_PROGRESS→DONE，送出者可在 PENDING 時取消。
+      properties:
+        id: { type: string }
+        location: { type: string, example: 304 室 }
+        equipment: { type: string, example: 冷氣 }
+        description: { type: string, example: 出風口滴水，滴到第二排的桌上 }
+        urgency: { type: string, enum: [LOW, NORMAL, HIGH] }
+        urgencyText: { type: string, example: 急 }
+        status: { type: string, enum: [PENDING, IN_PROGRESS, DONE, CANCELLED] }
+        statusText: { type: string, example: 待接單 }
+        photoUrl: { type: string, nullable: true }
+        note: { type: string, nullable: true, description: 處理備註（完成時可寫） }
+        reporter:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+            grade: { type: string, nullable: true }
+            className: { type: string, nullable: true }
+        handler:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        acceptedAt: { type: string, format: date-time, nullable: true }
+        completedAt: { type: string, format: date-time, nullable: true }
+        hours: { type: number, nullable: true, description: 送出到完成的實際時數（只有已完成才有） }
     ResourceBooking:
       type: object
       description: 一筆場地／器材借用申請（W-67）

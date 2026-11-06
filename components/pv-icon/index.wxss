@@ -84,3 +84,20 @@
 .i-bulb-ray { position: absolute; top: 6%; width: 2rpx; height: 12%; background: var(--ico); border-radius: 2rpx; }
 .i-bulb-ray--l { left: 12%; transform: rotate(-32deg); }
 .i-bulb-ray--r { right: 12%; transform: rotate(32deg); }
+
+/* 課室報修（W-89）：扳手＝一條 45° 的柄 ＋ 右上角開口的圓頭
+   為什麼不用「螺絲批」：螺絲批只有一條線，縮到 24rpx 會和放大鏡、日曆的柄混淆；
+   圓頭開口是扳手的辨識特徵，也和本專案其他圖標一樣只靠 border 畫。 */
+.i-wrench { position: absolute; top: 50%; left: 14%; width: 60%; height: 2rpx; background: var(--ico); border-radius: 2rpx; transform: rotate(-45deg); }
+.i-wrench-jaw {
+  position: absolute;
+  top: 12%;
+  right: 12%;
+  width: 30%;
+  height: 30%;
+  border: 2rpx solid var(--ico);
+  border-radius: 50%;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+  transform: rotate(-45deg);
+}

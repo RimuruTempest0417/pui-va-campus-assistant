@@ -266,4 +266,14 @@ module.exports = {
   removeProposal(id) { return http.del('/proposals/' + id); },
   adminProposals(query) { return http.get('/admin/proposals', query || {}); },
   replyProposal(id, body) { return http.post('/admin/proposals/' + id + '/reply', body); },
+
+  // ── W-89 課室設備報修（學生／老師送出；總務與校務處接單）──
+  myRepairs() { return http.get('/repairs/mine'); },
+  getRepair(id) { return http.get('/repairs/' + id); },
+  createRepair(body) { return http.post('/repairs', body); },
+  cancelRepair(id) { return http.del('/repairs/' + id); },
+  adminRepairs(query) { return http.get('/admin/repairs', query || {}); },
+  acceptRepair(id) { return http.post('/admin/repairs/' + id + '/accept', {}); },
+  finishRepair(id, body) { return http.post('/admin/repairs/' + id + '/done', body || {}); },
+  repairStats() { return http.get('/admin/repairs/stats'); },
 };

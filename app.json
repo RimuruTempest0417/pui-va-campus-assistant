@@ -30,6 +30,8 @@
     "pages/proposals/list/index",
     "pages/proposals/detail/index",
     "pages/proposals/create/index",
+    "pages/repair/index/index",
+    "pages/repair/create/index",
     "pages/events/list/index",
     "pages/events/detail/index",
     "pages/events/mine/index",

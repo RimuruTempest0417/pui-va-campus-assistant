@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 17;
+const SEED_VERSION = 18;
 
 const weekUtil = require('../utils/week');
 const venue = require('../utils/venue');
@@ -330,6 +330,82 @@ function seed() {
           { userId: 'demo-mate-3', nickname: '周同學', createdAt: now - 40 * h },
           { userId: 'demo-mate-4', nickname: '吳同學', createdAt: now - 36 * h },
         ],
+      },
+    ],
+    // ── 課室設備報修（W-89）──
+    // 四種狀態各一筆：待接單（可練取消）／處理中／已完成（看得到處理時數）／別人的單（後台看得到）
+    repairs: [
+      {
+        id: 'rp1',
+        location: '304 室',
+        equipment: '冷氣',
+        description: '出風口滴水，滴到第二排的桌上，同學要一直抹。',
+        urgency: 'HIGH',
+        status: 'PENDING',
+        photoUrl: null,
+        reporterId: 'demo-user',
+        reporterNickname: '示範學生',
+        reporterClass: '高二 仁',
+        handlerId: null,
+        handlerNickname: '',
+        acceptedAt: null,
+        completedAt: null,
+        note: null,
+        createdAt: now - 2 * h,
+      },
+      {
+        id: 'rp2',
+        location: '圖書館三樓',
+        equipment: '燈',
+        description: '靠近窗邊那一排有一支燈管在閃，看書很刺眼。',
+        urgency: 'NORMAL',
+        status: 'IN_PROGRESS',
+        photoUrl: null,
+        reporterId: 'demo-user',
+        reporterNickname: '示範學生',
+        reporterClass: '高二 仁',
+        handlerId: 'demo-staff',
+        handlerNickname: '總務處',
+        acceptedAt: now - 20 * h,
+        completedAt: null,
+        note: null,
+        createdAt: now - 26 * h,
+      },
+      {
+        id: 'rp3',
+        location: '禮堂',
+        equipment: '麥克風',
+        description: '主席台左邊那支沒有聲音，換了電池也一樣。',
+        urgency: 'HIGH',
+        status: 'DONE',
+        photoUrl: null,
+        reporterId: 'demo-user',
+        reporterNickname: '示範學生',
+        reporterClass: '高二 仁',
+        handlerId: 'demo-staff',
+        handlerNickname: '總務處',
+        acceptedAt: now - 54 * h,
+        completedAt: now - 45 * h,
+        note: '換了電池座，並把線材重新壓接。',
+        createdAt: now - 60 * h,
+      },
+      {
+        id: 'rp4',
+        location: '203 室',
+        equipment: '門鎖',
+        description: '門鎖卡住，要用力推才關得上，放學後常常沒鎖好。',
+        urgency: 'HIGH',
+        status: 'PENDING',
+        photoUrl: null,
+        reporterId: 'demo-other',
+        reporterNickname: '黃同學',
+        reporterClass: '高一 忠',
+        handlerId: null,
+        handlerNickname: '',
+        acceptedAt: null,
+        completedAt: null,
+        note: null,
+        createdAt: now - 5 * h,
       },
     ],
   };
@@ -853,6 +929,40 @@ function proposalList(data, opts) {
   const total = rows.length;
   const slice = rows.slice((page - 1) * limit, (page - 1) * limit + limit);
   return { items: slice.map((p) => shapeProposal(data, p)), total: total, page: page, counts: counts, goal: 20 };
+}
+
+// ── W-89 課室設備報修：對外形狀與後端 routes/repairs.ts 的 shape() 一致 ──
+const REPAIR_STATUS_LABEL = { PENDING: '待接單', IN_PROGRESS: '處理中', DONE: '已完成', CANCELLED: '已取消' };
+const REPAIR_URGENCY_LABEL = { LOW: '可以等', NORMAL: '一般', HIGH: '急' };
+const REPAIR_HANDLER_ROLES = ['STAFF', 'ADMIN', 'SUPER_ADMIN'];
+
+function repairRole(data) {
+  return (data.user && data.user.role) || 'STUDENT';
+}
+
+function shapeRepair(row) {
+  const hours =
+    row.completedAt != null
+      ? Math.round(((row.completedAt - row.createdAt) / 3600000) * 10) / 10
+      : null;
+  return {
+    id: row.id,
+    location: row.location,
+    equipment: row.equipment,
+    description: row.description,
+    urgency: row.urgency || 'NORMAL',
+    urgencyText: REPAIR_URGENCY_LABEL[row.urgency || 'NORMAL'] || '一般',
+    status: row.status,
+    statusText: REPAIR_STATUS_LABEL[row.status] || row.status,
+    photoUrl: row.photoUrl || null,
+    note: row.note || null,
+    reporter: { id: row.reporterId, nickname: row.reporterNickname || '同學', grade: null, className: row.reporterClass || null },
+    handler: row.handlerId ? { id: row.handlerId, nickname: row.handlerNickname || '總務處' } : null,
+    createdAt: new Date(row.createdAt).toISOString(),
+    acceptedAt: row.acceptedAt ? new Date(row.acceptedAt).toISOString() : null,
+    completedAt: row.completedAt ? new Date(row.completedAt).toISOString() : null,
+    hours: hours,
+  };
 }
 
 module.exports = {
@@ -3100,5 +3210,216 @@ module.exports = {
     const shaped = shapeProposal(data, row, { detail: true });
     shaped.notified = (row.supporters || []).length;
     return Promise.resolve(shaped);
+  },
+
+  // ── W-89 課室設備報修 ──
+
+  myRepairs() {
+    const data = db();
+    const me = data.user || {};
+    const mine = (data.repairs || []).filter((row) => row.reporterId === me.id);
+    const items = mine
+      .slice()
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map(shapeRepair);
+    return Promise.resolve({
+      items: items,
+      active: items.filter((row) => row.status === 'PENDING' || row.status === 'IN_PROGRESS').length,
+      done: items.filter((row) => row.status === 'DONE').length,
+    });
+  },
+
+  getRepair(id) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.repairs || []).filter((r) => r.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這張報修單' });
+    if (row.reporterId !== me.id && REPAIR_HANDLER_ROLES.indexOf(repairRole(data)) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '看不到這張報修單' });
+    }
+    return Promise.resolve({ repair: shapeRepair(row) });
+  },
+
+  createRepair(input) {
+    const data = db();
+    const me = data.user || {};
+    const body = input || {};
+    const role = repairRole(data);
+    if (['STUDENT', 'TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只有校內成員可以報修' });
+    }
+    if (!String(body.location || '').trim()) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請填課室或地點' });
+    if (!String(body.equipment || '').trim()) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請填設備類型' });
+    if (String(body.description || '').trim().length < 4) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '請簡單描述壞在哪裡（至少 4 個字）' });
+    }
+    if (body.photoUrl && !/^https?:\/\//i.test(String(body.photoUrl))) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '照片只收 http(s) 連結' });
+    }
+    const row = {
+      id: 'rp' + Date.now() + Math.random().toString(16).slice(2, 6),
+      location: String(body.location).trim(),
+      equipment: String(body.equipment).trim(),
+      description: String(body.description).trim(),
+      urgency: body.urgency || 'NORMAL',
+      status: 'PENDING',
+      photoUrl: body.photoUrl || null,
+      reporterId: me.id || 'demo-user',
+      reporterNickname: me.nickname || '示範學生',
+      reporterClass: me.className || '',
+      handlerId: null,
+      handlerNickname: '',
+      acceptedAt: null,
+      completedAt: null,
+      note: null,
+      createdAt: Date.now(),
+    };
+    data.repairs = (data.repairs || []).concat([row]);
+    save(data);
+    return Promise.resolve({ repair: shapeRepair(row) });
+  },
+
+  cancelRepair(id) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.repairs || []).filter((r) => r.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這張報修單' });
+    if (row.reporterId !== me.id) return Promise.reject({ code: 'FORBIDDEN', message: '只能取消自己送的報修' });
+    if (row.status !== 'PENDING') return Promise.reject({ code: 'CONFLICT', message: '這張報修已經有人處理了，不能取消' });
+    row.status = 'CANCELLED';
+    save(data);
+    return Promise.resolve({ ok: true, status: 'CANCELLED' });
+  },
+
+  adminRepairs(query) {
+    const data = db();
+    if (REPAIR_HANDLER_ROLES.indexOf(repairRole(data)) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const q = query || {};
+    const status = q.status || 'PENDING';
+    const counts = { PENDING: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 };
+    (data.repairs || []).forEach((row) => {
+      counts[row.status] = (counts[row.status] || 0) + 1;
+    });
+    let rows = (data.repairs || []).slice();
+    if (status !== 'ALL') rows = rows.filter((row) => row.status === status);
+    if (q.location) {
+      const needle = String(q.location).toLowerCase();
+      rows = rows.filter((row) => String(row.location).toLowerCase().indexOf(needle) !== -1);
+    }
+    if (q.q) {
+      const needle = String(q.q).toLowerCase();
+      rows = rows.filter(
+        (row) =>
+          String(row.description).toLowerCase().indexOf(needle) !== -1 ||
+          String(row.equipment).toLowerCase().indexOf(needle) !== -1 ||
+          String(row.reporterNickname || '').toLowerCase().indexOf(needle) !== -1,
+      );
+    }
+    // 與後端同一套排序：待接單先看急的、再看舊的；其他看最新的
+    rows.sort((a, b) => {
+      if (status === 'PENDING') {
+        const wa = { LOW: 0, NORMAL: 1, HIGH: 2 }[a.urgency] || 1;
+        const wb = { LOW: 0, NORMAL: 1, HIGH: 2 }[b.urgency] || 1;
+        if (wa !== wb) return wb - wa;
+        return a.createdAt - b.createdAt;
+      }
+      return b.createdAt - a.createdAt;
+    });
+    return Promise.resolve({ items: rows.map(shapeRepair), total: rows.length, page: 1, counts: counts });
+  },
+
+  acceptRepair(id) {
+    const data = db();
+    if (REPAIR_HANDLER_ROLES.indexOf(repairRole(data)) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const me = data.user || {};
+    const row = (data.repairs || []).filter((r) => r.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這張報修單' });
+    if (row.status !== 'PENDING') {
+      return Promise.reject({
+        code: 'CONFLICT',
+        message: row.status === 'CANCELLED' ? '這張報修已被送出者取消' : '這張報修已經有人接了',
+      });
+    }
+    row.status = 'IN_PROGRESS';
+    row.handlerId = me.id || 'demo-staff';
+    row.handlerNickname = me.nickname || '總務處';
+    row.acceptedAt = Date.now();
+    save(data);
+    return Promise.resolve({ repair: shapeRepair(row) });
+  },
+
+  finishRepair(id, input) {
+    const data = db();
+    if (REPAIR_HANDLER_ROLES.indexOf(repairRole(data)) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const body = input || {};
+    const row = (data.repairs || []).filter((r) => r.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這張報修單' });
+    if (row.status !== 'IN_PROGRESS') {
+      return Promise.reject({
+        code: 'CONFLICT',
+        message: row.status === 'DONE' ? '這張報修已經完成' : '這張報修還沒有人接單',
+      });
+    }
+    row.status = 'DONE';
+    row.completedAt = Date.now();
+    row.note = body.note ? String(body.note).slice(0, 300) : null;
+    save(data);
+    return Promise.resolve({ repair: shapeRepair(row) });
+  },
+
+  repairStats() {
+    const data = db();
+    if (REPAIR_HANDLER_ROLES.indexOf(repairRole(data)) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const rows = data.repairs || [];
+    const counts = { PENDING: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 };
+    rows.forEach((row) => {
+      counts[row.status] = (counts[row.status] || 0) + 1;
+    });
+    const done = rows.filter((row) => row.status === 'DONE' && row.completedAt);
+    const avgHours = done.length
+      ? Math.round((done.reduce((sum, row) => sum + (row.completedAt - row.createdAt) / 3600000, 0) / done.length) * 10) / 10
+      : null;
+    const byLoc = {};
+    rows.forEach((row) => {
+      byLoc[row.location] = (byLoc[row.location] || 0) + 1;
+    });
+    const byLocation = Object.keys(byLoc)
+      .map((location) => ({ location: location, count: byLoc[location] }))
+      .sort((a, b) => b.count - a.count || a.location.localeCompare(b.location))
+      .slice(0, 10);
+
+    // 近 7 天（含今天），用本地日期字串分組
+    const dayKey = (ms) => {
+      const d = new Date(ms);
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return d.getFullYear() + '-' + mm + '-' + dd;
+    };
+    const timeline = [];
+    for (let i = 6; i >= 0; i -= 1) {
+      const key = dayKey(Date.now() - i * 86400000);
+      timeline.push({ date: key, label: key.slice(5), count: 0 });
+    }
+    rows.forEach((row) => {
+      const hit = timeline.filter((d) => d.date === dayKey(row.createdAt))[0];
+      if (hit) hit.count += 1;
+    });
+
+    return Promise.resolve({
+      total: rows.length,
+      counts: counts,
+      avgHours: avgHours,
+      doneCount: done.length,
+      byLocation: byLocation,
+      timeline: timeline,
+    });
   },
 };

@@ -245,4 +245,14 @@ module.exports = {
   removeProposal: (...a) => call('removeProposal', a),
   adminProposals: (...a) => call('adminProposals', a),
   replyProposal: (...a) => call('replyProposal', a),
+
+  // ── W-89 課室設備報修（送出與取消要登入；接單與統計是總務／校務處）──
+  myRepairs: (...a) => call('myRepairs', a),
+  getRepair: (...a) => call('getRepair', a),
+  createRepair: (...a) => call('createRepair', a),
+  cancelRepair: (...a) => call('cancelRepair', a),
+  adminRepairs: (...a) => call('adminRepairs', a),
+  acceptRepair: (...a) => call('acceptRepair', a),
+  finishRepair: (...a) => call('finishRepair', a),
+  repairStats: (...a) => call('repairStats', a),
 };

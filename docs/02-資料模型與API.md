@@ -184,6 +184,20 @@ UPDATE events
 
 > 日期只到「天」（`@db.Date`，字串 `2026-11-12`）：請假是「哪幾天不在」，不是幾點幾分；`dateText`／`days` 由後端算好，前端不重算時區。
 
+### 課室設備報修 `/repairs`（W-89；送出要登入，接單要 `repair:handle`）
+| 方法 | 路徑 | 說明 |
+|---|---|---|
+| POST | `/repairs` | 送出報修（`location`／`equipment`／`description` 必填、`urgency` 三級、`photoUrl` 只收 http(s)）；送出時通知所有總務與管理員 |
+| GET | `/repairs/mine` | 我的報修＋`active`（待接單＋處理中）與 `done` 筆數 |
+| GET | `/repairs/:id` | 單張（報修人或具 `repair:handle`） |
+| DELETE | `/repairs/:id` | 取消（只有送出者、只有 `PENDING`；已接單回 409） |
+| GET | `/admin/repairs` | 清單（狀態／地點／關鍵字篩選＋`counts`；待接單按急迫度再按送出時間） |
+| POST | `/admin/repairs/:id/accept` | 接單：**條件式更新 `where status='PENDING'`**，同事同時按只有一位成立、其餘 409；處理人記成目前登入者，通知報修人 |
+| POST | `/admin/repairs/:id/done` | 完成（只能從 `IN_PROGRESS`，可寫 `note`）；通知報修人 |
+| GET | `/admin/repairs/stats` | 各狀態筆數、`avgHours`（只算已完成）、`doneCount`、`byLocation`（前 10）、`timeline`（近 7 天，澳門時區） |
+
+> 權限：`repair:create` 學生以上（**家長沒有**）；`repair:handle` 校內職員與管理員（**老師沒有** —— 老師負責發現與回報，接單與結案是總務的行政流程）。地點與設備是自由文字＋前端常用 chips，不建課室表：學校的課室叫法每學年都在變。
+
 ### 課表 `/timetable`（W-73；讀取連訪客都能看，維護要 `timetable:manage`＝STAFF 以上）
 | 方法 | 路徑 | 說明 |
 |---|---|---|

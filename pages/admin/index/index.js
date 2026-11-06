@@ -32,6 +32,7 @@ const TABS = [
   { key: 'timetable', label: i18n.pick('課表') },
   { key: 'homework', label: i18n.pick('功課') },
   { key: 'proposals', label: i18n.pick('提案') },
+  { key: 'repair', label: i18n.pick('報修') },
   { key: 'demo', label: i18n.pick('示範資料') },
 ];
 
@@ -40,10 +41,10 @@ const TERM_KEYS = [i18n.pick('第一段'), i18n.pick('第二段'), i18n.pick('�
 
 const ROLE_TABS = {
   // 校內職員：排菜單＋匯出報名名單＋補登成績。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
-  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'proposals', 'export'],
+  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'proposals', 'repair', 'export'],
   TEACHER: ['notice', 'school', 'events', 'venues', 'leaves'],
-  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework', 'proposals'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework', 'proposals', 'demo'],
+  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework', 'proposals', 'repair'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework', 'proposals', 'repair', 'demo'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -85,6 +86,18 @@ function onWriteError(err, reload) {
 function versionPatch(dataset) {
   const v = Number((dataset || {}).version);
   return Number.isFinite(v) ? { version: v } : {};
+}
+
+/** 報修單的時間顯示：今天只寫「HH:mm」，其他日子寫「MM/DD HH:mm」（後台要一眼看出隔了多久） */
+function shortTime(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n) => (n < 10 ? '0' + n : String(n));
+  const hm = pad(d.getHours()) + ':' + pad(d.getMinutes());
+  const now = new Date();
+  const sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  return sameDay ? hm : pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + ' ' + hm;
 }
 
 Page({
@@ -503,6 +516,24 @@ Page({
       k437: i18n.pick("寫下處理結果或下一步"),
       k438: i18n.pick("送出回覆"),
       k439: i18n.pick("連署進度"),
+      k440: i18n.pick("接單"),
+      k441: i18n.pick("完成"),
+      k442: i18n.pick("沒有符合條件的報修單"),
+      k443: i18n.pick("換個狀態或清空搜尋再試"),
+      k444: i18n.pick("已接單"),
+      k445: i18n.pick("已標記完成"),
+      k446: i18n.pick("操作失敗"),
+      k447: i18n.pick("處理備註"),
+      k448: i18n.pick("例如：換了排水管，已測試"),
+      k449: i18n.pick("報修人"),
+      k450: i18n.pick("平均處理"),
+      k451: i18n.pick("小時"),
+      k452: i18n.pick("近 7 天新增"),
+      k453: i18n.pick("報修最多的地點"),
+      k454: i18n.pick("筆"),
+      k455: i18n.pick("讀不到報修清單："),
+      k456: i18n.pick("報修統計"),
+      k457: i18n.pick("還沒有完成的報修"),
       ppStatusOPEN: i18n.pick("收集中"),
       ppStatusREVIEWING: i18n.pick("處理中"),
       ppStatusPLANNED: i18n.pick("已列入計劃"),
@@ -596,6 +627,19 @@ Page({
     ],
     leaveItems: [],
     leaveCounts: { PENDING: 0, APPROVED: 0, REJECTED: 0, CANCELLED: 0 },
+    // ── 課室設備報修（W-89）：待接單優先；接單是「誰先按誰拿到」，完成要寫備註 ──
+    repairStatus: 'PENDING',
+    repairStatuses: [
+      { key: 'PENDING', label: i18n.pick('待接單') },
+      { key: 'IN_PROGRESS', label: i18n.pick('處理中') },
+      { key: 'DONE', label: i18n.pick('已完成') },
+      { key: 'ALL', label: i18n.pick('全部') },
+    ],
+    repairItems: [],
+    repairCounts: { PENDING: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 },
+    repairStatsText: '',
+    repairByLocation: [],
+    repairTimeline: [],
     // ── 課表（W-73）：匯入 CSV 先檢查再寫入；下面列出每個班幾格 ──
     ttCsv: '',
     ttBusy: false,
@@ -858,6 +902,7 @@ Page({
     else if (t === 'timetable') p = this.loadTimetable();
     else if (t === 'homework') p = this.loadHomework();
     else if (t === 'proposals') p = this.loadProposals();
+    else if (t === 'repair') p = this.loadRepairs();
     else if (t === 'demo') p = this.loadDemo();
 
     if (!p || typeof p.then !== 'function') {
@@ -2942,6 +2987,94 @@ Page({
             this.loadLeaves();
           })
           .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // ───────── 課室設備報修（W-89）─────────
+  // 總務與校務處（能力 repair:handle）接單與完成。接單是「誰先按誰拿到」：
+  // 被同事接走時後端回 409，這裡只提示並重抓清單，不自動重試（重試等於讓後按的人贏）。
+  async loadRepairs() {
+    const L = this.data.L;
+    try {
+      const [res, stats] = await Promise.all([
+        admin.repairs({ status: this.data.repairStatus }),
+        admin.repairStats().catch(() => null),
+      ]);
+      const tone = { PENDING: 'warning', IN_PROGRESS: 'tint', DONE: 'success', CANCELLED: 'neutral' };
+      const items = (res.items || []).map((row) =>
+        Object.assign({}, row, {
+          statusTone: tone[row.status] || 'neutral',
+          urgencyTone: row.urgency === 'HIGH' ? 'danger' : row.urgency === 'LOW' ? 'neutral' : 'warning',
+          placeText: row.location + ' · ' + row.equipment,
+          reporterText:
+            (row.reporter && row.reporter.nickname ? row.reporter.nickname : L.k449) +
+            (row.reporter && row.reporter.className ? ' · ' + row.reporter.className : ''),
+          handlerText: row.handler ? row.handler.nickname : '',
+          timeText: shortTime(row.createdAt),
+        }),
+      );
+
+      const patch = {
+        repairItems: items,
+        repairCounts: res.counts || this.data.repairCounts,
+      };
+      if (stats) {
+        patch.repairStatsText =
+          L.k450 +
+          ' ' +
+          (stats.avgHours == null ? '—' : stats.avgHours + ' ' + L.k451) +
+          ' · ' +
+          L.k452 +
+          ' ' +
+          (stats.timeline || []).reduce((sum, d) => sum + d.count, 0) +
+          ' ' +
+          L.k454;
+        patch.repairByLocation = (stats.byLocation || []).slice(0, 5);
+        patch.repairTimeline = stats.timeline || [];
+      }
+      this.setData(patch);
+    } catch (e) {
+      this.setData({ hint: L.k455 + (e.message || e.code) });
+    }
+  },
+
+  switchRepairStatus(e) {
+    this.setData({ repairStatus: e.currentTarget.dataset.key }, () => this.loadRepairs());
+  },
+
+  repairAccept(e) {
+    const id = e.currentTarget.dataset.id;
+    admin
+      .acceptRepair(id)
+      .then(() => {
+        wx.showToast({ title: this.data.L.k444, icon: 'success' });
+        this.loadRepairs();
+      })
+      .catch((err) => {
+        wx.showToast({ title: err.message || this.data.L.k446, icon: 'none' });
+        this.loadRepairs();
+      });
+  },
+
+  /** 完成要寫備註（換了什麼零件／什麼時候再來看），家長與學生收到通知時看得到 */
+  repairFinish(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title: this.data.L.k441,
+      editable: true,
+      placeholderText: this.data.L.k448,
+      confirmText: this.data.L.k441,
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .finishRepair(id, { note: (r.content || '').trim() || undefined })
+          .then(() => {
+            wx.showToast({ title: this.data.L.k445, icon: 'success' });
+            this.loadRepairs();
+          })
+          .catch((err) => wx.showToast({ title: err.message || this.data.L.k446, icon: 'none' }));
       },
     });
   },

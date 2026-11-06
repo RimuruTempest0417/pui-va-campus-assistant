@@ -43,6 +43,15 @@ function proposalsTextOf(res, meId) {
   return open + i18n.pick(' 個提案收集中');
 }
 
+/** 首頁報修入口的副標：幾張還在處理中（待接單＋處理中都算「還沒修好」） */
+function repairsTextOf(res) {
+  if (!res) return i18n.pick('壞了的東西在這裡報');
+  const items = res.items || [];
+  if (!items.length) return i18n.pick('冷氣、門鎖壞了在這裡報');
+  if (res.active) return res.active + i18n.pick(' 張處理中');
+  return i18n.pick('報過的都處理完了');
+}
+
 /** 首頁場地入口的副標：現在開放的場地／器材數（澳門時間判定，與詳情頁同一套） */
 function venueOpenText(items) {
   const now = Date.now();
@@ -93,6 +102,8 @@ Page({
     homeworkPressed: false,
     proposalsText: '',
     proposalPressed: false,
+    repairText: '',
+    repairPressed: false,
     // 家長：只在家長身分時才有值（切換子女就在首頁做，不必先點進別的頁）
     parentChildren: [],
     parentActiveId: '',
@@ -139,6 +150,7 @@ Page({
       k31: i18n.pick('功課'),
       k32: i18n.pick('校園提案'),
       k33: i18n.pick('提出改善建議，同學連署'),
+      k34: i18n.pick('課室報修'),
       k30: i18n.pick('今天不用上課'),
       brand: i18n.pick('培華校園助手'),
       brandSub: i18n.pick('PUI VA CAMPUS'),
@@ -297,7 +309,7 @@ Page({
       // 首次進入先嘗試登入（沒有後端就當訪客，不阻塞畫面）
       await data.ensureLogin();
 
-      const [me, items, events, menu, notices, lib, resources, giveaways, timetable, homework, proposals] = await Promise.all([
+      const [me, items, events, menu, notices, lib, resources, giveaways, timetable, homework, proposals, repairs] = await Promise.all([
         // 未登入時 me() 會 401；首頁是公開頁，訪客照樣要能看到四個模組
         data.me().catch(() => null),
         data.listItems({}),
@@ -316,6 +328,8 @@ Page({
         data.listHomework({ scope: 'todo' }).catch(() => null),
         // 提案入口的副標（幾個提案、幾個等我連署）：失敗不影響首頁
         data.listProposals({ status: 'OPEN', sort: 'support', limit: 10 }).catch(() => null),
+        // 報修入口的副標（幾張處理中）：未登入或後端掛了都顯示預設文案
+        data.myRepairs().catch(() => null),
       ]);
 
       // 緊急公告：只在真的有 URGENT 時顯示第一則
@@ -406,6 +420,7 @@ Page({
               : i18n.pick('功課都交了')
           : '—',
         proposalsText: proposalsTextOf(proposals, (me && me.id) || ''),
+        repairText: repairsTextOf(repairs),
         user: me || {},
         parentChildren: parentChildren,
         parentActiveId: parentActiveId,
@@ -561,6 +576,18 @@ Page({
 
   goProposals() {
     wx.navigateTo({ url: '/pages/proposals/list/index' });
+  },
+
+  onRpTouchStart() {
+    this.setData({ repairPressed: true });
+  },
+
+  onRpTouchEnd() {
+    this.setData({ repairPressed: false });
+  },
+
+  goRepair() {
+    wx.navigateTo({ url: '/pages/repair/index/index' });
   },
 
   onRetry() {

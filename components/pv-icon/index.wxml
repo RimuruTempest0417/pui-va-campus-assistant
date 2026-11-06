@@ -81,4 +81,10 @@
     <view class="i-bulb-ray i-bulb-ray--r" />
   </block>
 
+  <!-- 課室報修（W-89）：扳手（斜柄＋頭部開口） -->
+  <block wx:elif="{{name === 'repair'}}">
+    <view class="i-wrench" />
+    <view class="i-wrench-jaw" />
+  </block>
+
 </view>
