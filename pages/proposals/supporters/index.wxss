@@ -1,0 +1,31 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.list-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+
+.summary {
+  display: block;
+  padding: 0 var(--pv-sp-1) var(--pv-sp-2);
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-label-3);
+}
+
+.sp-row { display: flex; flex-direction: row; align-items: center; gap: var(--pv-sp-2); }
+.sp-mark {
+  width: 72rpx;
+  height: 72rpx;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--pv-tint-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sp-mark__text { font-size: var(--pv-fs-title-3); font-weight: 600; color: var(--pv-tint); }
+.sp-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sp-name { flex-shrink: 0; }
+.sp-meta { margin-top: 6rpx; }
+.sp-time { flex-shrink: 0; margin-left: var(--pv-sp-2); }
+
+.list-foot { text-align: center; color: var(--pv-label-3); font-size: var(--pv-fs-caption-1); padding: var(--pv-sp-3) 0 var(--pv-sp-6); }
+.list-foot__more { color: var(--pv-tint); font-weight: 600; }

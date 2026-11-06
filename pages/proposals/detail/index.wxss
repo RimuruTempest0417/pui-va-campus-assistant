@@ -47,6 +47,25 @@
   padding: 6rpx var(--pv-sp-2);
 }
 
+.more {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  height: 88rpx;
+  margin-top: var(--pv-sp-2);
+  border-top: 1rpx solid var(--pv-sep);
+}
+.more__text { font-size: var(--pv-fs-subhead); color: var(--pv-tint); font-weight: 600; }
+.more__chev {
+  width: 14rpx;
+  height: 14rpx;
+  flex-shrink: 0;
+  border-top: 2rpx solid var(--pv-label-3);
+  border-right: 2rpx solid var(--pv-label-3);
+  transform: rotate(45deg);
+}
+
 .reply-card { margin-top: var(--pv-sp-2); }
 .reply__meta { display: block; margin-top: 8rpx; }
 .moderate { display: flex; flex-direction: row; justify-content: flex-end; margin-top: var(--pv-sp-2); }

@@ -4,7 +4,7 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 18;
+const SEED_VERSION = 19;
 
 const weekUtil = require('../utils/week');
 const venue = require('../utils/venue');
@@ -260,12 +260,24 @@ function seed() {
         version: 1,
         createdAt: now - 3 * 24 * h,
         supporters: [
-          { userId: 'demo-mate-1', nickname: '李同學', createdAt: now - 3 * 24 * h },
-          { userId: 'demo-mate-2', nickname: '黃同學', createdAt: now - 2 * 24 * h },
-          { userId: 'demo-mate-3', nickname: '周同學', createdAt: now - 2 * 24 * h },
-          { userId: 'demo-user', nickname: '示範學生', createdAt: now - 30 * h },
-          { userId: 'demo-mate-4', nickname: '吳同學', createdAt: now - 26 * h },
-          { userId: 'demo-mate-5', nickname: '何同學', createdAt: now - 24 * h },
+          { userId: 'demo-mate-1', nickname: '李同學', role: 'STUDENT', className: '高二 仁', createdAt: now - 71 * h },
+          { userId: 'demo-mate-2', nickname: '黃同學', role: 'STUDENT', className: '高二 仁', createdAt: now - 70 * h },
+          { userId: 'demo-mate-3', nickname: '周同學', role: 'STUDENT', className: '高二 忠', createdAt: now - 69 * h },
+          { userId: 'demo-mate-4', nickname: '吳同學', role: 'STUDENT', className: '高一 孝', createdAt: now - 66 * h },
+          { userId: 'demo-mate-5', nickname: '何同學', role: 'STUDENT', className: '高二 仁', createdAt: now - 64 * h },
+          { userId: 'demo-mate-6', nickname: '林同學', role: 'STUDENT', className: '高二 信', createdAt: now - 62 * h },
+          { userId: 'demo-mate-7', nickname: '鄭同學', role: 'STUDENT', className: '高一 仁', createdAt: now - 60 * h },
+          { userId: 'demo-mate-8', nickname: '梁同學', role: 'STUDENT', className: '高二 忠', createdAt: now - 58 * h },
+          { userId: 'demo-mate-9', nickname: '張同學', role: 'STUDENT', className: '高三 仁', createdAt: now - 54 * h },
+          { userId: 'demo-mate-10', nickname: '譚同學', role: 'STUDENT', className: '高二 仁', createdAt: now - 52 * h },
+          { userId: 'demo-mate-11', nickname: '蘇同學', role: 'STUDENT', className: '初三 仁', createdAt: now - 50 * h },
+          { userId: 'demo-mate-12', nickname: '陳同學', role: 'STUDENT', className: '高一 忠', createdAt: now - 48 * h },
+          { userId: 'demo-mate-13', nickname: '劉同學', role: 'STUDENT', className: '高二 仁', createdAt: now - 46 * h },
+          { userId: 'demo-mate-14', nickname: '羅同學', role: 'STUDENT', className: '高二 信', createdAt: now - 44 * h },
+          { userId: 'demo-mate-15', nickname: '馬同學', role: 'STUDENT', className: '高一 仁', createdAt: now - 42 * h },
+          { userId: 'demo-mate-16', nickname: '盧老師', role: 'TEACHER', className: '', createdAt: now - 40 * h },
+          { userId: 'demo-mate-17', nickname: '岑同學', role: 'STUDENT', className: '高二 忠', createdAt: now - 38 * h },
+          { userId: 'demo-user', nickname: '示範學生', role: 'STUDENT', className: '高二 仁', createdAt: now - 30 * h },
         ],
       },
       {
@@ -885,7 +897,11 @@ function shapeProposal(data, row, opts) {
     out.reply = row.reply
       ? { body: row.reply.body, byName: row.reply.byName || '', at: new Date(row.reply.at).toISOString() }
       : null;
-    out.supporters = supporters.map((s) => ({ id: s.userId, nickname: s.nickname }));
+    out.supporters = supporters
+      .map((s) => ({ id: s.userId, nickname: s.nickname, role: s.role || 'STUDENT', className: s.className || '' }))
+      // 與後端一致：詳情只帶前 12 位，其餘用「看全部」翻頁
+      .slice(0, 12);
+    out.supportersTotal = count;
     out.canEdit = row.authorId === me && row.status === 'OPEN';
     out.canReply = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1;
     out.canModerate = out.canReply;
@@ -3065,6 +3081,37 @@ module.exports = {
     return Promise.resolve(shapeProposal(data, row, { detail: true }));
   },
 
+  // 連署名單（與後端同一形狀：先連署的在前，詳情只帶前 12 位，其餘分頁翻）
+  proposalSupports(id, query) {
+    const data = db();
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    const q = query || {};
+    const page = Math.max(1, Number(q.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(q.limit) || 20));
+    const all = (row.supporters || [])
+      .slice()
+      .sort((a, b) => a.createdAt - b.createdAt || String(a.userId).localeCompare(String(b.userId)));
+    const slice = all.slice((page - 1) * limit, (page - 1) * limit + limit);
+    return Promise.resolve({
+      proposalId: id,
+      items: slice.map((s) => ({
+        id: s.userId,
+        nickname: s.nickname,
+        role: s.role || 'STUDENT',
+        grade: '',
+        className: s.className || '',
+        at: new Date(s.createdAt).toISOString(),
+      })),
+      total: all.length,
+      page: page,
+      limit: limit,
+      hasMore: page * limit < all.length,
+      supportCount: all.length,
+      goal: row.goal || 20,
+    });
+  },
+
   createProposal(body) {
     const data = db();
     const me = data.user || {};
@@ -3125,7 +3172,7 @@ module.exports = {
     row.supporters = row.supporters || [];
     const already = row.supporters.some((s) => s.userId === me.id);
     if (!already) {
-      row.supporters.push({ userId: me.id, nickname: me.nickname, createdAt: Date.now() });
+      row.supporters.push({ userId: me.id, nickname: me.nickname, role: me.role || 'STUDENT', className: me.className || '', createdAt: Date.now() });
       if (row.supporters.length >= (row.goal || 20) && !row.reachedAt) row.reachedAt = Date.now();
       save(data);
     }

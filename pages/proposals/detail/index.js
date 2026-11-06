@@ -47,6 +47,7 @@ Page({
     notFound: false,
     errorText: '',
     item: null,
+    moreText: '',
     barText: '',
     barKind: '',
     barDisabled: true,
@@ -99,7 +100,13 @@ Page({
       const res = await data.getProposal(this.data.id);
       const item = proposal.decorateItem(res);
       const bar = this.barFor(item);
-      this.setData(Object.assign({ loading: false, failed: false, notFound: false, errorText: '', item: item }, bar));
+      // 詳情只帶前 12 位連署人；超過才顯示「看全部」，否則點進去跟現在看到的一樣
+      const shown = (item.supporters || []).length;
+      const moreText =
+        item.supportCount > shown ? i18n.pick('看全部 {n} 人連署').replace('{n}', String(item.supportCount)) : '';
+      this.setData(
+        Object.assign({ loading: false, failed: false, notFound: false, errorText: '', item: item, moreText: moreText }, bar),
+      );
     } catch (e) {
       const code = (e && e.code) || '';
       const notFound = code === 'NOT_FOUND';
@@ -109,6 +116,7 @@ Page({
         notFound: notFound,
         errorText: data.messageOf(e),
         item: null,
+        moreText: '',
       });
       if (!notFound) reporter.reportError('[proposal.detail] ' + data.messageOf(e));
     }
@@ -120,6 +128,11 @@ Page({
 
   goLogin() {
     wx.navigateTo({ url: '/pages/admin/login/index' });
+  },
+
+  goSupporters() {
+    if (!this.data.id) return;
+    wx.navigateTo({ url: '/pages/proposals/supporters/index?id=' + this.data.id });
   },
 
   onPrimary() {

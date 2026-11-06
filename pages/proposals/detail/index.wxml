@@ -43,6 +43,10 @@
             <view class="supporters">
               <view wx:for="{{item.supporters}}" wx:key="id" class="supporter">{{item.nickname}}</view>
             </view>
+            <view wx:if="{{moreText}}" class="more" bindtap="goSupporters">
+              <text class="more__text">{{moreText}}</text>
+              <view class="more__chev"></view>
+            </view>
           </block>
         </view>
 

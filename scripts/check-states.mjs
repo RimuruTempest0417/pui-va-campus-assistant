@@ -39,6 +39,7 @@ const REQUIRE = {
   'pages/proposals/list/index': { loading: true, empty: true, failed: true },
   'pages/proposals/detail/index': { loading: true, empty: true, failed: true },
   'pages/proposals/create/index': { loading: false, empty: false, failed: false, why: '純表單頁：錯誤用彈窗；修改模式載入失敗也走彈窗' },
+  'pages/proposals/supporters/index': { loading: true, empty: true, failed: true },
   'pages/events/list/index': { loading: true, empty: true, failed: true },
   'pages/events/detail/index': { loading: true, empty: true, failed: true },
   'pages/events/mine/index': { loading: true, empty: true, failed: true },

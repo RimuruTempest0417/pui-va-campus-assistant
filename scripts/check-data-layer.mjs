@@ -1085,6 +1085,53 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-90 提案連署名單（詳情只帶 12 位，其餘分頁翻）──
+{
+  const detail = await data.getProposal('pp1');
+  const shown = (detail.supporters || []).length;
+  check(
+    '連署名單：詳情只帶前 12 位，票數仍是全部',
+    shown === 12 && detail.supportCount > 12 && detail.supportersTotal === detail.supportCount,
+    `帶 ${shown} 位／共 ${detail.supportCount} 人`,
+  );
+
+  const pages = [];
+  for (let p = 1; p <= 4; p += 1) pages.push(await data.proposalSupports('pp1', { page: p, limit: 5 }));
+  const ids = pages.reduce((acc, r) => acc.concat((r.items || []).map((s) => s.id)), []);
+  const sameOrder = (pages[0].items || []).every((s, i) => s.id === detail.supporters[i].id);
+  check(
+    '連署名單：逐頁翻得完、不重複不漏人，順序與詳情一致',
+    (pages[0].items || []).length === 5 &&
+      pages[0].hasMore === true &&
+      pages[3].hasMore === false &&
+      ids.length === detail.supportCount &&
+      new Set(ids).size === detail.supportCount &&
+      sameOrder,
+    `${ids.length} 筆／${new Set(ids).size} 位不重複／共 ${pages[0].total}`,
+  );
+
+  const row = (pages[0].items || [])[0] || {};
+  check(
+    '連署名單：每一列都有名字、身分與時間（前端不用自己補）',
+    Boolean(row.nickname) && Boolean(row.role) && typeof row.at === 'string',
+    `${row.nickname || '—'}／${row.role || '—'}`,
+  );
+
+  const missing = await data.proposalSupports('pp-not-exist', {}).then((r) => r).catch((e) => e);
+  check('連署名單：不存在的提案回 NOT_FOUND', Boolean(missing && missing.code === 'NOT_FOUND'), missing && missing.code);
+
+  const detailWxmlSup = readFileSync(join(here, '..', 'pages', 'proposals', 'detail', 'index.wxml'), 'utf8');
+  const apiSrcSup = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  const appJsonSup = JSON.parse(readFileSync(join(here, '..', 'app.json'), 'utf8'));
+  check(
+    '連署名單：詳情有「看全部」入口＋真 API 端點＋頁面已登記',
+    detailWxmlSup.indexOf('goSupporters') !== -1 &&
+      apiSrcSup.indexOf("'/supports'") !== -1 &&
+      appJsonSup.pages.indexOf('pages/proposals/supporters/index') !== -1,
+    '詳情 → 看全部 → 名單頁',
+  );
+}
+
 // ── W-89 課室設備報修（示範層也要驗到「寫得進、接得走、算得對」）──
 {
   const before = await data.myRepairs();

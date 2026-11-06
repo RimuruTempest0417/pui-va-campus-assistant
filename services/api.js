@@ -258,6 +258,7 @@ module.exports = {
   // ── W-88 校園提案（查詢訪客可看；提案／連署要登入；回覆是校內職員）──
   listProposals(query) { return http.get('/proposals', query || {}); },
   getProposal(id) { return http.get('/proposals/' + id); },
+  proposalSupports(id, query) { return http.get('/proposals/' + id + '/supports', query || {}); },
   createProposal(body) { return http.post('/proposals', body); },
   updateProposal(id, body) { return http.patch('/proposals/' + id, body); },
   supportProposal(id) { return http.post('/proposals/' + id + '/support', {}); },

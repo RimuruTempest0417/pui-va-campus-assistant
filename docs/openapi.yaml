@@ -5366,6 +5366,44 @@ paths:
         '404': { description: 找不到 }
         '422': { description: 提案人不能取消自己的連署 }
 
+  /proposals/{id}/supports:
+    get:
+      tags: [proposals]
+      summary: 完整連署名單（分頁；詳情只帶前 12 位）
+      description: 依連署時間由早到晚（與詳情同一順序，同一毫秒時以 userId 排）；訪客也讀得到。
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 一頁名單
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  proposalId: { type: string }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        nickname: { type: string, nullable: true }
+                        role: { type: string }
+                        grade: { type: string, nullable: true }
+                        className: { type: string, nullable: true }
+                        at: { type: string, format: date-time }
+                  total: { type: integer }
+                  page: { type: integer }
+                  limit: { type: integer }
+                  hasMore: { type: boolean }
+                  supportCount: { type: integer }
+                  goal: { type: integer }
+        '404': { description: 找不到（含已下架） }
+        '422': { description: page／limit 超出範圍 }
+
   /admin/proposals:
     get:
       tags: [admin, proposals]

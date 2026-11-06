@@ -1,0 +1,57 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view
+    class="page-scroll"
+    scroll-y
+    bounces
+    show-scrollbar="{{false}}"
+    enhanced="{{true}}"
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+    bindscrolltolower="onScrollToLower"
+    lower-threshold="120"
+  >
+    <view class="list-inner">
+      <text wx:if="{{totalText && !loading}}" class="summary">{{totalText}}</text>
+
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="4" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="4" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{notFound}}" title="{{L.k09}}" desc="{{L.k10}}" />
+
+      <pv-empty wx:elif="{{failed}}" title="{{L.k02}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k03}}</pv-button>
+      </pv-empty>
+
+      <pv-empty wx:elif="{{!items.length}}" title="{{L.k04}}" desc="{{L.k07}}" />
+
+      <view wx:else class="ui-list ui-list--grouped">
+        <view
+          wx:for="{{items}}"
+          wx:key="id"
+          class="ui-card ui-card--row {{index === items.length - 1 && !hasMore ? 'ui-card--last' : ''}}"
+        >
+          <view class="sp-row">
+            <view class="sp-mark"><text class="sp-mark__text">{{item.initial}}</text></view>
+            <view class="sp-main">
+              <text class="ui-title sp-name">{{item.nickname}}</text>
+              <text class="ui-meta sp-meta">{{item.metaText}}</text>
+            </view>
+            <text class="ui-meta sp-time">{{item.timeText}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{items.length}}" class="list-foot">
+        <text wx:if="{{loadingMore}}">{{L.k05}}</text>
+        <text wx:elif="{{hasMore}}" class="list-foot__more" bindtap="onMore">{{L.k06}}</text>
+        <text wx:else>{{L.k08}}</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>
