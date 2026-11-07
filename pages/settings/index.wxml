@@ -108,6 +108,38 @@
         </view>
       </pv-card>
 
+      <!-- W-102 我的資料：自己的紀錄自己帶走（複製成 CSV 文字，不需要下載權限） -->
+      <block wx:if="{{loggedIn}}">
+        <text class="set-group">{{L.k55}}</text>
+        <pv-card>
+          <view class="set-row" data-type="grades" bindtap="exportMy">
+            <view class="set-row__main">
+              <text class="set-row__title">{{L.k56}}</text>
+            </view>
+            <text class="set-row__value">{{exporting === 'grades' ? L.k63 : L.k62}}</text>
+          </view>
+          <view class="set-row set-row--sep" data-type="attendance" bindtap="exportMy">
+            <view class="set-row__main">
+              <text class="set-row__title">{{L.k57}}</text>
+            </view>
+            <text class="set-row__value">{{exporting === 'attendance' ? L.k63 : L.k62}}</text>
+          </view>
+          <view class="set-row set-row--sep" data-type="library" bindtap="exportMy">
+            <view class="set-row__main">
+              <text class="set-row__title">{{L.k58}}</text>
+            </view>
+            <text class="set-row__value">{{exporting === 'library' ? L.k63 : L.k62}}</text>
+          </view>
+          <view class="set-row set-row--sep" data-type="leaves" bindtap="exportMy">
+            <view class="set-row__main">
+              <text class="set-row__title">{{L.k59}}</text>
+            </view>
+            <text class="set-row__value">{{exporting === 'leaves' ? L.k63 : L.k62}}</text>
+          </view>
+          <text class="set-hint">{{L.k60}}</text>
+        </pv-card>
+      </block>
+
       <!-- 關於 -->
       <text class="set-group">{{L.k13}}</text>
       <pv-card>

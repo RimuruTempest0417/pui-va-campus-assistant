@@ -89,7 +89,7 @@ function onceCloud(method, url, data, withAuth) {
   });
 }
 
-function once(method, url, data, withAuth) {
+function once(method, url, data, withAuth, text) {
   return new Promise((resolve, reject) => {
     const header = { 'content-type': 'application/json' };
     if (withAuth) {
@@ -102,6 +102,9 @@ function once(method, url, data, withAuth) {
       data: data,
       header: header,
       timeout: config.TIMEOUT,
+      // 匯出（CSV）要用 dataType:'text'：預設的 json 會嘗試 JSON.parse，
+      // 雖然解析失敗會退回原文，但有些基礎庫會直接回空字串 —— 明講才不會拿到一份空檔。
+      dataType: text ? 'text' : 'json',
       success(res) {
         const body = res.data || {};
         if (res.statusCode >= 200 && res.statusCode < 300) return resolve(body);
@@ -135,7 +138,7 @@ function request(method, url, data, options) {
   const attempts = 1 + Math.max(0, config.RETRY || 0);
 
   const run = (left) =>
-    (transport === 'cloud' ? onceCloud(method, url, data, withAuth) : once(method, url, data, withAuth)).catch((err) => {
+    (transport === 'cloud' ? onceCloud(method, url, data, withAuth) : once(method, url, data, withAuth, opts.text === true)).catch((err) => {
       // 帶了 token 卻回 401 ＝ JWT 過期／被撤銷：清掉本機登入態，回一個使用者看得懂的
       // SESSION_EXPIRED（否則頁面只顯示「請先登入」，而他明明剛登入過）。
       // auth:false 的呼叫（登入本身）不會走進來，所以打錯密碼不會把人踢掉。

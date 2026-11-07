@@ -1641,6 +1641,52 @@ check('簽到：我的報名帶簽到時間',
     demoList.items.length > 0 && data.offlineInfo() === null,
     `${demoList.items.length} 筆（示範）、標籤 ${data.offlineText('offline') === '' ? '無' : '有'}`,
   );
+
+  // ── W-102 匯出自己的資料（示範模式＝斷網演示時也要拿得到內容）──
+  const linesOf = (text) => String(text || '').replace(/^\uFEFF/, '').split('\r\n').filter((line) => line !== '');
+  const exportOf = (type) => data.myExport(type).then((t) => t, (e) => e);
+
+  const gradesCsv = await exportOf('grades');
+  const gradeLines = linesOf(gradesCsv);
+  check(
+    '我的資料：成績 CSV 帶 BOM 與八個欄位',
+    typeof gradesCsv === 'string' && gradesCsv.charCodeAt(0) === 0xfeff && gradeLines[0] === '"學年","學段","科目","測驗","日期","分數","備註","來源"',
+    typeof gradesCsv === 'string' ? `${gradeLines.length - 1} 列` : String(gradesCsv && gradesCsv.code),
+  );
+  // 缺考是「沒有分數」：寫 0 會被 Excel 算進平均，成績單就錯了
+  const absentLine = gradeLines.slice(1).filter((line) => line.split('","')[5] === '')[0] || '';
+  check('我的資料：缺考的分數是空欄不是 0', absentLine !== '', absentLine || '找不到分數空的那列');
+
+  const others = {};
+  for (const type of ['attendance', 'library', 'leaves']) {
+    const text = await exportOf(type);
+    const rows = linesOf(text);
+    const width = rows[0] ? rows[0].split('","').length : 0;
+    const uniform = rows.every((line) => line.split('","').length === width);
+    others[type] = { rows: rows.length - 1, uniform, ok: typeof text === 'string' && text.charCodeAt(0) === 0xfeff };
+  }
+  check(
+    '我的資料：出缺席／借閱／請假都有資料且欄數整齊',
+    Object.keys(others).every((k) => others[k].ok && others[k].rows > 0 && others[k].uniform),
+    Object.keys(others).map((k) => `${k} ${others[k].rows} 列`).join('／'),
+  );
+  check(
+    '我的資料：借閱的逾期天數是數字',
+    /,"\d+","\d+"$/.test(linesOf(await exportOf('library'))[1] || ''),
+    (linesOf(await exportOf('library'))[1] || '').slice(-14),
+  );
+  const unknown = await exportOf('users');
+  check('我的資料：不認識的類型要報錯（不是回空檔）', !!(unknown && unknown.code), String(unknown && (unknown.code || unknown.slice(0, 20))));
+
+  // 真 API 那一支要真的打 /me/export，而且用 text 模式（否則 CSV 會被當 JSON 解析）
+  const apiSrc = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  check(
+    '我的資料：api.js 打 /me/export 且要求純文字',
+    apiSrc.indexOf("http.get('/me/export'") !== -1 && apiSrc.indexOf('text: true') !== -1,
+    apiSrc.indexOf('/me/export') !== -1 ? '有 /me/export' : '找不到端點',
+  );
+  // 匯出是「當下要帶走的檔案」，進快取只會讓人拿到舊資料
+  check('我的資料：匯出不做離線快取', !!block && block.indexOf('myExport') === -1, block ? 'CACHEABLE 沒有 myExport' : '找不到 CACHEABLE');
 }
 
 // ── 輸出 ──

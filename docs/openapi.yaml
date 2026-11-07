@@ -878,6 +878,31 @@ paths:
       responses:
         '200': { description: OK }
 
+  /me/export:
+    get:
+      tags: [me]
+      summary: 匯出自己的成績／出缺席／借閱／請假（CSV，帶 UTF-8 BOM）
+      description: |
+        個資自主：使用者自己把紀錄帶走，不必請校務處匯出。
+        學生只能取自己；家長可帶 `studentId` 取綁定的子女（未綁定與查無此人一律 403 同一句訊息，
+        避免端點變成學號探測器）；家長不帶 `studentId` 且只有一位子女時自動使用該子女。
+        回應是 `text/csv`，`x-row-count` 標頭回資料列數（不含標頭列）。
+      parameters:
+        - { in: query, name: type, required: true, schema: { type: string, enum: [grades, attendance, library, leaves] } }
+        - { in: query, name: studentId, schema: { type: string }, description: 家長匯出子女時使用；其他身分帶別人的 id 一律 403 }
+      responses:
+        '200':
+          description: CSV 檔案（UTF-8 BOM、CRLF 換行）
+          headers:
+            x-row-count: { schema: { type: string } }
+            content-disposition: { schema: { type: string } }
+          content:
+            text/csv:
+              schema: { type: string }
+        '401': { description: 未登入 }
+        '403': { description: 不是自己的資料（家長未綁定時同一句訊息） }
+        '422': { description: type 不認識 }
+
   /parents/me/children:
     get:
       tags: [parents]

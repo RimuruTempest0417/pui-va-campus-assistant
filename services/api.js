@@ -287,4 +287,10 @@ module.exports = {
   acceptRepair(id) { return http.post('/admin/repairs/' + id + '/accept', {}); },
   finishRepair(id, body) { return http.post('/admin/repairs/' + id + '/done', body || {}); },
   repairStats() { return http.get('/admin/repairs/stats'); },
+
+  // ── W-102 個資自主：匯出自己的成績／出缺席／借閱／請假（後端回 CSV 純文字）──
+  // `text: true` 讓請求層不要嘗試 JSON 解析；家長帶 studentId 取子女，其餘一律只拿自己。
+  myExport(type, studentId) {
+    return http.get('/me/export', { type: type, studentId: studentId }, { text: true });
+  },
 };

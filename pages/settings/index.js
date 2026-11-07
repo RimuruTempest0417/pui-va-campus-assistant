@@ -55,6 +55,19 @@ Page({
       k50: i18n.pick("依身分看操作步驟（學生／家長／老師／管理員）"),
       k53: i18n.pick("回報問題"),
       k54: i18n.pick("按鈕沒反應、畫面怪，寫一句話告訴管理員"),
+      // ── W-102 我的資料（個資自主：自己的紀錄自己帶走）──
+      k55: i18n.pick("我的資料"),
+      k56: i18n.pick("成績"),
+      k57: i18n.pick("出缺席"),
+      k58: i18n.pick("借閱"),
+      k59: i18n.pick("請假"),
+      k60: i18n.pick("複製成 CSV 文字，貼到記事本或表格軟體就能存檔；只包含你自己的紀錄。"),
+      k61: i18n.pick("已複製"),
+      k62: i18n.pick("複製"),
+      k63: i18n.pick("匯出中…"),
+      k64: i18n.pick("匯出失敗"),
+      k65: i18n.pick("列"),
+      k66: i18n.pick("還沒有資料"),
 
     };
   },
@@ -83,6 +96,8 @@ Page({
     tfaPassword: '',
     tfaBusy: false,
     tfa2faUrl: 'https://pui-va-campus-server.vercel.app/admin/2fa-ui',
+    // W-102：正在匯出的那一類（四個按鈕共用一個鎖，避免連點疊出四份檔案）
+    exporting: '',
   },
 
   onLoad() {
@@ -203,6 +218,40 @@ Page({
       wx.showToast({ title: data.messageOf(e), icon: 'none' });
     } finally {
       this.setData({ tfaBusy: false });
+    }
+  },
+
+  /**
+   * W-102 個資自主：匯出自己的成績／出缺席／借閱／請假
+   *
+   * 小程序不能下載 CSV（`wx.openDocument` 不支援），所以走「複製內容」：
+   * 使用者貼到記事本或表格軟體就能存檔，也不需要任何檔案權限。
+   * 家長匯出的是綁定的那位子女 —— 後端用 parent_links 反查，前端不傳任何 id。
+   */
+  async exportMy(e) {
+    const type = (e && e.currentTarget && e.currentTarget.dataset.type) || '';
+    const L = this.data.L || {};
+    if (!type || this.data.exporting) return;
+    const nameOf = { grades: L.k56, attendance: L.k57, library: L.k58, leaves: L.k59 };
+    this.setData({ exporting: type });
+    try {
+      const text = String((await data.myExport(type)) || '');
+      const lines = text.replace(/^\uFEFF/, '').split('\r\n').filter((line) => line !== '');
+      const count = Math.max(0, lines.length - 1);
+      if (!count) {
+        wx.showToast({ title: L.k66 || L.k64 || '', icon: 'none' });
+        return;
+      }
+      await new Promise((resolve, reject) => {
+        wx.setClipboardData({ data: text, success: resolve, fail: reject });
+      });
+      wx.showToast({ title: (L.k61 || '') + (nameOf[type] || '') + ' ' + count + (L.k65 || ''), icon: 'none' });
+    } catch (err) {
+      const msg = data.messageOf ? data.messageOf(err) : '';
+      reporter.reportError('[settings.exportMy] ' + (msg || ''));
+      wx.showToast({ title: L.k64 || '', icon: 'none' });
+    } finally {
+      this.setData({ exporting: '' });
     }
   },
 

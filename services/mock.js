@@ -3868,4 +3868,83 @@ module.exports = {
       timeline: timeline,
     });
   },
+
+  /**
+   * W-102 匯出自己的資料（示範模式）
+   *
+   * 與後端 `/me/export` 同一組欄位順序，差別只在資料來源是示範層 ——
+   * 演示現場（斷網、只跑示範）按下去也要拿得到有意義的內容，不能回空字串。
+   * 這裡一樣不能用 `this.xxx`（data.js 會把方法拆出來呼叫）。
+   */
+  myExport(type, studentId) {
+    const data = db();
+    const me = data.user || {};
+    // 家長在示範模式也一樣：不帶 studentId 時用唯一的子女（與後端 resolveTarget 同規則）
+    const childIds = ((data.parent && data.parent.children) || []).map((c) => c.studentId);
+    const target = studentId || (me.role === 'PARENT' && childIds.length === 1 ? childIds[0] : me.id || 'demo-user');
+    const cell = (v) => '"' + String(v === null || v === undefined ? '' : v).replace(/"/g, '""') + '"';
+    const doc = (header, rows) => '\uFEFF' + [header].concat(rows).map((row) => row.map(cell).join(',')).join('\r\n');
+
+    if (type === 'grades') {
+      const items = demoSchoolGrades()
+        .items.slice()
+        .sort((a, b) => String(b.yearTerm).localeCompare(String(a.yearTerm)) || String(a.term).localeCompare(String(b.term)) || String(a.courseName).localeCompare(String(b.courseName)));
+      return Promise.resolve(
+        doc(
+          ['學年', '學段', '科目', '測驗', '日期', '分數', '備註', '來源'],
+          items.map((r) => [r.yearTerm, r.term, r.courseName, r.testType, r.testDate, r.score === null ? '' : r.score, r.content || '', '家校通']),
+        ),
+      );
+    }
+
+    if (type === 'attendance') {
+      const label = { normal: '正常', late: '遲到', absent: '缺席', leave: '請假' };
+      const items = demoSchoolAttendance().items.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      return Promise.resolve(
+        doc(
+          ['日期', '學年', '學段', '上午', '下午', '上午到校', '下午到校', '備註', '來源'],
+          items.map((r) => [r.date, r.yearTerm, r.term || '', label[r.amStatus] || r.amStatus, label[r.pmStatus] || r.pmStatus, r.amIn || '', r.pmIn || '', r.remark || '', '家校通']),
+        ),
+      );
+    }
+
+    if (type === 'library') {
+      const now = Date.now();
+      const bookOf = (id) => (data.books || []).filter((b) => b.id === id)[0] || {};
+      const rows = (data.loans || [])
+        .filter((l) => (target === 'demo-user' ? l.userId === 'demo-user' : l.userId === target))
+        .sort((a, b) => new Date(b.borrowedAt).getTime() - new Date(a.borrowedAt).getTime())
+        .map((l) => {
+          const b = bookOf(l.bookId);
+          const until = l.returnedAt ? new Date(l.returnedAt).getTime() : now;
+          const late = Math.max(0, Math.floor((until - new Date(l.dueAt).getTime()) / 86400000));
+          const stamp = (t) => (t ? String(new Date(t).toISOString()).slice(0, 16).replace('T', ' ') : '');
+          return [b.title || '', b.callNumber || '', b.isbn || '', stamp(l.borrowedAt), stamp(l.dueAt), stamp(l.returnedAt), late, l.renewals || 0];
+        });
+      return Promise.resolve(doc(['書名', '索書號', 'ISBN', '借出日期', '應還日期', '歸還日期', '逾期天數', '續借次數'], rows));
+    }
+
+    if (type === 'leaves') {
+      const rows = (data.leaves || [])
+        .filter((row) => row.studentId === target)
+        .sort((a, b) => String(b.from).localeCompare(String(a.from)))
+        .map((row) => {
+          const shaped = shapeLeave(row, me);
+          return [
+            shaped.kindText,
+            shaped.from,
+            shaped.to,
+            shaped.days,
+            shaped.statusText,
+            String(shaped.reason || '').replace(/[\r\n]+/g, ' '),
+            shaped.reviewedBy && shaped.reviewedBy.nickname ? shaped.reviewedBy.nickname : '',
+            '',
+            String(row.rejectReason || '').replace(/[\r\n]+/g, ' '),
+          ];
+        });
+      return Promise.resolve(doc(['假別', '開始日期', '結束日期', '天數', '狀態', '原因', '審批人', '審批時間', '駁回原因'], rows));
+    }
+
+    return Promise.reject({ code: 'VALIDATION_FAILED', message: '不支援的匯出類型' });
+  },
 };
