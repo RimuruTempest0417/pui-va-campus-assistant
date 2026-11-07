@@ -8,12 +8,6 @@
   display: block; margin: var(--pv-sp-2) 0 0 var(--pv-sp-1);
   font-size: var(--pv-fs-footnote); color: var(--pv-label-3); letter-spacing: 0.02em;
 }
-.set-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: var(--pv-sp-2) 0; }
-.set-row__main { flex: 1; min-width: 0; }
-.set-row__title { display: block; font-size: var(--pv-fs-callout); color: var(--pv-label); }
-.set-row__sub { display: block; margin-top: 4rpx; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
-.set-row__value { font-size: var(--pv-fs-callout); color: var(--pv-label-2); }
-.set-row__chev { font-size: var(--pv-fs-title-3); color: var(--pv-label-4); }
 .set-actions { display: flex; flex-direction: row; align-items: center; gap: var(--pv-sp-3); padding-top: var(--pv-sp-1); }
 .set-link { font-size: var(--pv-fs-footnote); color: var(--pv-tint); }
 .set-link--danger { color: var(--pv-danger); }

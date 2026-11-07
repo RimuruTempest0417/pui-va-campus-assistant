@@ -72,7 +72,9 @@ Page({
     L: {},
   },
 
-  onLoad() {
+  onLoad(query) {
+    // W-99：從家長頁「代請假」進來時會帶 studentId，假單就送給目前選中的那一位子女
+    this.presetChild = (query && query.studentId) || '';
     const L = this.labels();
     this.setData({
       L: this.labels(),
@@ -111,7 +113,9 @@ Page({
       let childId = '';
       if (isParent) {
         const res = await data.parentChildren().catch(() => ({ items: [] }));
-        const first = (res.items || [])[0];
+        const items = res.items || [];
+        const preset = this.presetChild ? items.filter((c) => (c.studentId || c.id) === this.presetChild)[0] : null;
+        const first = preset || items[0];
         if (!first) {
           this.setData({ loading: false, isParent: true, denied: false, childName: '', childId: '' });
           return;

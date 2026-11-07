@@ -52,6 +52,20 @@ Page({
       k21: i18n.pick("已滿"),
       k22: i18n.pick("近期活動都報過了"),
       k23: i18n.pick("有新活動時會出現在這裡"),
+      // W-99 家長代子女請假
+      k28: i18n.pick("代請假"),
+      k29: i18n.pick("用你的家長帳號替孩子送假單，班主任看到的是孩子的名字"),
+      k30: i18n.pick("孩子的假單"),
+      k31: i18n.pick("全部"),
+      k32: i18n.pick("取消"),
+      k33: i18n.pick("還沒有假單"),
+      k34: i18n.pick("孩子需要請假時，從上面「代請假」送出。"),
+      k35: i18n.pick("已取消"),
+      k36: i18n.pick("取消失敗"),
+      k37: i18n.pick("未通過原因"),
+      k38: i18n.pick("確定要取消這張假單嗎？"),
+      k39: i18n.pick("共"),
+      k40: i18n.pick("天"),
     };
   },
 
@@ -68,6 +82,7 @@ Page({
     child: null,
     signups: [],
     openEvents: [],
+    leaves: [],
     submitting: false,
     refreshing: false,
   },
@@ -141,6 +156,7 @@ Page({
         child: null,
         signups: [],
         openEvents: [],
+        leaves: [],
       };
 
       // 403：帳號存在但角色不是家長（學生／老師／職員都會打到這裡）
@@ -160,10 +176,29 @@ Page({
 
   async loadChild(studentId) {
     try {
-      const [detail, evs] = await Promise.all([
+      const [detail, evs, leaveRes] = await Promise.all([
         data.parentChild(studentId),
         data.listEvents({}).catch(() => ({ items: [] })),
+        // W-99：家長代子女請假後要能在同一頁看到審批結果（後端一律用綁定關係反查，不信前端傳的 id）
+        data.myLeaves().catch(() => ({ items: [] })),
       ]);
+
+      const leaves = (leaveRes.items || [])
+        .filter((row) => row.studentId === studentId)
+        .slice(0, 5)
+        .map((row) =>
+          Object.assign({}, row, {
+            tagType:
+              row.status === 'APPROVED'
+                ? 'success'
+                : row.status === 'REJECTED'
+                  ? 'danger'
+                  : row.status === 'PENDING'
+                    ? 'warning'
+                    : 'neutral',
+            dayText: i18n.pick('共 ') + row.days + i18n.pick(' 天'),
+          }),
+        );
 
       const signups = (detail.signups || []).map((s) => Object.assign({}, s, {
         timeText: s.event && s.event.startAt ? dateTimeText(s.event.startAt) : '',
@@ -186,9 +221,9 @@ Page({
           full: e.capacity > 0 && e.remaining === 0,
         }));
 
-      this.setData({ child: detail, signups: signups, openEvents: openEvents, submitting: false });
+      this.setData({ child: detail, signups: signups, openEvents: openEvents, leaves: leaves, submitting: false });
     } catch (e) {
-      this.setData({ signups: [], openEvents: [], submitting: false });
+      this.setData({ signups: [], openEvents: [], leaves: [], submitting: false });
       wx.showToast({ title: data.messageOf(e), icon: 'none' });
     }
   },
@@ -197,7 +232,7 @@ Page({
     const key = e.detail && e.detail.key;
     if (!key || key === this.data.activeId) return;
     this.preset = '';
-    this.setData({ activeId: key, child: null, signups: [], openEvents: [] });
+    this.setData({ activeId: key, child: null, signups: [], openEvents: [], leaves: [] });
     this.loadChild(key);
   },
 
@@ -235,5 +270,38 @@ Page({
   goEvent(e) {
     const id = e.currentTarget.dataset.id;
     if (id) wx.navigateTo({ url: '/pages/events/detail/index?id=' + id });
+  },
+
+  /** W-99：帶上目前選中的子女，假單就送給這一位（一個家長帳號只對應一個孩子，但切換時仍要對得上） */
+  goLeaveCreate() {
+    const id = this.data.activeId || '';
+    wx.navigateTo({ url: '/pages/leaves/create/index' + (id ? '?studentId=' + id : '') });
+  },
+
+  goLeaves() {
+    wx.navigateTo({ url: '/pages/leaves/mine/index' });
+  },
+
+  /** 取消待審批的假單：確認一律用原生 showModal（自製兩段式在 Skyline 下會失效） */
+  cancelLeave(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    wx.showModal({
+      title: this.data.L.k32,
+      content: this.data.L.k38,
+      confirmText: this.data.L.k32,
+      success: (res) => {
+        if (!res.confirm) return;
+        data
+          .cancelLeave(id)
+          .then(() => {
+            wx.showToast({ title: this.data.L.k35, icon: 'none' });
+            this.loadChild(this.data.activeId);
+          })
+          .catch((err) =>
+            wx.showModal({ title: this.data.L.k36, content: data.messageOf(err), showCancel: false }),
+          );
+      },
+    });
   },
 });

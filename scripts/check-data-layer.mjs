@@ -1015,6 +1015,74 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-99 家長代子女請假（示範層也要走完：代送 → 標記來源 → 只能替自己的孩子）──
+{
+  await data.switchDemoUser('培華家長', 'demo-parent', 'PARENT');
+
+  const asParent = await data.myLeaves();
+  check(
+    '家長請假：看得到子女的假單（含家長代送與學生自送兩種）',
+    asParent.items.length >= 2 &&
+      asParent.items.some((row) => row.source === 'PARENT') &&
+      asParent.items.every((row) => row.studentId !== 'demo-parent'),
+    `${asParent.items.length} 張／代送 ${asParent.items.filter((row) => row.source === 'PARENT').length} 張`,
+  );
+  check(
+    '家長請假：代送的單標「家長代送」',
+    asParent.items.filter((row) => row.source === 'PARENT').every((row) => row.sourceText === '家長代送'),
+    'sourceText 與 source 一致',
+  );
+
+  const madeByParent = await data
+    .createLeave({ studentId: 'demo-child-1', kind: 'SICK', fromDate: '2031-03-03', toDate: '2031-03-04', reason: '家長代送自檢' })
+    .then((r) => r)
+    .catch((e) => e);
+  check(
+    '家長請假：代子女送出成功且來源是家長',
+    madeByParent && madeByParent.leave && madeByParent.leave.source === 'PARENT' && madeByParent.leave.days === 2,
+    madeByParent && madeByParent.leave ? `${madeByParent.leave.sourceText}／${madeByParent.leave.days} 天` : '沒有建立',
+  );
+  const listedAfter = await data.myLeaves();
+  check(
+    '家長請假：代送後出現在家長的我的假單',
+    madeByParent && madeByParent.leave && listedAfter.items.some((row) => row.id === madeByParent.leave.id),
+    madeByParent && madeByParent.leave ? madeByParent.leave.id : '沒有建立',
+  );
+
+  const notMine = await data
+    .createLeave({ studentId: 'demo-user', kind: 'SICK', fromDate: '2031-04-01', toDate: '2031-04-01', reason: '代別人請假' })
+    .then(() => null)
+    .catch((e) => e);
+  check('家長請假：替沒綁定的學生請假被擋（FORBIDDEN）', notMine && notMine.code === 'FORBIDDEN', notMine ? notMine.code : '沒有拒絕');
+
+  const noChild = await data
+    .createLeave({ kind: 'SICK', fromDate: '2031-04-02', toDate: '2031-04-02', reason: '沒指定子女' })
+    .then(() => null)
+    .catch((e) => e);
+  check('家長請假：沒指定子女被擋（VALIDATION_FAILED）', noChild && noChild.code === 'VALIDATION_FAILED', noChild ? noChild.code : '沒有拒絕');
+
+  await data.switchDemoUser('示範學生', 'demo-user', 'STUDENT');
+  const asStudent = await data
+    .createLeave({ studentId: 'demo-child-1', kind: 'SICK', fromDate: '2031-05-01', toDate: '2031-05-01', reason: '替別人請假' })
+    .then(() => null)
+    .catch((e) => e);
+  check('家長請假：學生帶別人的 studentId 被擋（FORBIDDEN）', asStudent && asStudent.code === 'FORBIDDEN', asStudent ? asStudent.code : '沒有拒絕');
+
+  const parentWxml = readFileSync(join(here, '..', 'pages', 'parent', 'index.wxml'), 'utf8');
+  const parentJs = readFileSync(join(here, '..', 'pages', 'parent', 'index.js'), 'utf8');
+  const createPageJs = readFileSync(join(here, '..', 'pages', 'leaves', 'create', 'index.js'), 'utf8');
+  check(
+    '家長請假：家長頁有「代請假」入口與孩子的假單區',
+    parentWxml.indexOf('goLeaveCreate') !== -1 && parentWxml.indexOf('{{L.k30}}') !== -1 && parentJs.indexOf('data.myLeaves()') !== -1,
+    '家長頁 → 代請假／孩子的假單',
+  );
+  check(
+    '家長請假：代請假會帶上目前選中的子女',
+    parentJs.indexOf("'?studentId='") !== -1 && createPageJs.indexOf('presetChild') !== -1,
+    'parent → leaves/create?studentId=…',
+  );
+}
+
 // ── W-73 班級課表（示範層也要有資料，首頁「下一節」斷網時不能空白）──
 {
   const today = await data.timetableToday();

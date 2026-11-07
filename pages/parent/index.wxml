@@ -19,6 +19,14 @@
         </view>
         <text class="set-row__chev">›</text>
       </view>
+      <!-- W-99：家長代子女請假。放在同一張卡的第二列（髮絲線分隔），不要多開一張卡 -->
+      <view class="set-row set-row--sep" bindtap="goLeaveCreate">
+        <view class="set-row__main">
+          <text class="set-row__title">{{L.k28}}</text>
+          <text class="set-row__sub">{{L.k29}}</text>
+        </view>
+        <text class="set-row__chev">›</text>
+      </view>
     </pv-card>
 
     <view class="parent-inner">
@@ -88,6 +96,29 @@
             </view>
           </view>
         </view>
+
+        <view class="ui-row-between sec-head">
+          <view class="pv-group-title">{{L.k30}}</view>
+          <text class="set-link sec-head__more" bindtap="goLeaves">{{L.k31}} ›</text>
+        </view>
+        <view wx:if="{{leaves.length}}" class="ui-list ui-list--grouped">
+          <view
+            wx:for="{{leaves}}"
+            wx:key="id"
+            class="ui-card ui-card--row {{index === leaves.length - 1 ? 'ui-card--last' : ''}}"
+          >
+            <view class="ui-row-between">
+              <text class="ui-title row-title">{{item.kindText}} · {{item.dateText}}</text>
+              <pv-tag text="{{item.statusText}}" type="{{item.tagType}}" />
+            </view>
+            <text class="ui-meta row-meta">{{item.sourceText}} · {{item.dayText}}</text>
+            <text wx:if="{{item.rejectReason}}" class="ui-meta row-meta">{{L.k37}}：{{item.rejectReason}}</text>
+            <view wx:if="{{item.canCancel}}" class="row-actions">
+              <pv-button class="row-btn" type="plain" size="sm" data-id="{{item.id}}" bind:tap="cancelLeave">{{L.k32}}</pv-button>
+            </view>
+          </view>
+        </view>
+        <view wx:else class="ui-card"><pv-empty title="{{L.k33}}" desc="{{L.k34}}" /></view>
 
         <view class="pv-group-title">{{L.k16}}</view>
         <view wx:if="{{signups.length}}" class="ui-list">

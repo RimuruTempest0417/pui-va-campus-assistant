@@ -6251,6 +6251,8 @@ components:
             grade: { type: string, nullable: true }
             className: { type: string, nullable: true }
         createdById: { type: string, description: 送出者（家長代請假時與學生不同人） }
+        source: { type: string, enum: [STUDENT, PARENT], description: '誰送出的（W-99）：STUDENT 學生本人、PARENT 家長代送。由 createdById 與 studentId 比對算出，不另存欄位' }
+        sourceText: { type: string, example: 家長代送 }
         kind: { type: string, enum: [SICK, PERSONAL, OFFICIAL] }
         kindText: { type: string, example: 病假 }
         from: { type: string, example: '2026-11-12' }

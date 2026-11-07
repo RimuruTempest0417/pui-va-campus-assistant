@@ -227,6 +227,10 @@ function seed() {
       { id: 'lv1', studentId: 'demo-user', createdById: 'demo-user', kind: 'SICK', from: leaveDate(2), to: leaveDate(2), reason: '發燒，醫生建議在家休息一天。', status: 'PENDING', rejectReason: null, reviewedAt: null, createdAt: now - 3 * h },
       { id: 'lv2', studentId: 'demo-user', createdById: 'demo-user', kind: 'PERSONAL', from: leaveDate(-14), to: leaveDate(-13), reason: '家中事務，已先向班主任口頭報告。', status: 'APPROVED', rejectReason: null, reviewedAt: now - 300 * h, createdAt: now - 320 * h },
       { id: 'lv3', studentId: 'demo-user', createdById: 'demo-user', kind: 'OFFICIAL', from: leaveDate(-30), to: leaveDate(-30), reason: '代表學校參加校際辯論比賽。', status: 'REJECTED', rejectReason: '請附帶比賽通知截圖', reviewedAt: now - 700 * h, createdAt: now - 720 * h },
+      // W-99：家長代送的兩張（示範資料）。只會在示範家長帳號的「我的假單」與老師待審清單出現，
+      // 學生帳號看不到（studentId 是子女、createdById 是家長），剛好用來驗「代送」標記與權限分流。
+      { id: 'lv4', studentId: 'demo-child-1', studentName: '培華同學甲', createdById: 'demo-parent', kind: 'SICK', from: leaveDate(5), to: leaveDate(6), reason: '孩子發燒，家長代為請假。', status: 'PENDING', rejectReason: null, reviewedAt: null, createdAt: now - 1 * h },
+      { id: 'lv5', studentId: 'demo-child-1', studentName: '培華同學甲', createdById: 'demo-parent', kind: 'PERSONAL', from: leaveDate(-9), to: leaveDate(-9), reason: '家中有事，家長已先致電班主任。', status: 'APPROVED', rejectReason: null, reviewedAt: now - 190 * h, createdAt: now - 200 * h },
     ],
     // ── 班級課表（W-73）──
     // 示範班級「高二 仁」：一週五天、每天幾節，讓首頁「下一節」與課表頁在離線演示時都有東西看
@@ -764,6 +768,9 @@ function shapeLeave(row, me) {
       : { id: row.studentId, nickname: row.studentName || '陳同學', grade: '高二', className: '仁' },
     createdById: row.createdById,
     createdBy: { id: row.createdById, nickname: isMine ? (me && me.nickname) || '同學' : '家長', role: null },
+    // W-99：誰送出的。與後端同一條規則（createdById 是否等於學生本人），不另存欄位
+    source: row.createdById === row.studentId ? 'STUDENT' : 'PARENT',
+    sourceText: row.createdById === row.studentId ? '學生本人' : '家長代送',
     kind: row.kind,
     kindText: LEAVE_KIND_LABEL[row.kind] || row.kind,
     from: from,
@@ -2743,7 +2750,13 @@ module.exports = {
   myLeaves() {
     const data = db();
     const me = data.user || {};
-    const rows = (data.leaves || []).filter((row) => row.studentId === me.id || row.createdById === me.id);
+    // 家長看到的是「子女的」假單：後端用 parent_links 反查，示範層用同一份 data.parent.children
+    const childIds =
+      me.role === 'PARENT' ? ((data.parent && data.parent.children) || []).map((c) => c.studentId) : [];
+    const rows = (data.leaves || []).filter(
+      (row) =>
+        row.studentId === me.id || row.createdById === me.id || childIds.indexOf(row.studentId) !== -1,
+    );
     const items = rows
       .slice()
       .sort((a, b) => String(b.from).localeCompare(String(a.from)))
@@ -2769,9 +2782,28 @@ module.exports = {
     if (!String(body.reason || '').trim()) {
       return Promise.reject({ code: 'VALIDATION_FAILED', message: '請簡單寫一下原因' });
     }
+
+    /**
+     * W-99 家長代子女請假：只能替「自己綁定的那一位」送。
+     * 閘門與後端同一條（parent_links 反查），示範層用 data.parent.children；
+     * 學生帶別人的 studentId 一律 403 —— 不能靠改 body 就替別人請假。
+     */
+    let studentId = me.id;
+    let studentName = '';
+    if (me.role === 'PARENT') {
+      const wanted = body.studentId || '';
+      if (!wanted) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請指定要請假的子女' });
+      const link = ((data.parent && data.parent.children) || []).filter((c) => c.studentId === wanted)[0];
+      if (!link) return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
+      studentId = wanted;
+      studentName = link.nickname || '';
+    } else if (body.studentId && body.studentId !== me.id) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只能替自己請假' });
+    }
+
     const clash = (data.leaves || []).filter(
       (row) =>
-        row.studentId === me.id &&
+        row.studentId === studentId &&
         (row.status === 'PENDING' || row.status === 'APPROVED') &&
         row.from <= to &&
         row.to >= from,
@@ -2781,7 +2813,8 @@ module.exports = {
     }
     const row = {
       id: 'lv' + Date.now(),
-      studentId: me.id,
+      studentId: studentId,
+      studentName: studentName,
       createdById: me.id,
       kind: body.kind || 'SICK',
       from: from,
