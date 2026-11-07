@@ -534,6 +534,8 @@ Page({
       k455: i18n.pick("讀不到報修清單："),
       k456: i18n.pick("報修統計"),
       k457: i18n.pick("還沒有完成的報修"),
+      k458: i18n.pick("平均接單"),
+      k459: i18n.pick("已接單"),
       ppStatusOPEN: i18n.pick("收集中"),
       ppStatusREVIEWING: i18n.pick("處理中"),
       ppStatusPLANNED: i18n.pick("已列入計劃"),
@@ -3021,6 +3023,16 @@ Page({
       };
       if (stats) {
         patch.repairStatsText =
+          L.k458 +
+          ' ' +
+          (stats.avgAcceptHours == null ? '—' : stats.avgAcceptHours + ' ' + L.k451) +
+          '（' +
+          L.k459 +
+          ' ' +
+          (stats.acceptedCount || 0) +
+          ' ' +
+          L.k454 +
+          '） · ' +
           L.k450 +
           ' ' +
           (stats.avgHours == null ? '—' : stats.avgHours + ' ' + L.k451) +

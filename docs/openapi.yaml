@@ -1424,6 +1424,74 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /admin/school/attendance/monthly:
+    get:
+      tags: [school]
+      summary: "出席率月報（需 school:manage；按班級與按日聚合，不新增表）"
+      description: |
+        資料來源只有 `attendance_records`（家校通同步 ＋ 老師手動補登）。
+        出席率 ＝ 1 − 缺席天數 ÷ 有紀錄天數：**遲到算出席**、**請假不算缺席**（否則每次病假都會壓低班級出席率，
+        跟學校算的數字對不上）。沒有紀錄時 `rate` 回 null（不是 0%）。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: month, schema: { type: string, pattern: '^\\d{4}-\\d{2}$' }, description: 例 2026-11；留空＝本月（Asia/Macau） }
+        - { in: query, name: yearTerm, schema: { type: string, maxLength: 16 } }
+        - { in: query, name: grade, schema: { type: string, maxLength: 16 } }
+        - { in: query, name: className, schema: { type: string, maxLength: 32 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  month: { type: string }
+                  yearTerm: { type: string, nullable: true }
+                  range:
+                    type: object
+                    properties:
+                      from: { type: string, format: date }
+                      to: { type: string, format: date }
+                  days: { type: integer }
+                  students: { type: integer, description: 當月有紀錄的學生數 }
+                  summary:
+                    type: object
+                    properties:
+                      records: { type: integer, description: 人日 }
+                      present: { type: integer }
+                      late: { type: integer }
+                      absent: { type: integer }
+                      leave: { type: integer }
+                      rate: { type: number, nullable: true }
+                  byClass:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        grade: { type: string }
+                        className: { type: string }
+                        students: { type: integer }
+                        records: { type: integer }
+                        present: { type: integer }
+                        late: { type: integer }
+                        absent: { type: integer }
+                        leave: { type: integer }
+                        rate: { type: number, nullable: true }
+                  byDay:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        day: { type: integer }
+                        records: { type: integer }
+                        late: { type: integer }
+                        absent: { type: integer }
+                  truncated: { type: boolean, description: true＝超過 4 萬列上限，前端要提示縮小範圍 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
   /admin/school/attendance/{id}:
     parameters:
       - { in: path, name: id, required: true, schema: { type: string } }
@@ -4575,6 +4643,34 @@ paths:
         '409': { description: 這張已經被其他老師處理過了 }
         '422': { description: 駁回沒寫原因 }
 
+  /admin/leaves/export:
+    get:
+      tags: [admin]
+      summary: "假單 CSV 匯出（leave:review；帶 UTF-8 BOM，Excel 直接開）"
+      description: |
+        欄位：學號／姓名／年級／班別／假別／起訖／天數／狀態／送出者／審批人／審批時間／原因。
+        學號由 `sc:` 家校通帳號取出（微信帳號的老師留空）；原因裡的引號成對加倍、換行改成空白。
+        一次最多 5000 張，筆數放在 `x-row-count` 回應標頭（curl 驗得到、不必下載檔案）；每次匯出寫一筆 `leave.export` 審計。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [PENDING, APPROVED, REJECTED, CANCELLED, ALL], default: ALL } }
+        - { name: from, in: query, schema: { type: string, format: date }, description: 開始日期下限（含） }
+        - { name: to, in: query, schema: { type: string, format: date }, description: 開始日期上限（含） }
+      responses:
+        '200':
+          description: CSV（text/csv; charset=utf-8）
+          headers:
+            x-row-count:
+              schema: { type: string }
+              description: 匯出筆數
+            content-disposition:
+              schema: { type: string }
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { description: 能力不足 }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
   # ── W-73 班級課表 ──────────────────────────────────────────────
   /timetable:
     get:
@@ -5781,7 +5877,9 @@ paths:
                       IN_PROGRESS: { type: integer }
                       DONE: { type: integer }
                       CANCELLED: { type: integer }
-                  avgHours: { type: number, nullable: true }
+                  avgHours: { type: number, nullable: true, description: 平均完成時數（回報 → 按完成） }
+                  avgAcceptHours: { type: number, nullable: true, description: 平均接單時數（回報 → 總務按接單）；沒人接單時為 null }
+                  acceptedCount: { type: integer, description: 已接單筆數（含已完成的） }
                   doneCount: { type: integer }
                   byLocation:
                     type: array
