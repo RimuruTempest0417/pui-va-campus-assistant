@@ -131,15 +131,19 @@ module.exports = {
   createReport: (...a) => call('createReport', a),
   externalCalendar: (...a) => call('externalCalendar', a),
 
-  // ── W-34 站內通知 ──
+  // ── W-34 站內通知（W-96 加分組：group 可只取某一組） ──
   notifications(opts) {
-    return call('notifications', [opts && opts.unreadOnly]);
+    const o = opts && typeof opts === 'object' ? opts : { unreadOnly: !!opts };
+    return call('notifications', [o]);
   },
-  notificationsUnread() {
-    return call('notificationsUnread', []);
+  notificationsUnread(group) {
+    return call('notificationsUnread', [group]);
   },
   readNotifications(id) {
     return call('readNotifications', [id]);
+  },
+  readAllNotifications(group) {
+    return call('readAllNotifications', [group]);
   },
 
   // ── W-31 活動回饋 ──

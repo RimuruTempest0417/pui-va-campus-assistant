@@ -1333,6 +1333,62 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-96 通知中心分組（示範層與後端同一份口袋）──
+{
+  await data.switchDemoUser('示範學生', 'demo-user', 'STUDENT');
+  const all = await data.notifications();
+  const groups = all.groups || [];
+  const buckets = groups.filter((g) => g.key !== 'ALL');
+
+  check('通知分組：六個口袋都在', groups.length === 6 && groups[0].key === 'ALL', groups.map((g) => g.key).join('/'));
+  check(
+    '通知分組：各組加總等於全部',
+    buckets.reduce((n, g) => n + g.total, 0) === (groups[0] || {}).total &&
+      buckets.reduce((n, g) => n + g.unread, 0) === (groups[0] || {}).unread,
+    `全部 ${(groups[0] || {}).total}／未讀 ${(groups[0] || {}).unread}`,
+  );
+  check(
+    '通知分組：每筆都帶正確的 group',
+    (all.items || []).every((n) => {
+      const expected = { HOMEWORK: 'HOMEWORK', LIBRARY: 'LIBRARY', LEAVE: 'APPROVAL', BOOKING: 'APPROVAL', REPAIR: 'REPAIR' }[n.kind] || 'OTHER';
+      return n.group === expected;
+    }),
+    `${(all.items || []).length} 筆`,
+  );
+
+  const homework = await data.notifications({ group: 'HOMEWORK' });
+  check(
+    '通知分組：只回那一組',
+    homework.group === 'HOMEWORK' && homework.items.length > 0 && homework.items.every((n) => n.kind === 'HOMEWORK'),
+    `${homework.items.length} 筆`,
+  );
+
+  const approvalUnread = await data.notificationsUnread('APPROVAL');
+  const approvalRow = (all.groups || []).filter((g) => g.key === 'APPROVAL')[0] || {};
+  check('通知分組：單組未讀數與統計一致', approvalUnread.unread === approvalRow.unread, `${approvalUnread.unread}／${approvalRow.unread}`);
+
+  const beforeRepair = (all.groups || []).filter((g) => g.key === 'REPAIR')[0] || { unread: 0 };
+  const cleared = await data.readAllNotifications('REPAIR');
+  const after = await data.notifications();
+  const afterRepair = (after.groups || []).filter((g) => g.key === 'REPAIR')[0] || { unread: 0 };
+  const afterAll = (after.groups || [])[0] || { unread: 0 };
+  check(
+    '通知分組：清一組不影響別組',
+    cleared.cleared === beforeRepair.unread && afterRepair.unread === 0 && afterAll.unread > 0 && afterAll.unread < (all.groups[0] || {}).unread,
+    `清了 ${cleared.cleared} 則，剩 ${afterAll.unread} 則未讀`,
+  );
+
+  const apiSrcNotif = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  const notifWxml = readFileSync(join(here, '..', 'pages', 'notifications', 'index.wxml'), 'utf8');
+  check(
+    '通知分組：有畫面入口＋真 API 端點',
+    notifWxml.indexOf('notif-chip') !== -1 &&
+      notifWxml.indexOf('bindtap="onGroup"') !== -1 &&
+      apiSrcNotif.indexOf("'/notifications/read-all'") !== -1,
+    '通知頁 chips → read-all',
+  );
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

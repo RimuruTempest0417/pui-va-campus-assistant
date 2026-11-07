@@ -133,15 +133,23 @@ module.exports = {
     });
   },
 
-  // ── W-34 站內通知 ──
-  notifications(unreadOnly) {
-    return http.get('/notifications', unreadOnly ? { unreadOnly: '1' } : {});
+  // ── W-34 站內通知（W-96 加分組） ──
+  notifications(opts) {
+    // 舊呼叫端傳的是 boolean（true＝只看未讀），新呼叫端傳物件；兩種都要吃
+    const o = opts && typeof opts === 'object' ? opts : { unreadOnly: !!opts };
+    const query = {};
+    if (o.unreadOnly) query.unreadOnly = '1';
+    if (o.group && o.group !== 'ALL') query.group = o.group;
+    return http.get('/notifications', query);
   },
-  notificationsUnread() {
-    return http.get('/notifications/unread-count');
+  notificationsUnread(group) {
+    return http.get('/notifications/unread-count', group && group !== 'ALL' ? { group } : {});
   },
   readNotifications(id) {
     return http.patch('/notifications/read', id ? { id } : {});
+  },
+  readAllNotifications(group) {
+    return http.patch('/notifications/read-all', group && group !== 'ALL' ? { group } : {});
   },
 
   // ── W-31 活動回饋 ──

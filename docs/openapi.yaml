@@ -2306,28 +2306,46 @@ paths:
   /notifications:
     get:
       tags: [notifications]
-      summary: 我的通知（最近 50 筆）
+      summary: 我的通知（最近 50 筆；W-96 支援分組）
       security: [{ bearerAuth: [] }]
       parameters:
         - in: query
           name: unreadOnly
           schema: { type: string, enum: ['0', '1'] }
+        - in: query
+          name: group
+          schema: { type: string, enum: [ALL, HOMEWORK, LIBRARY, APPROVAL, REPAIR, OTHER] }
+          description: 不帶＝ALL。APPROVAL 收假單與場地借用
       responses:
         '200':
-          description: 通知列表與未讀數
+          description: 通知列表、未讀數與各組統計
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  unread: { type: integer }
+                  unread: { type: integer, description: 全部未讀數（不隨 group 改變） }
+                  group: { type: string, enum: [ALL, HOMEWORK, LIBRARY, APPROVAL, REPAIR, OTHER] }
+                  groups:
+                    type: array
+                    description: 每個口袋的 total／unread，固定六列（ALL 在最前）
+                    items:
+                      type: object
+                      properties:
+                        key: { type: string }
+                        total: { type: integer }
+                        unread: { type: integer }
                   items:
                     type: array
                     items:
                       type: object
                       properties:
                         id: { type: string }
-                        kind: { type: string, enum: [EVENT, CLAIM, NOTICE, ITEM, SYSTEM], description: ITEM＝失物配對主動通知（W-57） }
+                        kind:
+                          type: string
+                          enum: [EVENT, CLAIM, NOTICE, ITEM, SYSTEM, HOMEWORK, PROPOSAL, REPAIR, LIBRARY, LEAVE, BOOKING]
+                          description: ITEM＝失物配對主動通知（W-57）；LIBRARY／LEAVE／BOOKING 自 W-96 起分開記
+                        group: { type: string, description: 該 kind 所屬的口袋 }
                         title: { type: string }
                         body: { type: string, nullable: true }
                         link: { type: string, nullable: true }
@@ -2337,8 +2355,12 @@ paths:
   /notifications/unread-count:
     get:
       tags: [notifications]
-      summary: 未讀數（首頁鈴鐺）
+      summary: 未讀數（首頁鈴鐺；可只算某一組）
       security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: group
+          schema: { type: string, enum: [ALL, HOMEWORK, LIBRARY, APPROVAL, REPAIR, OTHER] }
       responses:
         '200':
           description: 未讀數
@@ -2372,6 +2394,33 @@ paths:
                 properties:
                   ok: { type: boolean }
                   unread: { type: integer }
+
+  /notifications/read-all:
+    patch:
+      tags: [notifications]
+      summary: 一次全部已讀（W-96；可只清某一組，只動自己的通知）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group: { type: string, enum: [ALL, HOMEWORK, LIBRARY, APPROVAL, REPAIR, OTHER] }
+      responses:
+        '200':
+          description: 已清除，回傳清了幾筆與剩下未讀數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  cleared: { type: integer }
+                  unread: { type: integer }
+                  group: { type: string }
+        '422': { description: group 不是合法值（不會退化成全部已讀） }
 
   # ── 檢舉 ──
   /reports:

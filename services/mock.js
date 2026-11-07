@@ -437,6 +437,61 @@ function save(data) {
   return data;
 }
 
+// ── W-96 示範通知：分組／分組未讀數／分組全部已讀 ──
+// 這份對照必須與後端 src/lib/notify-groups.ts 一致，否則同一則通知在示範模式與真 API
+// 會落在不同口袋（使用者切了來源就找不到東西，而且沒有任何錯誤訊息）。
+const NOTIF_GROUP_KINDS = {
+  HOMEWORK: ['HOMEWORK'],
+  LIBRARY: ['LIBRARY'],
+  APPROVAL: ['LEAVE', 'BOOKING'],
+  REPAIR: ['REPAIR'],
+  OTHER: ['EVENT', 'CLAIM', 'ITEM', 'NOTICE', 'PROPOSAL', 'SYSTEM'],
+};
+
+function notifGroupOf(kind) {
+  const keys = Object.keys(NOTIF_GROUP_KINDS);
+  for (let i = 0; i < keys.length; i += 1) {
+    if (NOTIF_GROUP_KINDS[keys[i]].indexOf(kind) !== -1) return keys[i];
+  }
+  return 'OTHER';
+}
+
+function notificationSeeds() {
+  // W-57：貼上失物／拾獲時的主動配對通知（真 API 模式由後端產生；示範模式沒有其他真實使用者，留一則讓你看到長相）
+  return [
+    { id: 'n10', kind: 'REPAIR', title: '報修已接單：203 室 門鎖', body: '校務處已接單，處理好會再通知你。', link: '/pages/repair/index/index', readAt: null, createdAt: '2026-11-07T02:05:00.000Z' },
+    { id: 'n9', kind: 'LIBRARY', title: '即將到期：澳門街巷誌', body: '請於 11/09 前歸還，需要可以續借一次。', link: '/pages/library/detail/index?id=b1', readAt: null, createdAt: '2026-11-07T01:20:00.000Z' },
+    { id: 'n8', kind: 'LEAVE', title: '假單已批准', body: '陳大文 11/05（病假）已批准，記得補回缺課的筆記。', link: '/pages/leaves/mine/index', readAt: null, createdAt: '2026-11-06T10:05:00.000Z' },
+    { id: 'n7', kind: 'BOOKING', title: '借用申請已批准', body: '禮堂（11/12 15:00）已批准，請準時使用。', link: '/pages/venues/mine/index', readAt: null, createdAt: '2026-11-06T08:40:00.000Z' },
+    { id: 'n6', kind: 'HOMEWORK', title: '功課快到截止：數學', body: '習作 4.2 第 1–10 題，明天 08:00 前交。', link: '/pages/homework/index', readAt: null, createdAt: '2026-11-05T12:00:00.000Z' },
+    { id: 'n4', kind: 'ITEM', title: '有人撿到像你的「黑色雨傘」', body: '疑似與你張貼的「黑色雨傘」相符（同分類、地點相近），地點：圖書館一樓', link: '/pages/items/detail/index?id=i2', readAt: null, createdAt: '2026-10-25T02:10:00.000Z' },
+    { id: 'n1', kind: 'EVENT', title: '活動改期：班際籃球賽', body: '原定 11/10 09:00 → 11/17 09:00', link: '/pages/events/detail/index?id=e7', readAt: null, createdAt: '2026-10-24T09:12:00.000Z' },
+    { id: 'n2', kind: 'CLAIM', title: '認領已通過', body: '你申請的「黑色雨傘」已審批通過，請到失物招領領取。', link: '/pages/items/detail/index?id=i1', readAt: null, createdAt: '2026-10-23T15:40:00.000Z' },
+    { id: 'n3', kind: 'NOTICE', title: '新公告：期中考試安排', body: '教務處已發布期中考試時間表。', link: '/pages/notices/detail/index?id=nt1', readAt: '2026-10-22T08:00:00.000Z', createdAt: '2026-10-22T07:30:00.000Z' },
+  ];
+}
+
+/** 示範通知清單：opts 可為 { group, unreadOnly }，也接受舊版的 boolean（true＝只看未讀） */
+function demoNotifications(opts) {
+  const o = opts && typeof opts === 'object' ? opts : { unreadOnly: !!opts };
+  const reads = db().notificationReads || [];
+  const all = notificationSeeds().map((row) => ({
+    ...row,
+    group: notifGroupOf(row.kind),
+    readAt: row.readAt || (reads.indexOf(row.id) !== -1 ? '2026-11-07T00:00:00.000Z' : null),
+  }));
+  const group = o.group && o.group !== 'ALL' ? o.group : 'ALL';
+  const inGroup = group === 'ALL' ? all : all.filter((row) => row.group === group);
+  const items = o.unreadOnly ? inGroup.filter((row) => !row.readAt) : inGroup;
+  const groups = [{ key: 'ALL', total: all.length, unread: all.filter((row) => !row.readAt).length }];
+  Object.keys(NOTIF_GROUP_KINDS).forEach((key) => {
+    const rows = all.filter((row) => row.group === key);
+    groups.push({ key, total: rows.length, unread: rows.filter((row) => !row.readAt).length });
+  });
+  return { items, unread: all.filter((row) => !row.readAt).length, group, groups };
+}
+
+
 let idSeq = 0;
 
 /** 示範層的 id 產生器：同一個毫秒內連續建立兩筆時，只用 Date.now() 會撞號
@@ -1725,21 +1780,36 @@ module.exports = {
   },
 
   // ── W-34 示範站內通知 ──
-  notifications(unreadOnly) {
-    const all = [
-      // W-57：貼上失物／拾獲時的主動配對通知（真 API 模式由後端產生；示範模式沒有其他真實使用者，留一則讓你看到長相）
-      { id: 'n4', kind: 'ITEM', title: '有人撿到像你的「黑色雨傘」', body: '疑似與你張貼的「黑色雨傘」相符（同分類、地點相近），地點：圖書館一樓', link: '/pages/items/detail/index?id=i2', readAt: null, createdAt: '2026-10-25T02:10:00.000Z' },
-      { id: 'n1', kind: 'EVENT', title: '活動改期：班際籃球賽', body: '原定 11/10 09:00 → 11/17 09:00', link: '/pages/events/detail/index?id=e7', readAt: null, createdAt: '2026-10-24T09:12:00.000Z' },
-      { id: 'n2', kind: 'CLAIM', title: '認領已通過', body: '你申請的「黑色雨傘」已審批通過，請到失物招領領取。', link: '/pages/items/detail/index?id=i1', readAt: null, createdAt: '2026-10-23T15:40:00.000Z' },
-      { id: 'n3', kind: 'NOTICE', title: '新公告：期中考試安排', body: '教務處已發布期中考試時間表。', link: '/pages/notices/detail/index?id=nt1', readAt: '2026-10-22T08:00:00.000Z', createdAt: '2026-10-22T07:30:00.000Z' },
-    ];
-    return Promise.resolve({ items: unreadOnly ? all.filter((x) => !x.readAt) : all, unread: all.filter((x) => !x.readAt).length });
+  notifications(opts) {
+    return Promise.resolve(demoNotifications(opts));
   },
-  notificationsUnread() {
-    return this.notifications(true).then((r) => ({ unread: r.unread }));
+  notificationsUnread(group) {
+    // 模組層函式而不是 this.notifications：data.js 是 mock[name].apply(null, …) 呼叫，
+    // this 會是 null（曾因此讓示範模式的未讀數永遠是 0，而且沒有任何錯誤訊息）
+    const res = demoNotifications({ group });
+    const key = group && group !== 'ALL' ? group : 'ALL';
+    const row = (res.groups || []).filter((g) => g.key === key)[0];
+    return Promise.resolve({ unread: row ? row.unread : res.unread });
   },
-  readNotifications() {
-    return Promise.resolve({ ok: true, unread: 0 });
+  readNotifications(id) {
+    const data = db();
+    data.notificationReads = data.notificationReads || [];
+    const ids = id ? [id] : demoNotifications({}).items.map((x) => x.id);
+    ids.forEach((key) => {
+      if (data.notificationReads.indexOf(key) === -1) data.notificationReads.push(key);
+    });
+    save(data);
+    return Promise.resolve({ ok: true, unread: demoNotifications({}).unread });
+  },
+  readAllNotifications(group) {
+    const data = db();
+    data.notificationReads = data.notificationReads || [];
+    const rows = demoNotifications({ group }).items;
+    rows.forEach((x) => {
+      if (data.notificationReads.indexOf(x.id) === -1) data.notificationReads.push(x.id);
+    });
+    save(data);
+    return Promise.resolve({ ok: true, cleared: rows.filter((x) => !x.readAt).length, unread: demoNotifications({}).unread, group: group || 'ALL' });
   },
 
   // ── W-31 示範回饋 ──

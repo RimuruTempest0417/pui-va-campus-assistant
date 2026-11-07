@@ -4,17 +4,36 @@
 .notif { min-height: 100vh; background: var(--pv-bg); }
 .notif-inner { padding: var(--pv-sp-3); }
 
+/* 分組 chips：包起來換行，不用 scroll-x —— 六顆字很短，一次看得到全部才好選 */
+.notif-groups { display: flex; flex-direction: row; flex-wrap: wrap; gap: var(--pv-sp-2); margin-bottom: var(--pv-sp-2); }
+.notif-chip {
+  display: flex; flex-direction: row; align-items: center;
+  flex-shrink: 0; height: 64rpx; padding: 0 var(--pv-sp-3);
+  background: var(--pv-surface); border-radius: var(--pv-r-pill);
+  font-size: var(--pv-fs-subhead); color: var(--pv-label-2);
+}
+.notif-chip--on { background: var(--pv-tint); color: var(--pv-on-tint); font-weight: 600; }
+.notif-chip__badge {
+  margin-left: 8rpx; min-width: 28rpx; height: 28rpx; padding: 0 6rpx;
+  border-radius: var(--pv-r-pill); background: var(--pv-brand); color: var(--pv-on-tint);
+  font-size: 18rpx; display: flex; align-items: center; justify-content: center;
+}
+
 .notif-head { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: var(--pv-sp-2); }
 .notif-head__count { font-size: var(--pv-fs-footnote); color: var(--pv-label-3); }
 .notif-head__all { font-size: var(--pv-fs-subhead); color: var(--pv-tint); padding: 8rpx 12rpx; }
 
-.notif-item { position: relative; background: var(--pv-surface); border-radius: var(--pv-r-lg); padding: var(--pv-sp-3); margin-bottom: var(--pv-sp-2); }
-.notif-item--unread { box-shadow: inset 3rpx 0 0 0 var(--pv-tint); }
+.notif-item { position: relative; background: var(--pv-surface); border-radius: var(--pv-r); padding: var(--pv-sp-3); margin-bottom: var(--pv-sp-2); }
+/* 未讀用左側 6rpx 色條（不是 box-shadow）：Skyline 下 inset 陰影只是裝飾，色條才是真的「這一則沒看」 */
+.notif-item--unread { border-left: 6rpx solid var(--pv-tint); }
 .notif-item__top { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 8rpx; }
 .notif-item__kind { font-size: var(--pv-fs-caption-2); padding: 2rpx 12rpx; border-radius: var(--pv-r-pill); background: var(--pv-fill); color: var(--pv-label-2); }
 .notif-item__kind--EVENT { color: var(--pv-tint); }
 .notif-item__kind--CLAIM { color: var(--pv-success); }
 .notif-item__kind--NOTICE { color: var(--pv-warning); }
+.notif-item__kind--LIBRARY { color: var(--pv-tint); }
+.notif-item__kind--LEAVE { color: var(--pv-success); }
+.notif-item__kind--BOOKING { color: var(--pv-tint); }
 .notif-item__time { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
 .notif-item__title { display: block; font-size: var(--pv-fs-callout); font-weight: 600; color: var(--pv-label); }
 .notif-item__body { display: block; margin-top: 6rpx; font-size: var(--pv-fs-subhead); color: var(--pv-label-2); line-height: 1.5; }
