@@ -40,5 +40,8 @@ jobs:
       - name: 繁簡介面（pick 抽樣／對照表殘留／L.* 供應）
         run: node scripts/check-i18n.mjs
 
+      - name: 首頁今日待辦（訪客不顯示／單支失敗只降級那一行／家長用子女數字）
+        run: node scripts/check-todo.cjs
+
       - name: 檢查 API 契約（openapi.yaml）存在且非空
         run: test -s docs/openapi.yaml && echo "openapi.yaml OK"
