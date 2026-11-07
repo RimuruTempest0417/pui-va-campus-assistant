@@ -111,6 +111,7 @@ function buildHomeHarness(homeworkImpl) {
       if (p.includes('utils/appearance')) return { themeClass: () => 'theme-light' };
       if (p.includes('utils/venue')) return { shapeResource: () => ({ openNow: false }) };
       if (p.includes('utils/study')) return {};
+      if (p.includes('utils/todo')) return require(path.join(root, 'utils', 'todo.js'));
       if (p.includes('utils/reporter')) return { reportError: () => {} };
       throw new Error('unexpected require: ' + p);
     },
@@ -187,6 +188,20 @@ const check = (name, ok) => checks.push({ name, ok: Boolean(ok) });
   );
   const sumNoClass = await homeNoClass.loadKidSummary.call(homeNoClass, 'c1');
   check('首頁家長卡：未設定班級顯示「—」', sumNoClass.homeworkText.indexOf('—') !== -1);
+
+  // ── 首頁「今日待辦」（W-93）：家長那張卡用的是子女的數字，不是家長自己的 ──
+  {
+    const todoMod = require(path.join(root, 'utils', 'todo.js'));
+    const rows = todoMod.rows({
+      role: 'PARENT',
+      kid: sumTodo,
+      unread: 3,
+      homework: { stats: { todo: 9, overdue: 9 } },
+      timetable: { schoolDay: true, nextText: '數學 · 302（10:30）' },
+    });
+    check('首頁今日待辦：家長只兩行（子女功課＋未讀通知）', rows.map((r) => r.key).join(',') === 'kid,notices');
+    check('首頁今日待辦：家長那行用子女的未交數（2）而不是自己的 9', rows[0].value.indexOf('2') !== -1 && rows[0].value.indexOf('9') === -1);
+  }
 
   const bad = checks.filter((c) => !c.ok);
   for (const c of bad) console.error(`  ✗ ${c.name}`);

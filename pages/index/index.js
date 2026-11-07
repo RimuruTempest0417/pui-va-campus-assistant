@@ -22,6 +22,7 @@ const ADMIN_SUB = {
 const appearance = require('../../utils/appearance');
 const venue = require('../../utils/venue');
 const study = require('../../utils/study');
+const todo = require('../../utils/todo');
 const reporter = require('../../utils/reporter');
 
 /** W-79：家長卡那行「功課未交」的文字（取不到就「—」，不要顯示 0 讓人誤會已交清） */
@@ -104,6 +105,10 @@ Page({
     proposalPressed: false,
     repairText: '',
     repairPressed: false,
+    // W-93 今日待辦：三行（未交功課／下一節／未讀通知），資料源與各模組頁相同
+    todoRows: [],
+    todoVisible: false,
+    todoKey: '',
     // 家長：只在家長身分時才有值（切換子女就在首頁做，不必先點進別的頁）
     parentChildren: [],
     parentActiveId: '',
@@ -151,6 +156,7 @@ Page({
       k32: i18n.pick('校園提案'),
       k33: i18n.pick('提出改善建議，同學連署'),
       k34: i18n.pick('課室報修'),
+      k35: i18n.pick('今日待辦'),
       k30: i18n.pick('今天不用上課'),
       brand: i18n.pick('培華校園助手'),
       brandSub: i18n.pick('PUI VA CAMPUS'),
@@ -212,12 +218,41 @@ Page({
   refreshUnread() {
     data
       .notificationsUnread()
-      .then((r) => this.setData({ unread: (r && r.unread) || 0 }))
-      .catch(() => this.setData({ unread: 0 }));
+      .then((r) => {
+        const unread = (r && r.unread) || 0;
+        const patch = { unread: unread };
+        // W-93：未讀數也是「今日待辦」的一行，拿到新數字就地重算那一行，
+        // 不必為了一個數字整頁重抓（_todoSrc 只有 refresh() 跑過才存在）
+        if (this._todoSrc) patch.todoRows = todo.rows(Object.assign({}, this._todoSrc, { unread: unread }));
+        this.setData(patch);
+      })
+      .catch(() => {
+        const patch = { unread: 0 };
+        if (this._todoSrc) patch.todoRows = todo.rows(Object.assign({}, this._todoSrc, { unread: undefined }));
+        this.setData(patch);
+      });
   },
 
   goNotifications() {
     wx.navigateTo({ url: '/pages/notifications/index' });
+  },
+
+  // ── W-93 今日待辦：一張卡三行，按哪一行就跳到那個模組（路徑由 utils/todo.js 給）──
+  onTodoTouchStart(e) {
+    this.setData({ todoKey: e.currentTarget.dataset.key });
+  },
+
+  onTodoTouchEnd() {
+    if (this.data.todoKey) this.setData({ todoKey: '' });
+  },
+
+  onTapTodo(e) {
+    const key = e.currentTarget.dataset.key;
+    const row = (this.data.todoRows || []).filter((r) => r.key === key)[0];
+    if (!row || !row.route) return;
+    let url = row.route;
+    if (key === 'kid' && this.data.parentActiveId) url += '?studentId=' + this.data.parentActiveId;
+    wx.navigateTo({ url: url });
   },
 
   /** W-59 全校搜尋：右上角放大鏡（不放在宮格裡，避免首屏可點元素再 +1） */
@@ -391,7 +426,13 @@ Page({
 
       this._lastDemo = data.isDemo();
       this._lastRole = role;
+      // W-93：「今日待辦」卡片 —— 三個來源（功課 stats／課表 next／通知未讀）都在上面抓好了，
+      // 這裡只做組裝；refreshUnread() 之後拿到新的未讀數時會就地重算那一行。
+      this._todoSrc = { role: role, homework: homework, timetable: timetable, kid: parentSummary };
+      const todoRows = todo.rows(Object.assign({}, this._todoSrc, { unread: this.data.unread }));
       this.setData({
+        todoRows: todoRows,
+        todoVisible: todoRows.length > 0,
         showAdmin: staff,
         adminSub: ADMIN_SUB[role] || '',
         showData: canSeeData,

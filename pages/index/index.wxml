@@ -63,6 +63,32 @@
       <text class="urgent__arrow">›</text>
     </view>
 
+    <!-- 今日待辦（W-93）：一張卡三行，資料源與功課／課表／通知頁相同；訪客不顯示 -->
+    <block wx:if="{{todoVisible}}">
+      <view class="pv-group-title">{{L.k35}}</view>
+      <view class="ui-list ui-list--grouped todo-list">
+        <view
+          wx:for="{{todoRows}}"
+          wx:key="key"
+          class="todo-row {{item.last ? 'todo-row--last' : ''}} {{todoKey === item.key ? 'todo-row--pressed' : ''}}"
+          data-key="{{item.key}}"
+          bindtouchstart="onTodoTouchStart"
+          bindtouchend="onTodoTouchEnd"
+          bindtouchcancel="onTodoTouchEnd"
+          bindtap="onTapTodo"
+        >
+          <view class="todo-row__main">
+            <text class="todo-row__label">{{item.label}}</text>
+            <text wx:if="{{item.detail}}" class="todo-row__detail">{{item.detail}}</text>
+          </view>
+          <view class="todo-row__right">
+            <text class="todo-row__value todo-row__value--{{item.tone}}">{{item.value}}</text>
+            <pv-icon name="chevron" size="20" tone="muted" />
+          </view>
+        </view>
+      </view>
+    </block>
+
     <!-- 四宮格 -->
     <view class="grid">
       <view
