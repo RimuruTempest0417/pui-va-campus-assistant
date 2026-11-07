@@ -76,6 +76,8 @@ Page({
       k51: i18n.pick('報修待處理'),
       k52: i18n.pick('依科目（未交）'),
       k53: i18n.pick('沒有待審假單'),
+      // ── W-98 離線快取 ──
+      k54: i18n.pick('離線資料 · 上次更新'),
     };
   },
 
@@ -107,6 +109,7 @@ Page({
     formDueText: '',
     formLinks: '',
     saving: false,
+    offlineText: '',
     L: {},
   },
 
@@ -178,6 +181,7 @@ Page({
 
   async load() {
     this.setData({ loading: true, failed: false });
+    data.offlineReset(); // W-98：這批載入有沒有吃到快取
     try {
       const res = await data.listHomework({ scope: this.data.scope });
       // 老師：順便拿「幾個人交了」（一支端點回全部，不逐項打）
@@ -214,16 +218,17 @@ Page({
         overviewStats: view.overviewStats,
         subjectLines: view.subjectLines,
         leaveLines: view.leaveLines,
+        offlineText: data.offlineText(this.data.L.k54 || ''),
       });
     } catch (e) {
       const code = (e && e.code) || '';
       if (code === 'UNAUTHORIZED' || code === 'NO_TOKEN') {
-        this.setData({ loading: false, needLogin: true });
+        this.setData({ loading: false, needLogin: true, offlineText: '' });
         return;
       }
       const msg = data.messageOf(e);
       reporter.reportError('[homework.load] ' + code + ' ' + msg);
-      this.setData({ loading: false, failed: true, errorText: msg });
+      this.setData({ loading: false, failed: true, errorText: msg, offlineText: '' });
     }
   },
 

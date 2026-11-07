@@ -17,6 +17,14 @@ globalThis.wx = {
   getStorageSync: (k) => (store.has(k) ? store.get(k) : ''),
   setStorageSync: (k, v) => void store.set(k, v),
   removeStorageSync: (k) => void store.delete(k),
+  getStorageInfoSync: () => ({ keys: Array.from(store.keys()) }),
+  // W-98：離線快取那一段要驗「連不上後端」的行為，所以 request 一律失敗。
+  // 這支腳本從頭到尾不打任何後端（示範模式不會呼叫它）。
+  request: (opts) => {
+    setTimeout(() => {
+      if (opts && typeof opts.fail === 'function') opts.fail({ errMsg: 'request:fail' });
+    }, 0);
+  },
 };
 
 // 這支檢查的對象是「示範資料層」，所以先明確打開離線示範開關，
@@ -406,7 +414,7 @@ check(
 }
 
 // ── 資料入口／真實 API／示範資料三方方法必須對齊 ──
-const dataKeys = Object.keys(data).filter((k) => typeof data[k] === 'function' && !['isDemo', 'setForceDemo', 'forceDemoOn', 'setApiBase', 'apiBase', 'ensureLogin', 'messageOf', 'resetDemo'].includes(k));
+const dataKeys = Object.keys(data).filter((k) => typeof data[k] === 'function' && !['isDemo', 'setForceDemo', 'forceDemoOn', 'setApiBase', 'apiBase', 'ensureLogin', 'messageOf', 'resetDemo', 'offlineReset', 'offlineInfo', 'offlineText', 'clearCache'].includes(k));
 const api = require(join(here, '..', 'services', 'api.js'));
 const mock = require(join(here, '..', 'services', 'mock.js'));
 const missingApi = dataKeys.filter((k) => typeof api[k] !== 'function');
@@ -1431,6 +1439,80 @@ check('簽到：我的報名帶簽到時間',
     'self + parent + admin',
   );
   check('成績單：後台出席率月報已接', adminSrcTr.indexOf("'/admin/school/attendance/monthly'") !== -1, 'monthly');
+}
+
+// ── W-98 離線快取（成功才寫／失敗才讀／過期就當沒有／示範與快取分得開）──
+{
+  const cache = require(join(here, '..', 'services', 'cache.js'));
+
+  // 這一段驗的是「真 API 走不通」時的行為，所以關掉示範模式，讓 wx.request（一定失敗）真的被呼叫。
+  store.set('pv_force_demo', '');
+  store.set('pv_token', 'offline-check-token');
+  data.offlineReset();
+  cache.clear();
+
+  const wrote = cache.write('listNotices', [{}], 'offline-check-token', { items: [{ id: 'n-cache-1', title: '上次的資料' }], unread: 2 });
+  check('離線快取：成功回應寫得進去', wrote && cache.size() === 1, `${cache.size()} 筆`);
+
+  const hit = cache.read('listNotices', [{}], 'offline-check-token');
+  check('離線快取：同一個查詢讀得回來', !!hit && hit.value.items[0].id === 'n-cache-1', hit ? `${hit.value.items.length} 筆` : '沒讀到');
+  check('離線快取：帶回寫入時間', !!hit && Date.now() - hit.at < 60000, hit ? `${Date.now() - hit.at} ms 前` : '沒有時間');
+
+  // 換人登入（指紋不同）／換查詢參數 → 一定讀不到，不能把甲的成绩給乙
+  const otherUser = cache.read('listNotices', [{}], 'someone-else-token');
+  check('離線快取：不同使用者不共用', otherUser === null, otherUser ? '讀到別人的' : 'null');
+  const otherParams = cache.read('listNotices', [{ scope: 'all' }], 'offline-check-token');
+  check('離線快取：參數不同不混用', otherParams === null, otherParams ? '讀到別的查詢' : 'null');
+
+  // 走完整資料層：後端一定連不上 → 應該回上次成功的資料，而且頁面拿得到「上次更新於」
+  data.offlineReset();
+  const fromCache = await data.listNotices({}).then((r) => r, (e) => e);
+  check(
+    '離線快取：連不上後端時回上次成功的資料',
+    !!(fromCache && fromCache.items && fromCache.items[0] && fromCache.items[0].id === 'n-cache-1'),
+    fromCache && fromCache.items ? `${fromCache.items.length} 筆` : String(fromCache && fromCache.code),
+  );
+  const info = data.offlineInfo();
+  check('離線快取：頁面拿得到「上次更新」時間', !!info && info.at > 0, info ? data.offlineText('offline') : 'null');
+  check('離線快取：畫面文字一定帶得出時間', /\d{2}:\d{2}/.test(data.offlineText('offline')), data.offlineText('offline'));
+
+  // TTL：24 小時前的資料不採用，而且會把那筆刪掉（不要留著下次又讀）
+  cache.clear();
+  cache.write('listNotices', [{}], 'offline-check-token', { items: [{ id: 'too-old' }] }, Date.now() - 25 * 3600 * 1000);
+  data.offlineReset();
+  const expired = await data.listNotices({}).then((r) => r, (e) => e);
+  check('離線快取：超過 24 小時不採用', !!(expired && expired.code === 'NETWORK'), expired && expired.items ? '還是回舊資料' : String(expired && expired.code));
+  check('離線快取：過期的那筆會刪掉', cache.size() === 0, `${cache.size()} 筆`);
+
+  // 完全沒有快取 → 照原樣失敗（不是空白、也不是示範資料）
+  data.offlineReset();
+  const none = await data.listNotices({}).then((r) => r, (e) => e);
+  check('離線快取：沒有快取時維持失敗態', !!(none && none.code === 'NETWORK'), String(none && none.code));
+  check('離線快取：失敗時不出現離線標籤', data.offlineText('offline') === '', JSON.stringify(data.offlineText('offline')));
+
+  // 白名單只收讀取：寫入類一旦被快取，就等於回使用者一個假的「已送出」
+  const dataSrc = readFileSync(join(here, '..', 'services', 'data.js'), 'utf8');
+  const block = (dataSrc.match(/const CACHEABLE = \{[\s\S]*?\};/) || [''])[0];
+  check(
+    '離線快取：白名單只有讀取，沒有寫入類',
+    !!block && block.indexOf('listNotices') !== -1 && !/(create|claim|signup|cancel|mark|update|remove|delete|rate)[A-Z(]/.test(block),
+    block ? 'listNotices 在、寫入類不在' : '找不到 CACHEABLE',
+  );
+
+  // 四個頁面都要真的有橫幅（漏一頁＝那一頁看起來像即時資料）
+  const bannerPages = ['notices/list', 'timetable', 'homework', 'school'];
+  const missing = bannerPages.filter((p) => readFileSync(join(here, '..', 'pages', p, 'index.wxml'), 'utf8').indexOf('ui-offline') === -1);
+  check('離線快取：四個頁面都有離線橫幅', missing.length === 0, missing.length ? '缺 ' + missing.join('、') : bannerPages.join('／'));
+
+  // 示範模式與快取要分得開：開著示範時走 mock、不寫也不讀快取
+  store.set('pv_force_demo', '1');
+  data.offlineReset();
+  const demoList = await data.listNotices({});
+  check(
+    '離線快取：示範模式不碰快取（兩者不會混）',
+    demoList.items.length > 0 && data.offlineInfo() === null,
+    `${demoList.items.length} 筆（示範）、標籤 ${data.offlineText('offline') === '' ? '無' : '有'}`,
+  );
 }
 
 // ── 輸出 ──

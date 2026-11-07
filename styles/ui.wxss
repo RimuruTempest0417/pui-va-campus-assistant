@@ -2,6 +2,18 @@
 .ui-page { min-height: 100vh; background: var(--pv-bg); padding: 0 var(--pv-sp-3); box-sizing: border-box; }
 .ui-page--withbar { padding-bottom: 260rpx; }
 
+/* 離線資料橫幅（W-98）：畫面用的是上次成功的資料時一定要出現，
+   寫明「上次更新於 X」；不顯示它就等於靜默降級。 */
+.ui-offline {
+  margin: 0 0 var(--pv-sp-2);
+  padding: 12rpx var(--pv-sp-2);
+  background: var(--pv-warning-soft);
+  color: var(--pv-warning);
+  border-radius: var(--pv-r-sm);
+  font-size: var(--pv-fs-caption-1);
+  letter-spacing: var(--pv-ls-caption);
+}
+
 .ui-list { margin-top: var(--pv-sp-2); }
 
 /* inset grouped 清單（v0.57.0 起的標準做法）：整份是「一張卡」，列與列之間用 1rpx 髮絲線分隔，

@@ -3,6 +3,8 @@
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="school-inner">
+      <!-- W-98：離線資料橫幅（成績／出缺席是快取時一定要寫出上次更新時間） -->
+      <view wx:if="{{offlineText}}" class="ui-offline">{{offlineText}}</view>
       <pv-skeleton wx:if="{{loading}}" rows="{{4}}" />
 
       <pv-empty wx:elif="{{needLogin}}" title="{{L.needLoginTitle}}" desc="{{L.needLoginHint}}">

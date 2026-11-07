@@ -20,9 +20,12 @@ const vm = require('vm');
 
 const root = path.join(__dirname, '..');
 
-function buildHarness(role) {
-  const calls = { children: 0, childGrades: null, childAttendance: null, selfGrades: 0, selfAttendance: 0 };
+function buildHarness(role, offlineBanner) {
+  const calls = { children: 0, childGrades: null, childAttendance: null, selfGrades: 0, selfAttendance: 0, offlineReset: 0 };
   const dataStub = {
+    // W-98：離線快取入口。頁面載入前 reset、載入後取文字；沒有快取時回空字串（橫幅不出現）。
+    offlineReset: () => { calls.offlineReset += 1; },
+    offlineText: (prefix) => (offlineBanner ? String(prefix || '') + ' 14:32' : ''),
     schoolStatus: () => Promise.resolve({ linked: role === 'STUDENT', studentNo: '3201301037', className: '高二丙' }),
     parentChildren: () => { calls.children += 1; return Promise.resolve({ items: [{ studentId: 'c1', nickname: '甲同學' }, { studentId: 'c2', nickname: '乙同學' }] }); },
     parentChildGrades: (id) => { calls.childGrades = id; return Promise.resolve({ items: [{ id: 'g1', courseName: '數學', testDate: '2026-10-09', score: 88, source: 'SYNC' }], years: ['2026/2027'] }); },
@@ -162,6 +165,14 @@ const check = (name, ok) => checks.push({ name, ok: Boolean(ok) });
   check('學生：讀自己的成績／出缺席', student.calls.selfGrades === 1 && student.calls.selfAttendance === 1);
   check('學生：完全不碰子女端點', student.calls.childGrades === null && student.calls.children === 0);
   check('學生：成績有渲染（91）', sd.grades.length === 1 && sd.grades[0].scoreText === '91');
+
+  // ── W-98：成績頁的離線橫幅（有快取要寫出來、沒快取不許出現）──
+  check('離線：載入前會重置快取紀錄', student.calls.offlineReset > 0 && sd.offlineText === '');
+  const offlineRun = buildHarness('STUDENT', true);
+  await offlineRun.inst.onLoad.call(offlineRun.inst, {});
+  await new Promise((r) => setTimeout(r, 20));
+  check('離線：有快取時橫幅寫出時間（14:32）', /14:32/.test(offlineRun.inst.data.offlineText));
+  check('離線：橫幅出現時成績照常渲染', offlineRun.inst.data.grades.length === 1);
 
   // ── 首頁家長摘要（W-79）：子女功課未交數 ──
   const homeTodo = buildHomeHarness(() =>

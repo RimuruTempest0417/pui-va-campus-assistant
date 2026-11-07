@@ -2,6 +2,8 @@
   <pv-navbar title="{{L.k01}}" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="tt-inner">
+      <!-- W-98：離線資料橫幅 -->
+      <view wx:if="{{offlineText}}" class="ui-offline">{{offlineText}}</view>
       <view class="tt-head">
         <view class="tt-head__main">
           <text class="tt-head__class">{{className}}</text>

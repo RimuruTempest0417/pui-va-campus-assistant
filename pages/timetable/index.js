@@ -30,6 +30,7 @@ Page({
       k15: i18n.pick('節'),
       k16: i18n.pick('今天沒有下一節了'),
       k17: i18n.pick('列印／存成圖片'),
+      k18: i18n.pick('離線資料 · 上次更新'),
     };
   },
 
@@ -50,6 +51,7 @@ Page({
     currentPeriod: 0,
     nextPeriod: 0,
     nextText: '',
+    offlineText: '',
     L: {},
   },
 
@@ -64,6 +66,7 @@ Page({
 
   async load() {
     this.setData({ loading: true });
+    data.offlineReset(); // W-98
     try {
       const today = await data.timetableToday();
       const week = await data.timetable({ className: today.className });
@@ -93,9 +96,10 @@ Page({
         currentPeriod: today.current ? today.current.period : 0,
         nextPeriod: today.next ? today.next.period : 0,
         nextText: today.nextText || '',
+        offlineText: data.offlineText(L.k18 || ''),
       });
     } catch (e) {
-      this.setData({ loading: false, failed: true, errorText: data.messageOf(e) });
+      this.setData({ loading: false, failed: true, errorText: data.messageOf(e), offlineText: '' });
     }
   },
 

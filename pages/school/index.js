@@ -41,6 +41,7 @@ Page({
     hwStats: { total: 0, done: 0, todo: 0, overdue: 0 },
     hwText: '',
     hwNeedsClass: false,
+    offlineText: '',
   },
 
   onLoad() {
@@ -106,6 +107,7 @@ Page({
       hwSummary: i18n.pick('未交 '),
       hwSummaryMid: i18n.pick(' · 逾期 '),
       hwSummaryEnd: i18n.pick(' · 已交 '),
+      offline: i18n.pick('離線資料 · 上次更新'),
     };
   },
 
@@ -176,6 +178,7 @@ Page({
   },
 
   async loadAll() {
+    data.offlineReset(); // W-98
     try {
       const childId = this.data.activeChildId;
       const pair = this.data.isParent
@@ -196,7 +199,7 @@ Page({
         statusText: x.amStatus === 'late' || x.isAmLate ? i18n.pick('遲到') : (x.amStatus === 'leave' ? i18n.pick('請假') : (x.amStatus === 'absent' ? i18n.pick('缺席') : i18n.pick('出席'))),
         tone: x.amStatus === 'leave' ? 'warning' : (x.amStatus === 'absent' ? 'danger' : (x.isAmLate ? 'warning' : 'success')),
       }));
-      this.setData({ grades, attendance, summary: (a && a.summary) || { total: 0, late: 0, absent: 0 } });
+      this.setData({ grades, attendance, summary: (a && a.summary) || { total: 0, late: 0, absent: 0 }, offlineText: data.offlineText(this.data.L.offline || '') });
       if (this.data.isParent) {
         const L = this.data.L;
         const hwItems = ((hw && hw.items) || []).map((x) => ({
@@ -214,7 +217,7 @@ Page({
         });
       }
     } catch (e) {
-      this.setData({ failed: true, errorText: data.messageOf(e) });
+      this.setData({ failed: true, errorText: data.messageOf(e), offlineText: '' });
     }
   },
 

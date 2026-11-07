@@ -3,8 +3,23 @@
 const config = require('../config/config');
 const api = require('./api');
 const mock = require('./mock');
+const cache = require('./cache');
+const offline = require('../utils/offline');
 const request = require('../utils/request');
 const { codeOf, isNetworkish, messageOf } = require('../utils/errors');
+
+// W-98：值得快取的「讀取」清單。
+// 白名單而不是黑名單 —— 新增的寫入類方法預設不快取，永遠不會出現假的「已送出」。
+const CACHEABLE = {
+  listNotices: 1, // 公告
+  timetable: 1, // 課表（整週）
+  timetableToday: 1, // 課表（今天＋下一節）
+  listHomework: 1, // 功課
+  schoolGrades: 1,
+  schoolAttendance: 1,
+  parentChildGrades: 1,
+  parentChildAttendance: 1,
+};
 
 let demoActive = false;
 
@@ -25,6 +40,7 @@ function setApiBase(url) {
     // storage 失敗不影響主流程
   }
   demoActive = false;
+  cache.clear(); // 換了後端位址，舊快取一定是別人的資料
   return request.apiBase();
 }
 
@@ -72,13 +88,28 @@ async function ensureLogin() {
 
 async function call(name, args) {
   if (isDemo()) return mock[name].apply(null, args || []);
+  const a = args || [];
+  const cacheable = !!CACHEABLE[name];
+  // 訪客沒有 token，指紋就是空 → 快取也分得開（訪客看不到登入後的資料）
+  const token = cacheable ? request.getToken() : '';
   try {
-    return await api[name].apply(null, args || []);
+    const res = await api[name].apply(null, a);
+    if (cacheable) cache.write(name, a, token, res); // 成功才寫
+    return res;
   } catch (err) {
     if (config.DEMO_MODE === 'auto' && isNetworkish(err) && codeOf(err) !== 'UNAUTHORIZED') {
       demoActive = true;
       console.warn('[data] 後端不可用，已切換示範模式：' + codeOf(err));
-      return mock[name].apply(null, args || []);
+      return mock[name].apply(null, a);
+    }
+    // 只有「連不上」才回上次成功的資料；權限／找不到／參數錯照原樣失敗。
+    // 頁面必須把「離線資料 · 上次更新 X」寫出來，不能讓它看起來是即時的。
+    if (cacheable && isNetworkish(err)) {
+      const hit = cache.read(name, a, token);
+      if (hit) {
+        offline.note(name, hit.at);
+        return hit.value;
+      }
     }
     throw err;
   }
@@ -93,6 +124,13 @@ module.exports = {
   forceDemoOn: forceDemoOn,
   messageOf: messageOf,
   resetDemo: () => mock.reset(),
+  // ── W-98 離線快取 ──
+  // 頁面在 load 前 offlineReset()、load 後 offlineText() 拿「上次更新於 X」；
+  // 沒吃快取就回空字串（橫幅不顯示），不會出現「離線資料 剛剛」這種廢話。
+  offlineReset: offline.reset,
+  offlineInfo: offline.info,
+  offlineText: (prefix) => offline.text(prefix),
+  clearCache: () => cache.clear(),
   login: (...a) => call('login', a),
   // 沒有 token 就不可能登入成功，直接回 null（訪客），不要白打一條 401
   me: (...a) => (isDemo() || request.getToken() ? call('me', a) : Promise.resolve(null)),

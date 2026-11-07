@@ -2,6 +2,8 @@
   <pv-navbar title="{{L.k01}}" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="hw-inner">
+      <!-- W-98：離線資料橫幅（用上次成功的資料時一定要寫出時間） -->
+      <view wx:if="{{offlineText}}" class="ui-offline">{{offlineText}}</view>
       <view class="hw-head">
         <view class="hw-head__main">
           <text class="hw-head__class">{{className}}</text>
