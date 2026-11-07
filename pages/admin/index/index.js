@@ -536,6 +536,22 @@ Page({
       k457: i18n.pick("還沒有完成的報修"),
       k458: i18n.pick("平均接單"),
       k459: i18n.pick("已接單"),
+      // W-95 收尾：出席率月報（小程序後台）＋成績單列印入口
+      k460: i18n.pick("出席率月報"),
+      k461: i18n.pick("列印成績單"),
+      k462: i18n.pick("資料過多（超過月報上限），請縮小到單一班級或換月份"),
+      k463: i18n.pick("這個月還沒有出缺席紀錄"),
+      k464: i18n.pick("這個月沒有明顯的缺席或遲到"),
+      k465: i18n.pick("全校"),
+      k466: i18n.pick("人 · 紀錄"),
+      k467: i18n.pick("筆 · 出席率"),
+      k468: i18n.pick("遲到"),
+      k469: i18n.pick("請假"),
+      k470: i18n.pick("缺席"),
+      k471: i18n.pick("學生"),
+      k472: i18n.pick("人 · 缺席"),
+      k473: i18n.pick("人次 · 遲到"),
+      k474: i18n.pick("沒有缺席與遲到的日子"),
       ppStatusOPEN: i18n.pick("收集中"),
       ppStatusREVIEWING: i18n.pick("處理中"),
       ppStatusPLANNED: i18n.pick("已列入計劃"),
@@ -766,6 +782,16 @@ Page({
     scGrades: [],
     scAttend: [],
     scSummaryText: '',
+    // W-95：出席率月報（後端聚合；小程序內就能看，不必回電腦）
+    amMonth: '',
+    amBusy: false,
+    amLoaded: false,
+    amError: '',
+    amSummary: '',
+    amTruncated: false,
+    amRows: [],
+    amDays: [],
+    amStats: { students: 0, records: 0, rateText: '—', late: 0, leave: 0, absent: 0 },
     // W-53 最後一段：批次匯入成績（一次貼多筆，先檢查再匯入）
     gBatchOpen: false,
     gBatchText: '',
@@ -1612,10 +1638,77 @@ Page({
     const patch = {};
     if (!this.data.gForm.testDate) patch['gForm.testDate'] = today;
     if (!this.data.aForm.date) patch['aForm.date'] = today;
+    if (!this.data.amMonth) patch.amMonth = today.slice(0, 7);
     if (Object.keys(patch).length) this.setData(patch);
-    if (this.data.scPicked) return this.loadSchoolData();
+    // 月報每次進分頁都重抓：老師剛補登完，快取會讓他以為沒生效（失敗只寫在那一區）
+    const tasks = [this.loadAttendanceMonthly()];
+    if (this.data.scPicked) tasks.push(this.loadSchoolData());
     // 還沒選學生：先列出最近 20 位，老師可以直接點，不必先打字
-    return this.loadSchoolStudents('', true);
+    else tasks.push(this.loadSchoolStudents('', true));
+    return Promise.all(tasks);
+  },
+
+  onAmMonth(e) {
+    this.setData({ amMonth: e.detail.value });
+    return this.loadAttendanceMonthly();
+  },
+
+  /**
+   * 出席率月報（W-95）。
+   * 口徑全部由後端算（遲到算出席、請假不算缺席、沒紀錄回 null），前端只負責顯示 ——
+   * 在頁面再算一次，遲早跟網頁後台／成績單三邊不一致。
+   * 文字一律交給 WXML 用 L.* 組（不要在這裡拼中文字串，否則簡體模式會漏翻）。
+   */
+  async loadAttendanceMonthly() {
+    if (this.data.amBusy) return;
+    const month = this.data.amMonth || dateKey().slice(0, 7);
+    this.setData({ amBusy: true, amError: '' });
+    try {
+      const res = await admin.schoolAttendanceMonthly(month);
+      const sum = res.summary || { records: 0, late: 0, leave: 0, absent: 0, rate: null };
+      const rows = (res.byClass || []).map((c) => ({
+        key: (c.grade || '') + '|' + (c.className || ''),
+        title: (c.grade || '') + (c.className || ''),
+        rateText: c.rate === null || c.rate === undefined ? '—' : c.rate + '%',
+        students: c.students,
+        records: c.records,
+        absent: c.absent,
+      }));
+      // 只挑「有缺席或遲到」的日子，最多 5 天 —— 31 天全列在手機上沒有意義
+      const days = (res.byDay || [])
+        .filter((d) => d.absent > 0 || d.late > 0)
+        .sort((a, b) => b.absent - a.absent || b.late - a.late)
+        .slice(0, 5)
+        .map((d) => ({ key: d.date, dateText: String(d.date).slice(5).replace('-', '/'), absent: d.absent, late: d.late }));
+      this.setData({
+        amBusy: false,
+        amLoaded: true,
+        amTruncated: !!res.truncated,
+        amRows: rows,
+        amDays: days,
+        amStats: {
+          students: res.students || 0,
+          records: sum.records || 0,
+          rateText: sum.rate === null || sum.rate === undefined ? '—' : sum.rate + '%',
+          late: sum.late || 0,
+          leave: sum.leave || 0,
+          absent: sum.absent || 0,
+        },
+      });
+    } catch (e) {
+      // 月報讀不到不影響上面的補登功能，只在這一區寫原因
+      this.setData({ amBusy: false, amLoaded: false, amError: (e && (e.message || e.code)) || '', amRows: [], amDays: [], amStats: { students: 0, records: 0, rateText: '—', late: 0, leave: 0, absent: 0 } });
+    }
+  },
+
+  /** 列印這位學生的成績單（W-95 收尾）：與學生／家長端同一頁，只是資料來源走後台端點 */
+  openTranscript() {
+    const p = this.data.scPicked;
+    if (!p) {
+      this.setData({ hint: i18n.pick('先在上面找一位學生') });
+      return;
+    }
+    wx.navigateTo({ url: '/pages/print/transcript/index?studentId=' + encodeURIComponent(p.id) });
   },
 
   onSchoolQuery(e) {

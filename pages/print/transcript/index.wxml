@@ -1,0 +1,90 @@
+<view class="print-page page-root theme-light">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="print-inner">
+
+      <view wx:if="{{!preview}}" class="toolbar">
+        <view wx:if="{{years.length > 1}}" class="chips">
+          <view wx:for="{{years}}" wx:key="*this" class="chip {{yearTerm === item ? 'chip--on' : ''}}"
+                data-year="{{item}}" bindtap="pickYear">{{item}}</view>
+        </view>
+        <view class="toolbar__row toolbar__row--tight">
+          <text class="toolbar__meta">{{courseText}}</text>
+          <view class="toolbar__btns">
+            <pv-button size="sm" type="plain" bind:tap="togglePreview">{{L.k08}}</pv-button>
+            <pv-button size="sm" type="filled" disabled="{{busy || empty}}" bind:tap="saveImage">{{L.k10}}</pv-button>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{preview}}" class="preview-bar" bindtap="togglePreview">
+        <text class="preview-bar__text">{{L.k09}}</text>
+      </view>
+
+      <block wx:if="{{loading}}">
+        <view class="sheet">
+          <pv-skeleton rows="6" />
+        </view>
+      </block>
+
+      <block wx:elif="{{needLogin}}">
+        <pv-empty title="{{L.k33}}" desc="{{L.k34}}">
+          <pv-button size="sm" type="tinted" bind:tap="goLogin">{{L.k35}}</pv-button>
+        </pv-empty>
+      </block>
+
+      <block wx:elif="{{failed}}">
+        <pv-empty tone="warning" title="{{L.k15}}" desc="{{errorText}}">
+          <pv-button size="sm" type="tinted" bind:tap="retry">{{L.k16}}</pv-button>
+        </pv-empty>
+      </block>
+
+      <block wx:elif="{{empty}}">
+        <pv-empty title="{{L.k17}}" desc="{{L.k18}}" />
+      </block>
+
+      <block wx:else>
+        <view class="sheet">
+          <view class="sheet__head">
+            <text class="sheet__title">{{sheetTitle}}</text>
+            <text class="sheet__sub">{{studentLine}}</text>
+            <text class="sheet__meta">{{metaLine}}</text>
+          </view>
+
+          <view wx:for="{{sections}}" wx:key="term" wx:for-item="sec" class="tsection">
+            <view class="tsection__head">
+              <text class="tsection__term">{{sec.term}}</text>
+              <text class="tsection__avg">{{L.k32}} {{sec.averageText}}</text>
+            </view>
+
+            <view class="trow trow--head">
+              <text class="c c--item">{{L.k03}}</text>
+              <text class="c c--place">{{L.k04}}</text>
+              <text class="c c--date">{{L.k05}}</text>
+              <text class="c c--score">{{L.k06}}</text>
+            </view>
+
+            <view wx:for="{{sec.rows}}" wx:key="key" wx:for-item="row" class="trow">
+              <text class="c c--item">{{row.course}}</text>
+              <text class="c c--place">{{row.type}}</text>
+              <text class="c c--date">{{row.dateText}}</text>
+              <text class="c c--score">{{row.scoreText}}</text>
+            </view>
+          </view>
+
+          <view class="tattend">
+            <text class="tattend__title">{{L.k25}} {{yearTerm}}</text>
+            <text class="tattend__text">{{attendanceText}}</text>
+          </view>
+
+          <view class="sheet__foot">
+            <text class="sheet__foot-text">{{L.k21}}</text>
+            <text class="sheet__foot-text">{{dateText}}</text>
+          </view>
+        </view>
+      </block>
+
+    </view>
+  </scroll-view>
+</view>

@@ -460,6 +460,42 @@
 
       <!-- 補登成績與出缺席（W-53 第二階段：老師／職員在小程序內就能補，不必回電腦） -->
       <block wx:elif="{{tab === 'school'}}">
+        <!-- W-95：出席率月報（全校／按班級）—— 數字由後端聚合，前端只顯示 -->
+        <pv-card>
+          <view class="ui-row-between">
+            <text class="ui-section">{{L.k460}}</text>
+            <picker mode="date" fields="month" value="{{amMonth}}" bindchange="onAmMonth">
+              <view class="chip">{{amMonth}}</view>
+            </picker>
+          </view>
+          <pv-skeleton wx:if="{{amBusy}}" rows="2" />
+          <text wx:elif="{{amLoaded}}" class="ui-meta">{{L.k465}} {{amStats.students}} {{L.k466}} {{amStats.records}} {{L.k467}} {{amStats.rateText}} · {{L.k468}} {{amStats.late}} · {{L.k469}} {{amStats.leave}} · {{L.k470}} {{amStats.absent}}</text>
+          <text wx:if="{{amLoaded && !amStats.records}}" class="ui-meta">{{L.k463}}</text>
+          <text wx:if="{{amTruncated}}" class="ui-meta">{{L.k462}}</text>
+          <text wx:if="{{amError}}" class="ui-meta">{{amError}}</text>
+        </pv-card>
+
+        <view wx:if="{{amRows.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{amRows}}" wx:key="key" class="ui-card ui-card--row {{index === amRows.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.title}}</text>
+              <text class="ui-num">{{item.rateText}}</text>
+            </view>
+            <text class="ui-meta">{{L.k471}} {{item.students}} {{L.k472}} {{item.absent}}</text>
+          </view>
+        </view>
+
+        <pv-card wx:if="{{amLoaded}}">
+          <text class="ui-section">{{L.k470}} / {{L.k468}}</text>
+          <view wx:if="{{amDays.length}}">
+            <view wx:for="{{amDays}}" wx:key="key" class="ui-row-between">
+              <text class="ui-meta">{{item.dateText}}</text>
+              <text class="ui-meta">{{L.k470}} {{item.absent}} {{L.k473}} {{item.late}}</text>
+            </view>
+          </view>
+          <text wx:else class="ui-meta">{{L.k474}}</text>
+        </pv-card>
+
         <pv-card>
           <text class="ui-section ui-mt-2">{{L.k163}}</text>
           <input class="field__input" value="{{scQuery}}" bindinput="onSchoolQuery" bindconfirm="findSchoolStudents" confirm-type="search" placeholder="{{L.k164}}" />
@@ -487,6 +523,9 @@
             <pv-tag text="{{scPicked.account}}" type="neutral" />
           </view>
           <text class="ui-meta">{{scPicked.meta}}</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" bind:tap="openTranscript">{{L.k461}}</pv-button>
+          </view>
           <view class="filter-row">
             <view wx:for="{{scModes}}" wx:key="key" class="chip {{scMode === item.key ? 'chip--on' : ''}}"
                   data-key="{{item.key}}" bindtap="pickSchoolMode">{{item.label}}</view>

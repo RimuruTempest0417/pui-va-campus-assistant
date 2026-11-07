@@ -42,6 +42,7 @@ const STEPS = [
   { key: 'homework', label: '功課清單', script: 'check-homework.cjs', args: [] },
   { key: 'todo', label: '今日待辦', script: 'check-todo.cjs', args: [] },
   { key: 'timetable-print', label: '課表列印', script: 'check-timetable-print.cjs', args: [] },
+  { key: 'transcript-print', label: '成績單列印', script: 'check-transcript-print.cjs', args: [] },
   { key: 'edu', label: '教育版同步', script: 'check-edu-sync.cjs', args: [] },
 ];
 

@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/RimuruTempest0417/pui-va-campus-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.115.0-6D3FC4.svg)](docs/releases)
+[![Version](https://img.shields.io/badge/version-0.116.0-6D3FC4.svg)](docs/releases)
 
 > **目標**：這是一個**考試與測驗導向**的作品 —— 以校內評核標準（功能完整度／技術難度／設計與體驗／文件與演示）交付，
 > 不做對外報名、不追求上架審核。因此「學校能不能給正式主體」不再是關鍵路徑，重點是「打開就能完整跑通」。
@@ -44,7 +44,7 @@
 | 資料備份（維運） | 全庫匯出成一份 JSON（40 張表）、終端一支指令還原、還原後逐表對帳 | ✅ 網頁後台「下載備份」（只有最高權限看得到） | ✅ `GET /admin/export.json`（`backup:export`）＋後端 repo 的 `restore.mjs` |
 | 錯誤日誌（觀測） | 手機端的白屏／閃退／未處理 Promise 自動送上報；**「按鈕沒反應」這類不拋錯的問題可由使用者在設定頁手動回報（附頁面／機型／系統）**。後台按出現次數排序、可標記已解決、可依來源（使用者回報／自動上報）篩選 | ✅ 自動上報 ＋ 手動回報（不影響使用者） | ✅ `error_logs`（`kind`／`level`／機型）＋ 4 支端點（`error:read`） |
 | 推送紀錄（觀測） | 每一次通知發送都留一筆：站內通知與微信訂閱消息的成敗、失敗原因（沒同意過／沒帳號／微信錯誤碼）、微信模板是否已設定；後台可只看失敗、可依通路篩選 | ✅ 自動寫入（不影響通知流程） | ✅ `push_logs` ＋ `GET /admin/push-logs`（`push:read`） |
-| 列印版（A4 黑白） | 失物清單、活動名單兩頁紙版：白底黑字、無品牌色塊、每頁列數固定；「列印預覽」收起按鈕、「複製表格」貼進 Word／Excel 即可列印（小程序沒有列印 API，這是手機端真實可走的路） | ✅ 2 頁 | — （失物走公開列表、名單走 `event:export`） |
+| 列印版（A4 黑白） | 失物清單、活動名單、班級課表、**學生成績單（v0.116.0：按學段分區＋每段平均＋出缺席與出席率，可切學年）**：白底黑字、無品牌色塊、每頁列數固定；「列印預覽」收起按鈕、「複製表格」貼進 Word／Excel 即可列印（小程序沒有列印 API，這是手機端真實可走的路）；課表與成績單另有「存成圖片」（離屏 canvas，1080 寬 PNG） | ✅ 4 頁 | — （失物走公開列表、名單走 `event:export`、成績單走 `/school/*` 與 `/admin/school/*`） |
 | 設定與個人化 | 右上角頭像進入「設定」：帳號（登入／登出／切換）、**介面語言（跟隨系統／繁體／簡體）**、**外觀（跟隨系統／淺色／深色）**、資料來源（教職員以上）、**回報問題（一句話送到管理員，附頁面與機型）**、使用說明、關於 | ✅ 1 頁 | ✅ `POST /client-errors/report`（匿名可用） |
 | 帳號安全 | **兩步驗證（TOTP）**：高權限帳號可自行開啟，登入要密碼＋6 位動態碼，附 8 組一次性備用碼；關閉要再輸密碼。**登入失敗鎖定**：連續 5 次密碼錯鎖 15 分鐘（鎖定期間正確密碼也回 429，訊息不透露帳號是否存在），登入成功清零並記錄最後登入時間，管理員可一鍵解除鎖定 | ✅ 設定頁「安全」區塊＋後台使用者分頁（已鎖定 Tag／解除鎖定） | ✅ TOTP 4 支端點、RFC 6238、e2e 4 項；鎖定 `failedLogins`／`lockedUntil`＋`POST /admin/users/:id/unlock`、e2e 7 項 |
 | 多人同時編輯 | **編輯衝突保護（樂觀鎖）**：兩位老師先後改同一則公告／同一個活動時，後存的人不會靜默蓋掉前一位 —— 收到 409 就提示「這筆剛被別人改過」並重抓清單，不自動重送 | 後台公告／活動分頁（置頂、取消／恢復活動） | ✅ `Notice.version`／`Event.version`、`WHERE version = ?` ＋ `version + 1`、e2e 4 項；前端守門第 18 條釘住每個呼叫端 |
@@ -86,7 +86,7 @@
 
 ```
 .
-├── app.js / app.json / app.wxss          # 全局入口（48 個頁面註冊）
+├── app.js / app.json / app.wxss          # 全局入口（49 個頁面註冊）
 ├── pages/
 │   ├── index/                            # 首頁：四模組入口、緊急公告、今日午餐
 │   ├── search/                           # 全校搜尋（公告／活動／失物／二手轉贈／館藏／場地器材／菜單／功課／提案一次搜）
@@ -103,28 +103,29 @@
 │   ├── proposals/{list,detail,create,supporters}/  # 校園提案與連署：提出、連署、校方回覆、完整連署名單
 │   ├── repair/{index,create}/            # 課室設備報修：我的報修、送出報修
 │   ├── parent/                           # 家長端：切換子女、代報名／取消
-│   ├── print/{items,event,timetable}/    # 列印版（A4 黑白）：失物清單、活動名單、班級課表（可存成圖片）
+│   ├── print/{items,event,timetable,transcript}/  # 列印版（A4 黑白）：失物清單、活動名單、班級課表、學生成績單（後兩者可存成圖片）
 │   ├── style-guide/                      # 設計系統展示頁
 │   └── dev/api-check/                    # 開發自檢頁（9 項互動檢查）
 ├── components/                           # pv-navbar / pv-button / pv-card / pv-tag
 │   └── …                                 # pv-avatar / pv-empty / pv-skeleton / pv-tabs / pv-sheet
 ├── styles/{tokens.wxss,ui.wxss,print.wxss} # design tokens、共用樣式、列印版面
 ├── services/{api.js,mock.js,data.js}     # 真 API／示範資料／唯一資料入口
-├── utils/{request,errors,reporter,date,event,week,notice,item,nav,print,book,venue,giveaway,study,todo,timetableGrid}.js
+├── utils/{request,errors,reporter,date,event,week,notice,item,nav,print,book,venue,giveaway,study,todo,timetableGrid,transcriptSheet}.js
 ├── config/config.js                      # API_BASE_URL、DEMO_MODE
 ├── scripts/
 │   ├── check-project.mjs                 # 結構／WXSS／白屏守門
 │   ├── check-openapi.mjs                 # API 契約守門（重複鍵／可解析／操作數；--parity 對後端路由）
-│   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，227 項）
+│   ├── check-data-layer.mjs              # 資料層自檢（Node 跑，260 項）
 │   ├── check-i18n.mjs                    # 繁簡介面守門（pick 抽樣／對照表殘留／L.* 供應）
 │   ├── i18n-js-scan.mjs／i18n-wrap-js.mjs # 掃出／包裝頁面 JS 的中文字面值（W-20b 工具）
 │   ├── build-i18n-phrases.py             # 用 opencc tw2sp 重建繁→簡對照表
-│   ├── check-states.mjs                  # 48 頁三態（載入／空／失敗）對照表守門
+│   ├── check-states.mjs                  # 49 頁三態（載入／空／失敗）對照表守門
 │   ├── check-study.cjs                   # 測驗倒數／溫習排序的邏輯守門（40 項，不需開發者工具）
 │   ├── check-homework.cjs                # 功課清單的邏輯守門（34 項：幂等打勾／權限／版號／家長唯讀／完成率／未交名單／附件連結，不需開發者工具）
 │   ├── check-todo.cjs                    # 首頁「今日待辦」的邏輯守門（49 項：訪客不顯示／單支失敗只降級那一行／家長用子女數字／跳轉頁存在，不需開發者工具）
 │   ├── check-timetable-print.cjs         # 課表列印／存圖的邏輯守門（63 項：格子攤平／版面尺寸／繪圖座標與顏色／參數解碼，不需開發者工具）
-│   ├── check-console.mjs                 # 48 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
+│   ├── check-transcript-print.cjs        # 成績單列印的邏輯守門（79 項：學年學段分組／平均分與出缺席口徑／版面公式／假 ctx 繪圖／三種身分讀對來源，不需開發者工具）
+│   ├── check-console.mjs                 # 49 頁 console 走查（error／warn＋內容筆數），要開發者工具開著
 │   └── verify-all.mjs                    # 一鍵驗收：上面四支串起來跑完並彙總（失敗貼完整輸出）
 ├── docs/
 │   ├── 01-藍圖與評分對標.md
@@ -155,15 +156,16 @@ node scripts/package.mjs     # → dist/pui-va-campus-assistant-vX.Y.Z.zip
 node scripts/verify-all.mjs        # 14 通過／0 失敗（console 略過時）；--no-console 跳過走查、--strict 讓略過也算失敗
 
 # 也可以單獨跑（CI 也會跑）
-node scripts/check-project.mjs     # 48 頁面 / 0 警告
-node scripts/check-openapi.mjs     # 190 條路徑／232 個操作、0 重複鍵（--parity 印出與後端路由表的差）
-node scripts/check-data-layer.mjs  # ALL PASS 235/235（固定跑示範資料層，含 data↔api↔mock 方法對齊）
-node scripts/check-states.mjs      # 48 頁三態全部符合（--table 印出對照表）
+node scripts/check-project.mjs     # 49 頁面 / 0 警告
+node scripts/check-openapi.mjs     # 194 條路徑／236 個操作、0 重複鍵（--parity 印出與後端路由表的差）
+node scripts/check-data-layer.mjs  # ALL PASS 260/260（固定跑示範資料層，含 data↔api↔mock 方法對齊）
+node scripts/check-states.mjs      # 49 頁三態全部符合（--table 印出對照表）
 node scripts/check-study.cjs       # 測驗倒數／溫習排序：40 項邏輯斷言（不需要開發者工具）
 node scripts/check-homework.cjs    # 功課清單：34 項邏輯斷言（幂等打勾／權限／重複出題／版號／家長唯讀／完成率／未交名單／附件連結）
 node scripts/check-todo.cjs        # 首頁今日待辦：49 項邏輯斷言（訪客不顯示／單支失敗只降級那一行／家長用子女數字／跳轉頁存在）
 node scripts/check-timetable-print.cjs # 課表列印／存圖：63 項邏輯斷言（格子／版面／繪圖座標與顏色／參數解碼）
-node scripts/check-console.mjs     # 48 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
+node scripts/check-transcript-print.cjs # 成績單列印：79 項邏輯斷言（分組／口徑／版面／假 ctx 繪圖／三種身分讀對來源）
+node scripts/check-console.mjs     # 49 頁 console 走查：0 error／0 warn（要開發者工具開著專案）
 ```
 
 1. 微信開發者工具 → 導入專案 → 選擇本倉庫根目錄
@@ -194,6 +196,8 @@ node scripts/check-console.mjs     # 48 頁 console 走查：0 error／0 warn（
 
 ## 目前進度
 
+- [x] **成績單可以印了（v0.116.0）**：老師交數字時最常被問「成績單可以印嗎」，這一版把它做成真的紙上版面。在「成績與出缺席」→ 成績分頁右上多一顆「列印成績單」：一張 A4 版面寫著學生姓名、班別與學年，下面按學段（第一段／第二段／第三段）分區，每一科列出測驗名稱、日期與分數，缺考顯示「—」而不是 0；每個學段右邊自動算平均（只算有分數的那幾筆）。最後一段是這個學年的出缺席：上課日、出席、遲到、請假、缺席與出席率 —— 遲到算出席、請假不算缺席，跟學校算的數字對得上。讀到兩個學年以上時左邊會出現學年 chip，切一下就換學年；按「列印預覽」把按鈕收起來就能截圖，按「存成圖片」存到相簿（白底黑字，深色模式下也一樣）。家長從「我的子女」→ 成績分頁有同一顆，印的是自己孩子的；老師／資訊管理員在小程序後台選中學生後也印得出來。同一版，小程序後台的「成績」分頁多一段「出席率月報」：選月份就看全校與每一班的出席率、缺席／遲到／請假，外加這個月缺席最多的五天，不必再開電腦
+- [x] **通知中心分好類了（v0.115.0）**：以前找「上星期批准的那張假單」得從頭翻。現在通知中心上方一排 chip：全部／功課／借閱／審批／報修／其他，每一顆右邊直接寫那一類還有幾則沒讀；點一顆就只看那一類，也可以「清空本組未讀」只清這一組，其他分類與別人的通知都不受影響。首頁鈴鐺的未讀數仍然是全部，不會因為你切了某個分頁而變少
 - [x] **假單可以匯出成檔案、班級出席率一頁看完（v0.114.0）**：以前老師月底要交「這個月誰請了幾天假」，只能在後台一頁一頁抄。現在「假單」分頁多一個日期區間與一顆「匯出 CSV」，匯出來的檔案用 Excel 直接開中文不會亂碼，一列一張假單（學號、姓名、班別、假別、起訖、天數、狀態、誰審批、原因都在），下拉自動帶檔名，完成訊息直接告訴你幾筆。「成績與出缺席」分頁多一段「出席率月報」：選月份就看到全校這個月的出席率、缺席／遲到／請假各有幾人日，外加每個班一張表 —— 遲到算出席、請假不算缺席，跟學校算的數字對得上；那個月還沒有任何紀錄時顯示「—」而不是 0%。報修統計也多一行「平均接單 X 小時」，看得出是沒人接單還是修不完
 - [x] **教師端「班級總覽」：朝會前 30 秒看完本班（v0.113.0）**：老師以前要知道「本班這週誰沒交功課、有沒有待審假單、報修處理到哪」，得在後台三個分頁之間來回，手機上每次還要重新篩班級。現在「功課」頁最上面多一張卡：本班人數，加上功課未交人次、逾期功課、待審假單、報修待處理四個數字，再往下是依科目分組的未交人次與最近三張待審假單（誰、什麼假、哪幾天）。這些數字與點進功課、假單、報修各分頁看到的同一份資料算出來，不會兩邊不一樣。班級是由學校在後台替你設定的，老師只看得到自己那一班；學生帳號看不到這張卡（裡面有同學姓名）。還沒設定班級時這張卡不出現，功課頁其他部分照常可用
 - [x] **首頁多一張「今日待辦」：今天還有什麼沒做完，一眼看完（v0.112.0）**：以前想知道「今天還有什麼沒交、下一節在哪間課室、有幾則通知沒讀」，得沿著首頁九條入口一條一條讀。現在首頁最上面有一張卡把三件事收在一起：未交功課幾項（有逾期會多一行「1 項已逾期」並轉橘色，全部交齊寫「都交了」）、下一節是哪一科在哪間課室幾點（放假日直接寫原因，例「重陽節假期（校曆公告）」；放學後寫「今天沒有下一節了」）、還有幾則通知沒讀（超過 99 寫 99+）。按哪一行就直接跳到那一頁。三個數字跟功課頁、課表頁、通知中心是同一份資料，不會兩邊不一樣；某一支剛好沒連上時只有那一行寫「暫時取不到」，其他行照常，往下拉刷新就回來。還沒登入時整張卡不會出現；家長看到的只有兩行 —— 孩子的未交功課數與你自己的未讀通知

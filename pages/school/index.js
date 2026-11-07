@@ -69,6 +69,7 @@ Page({
       emptyGradesChild: i18n.pick('還沒有成績資料。可以先按「同步子女成績」。'),
       emptyAttend: i18n.pick('還沒有出缺席資料'),
       manual: i18n.pick('同步不到？可以在後台手動輸入，或請老師代為補登。'),
+      printTranscript: i18n.pick('列印成績單'),
       manualTag: i18n.pick('手動補登'),
       needCreds: i18n.pick('請填帳號與密碼'),
       syncFail: i18n.pick('同步失敗'),
@@ -227,6 +228,18 @@ Page({
 
   pickTab(e) {
     this.setData({ tab: e.currentTarget.dataset.tab });
+  },
+
+  /**
+   * 列印成績單（W-95）：同一頁服務學生／家長／老師 —— 這裡只負責帶「這是誰的」。
+   * 家長帶 `child`（後端仍會用 parent_links 反查，不信前端），學生自己什麼都不帶。
+   */
+  openTranscript() {
+    const childId = this.data.isParent ? this.data.activeChildId : '';
+    const url = childId
+      ? '/pages/print/transcript/index?child=' + encodeURIComponent(childId)
+      : '/pages/print/transcript/index';
+    wx.navigateTo({ url: url });
   },
 
   onAccount(e) { this.setData({ account: e.detail.value }); },

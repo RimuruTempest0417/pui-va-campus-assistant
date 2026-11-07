@@ -64,6 +64,9 @@
           </view>
 
           <block wx:if="{{tab === 'grades'}}">
+            <view wx:if="{{grades.length}}" class="sch-actions sch-actions--end">
+              <pv-button size="sm" type="plain" bind:tap="openTranscript">{{L.printTranscript}}</pv-button>
+            </view>
             <pv-card wx:if="{{grades.length}}">
               <view wx:for="{{grades}}" wx:key="id" class="g-row">
                 <view class="g-main">

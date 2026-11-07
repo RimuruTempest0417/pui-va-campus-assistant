@@ -219,8 +219,11 @@ module.exports = {
   schoolStudents(q) {
     return http.get('/admin/school/students', q ? { q: q } : {});
   },
-  schoolGrades(studentId) {
-    return http.get('/admin/school/grades', { studentId: studentId });
+  schoolGrades(studentId, q) {
+    const query = { studentId: studentId };
+    if (q && q.yearTerm) query.yearTerm = q.yearTerm;
+    if (q && q.term) query.term = q.term;
+    return http.get('/admin/school/grades', query);
   },
   schoolGradeCreate(body) {
     return http.post('/admin/school/grades', body);
@@ -235,8 +238,17 @@ module.exports = {
   schoolGradeDelete(id) {
     return http.del('/admin/school/grades/' + id);
   },
-  schoolAttendance(studentId) {
-    return http.get('/admin/school/attendance', { studentId: studentId });
+  schoolAttendance(studentId, q) {
+    const query = { studentId: studentId };
+    if (q && q.yearTerm) query.yearTerm = q.yearTerm;
+    return http.get('/admin/school/attendance', query);
+  },
+  /** 出席率月報（W-95）：後端聚合，回全校＋按班級＋按日；`month` 是 2026-11 這種格式 */
+  schoolAttendanceMonthly(month, yearTerm) {
+    const query = {};
+    if (month) query.month = month;
+    if (yearTerm) query.yearTerm = yearTerm;
+    return http.get('/admin/school/attendance/monthly', query);
   },
   schoolAttendCreate(body) {
     return http.post('/admin/school/attendance', body);

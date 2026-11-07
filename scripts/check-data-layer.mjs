@@ -1389,6 +1389,50 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-95 收尾：成績單列印（示範層同語意＋三條資料路徑）──
+{
+  const sheetLib = require(join(here, '..', 'utils', 'transcriptSheet.js'));
+  await data.switchDemoUser('示範學生', 'demo-user', 'STUDENT');
+  const g = await data.schoolGrades();
+  const a = await data.schoolAttendance();
+  const built = sheetLib.build({ grades: g.items, attendance: a.items, termLabels: ['第一段', '第二段', '第三段'] });
+
+  check('成績單：示範層有兩個學年', built.years.length === 2, built.years.join(' / '));
+  check('成績單：預設取最新學年', built.yearTerm === built.years[0], built.yearTerm);
+  check('成績單：本學年有兩個學段', built.sections.length === 2, built.sections.map((s) => s.term).join(' / '));
+  check('成績單：平均分只算有分數的科目', built.sections[1] && built.sections[1].averageText === '83.8', built.sections[1] ? built.sections[1].averageText : '沒有第二段');
+  check('成績單：出缺席只算本學年', built.attendance.total === 8 && built.attendance.absent === 1, `上課日 ${built.attendance.total}／缺席 ${built.attendance.absent}`);
+
+  const yFiltered = await data.schoolGrades({ yearTerm: '2025/2026' });
+  check(
+    '成績單：示範層 ?yearTerm= 真的過濾',
+    yFiltered.items.length === 2 && yFiltered.items.every((r) => r.yearTerm === '2025/2026'),
+    `${yFiltered.items.length} 筆`,
+  );
+  const aFiltered = await data.schoolAttendance({ yearTerm: '2025/2026' });
+  check(
+    '成績單：出缺席也過濾並重算 summary',
+    aFiltered.items.length === 1 && aFiltered.summary.total === 1,
+    `${aFiltered.items.length} 筆／summary ${aFiltered.summary.total}`,
+  );
+
+  // 家長路徑：未綁定仍 403（示範模式不可以比真 API 寬鬆）
+  const denied = await data.parentChildGrades('nobody').then(() => null, (e) => e);
+  check('成績單：家長讀未綁定子女被擋', denied && denied.code === 'FORBIDDEN', denied ? denied.code : '沒有拒絕');
+
+  const apiSrcTr = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  const adminSrcTr = readFileSync(join(here, '..', 'services', 'admin.js'), 'utf8');
+  check(
+    '成績單：真 API 三條路徑都在',
+    apiSrcTr.indexOf("'/school/grades'") !== -1 &&
+      apiSrcTr.indexOf("'/school/attendance'") !== -1 &&
+      adminSrcTr.indexOf("'/admin/school/grades'") !== -1 &&
+      adminSrcTr.indexOf("'/admin/school/attendance'") !== -1,
+    'self + parent + admin',
+  );
+  check('成績單：後台出席率月報已接', adminSrcTr.indexOf("'/admin/school/attendance/monthly'") !== -1, 'monthly');
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {
