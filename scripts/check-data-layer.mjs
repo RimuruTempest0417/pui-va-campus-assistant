@@ -1288,6 +1288,51 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-94 教師端班級總覽（聚合數字必須與各模組清單同一份口徑）──
+{
+  await data.switchDemoUser('示範老師', 'demo-user', 'TEACHER');
+  const ov = await data.classOverview();
+  const hwStats = await data.homeworkStats();
+  const list = await data.listHomework({ scope: 'all' });
+
+  check('班級總覽：老師看得到自己班', ov && ov.className && ov.classSize > 0, `${ov && ov.className}／${ov && ov.classSize} 人`);
+  check(
+    '班級總覽：未交人次等於「班上人數 − 已交」總和',
+    ov && ov.homework && ov.homework.pendingTotal === (hwStats.items || []).reduce((n, row) => n + Math.max(0, ov.classSize - row.done), 0),
+    `${ov && ov.homework && ov.homework.pendingTotal}`,
+  );
+  check(
+    '班級總覽：依科目分組加總等於總人次',
+    ov && ov.homework && (ov.homework.subjects || []).reduce((n, s) => n + s.pending, 0) === ov.homework.pendingTotal,
+    `${(ov && ov.homework && ov.homework.subjects.length) || 0} 科`,
+  );
+  check(
+    '班級總覽：功課項數與功課清單一致',
+    ov && ov.homework && ov.homework.items === (list.items || []).length,
+    `${ov && ov.homework && ov.homework.items}／${(list.items || []).length}`,
+  );
+  check(
+    '班級總覽：待審假單數與假單後台清單一致',
+    ov && (await data.adminLeaves({ status: 'PENDING' })).total === ov.leaves.pending,
+    `${ov && ov.leaves && ov.leaves.pending} 張`,
+  );
+
+  const otherClass = await data.classOverview({ className: '高二忠' }).then(() => null).catch((e) => e);
+  check('班級總覽：老師帶別班被擋', otherClass && otherClass.code === 'FORBIDDEN', otherClass ? otherClass.code : '沒有拒絕');
+
+  await data.switchDemoUser('示範學生', 'demo-user', 'STUDENT');
+  const asStudent = await data.classOverview().then(() => null).catch((e) => e);
+  check('班級總覽：學生被擋（這一頁有學生姓名）', asStudent && asStudent.code === 'FORBIDDEN', asStudent ? asStudent.code : '沒有拒絕');
+
+  const apiSrcOv = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  const hwWxmlOv = readFileSync(join(here, '..', 'pages', 'homework', 'index.wxml'), 'utf8');
+  check(
+    '班級總覽：有畫面入口＋真 API 端點',
+    hwWxmlOv.indexOf('L.k46') !== -1 && hwWxmlOv.indexOf('overviewStats') !== -1 && apiSrcOv.indexOf("'/teacher/class'") !== -1,
+    '功課頁 → 班級總覽',
+  );
+}
+
 // ── 輸出 ──
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
 for (const r of results) {

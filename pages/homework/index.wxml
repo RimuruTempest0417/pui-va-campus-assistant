@@ -9,6 +9,37 @@
         </view>
       </view>
 
+      <!-- W-94：老師的班級總覽（學生看不到；取不到資料時整區不出現，不影響功課清單） -->
+      <view wx:if="{{classInfo && !loading && !failed && !needLogin && !needsClass}}" class="ui-list">
+        <view class="ui-card hw-ov">
+          <view class="ui-row-between">
+            <text class="ui-title">{{L.k46}}</text>
+            <text class="ui-meta">{{classInfo.className}} · {{classInfo.classSize}} {{L.k47}}</text>
+          </view>
+          <view class="hw-ov__grid">
+            <view wx:for="{{overviewStats}}" wx:key="key" class="hw-ov__cell">
+              <text class="hw-ov__num ui-num">{{item.value}}</text>
+              <text class="hw-ov__label">{{item.label}}</text>
+            </view>
+          </view>
+          <view wx:if="{{subjectLines.length}}" class="hw-ov__block">
+            <text class="hw-ov__caption">{{L.k52}}</text>
+            <view wx:for="{{subjectLines}}" wx:key="subject" class="hw-ov__line">
+              <text class="hw-ov__line-text">{{item.text}}</text>
+            </view>
+          </view>
+          <view class="hw-ov__block">
+            <text class="hw-ov__caption">{{L.k50}}</text>
+            <view wx:if="{{!leaveLines.length}}" class="hw-ov__line">
+              <text class="hw-ov__line-text">{{L.k53}}</text>
+            </view>
+            <view wx:for="{{leaveLines}}" wx:key="id" class="hw-ov__line">
+              <text class="hw-ov__line-text">{{item.text}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
       <view wx:if="{{!loading && !failed && !needLogin && !needsClass}}" class="hw-seg">
         <view class="hw-seg__item {{scope === 'todo' ? 'is-on' : ''}}" data-key="todo" bindtap="switchScope">{{L.k02}}</view>
         <view class="hw-seg__item {{scope === 'done' ? 'is-on' : ''}}" data-key="done" bindtap="switchScope">{{L.k03}}</view>

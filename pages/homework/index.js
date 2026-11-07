@@ -67,6 +67,15 @@ Page({
       k43: i18n.pick('附件'),
       k44: i18n.pick('連結要 http:// 或 https:// 開頭'),
       k45: i18n.pick('最多 5 條連結'),
+      // ── W-94 教師端班級總覽 ──
+      k46: i18n.pick('班級總覽'),
+      k47: i18n.pick('人'),
+      k48: i18n.pick('未交人次'),
+      k49: i18n.pick('逾期功課'),
+      k50: i18n.pick('待審假單'),
+      k51: i18n.pick('報修待處理'),
+      k52: i18n.pick('依科目（未交）'),
+      k53: i18n.pick('沒有待審假單'),
     };
   },
 
@@ -85,6 +94,11 @@ Page({
     pressedId: '',
     pendingId: '',
     pendingNames: '',
+    // W-94：老師才有的班級總覽（未交人次／待審假單／報修，全部由後端一支聚合端點算好）
+    classInfo: null,
+    overviewStats: [],
+    subjectLines: [],
+    leaveLines: [],
     formOpen: false,
     formSubject: '',
     formTitle: '',
@@ -125,12 +139,52 @@ Page({
     return (done ? '' : (L.k33 || '') + ' ') + dayText + ' ' + hm;
   },
 
+  /**
+   * W-94：把後端聚合結果轉成「可以直接渲染」的字串。
+   *
+   * WXML 不能做陣列索引、字串拼接也很容易踩坑（見專案慣例），所以數字與文案一律在這裡算好。
+   * 取不到（`info` 為 null）就整區不顯示 —— 這是附加資訊，不該讓功課清單看起來壞掉。
+   */
+  overviewView(info) {
+    const L = this.data.L;
+    if (!info || !info.homework) {
+      return { classInfo: null, overviewStats: [], subjectLines: [], leaveLines: [] };
+    }
+    const leaves = info.leaves || {};
+    const repairs = info.repairs || {};
+    const repairOpen = (repairs.pending || 0) + (repairs.inProgress || 0);
+    return {
+      classInfo: {
+        className: info.className || '',
+        classSize: info.classSize || 0,
+      },
+      overviewStats: [
+        { key: 'pending', label: L.k48, value: String(info.homework.pendingTotal || 0) },
+        { key: 'overdue', label: L.k49, value: String(info.homework.overdueItems || 0) },
+        { key: 'leaves', label: L.k50, value: String(leaves.pending || 0) },
+        { key: 'repairs', label: L.k51, value: String(repairOpen) },
+      ],
+      subjectLines: (info.homework.subjects || []).slice(0, 4).map((row) => ({
+        subject: row.subject,
+        text: row.subject + ' · ' + (L.k39 || '') + ' ' + row.pending,
+      })),
+      leaveLines: (leaves.latest || []).map((row) => ({
+        id: row.id,
+        text: row.nickname + ' · ' + row.kindText + ' · ' + String(row.fromDate).slice(5) +
+          (row.toDate && row.toDate !== row.fromDate ? '–' + String(row.toDate).slice(5) : ''),
+      })),
+    };
+  },
+
   async load() {
     this.setData({ loading: true, failed: false });
     try {
       const res = await data.listHomework({ scope: this.data.scope });
       // 老師：順便拿「幾個人交了」（一支端點回全部，不逐項打）
       const stats = res.canCreate ? await data.homeworkStats().catch(() => null) : null;
+      // W-94：老師另有「班級總覽」。取不到（例如帳號還沒設班級 → 422）就整區不出現，
+      // 不要讓一個附加資訊把整頁打成「載入失敗」。
+      const overview = res.canCreate ? await data.classOverview().catch(() => null) : null;
       const countById = {};
       if (stats && stats.items) stats.items.forEach((s) => { countById[s.id] = s; });
       const items = (res.items || []).map((item) => {
@@ -147,6 +201,7 @@ Page({
           links: links,
         });
       });
+      const view = this.overviewView(overview);
       this.setData({
         loading: false,
         needLogin: false,
@@ -155,6 +210,10 @@ Page({
         canCreate: !!res.canCreate,
         items: items,
         stats: res.stats || { total: 0, done: 0, todo: 0, overdue: 0 },
+        classInfo: view.classInfo,
+        overviewStats: view.overviewStats,
+        subjectLines: view.subjectLines,
+        leaveLines: view.leaveLines,
       });
     } catch (e) {
       const code = (e && e.code) || '';

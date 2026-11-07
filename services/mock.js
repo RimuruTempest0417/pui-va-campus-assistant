@@ -3121,6 +3121,99 @@ module.exports = {
     return Promise.resolve({ className: className, total: total, items: items });
   },
 
+  /**
+   * W-94 教師端班級總覽（示範層）
+   *
+   * 形狀與後端 `/teacher/class` 一致，數字由同一組示範資料算出來（不是另外寫死的常數），
+   * 這樣「同一筆功課在功課頁打勾後，總覽的未交人次也會跟著變」在示範模式也成立。
+   * 權限規則也照抄後端：非教職員 403、老師帶別班 403、沒班級 422。
+   */
+  classOverview(query) {
+    const data = db();
+    const me = data.user || {};
+    const manager = ['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (!manager) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '班上總覽是老師與校方在看的，學生請用「功課」頁' });
+    }
+    const q = query || {};
+    const myClass = [me.grade, me.className].filter(Boolean).join('') || DEMO_CLASS;
+    const isAdmin = me.role === 'ADMIN' || me.role === 'SUPER_ADMIN';
+    if (q.className && q.className !== myClass && !isAdmin) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只能看自己那一班' });
+    }
+    const className = (isAdmin && q.className) || myClass;
+    if (!className) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '你的帳號還沒有班級資料，請找校務處在後台設定班級' });
+    }
+
+    const classSize = 24; // 示範班級人數，與 homeworkStats 同一個數字
+    const nowMs = Date.now();
+    const rows = (data.homework || []).filter((h) => h.className === className && !h.deletedAt).sort((a, b) => a.dueAt - b.dueAt);
+    const doneOf = (hid) => (data.homeworkDone || []).filter((d) => d.homeworkId === hid).length;
+
+    const subjects = [];
+    let pendingTotal = 0;
+    let overdueItems = 0;
+    rows.forEach((h) => {
+      const pending = Math.max(0, classSize - doneOf(h.id));
+      const overdue = h.dueAt < nowMs;
+      if (overdue) overdueItems += 1;
+      pendingTotal += pending;
+      const hit = subjects.filter((s) => s.subject === h.subject)[0];
+      if (hit) {
+        hit.items += 1;
+        hit.pending += pending;
+        if (overdue) hit.overdue += 1;
+      } else {
+        subjects.push({ subject: h.subject, items: 1, pending: pending, overdue: overdue ? 1 : 0 });
+      }
+    });
+    subjects.sort((a, b) => b.pending - a.pending || String(a.subject).localeCompare(String(b.subject)));
+
+    const upcoming = rows
+      .filter((h) => h.dueAt >= nowMs)
+      .slice(0, 3)
+      .map((h) => ({ id: h.id, subject: h.subject, title: h.title, dueAt: new Date(h.dueAt).toISOString(), done: doneOf(h.id), total: classSize }));
+
+    const pendingLeaves = (data.leaves || []).filter((row) => row.status === 'PENDING');
+    const repairRows = (data.repairs || []).filter((row) => row.status === 'PENDING' || row.status === 'IN_PROGRESS');
+
+    return Promise.resolve({
+      className: className,
+      grade: me.grade || '',
+      role: me.role,
+      classSize: classSize,
+      homework: { items: rows.length, overdueItems: overdueItems, pendingTotal: pendingTotal, subjects: subjects, upcoming: upcoming },
+      leaves: {
+        pending: pendingLeaves.length,
+        approvedToday: (data.leaves || []).filter((row) => row.status === 'APPROVED' && row.from <= leaveDate(0) && row.to >= leaveDate(0)).length,
+        latest: pendingLeaves
+          .slice()
+          .sort((a, b) => String(a.from).localeCompare(String(b.from)))
+          .slice(0, 3)
+          .map((row) => ({
+            id: row.id,
+            studentId: row.studentId,
+            nickname: row.studentName || me.nickname || '同學',
+            kind: row.kind,
+            kindText: LEAVE_KIND_LABEL[row.kind] || row.kind,
+            fromDate: row.from,
+            toDate: row.to,
+          })),
+      },
+      repairs: {
+        pending: repairRows.filter((row) => row.status === 'PENDING').length,
+        inProgress: repairRows.filter((row) => row.status === 'IN_PROGRESS').length,
+        latest: repairRows
+          .slice()
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .slice(0, 3)
+          .map((row) => ({ id: row.id, location: row.location, equipment: row.equipment, status: row.status, urgency: row.urgency, createdAt: new Date(row.createdAt).toISOString() })),
+      },
+      generatedAt: new Date().toISOString(),
+    });
+  },
+
   // 老師：某一項功課的未交名單（示範層給兩個假名字，演示「點數字看名單」）
   homeworkPending(id) {
     const data = db();

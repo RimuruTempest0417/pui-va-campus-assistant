@@ -4849,6 +4849,97 @@ paths:
         '403':
           description: 不是老師（學生／家長沒有 homework:create）
 
+  /teacher/class:
+    get:
+      tags: [homework]
+      summary: 教師端「班級總覽」（本班功課未交、待審假單、報修處理中，一支聚合端點）
+      description: |
+        導師在朝會前 30 秒掌握全班：本班人數、功課未交人次（依科目分組）、待審假單與今天請假人數、報修待處理件數。
+
+        三條規則：①班級由後端從 `User.className` 決定，**不信前端傳來的班級**（老師帶別班回 403，管理員以上可指定）；
+        ②每一格都與各模組清單用同一份查詢條件（功課 `deletedAt: null`、請假 `status='PENDING'`、報修只算本班同學送出的）；
+        ③帳號沒有班級回 422 並說明找校務處設定。只回數字與最近三筆，不回全班姓名（要點名請走 `/homework/{id}/pending`）。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: className, in: query, schema: { type: string, maxLength: 32 }, description: 留空＝自己那一班（只有管理員以上可以指定別班） }
+      responses:
+        '200':
+          description: 本班的功課／請假／報修聚合數字
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  className: { type: string }
+                  grade: { type: string }
+                  role: { type: string }
+                  classSize: { type: integer, description: 該班級底下未封禁帳號數（與 /homework/stats 同一套算法） }
+                  homework:
+                    type: object
+                    properties:
+                      items: { type: integer, description: 未收回的功課項數 }
+                      overdueItems: { type: integer, description: 已過截止時間的項數 }
+                      pendingTotal: { type: integer, description: 全部功課的「未打勾」人次合計 }
+                      subjects:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            subject: { type: string }
+                            items: { type: integer }
+                            pending: { type: integer }
+                            overdue: { type: integer }
+                      upcoming:
+                        type: array
+                        description: 未到期的最近三項
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            subject: { type: string }
+                            title: { type: string }
+                            dueAt: { type: string, format: date-time }
+                            done: { type: integer }
+                            total: { type: integer }
+                  leaves:
+                    type: object
+                    properties:
+                      pending: { type: integer }
+                      approvedToday: { type: integer, description: 今天請假中的人數（已批准且日期涵蓋今天） }
+                      latest:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            studentId: { type: string }
+                            nickname: { type: string }
+                            kind: { type: string }
+                            kindText: { type: string }
+                            fromDate: { type: string, format: date }
+                            toDate: { type: string, format: date }
+                  repairs:
+                    type: object
+                    properties:
+                      pending: { type: integer }
+                      inProgress: { type: integer }
+                      latest:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            location: { type: string }
+                            equipment: { type: string }
+                            status: { type: string }
+                            urgency: { type: string }
+                            createdAt: { type: string, format: date-time }
+                  generatedAt: { type: string, format: date-time }
+        '403':
+          description: 學生／家長看不到（這頁是本班行政視角），或老師帶了別班
+        '422':
+          description: 帳號還沒有班級資料（CLASS 未設定）
+
   /homework/{id}/pending:
     get:
       tags: [homework]

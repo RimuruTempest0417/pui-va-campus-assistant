@@ -234,6 +234,8 @@ module.exports = {
   parentChildHomework: (...a) => call('parentChildHomework', a),
   homeworkStats: (...a) => call('homeworkStats', a),
   homeworkPending: (...a) => call('homeworkPending', a),
+  /** W-94：教師端班級總覽（示範層由同一組示範資料算出同一個形狀） */
+  classOverview: (...a) => call('classOverview', a),
 
   // ── W-88 校園提案與連署（讀取訪客可看；提案／連署要登入；回覆是校內職員）──
   listProposals: (...a) => call('listProposals', a),

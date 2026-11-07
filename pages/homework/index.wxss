@@ -36,6 +36,36 @@
 }
 .hw-seg__item.is-on { background: var(--pv-surface); color: var(--pv-label); }
 
+/* W-94 班級總覽：一張卡、2×2 數字、下面兩段用髮絲線分開（不做成一格一張卡） */
+.hw-ov { padding: var(--pv-sp-3); }
+.hw-ov__grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-top: var(--pv-sp-2);
+  border-top: 1rpx solid var(--pv-sep);
+}
+.hw-ov__cell {
+  width: 50%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+  padding: var(--pv-sp-2) 0;
+}
+.hw-ov__num { font-size: var(--pv-fs-title-3); color: var(--pv-label); }
+.hw-ov__label { font-size: var(--pv-fs-caption-1); color: var(--pv-label-2); }
+.hw-ov__block { margin-top: var(--pv-sp-2); border-top: 1rpx solid var(--pv-sep); padding-top: var(--pv-sp-2); }
+.hw-ov__caption {
+  display: block;
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-label-2);
+  letter-spacing: var(--pv-ls-section);
+  margin-bottom: 6rpx;
+}
+.hw-ov__line { display: flex; flex-direction: row; align-items: center; padding: 4rpx 0; }
+.hw-ov__line-text { flex: 1; min-width: 0; font-size: var(--pv-fs-footnote); color: var(--pv-label); }
+
 /* 一列＝一項功課：整個 row 都是可點區域（打勾），不做成一項一張卡 */
 .hw-row {
   display: flex;
