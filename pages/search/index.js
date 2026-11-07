@@ -26,7 +26,32 @@ function typeLabel(type) {
   if (type === 'proposal') return i18n.pick('校園提案');
   if (type === 'book') return i18n.pick('圖書館館藏');
   if (type === 'resource') return i18n.pick('場地與器材');
+  if (type === 'leave') return i18n.pick('我的假單');
+  if (type === 'repair') return i18n.pick('我的報修');
   return i18n.pick('公告');
+}
+
+/** 假單的假別／狀態（W-105）：與假單頁同一套語彙，鍵值來自後端 `badge` 的 `假別:狀態` */
+function leaveKindLabel(kind) {
+  if (kind === 'SICK') return i18n.pick('病假');
+  if (kind === 'PERSONAL') return i18n.pick('事假');
+  if (kind === 'OFFICIAL') return i18n.pick('公假');
+  return kind || '';
+}
+
+function leaveStatusLabel(status) {
+  if (status === 'APPROVED') return i18n.pick('已批准');
+  if (status === 'REJECTED') return i18n.pick('已駁回');
+  if (status === 'CANCELLED') return i18n.pick('已取消');
+  return i18n.pick('待審批');
+}
+
+/** 報修狀態（W-105）：badge 直接是狀態碼 */
+function repairStatusLabel(status) {
+  if (status === 'IN_PROGRESS') return i18n.pick('處理中');
+  if (status === 'DONE') return i18n.pick('已完成');
+  if (status === 'CANCELLED') return i18n.pick('已取消');
+  return i18n.pick('待接單');
 }
 
 function noticeBadge(kind) {
@@ -62,9 +87,12 @@ const ROUTE = {
   proposal: '/pages/proposals/detail/index?id=',
   book: '/pages/library/detail/index?id=',
   resource: '/pages/venues/detail/index?id=',
+  // 我的假單／我的報修（W-105）：都跳各自的清單頁，不接 id（假單與報修沒有詳情頁）
+  leave: '/pages/leaves/mine/index',
+  repair: '/pages/repair/index/index',
 };
 
-/** 哪些類別的網址要吃 id（功課不吃：它跳的是整頁清單） */
+/** 哪些類別的網址要吃 id（功課／假單／報修不吃：它們跳的是整頁清單） */
 const NEEDS_ID = {
   notice: true,
   event: true,
@@ -75,6 +103,8 @@ const NEEDS_ID = {
   proposal: true,
   book: true,
   resource: true,
+  leave: false,
+  repair: false,
 };
 
 /** 餐別文字：午餐／小賣部。與菜單頁同一個語彙，不另造新詞 */
@@ -150,6 +180,20 @@ function decorateRow(row) {
     badgeLabel = kind === 'EQUIPMENT' ? i18n.pick('器材') : i18n.pick('場地');
     badgeTag = 'tint';
     metaText = row.location || '';
+  } else if (row.type === 'leave') {
+    // 我的假單（W-105）：badge 是「假別:狀態」。標題已經是後端組好的「病假 2026/11/09」，
+    // 第二行補狀態與原因摘要 —— 搜假單的人通常是要確認「老師批了沒」。
+    const kind = (row.badge || '').split(':')[0];
+    const st = (row.badge || '').split(':')[1];
+    badgeLabel = leaveKindLabel(kind);
+    badgeTag = st === 'APPROVED' ? 'tint' : st === 'REJECTED' ? 'warning' : 'neutral';
+    metaText = leaveStatusLabel(st) + ' · ' + dateTimeText(row.date).split(' ')[0];
+  } else if (row.type === 'repair') {
+    // 我的報修（W-105）：badge 直接是狀態碼；第二行寫「地點 · 送出時間」，
+    // 因為標題只寫了「地點 器材」，看不出是什麼時候報的。
+    badgeLabel = repairStatusLabel(row.badge);
+    badgeTag = row.badge === 'DONE' ? 'tint' : row.badge === 'CANCELLED' ? 'neutral' : 'warning';
+    metaText = (row.location ? row.location + ' · ' : '') + fromNow(row.date);
   } else {
     const t = (row.badge || '').split(':')[0];
     const s = (row.badge || '').split(':')[1];
@@ -173,9 +217,9 @@ Page({
   labels() {
     return {
       title: i18n.pick('搜尋'),
-      placeholder: i18n.pick('搜尋公告、活動、失物、轉贈、館藏、場地、菜單、功課與提案'),
+      placeholder: i18n.pick('搜尋公告、活動、失物、轉贈、館藏、場地、菜單、功課、假單與報修'),
       hintTitle: i18n.pick('想找什麼？'),
-      hintDesc: i18n.pick('輸入關鍵字，一次搜遍公告、活動、失物、轉贈、館藏、場地、菜單、功課與提案'),
+      hintDesc: i18n.pick('輸入關鍵字，一次搜遍公告、活動、失物、轉贈、館藏、場地、菜單、功課、提案，以及你自己送出的假單與報修'),
       recent: i18n.pick('最近搜尋'),
       clearRecent: i18n.pick('清除'),
       failed: i18n.pick('搜尋失敗'),
@@ -220,8 +264,13 @@ Page({
         this._role = role;
         const filters = this.filters();
         const patch = { typeFilters: filters };
-        // 已經切到功課才發現沒權限（例如切了角色）→ 回到「全部」，不要停在一個空結果上
-        if (this.data.typeFilter === 'homework' && !filters.some((f) => f.key === 'homework')) patch.typeFilter = 'all';
+        // 已經切到功課／假單／報修才發現沒權限（例如切了角色）→ 回到「全部」，不要停在一個空結果上
+        if (
+          ['homework', 'leave', 'repair'].indexOf(this.data.typeFilter) !== -1 &&
+          !filters.some((f) => f.key === this.data.typeFilter)
+        ) {
+          patch.typeFilter = 'all';
+        }
         this.setData(patch);
       })
       .catch(() => {});
@@ -232,11 +281,13 @@ Page({
     this.setData({ L: this.labels(), themeClass: appearance.themeClass(), typeFilters: this.filters() });
   },
 
-  /** 類型篩選的 chips（W-75）：key 對應後端 `types` 的值，all 代表不帶參數 */
+  /** 類型篩選的 chips（W-75；W-105 加「我的」兩類）：key 對應後端 `types` 的值，all 代表不帶參數 */
   filters() {
     const role = this._role || '';
     // 功課要登入才有（後端 `homework:read`）：未登入與家長不給這顆 chip，
     // 否則點下去只會得到「沒有找到相符的內容」，看起來像搜尋壞了。
+    // 「我的假單／我的報修」同一條道理：家長沒有 leave:create／repair:create，
+    // 訪客更沒有 —— 給了一樣只會搜到空結果。
     // 角色還沒讀到時（第一輪）先看有沒有 token，寧可先給、讀到角色再收。
     const canHomework = role
       ? ['STUDENT', 'TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1
@@ -252,7 +303,12 @@ Page({
       { key: 'resource', label: i18n.pick('場地') },
       { key: 'menu', label: i18n.pick('菜單') },
     ];
-    if (canHomework) list.push({ key: 'homework', label: i18n.pick('功課') });
+    if (canHomework) {
+      list.push({ key: 'homework', label: i18n.pick('功課') });
+      // W-105：我的假單／我的報修 —— 與功課同一組身分（學生以上、家長沒有）
+      list.push({ key: 'leave', label: i18n.pick('假單') });
+      list.push({ key: 'repair', label: i18n.pick('報修') });
+    }
     list.push({ key: 'proposal', label: i18n.pick('提案') });
     return list;
   },

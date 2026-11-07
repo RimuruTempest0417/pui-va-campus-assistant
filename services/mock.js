@@ -1677,7 +1677,7 @@ module.exports = {
     const low = q.toLowerCase();
     const data = db();
     const now = Date.now();
-    const wanted = (opts.types || 'notice,event,item,giveaway,menu,homework,proposal,book,resource').split(',').map((s) => s.trim());
+    const wanted = (opts.types || 'notice,event,item,giveaway,menu,homework,proposal,book,resource,leave,repair').split(',').map((s) => s.trim());
     const groups = [];
 
     const hitScore = (title) => (String(title || '').toLowerCase().indexOf(low) !== -1 ? 2 : 1);
@@ -1847,6 +1847,46 @@ module.exports = {
         .sort((a, b) => b.score - a.score || String(a.title).localeCompare(String(b.title)))
         .slice(0, limit);
       groups.push({ type: 'resource', count: items.length, items: items });
+    }
+
+    // W-105：我的假單／我的報修 —— 只搜自己送出的（與後端同一條規則：id 只認登入者，不吃參數）。
+    // 家長沒有 leave:create／repair:create，所以這兩組對家長與訪客都不出現。
+    const meSelf = data.user || {};
+    const canMine = ['STUDENT', 'TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(meSelf.role) !== -1;
+
+    if (wanted.indexOf('leave') !== -1 && canMine) {
+      const items = (data.leaves || [])
+        .filter((row) => row.studentId === meSelf.id)
+        .filter((row) => [row.reason, row.rejectReason].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((row) => {
+          const head = String(row.from || '').replace(/-/g, '/');
+          const tail = String(row.to || '').replace(/-/g, '/');
+          const title = (LEAVE_KIND_LABEL[row.kind] || row.kind) + ' ' + (head === tail ? head : head + '–' + tail);
+          return {
+            id: row.id, type: 'leave', title: title, snippet: bestSnippet([row.reason, row.rejectReason]),
+            badge: row.kind + ':' + row.status, date: new Date(row.from).toISOString(), score: hitScore(title),
+          };
+        })
+        .sort(byScore)
+        .slice(0, limit);
+      groups.push({ type: 'leave', count: items.length, items: items });
+    }
+
+    if (wanted.indexOf('repair') !== -1 && canMine) {
+      const items = (data.repairs || [])
+        .filter((row) => row.reporterId === meSelf.id)
+        .filter((row) => [row.location, row.equipment, row.description, row.note].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((row) => {
+          const title = (String(row.location || '') + ' ' + String(row.equipment || '')).trim();
+          return {
+            id: row.id, type: 'repair', title: title, snippet: bestSnippet([row.description, row.note]),
+            badge: row.status, date: new Date(row.createdAt).toISOString(), score: hitScore(title),
+            location: row.location || '',
+          };
+        })
+        .sort((a, b) => b.score - a.score || String(b.date).localeCompare(String(a.date)))
+        .slice(0, limit);
+      groups.push({ type: 'repair', count: items.length, items: items });
     }
 
     const kept = groups.filter((g) => g.count > 0);

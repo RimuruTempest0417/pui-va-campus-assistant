@@ -360,6 +360,66 @@ check(
   'pages/search/index.js',
 );
 
+// ── W-105 我的假單／我的報修進搜尋 ──
+// 示範層與後端同一條規則：studentId／reporterId 只認登入者（不吃參數），
+// 家長與訪客沒有 leave:create／repair:create，所以這兩組對他們連分組都不出現。
+const sLeave = await data.search({ q: '發燒', types: 'leave' });
+const sLeaveGroup = sLeave.groups.filter((g) => g.type === 'leave')[0] || { count: 0, items: [] };
+check(
+  '搜尋：我的假單也搜得到（打「發燒」找到自己那張）',
+  sLeaveGroup.count === 1 && (sLeaveGroup.items[0] || {}).id === 'lv1' && (sLeaveGroup.items[0] || {}).badge === 'SICK:PENDING',
+  sLeaveGroup.items.map((i) => i.id + '·' + i.badge).join(' / ') || '沒有結果',
+);
+check(
+  '搜尋：假單標題寫得出假別與日期（後端與示範層同一個組法）',
+  /^\S+ \d{4}\/\d{2}\/\d{2}/.test(String((sLeaveGroup.items[0] || {}).title || '')),
+  (sLeaveGroup.items[0] || {}).title || '沒有結果',
+);
+// lv4／lv5 是家長代子女送的（studentId = demo-child-1）：不是「我的」，不得出現在搜尋
+check(
+  '搜尋：只回自己的假單（家長代子女送的那兩張不出現）',
+  !sLeave.groups.some((g) => (g.items || []).some((i) => i.id === 'lv4' || i.id === 'lv5')),
+  'lv4／lv5 出現在結果裡',
+);
+
+const sRepair = await data.search({ q: '冷氣', types: 'repair' });
+const sRepairGroup = sRepair.groups.filter((g) => g.type === 'repair')[0] || { count: 0, items: [] };
+check(
+  '搜尋：我的報修也搜得到（打「冷氣」找到 304 室那張）',
+  sRepairGroup.count === 1 && (sRepairGroup.items[0] || {}).id === 'rp1' && (sRepairGroup.items[0] || {}).badge === 'PENDING',
+  sRepairGroup.items.map((i) => i.id + '·' + i.badge).join(' / ') || '沒有結果',
+);
+check(
+  '搜尋：報修帶地點（結果那一行要知道是哪一間）',
+  (sRepairGroup.items[0] || {}).location === '304 室',
+  (sRepairGroup.items[0] || {}).location || '沒有地點',
+);
+// rp4 是黃同學送的（reporterId = demo-other）：關鍵字對得上也不該出現
+const sRepairOther = await data.search({ q: '門鎖', types: 'repair' });
+check('搜尋：別人送的報修搜不到', sRepairOther.total === 0, `total ${sRepairOther.total}`);
+
+// 家長：兩類都不出現（與後端 `leave:create`／`repair:create` 同一組能力）
+await data.switchDemoUser('示範家長', 'demo-parent', 'PARENT');
+const sLeaveParent = await data.search({ q: '發燒', types: 'leave' });
+const sRepairParent = await data.search({ q: '冷氣', types: 'repair' });
+check(
+  '搜尋：家長看不到假單與報修兩組',
+  sLeaveParent.groups.length === 0 && sRepairParent.groups.length === 0,
+  `假單 ${sLeaveParent.groups.length} 組／報修 ${sRepairParent.groups.length} 組`,
+);
+await data.switchDemoUser('示範學生', 'demo-user', 'STUDENT');
+
+check(
+  '搜尋：假單與報修有類型 chip，且跳清單頁（不接 id）',
+  searchPageJs.indexOf("key: 'leave'") !== -1 &&
+    searchPageJs.indexOf("key: 'repair'") !== -1 &&
+    searchPageJs.indexOf("leave: '/pages/leaves/mine/index'") !== -1 &&
+    searchPageJs.indexOf("repair: '/pages/repair/index/index'") !== -1 &&
+    searchPageJs.indexOf('leave: false') !== -1 &&
+    searchPageJs.indexOf('repair: false') !== -1,
+  'pages/search/index.js',
+);
+
 
 
 

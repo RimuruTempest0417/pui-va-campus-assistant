@@ -808,7 +808,7 @@ paths:
   /search:
     get:
       tags: [search]
-      summary: 全校搜尋（公告／活動／失物／二手轉贈／菜單／功課／提案／館藏／場地器材；只看得到的人搜得到）
+      summary: 全校搜尋（公告／活動／失物／二手轉贈／菜單／功課／提案／館藏／場地器材／我的假單／我的報修；只看得到的人搜得到）
       description: |
         可見性規則由各模組自己決定：公告沿用 `visibleNoticeWhere`（排除軟刪除／預約未到／已過期），
         活動與失物排除軟刪除，轉贈只回 `status = AVAILABLE`（已贈出／已下架不算還拿得到），
@@ -818,11 +818,16 @@ paths:
         館藏只回 `ACTIVE` 且未刪的書（比對書名／作者／索書號；**借完了照樣回**，
         用 `badge = OUT` 表示，借不到不等於搜不到），
         場地器材只回 `ACTIVE` 且未刪（比對名稱與位置；`badge` 是「種類:狀態」）。
+        **我的假單／我的報修是「個人資料」兩類**：`studentId`／`reporterId` 一律取 JWT 的 `sub`，
+        不吃 query 上的任何 id（帶別人的 id 也不會變），因此每個人只搜得到自己送出的那幾筆；
+        家長沒有 `leave:create`／`repair:create`，未登入也沒有 —— 這兩種身分連分組都不出現。
+        假單的 `title` 是「假別＋日期」（例「病假 2026/11/09」）、`badge` 是「假別:狀態」；
+        報修的 `title` 是「地點＋器材」、`badge` 是狀態、`location` 另外帶。
         失物與轉贈的聯絡方式（contactValue）一律不回傳。
         標題命中（score 2）排在只有內文命中（score 1）之前，同分依日期新到舊（菜單同分依日期由近到遠、功課依截止時間由近到遠）。
       parameters:
         - { in: query, name: q, required: true, schema: { type: string, minLength: 1, maxLength: 50 } }
-        - { in: query, name: types, schema: { type: string, example: notice,event,item,giveaway,menu,homework,proposal,book,resource }, description: '逗號分隔：notice／event／item／giveaway／menu／homework／proposal／book／resource，預設九類全搜' }
+        - { in: query, name: types, schema: { type: string, example: notice,event,item,giveaway,menu,homework,proposal,book,resource,leave,repair }, description: '逗號分隔：notice／event／item／giveaway／menu／homework／proposal／book／resource／leave／repair，預設十二類全搜（leave／repair 只回自己的）' }
         - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 20, default: 5 }, description: 每一類最多幾筆 }
       responses:
         '200':
@@ -839,7 +844,7 @@ paths:
                     items:
                       type: object
                       properties:
-                        type: { type: string, enum: [notice, event, item, giveaway, menu, homework, proposal, book, resource] }
+                        type: { type: string, enum: [notice, event, item, giveaway, menu, homework, proposal, book, resource, leave, repair] }
                         count: { type: integer }
                         items:
                           type: array
