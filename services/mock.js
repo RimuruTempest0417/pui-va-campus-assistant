@@ -4,21 +4,21 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 19;
+const SEED_VERSION = 20;
 
 const weekUtil = require('../utils/week');
 const venue = require('../utils/venue');
 
 const DISH_LIBRARY = [
-  { id: 'd1', name: '葡式焗雞飯', price: null, tags: ['招牌'], desc: '薯仔鋪底，雞肉焗到金黃。', base: { sum: 148, count: 32, likes: 18 } },
-  { id: 'd2', name: '豉汁排骨飯', price: null, tags: ['經典'], desc: '排骨先炸後蒸，豉汁偏鹹香。', base: { sum: 105, count: 25, likes: 11 } },
-  { id: 'd3', name: '咖喱牛腩飯', price: null, tags: ['辣', '人氣'], desc: '咖喱不辣到嗆，牛腩燉得軟。', base: { sum: 197, count: 41, likes: 30 } },
-  { id: 'd4', name: '番茄蛋炒飯', price: null, tags: ['素'], desc: '偏清淡，適合不想吃太油的日子。', base: { sum: 47, count: 12, likes: 5 } },
-  { id: 'd5', name: '海南雞飯', price: null, tags: ['人氣'], desc: '附薑蓉與辣椒醬。', base: { sum: 94, count: 20, likes: 15 } },
-  { id: 'd6', name: '菠蘿包', price: 8, tags: ['小賣部'], desc: '出爐時間 10:30 與 15:00。', base: { sum: 62, count: 14, likes: 9 } },
-  { id: 'd7', name: '魚蛋（串）', price: 10, tags: ['小賣部'], desc: '咖喱汁另加。', base: { sum: 55, count: 12, likes: 7 } },
-  { id: 'd8', name: '奶茶', price: 12, tags: ['小賣部'], desc: '凍飲 +2。', base: { sum: 88, count: 19, likes: 14 } },
-  { id: 'd9', name: '蛋撻', price: 9, tags: ['小賣部'], desc: '每日限量 60 個。', base: { sum: 70, count: 15, likes: 11 } },
+  { id: 'd1', name: '葡式焗雞飯', price: null, tags: ['招牌'], desc: '薯仔鋪底，雞肉焗到金黃。', base: { dist: [0, 1, 0, 9, 22], likes: 18 } },
+  { id: 'd2', name: '豉汁排骨飯', price: null, tags: ['經典'], desc: '排骨先炸後蒸，豉汁偏鹹香。', base: { dist: [0, 1, 0, 17, 7], likes: 11 } },
+  { id: 'd3', name: '咖喱牛腩飯', price: null, tags: ['辣', '人氣'], desc: '咖喱不辣到嗆，牛腩燉得軟。', base: { dist: [0, 1, 0, 5, 35], likes: 30 } },
+  { id: 'd4', name: '番茄蛋炒飯', price: null, tags: ['素'], desc: '偏清淡，適合不想吃太油的日子。', base: { dist: [0, 2, 0, 7, 3], likes: 5 } },
+  { id: 'd5', name: '海南雞飯', price: null, tags: ['人氣'], desc: '附薑蓉與辣椒醬。', base: { dist: [0, 1, 0, 3, 16], likes: 15 } },
+  { id: 'd6', name: '菠蘿包', price: 8, tags: ['小賣部'], desc: '出爐時間 10:30 與 15:00。', base: { dist: [0, 1, 0, 5, 8], likes: 9 } },
+  { id: 'd7', name: '魚蛋（串）', price: 10, tags: ['小賣部'], desc: '咖喱汁另加。', base: { dist: [0, 1, 0, 2, 9], likes: 7 } },
+  { id: 'd8', name: '奶茶', price: 12, tags: ['小賣部'], desc: '凍飲 +2。', base: { dist: [0, 1, 0, 4, 14], likes: 14 } },
+  { id: 'd9', name: '蛋撻', price: 9, tags: ['小賣部'], desc: '每日限量 60 個。', base: { dist: [0, 1, 0, 2, 12], likes: 11 } },
 ];
 
 /** 依週次生成菜單：每天 1–2 道午餐 + 1 道小賣部 */
@@ -46,10 +46,30 @@ function dishById(id) {
   return { id: d.id, name: d.name, price: d.price, tags: d.tags, description: d.desc };
 }
 
+/**
+ * 評分聚合（sum／count／likes）由分佈算出，不再手寫 —— 否則「平均分」與「1–5 分分佈」
+ * 會是兩份各自維護的真相，後台統計一出現在畫面上就會對不上。
+ */
 function seedScores() {
   const out = {};
   DISH_LIBRARY.forEach((d) => {
-    out[d.id] = Object.assign({}, d.base);
+    const dist = d.base.dist;
+    let sum = 0;
+    let count = 0;
+    dist.forEach((n, i) => {
+      sum += (i + 1) * n;
+      count += n;
+    });
+    out[d.id] = { sum: sum, count: count, likes: d.base.likes };
+  });
+  return out;
+}
+
+/** 1–5 分分佈的種子（後台評分統計用；與 seedScores 同一份來源） */
+function seedDist() {
+  const out = {};
+  DISH_LIBRARY.forEach((d) => {
+    out[d.id] = d.base.dist.slice();
   });
   return out;
 }
@@ -60,6 +80,7 @@ function seed() {
   return {
     seedVersion: SEED_VERSION,
     dishScores: seedScores(),
+    dishDist: seedDist(),
     myRatings: {},
     user: { id: 'demo-user', nickname: '示範學生', role: 'STUDENT', grade: '高二', className: '仁' },
     categories: [
@@ -1453,22 +1474,28 @@ module.exports = {
       return Promise.reject({ code: 'VALIDATION_FAILED', message: '評分必須是 1–5 星' });
     }
     data.dishScores = data.dishScores || seedScores();
+    data.dishDist = data.dishDist || seedDist();
     data.myRatings = data.myRatings || {};
 
     const agg = data.dishScores[id] || { sum: 0, count: 0, likes: 0 };
+    const dist = data.dishDist[id] || [0, 0, 0, 0, 0];
     const prev = data.myRatings[id];
 
     if (prev) {
       // 一人一評：改分時先把舊分扣掉，不會重複計算
       agg.sum = agg.sum - prev.score + score;
+      dist[prev.score - 1] = Math.max(0, dist[prev.score - 1] - 1);
+      dist[score - 1] += 1;
       if (prev.liked && !p.liked) agg.likes = Math.max(0, agg.likes - 1);
       if (!prev.liked && p.liked) agg.likes += 1;
     } else {
       agg.sum += score;
       agg.count += 1;
+      dist[score - 1] += 1;
       if (p.liked) agg.likes += 1;
     }
     data.dishScores[id] = agg;
+    data.dishDist[id] = dist;
     data.myRatings[id] = { score: score, liked: !!p.liked };
     save(data);
 
@@ -1485,6 +1512,73 @@ module.exports = {
       .sort((a, b) => b.avgScore - a.avgScore || b.ratingCount - a.ratingCount)
       .slice(0, limit);
     return Promise.resolve({ items: rows });
+  },
+
+  /**
+   * 後台菜單評分統計（W-101）：與後端 /admin/menu/stats 同一組規則 ——
+   * 平均分／人數／1–2 分比例、樣本 < 3 不算排名。示範資料沒有評分時間戳，
+   * 一律視為在視窗內（真 API 才是真的按天過濾）。
+   */
+  menuStats(query) {
+    const q = query || {};
+    const days = Number(q.days) || 30;
+    const sampleMin = 3;
+    const data = db();
+    data.dishScores = data.dishScores || seedScores();
+    data.dishDist = data.dishDist || seedDist();
+
+    const round1 = (v) => Math.round(v * 10) / 10;
+    const items = DISH_LIBRARY.map((d) => {
+      const agg = data.dishScores[d.id] || { sum: 0, count: 0, likes: 0 };
+      const dist = data.dishDist[d.id] || [0, 0, 0, 0, 0];
+      const low = dist[0] + dist[1];
+      return {
+        dishId: d.id,
+        name: d.name,
+        mealType: d.tags.indexOf('小賣部') !== -1 ? 'SNACK' : 'LUNCH',
+        avgScore: agg.count ? round1(agg.sum / agg.count) : 0,
+        count: agg.count,
+        likedCount: agg.likes,
+        likedRate: agg.count ? round1((agg.likes / agg.count) * 100) : 0,
+        lowCount: low,
+        lowRate: agg.count ? round1((low / agg.count) * 100) : 0,
+        dist: { 1: dist[0], 2: dist[1], 3: dist[2], 4: dist[3], 5: dist[4] },
+        enough: agg.count >= sampleMin,
+      };
+    })
+      .filter((row) => row.count > 0)
+      .sort((a, b) => b.avgScore - a.avgScore || b.count - a.count);
+
+    const ranked = items.filter((x) => x.enough);
+    const brief = (x) => ({
+      dishId: x.dishId,
+      name: x.name,
+      avgScore: x.avgScore,
+      count: x.count,
+      lowCount: x.lowCount,
+      lowRate: x.lowRate,
+    });
+    const total = items.reduce((s, x) => s + x.count, 0);
+    const lowTotal = items.reduce((s, x) => s + x.lowCount, 0);
+    return Promise.resolve({
+      days: days,
+      sampleMin: sampleMin,
+      summary: {
+        ratings: total,
+        dishes: items.length,
+        avgScore: total ? round1(items.reduce((s, x) => s + x.avgScore * x.count, 0) / total) : null,
+        lowCount: lowTotal,
+        lowRate: total ? round1((lowTotal / total) * 100) : null,
+        insufficient: items.length - ranked.length,
+      },
+      items: items,
+      best: ranked.slice(0, 5).map(brief),
+      worst: ranked
+        .slice()
+        .sort((a, b) => b.lowRate - a.lowRate || b.lowCount - a.lowCount || a.avgScore - b.avgScore)
+        .slice(0, 5)
+        .map(brief),
+    });
   },
 
   // ── 失物智能匹配（與後端 /items/:id/matches 同一套權重，示範模式才看得出效果）──

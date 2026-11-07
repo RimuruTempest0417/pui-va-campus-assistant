@@ -552,6 +552,14 @@ Page({
       k472: i18n.pick("人 · 缺席"),
       k473: i18n.pick("人次 · 遲到"),
       k474: i18n.pick("沒有缺席與遲到的日子"),
+      k475: i18n.pick("近 30 天評分統計"),
+      k476: i18n.pick("全校平均"),
+      k477: i18n.pick("道菜"),
+      k478: i18n.pick("則評分"),
+      k479: i18n.pick("1–2 分"),
+      k480: i18n.pick("人"),
+      k481: i18n.pick("樣本不足"),
+      k482: i18n.pick("最常被評低分的菜"),
       ppStatusOPEN: i18n.pick("收集中"),
       ppStatusREVIEWING: i18n.pick("處理中"),
       ppStatusPLANNED: i18n.pick("已列入計劃"),
@@ -755,6 +763,11 @@ Page({
     menu: { date: '', mealType: 'LUNCH', names: '' },
     menuWeekStart: '',
     menuEntries: [],
+    // W-101 評分統計（後端算好、前端只顯示；取不到時整段不出現，不要顯示 0 讓人誤會沒人評分）
+    menuStats: null,
+    menuStatRows: [],
+    menuWorst: [],
+    menuSummaryText: '',
     eventForm: { title: '', date: '', capacity: '20', location: '', groups: '', signupEnd: '' },
     teamsEnabled: false,
     creatingEvent: false,
@@ -2755,6 +2768,56 @@ Page({
       this.setData({ menuWeekStart: res.weekStart, menuEntries: res.items || [] });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到菜單：') + (e.message || e.code) });
+    }
+    // 統計與本週菜單各自獨立：統計取不到只讓那一段不出現，排菜單照常可用
+    this.loadMenuStats();
+  },
+
+  /**
+   * W-101 評分統計：平均分／人數／1–2 分比例全由後端算（兩套後台同一組數字）。
+   * 樣本 < 3 的菜只標「樣本不足」，不進「最常被評低分」的排名。
+   */
+  async loadMenuStats() {
+    const L = this.data.L;
+    try {
+      const res = await admin.menuStats(30);
+      const s = res.summary || {};
+      this.setData({
+        menuStats: res,
+        menuStatRows: (res.items || []).map((row) => ({
+          dishId: row.dishId,
+          name: row.name,
+          enough: !!row.enough,
+          metaText:
+            (row.avgScore || 0) +
+            ' · ' +
+            row.count +
+            ' ' +
+            L.k480 +
+            ' · ' +
+            L.k479 +
+            ' ' +
+            (row.lowCount || 0),
+        })),
+        menuWorst: (res.worst || []).map((w) => ({
+          dishId: w.dishId,
+          text: w.name + ' ' + w.lowRate + '%',
+        })),
+        menuSummaryText:
+          L.k476 +
+          ' ' +
+          (s.avgScore == null ? '—' : s.avgScore) +
+          ' · ' +
+          (s.dishes || 0) +
+          ' ' +
+          L.k477 +
+          ' · ' +
+          (s.ratings || 0) +
+          ' ' +
+          L.k478,
+      });
+    } catch (e) {
+      this.setData({ menuStats: null, menuStatRows: [], menuWorst: [], menuSummaryText: '' });
     }
   },
 

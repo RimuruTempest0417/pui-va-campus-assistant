@@ -792,6 +792,33 @@
           </view>
         </pv-card>
 
+        <!-- W-101 評分統計：校方看得到「哪道菜最不受歡迎」，評分不再只進不出 -->
+        <block wx:if="{{menuStats && menuStats.items.length}}">
+          <text class="ui-section ui-mt-2">{{L.k475}}</text>
+          <view class="ui-list ui-list--grouped">
+            <view class="signup-row">
+              <text class="signup-row__name">{{menuSummaryText}}</text>
+            </view>
+            <view
+              wx:for="{{menuStatRows}}"
+              wx:key="dishId"
+              class="signup-row {{index === menuStatRows.length - 1 ? 'signup-row--last' : ''}}"
+            >
+              <view class="lib-row__main">
+                <text class="signup-row__name">{{item.name}}</text>
+                <text class="ui-meta">{{item.metaText}}</text>
+              </view>
+              <pv-tag wx:if="{{!item.enough}}" text="{{L.k481}}" type="neutral" />
+            </view>
+          </view>
+          <block wx:if="{{menuWorst.length}}">
+            <text class="ui-section ui-mt-2">{{L.k482}}</text>
+            <view class="filter-row">
+              <view wx:for="{{menuWorst}}" wx:key="dishId" class="chip chip--ghost">{{item.text}}</view>
+            </view>
+          </block>
+        </block>
+
         <text class="ui-section ui-mt-2">本週已排（{{menuWeekStart}} 起）</text>
         <view wx:if="{{menuEntries.length}}" class="ui-list ui-list--grouped">
           <view wx:for="{{menuEntries}}" wx:key="id" class="signup-row {{index === menuEntries.length - 1 ? 'signup-row--last' : ''}}">

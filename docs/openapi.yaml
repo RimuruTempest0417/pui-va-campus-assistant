@@ -2837,6 +2837,73 @@ paths:
         '404': { description: 找不到這則公告或已經刪除 }
         '422': { description: 公告已過期，不需要再催讀 }
 
+  /admin/menu/stats:
+    get:
+      tags: [admin]
+      summary: 菜單評分統計（近 N 天，需 menu:manage）
+      description: |
+        平均分／評分人數／1–5 分分佈／按讚比例都由後端算，兩套後台只負責顯示。
+        樣本 < 3 人的菜色 `enough = false`，只列在 `items`，不進 `best`／`worst` 排名。
+        已下架（`isActive = false`）的菜不進統計。`days` 範圍 7–365，預設 30。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: days, in: query, required: false, schema: { type: integer, minimum: 7, maximum: 365, default: 30 } }
+      responses:
+        '200':
+          description: 統計結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  days: { type: integer }
+                  from: { type: string, format: date }
+                  to: { type: string, format: date }
+                  sampleMin: { type: integer, example: 3 }
+                  summary:
+                    type: object
+                    properties:
+                      ratings: { type: integer }
+                      dishes: { type: integer }
+                      avgScore: { type: number, nullable: true, description: '按人數加權；沒人評分回 null' }
+                      lowCount: { type: integer, description: '1–2 分的則數' }
+                      lowRate: { type: number, nullable: true }
+                      insufficient: { type: integer, description: '樣本不足的菜色數' }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        dishId: { type: string }
+                        name: { type: string }
+                        mealType: { type: string, enum: [LUNCH, SNACK] }
+                        avgScore: { type: number }
+                        count: { type: integer }
+                        likedCount: { type: integer }
+                        likedRate: { type: number }
+                        lowCount: { type: integer }
+                        lowRate: { type: number }
+                        dist:
+                          type: object
+                          properties:
+                            '1': { type: integer }
+                            '2': { type: integer }
+                            '3': { type: integer }
+                            '4': { type: integer }
+                            '5': { type: integer }
+                        enough: { type: boolean }
+                  best:
+                    type: array
+                    description: '平均分最高（只含 enough = true），最多 5 筆'
+                    items: { type: object }
+                  worst:
+                    type: array
+                    description: '1–2 分比例最高（只含 enough = true），最多 5 筆'
+                    items: { type: object }
+        '401': { description: 未登入 }
+        '403': { description: '沒有 menu:manage 能力' }
+        '422': { description: 'days 超出 7–365' }
+
   /admin/menu/{id}:
     delete:
       tags: [admin]

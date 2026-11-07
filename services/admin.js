@@ -88,6 +88,10 @@ module.exports = {
   menuWeek(weekStart) {
     return http.get('/admin/menu', weekStart ? { weekStart: weekStart } : {});
   },
+  /** W-101 菜單評分統計：平均分／人數／1–2 分比例（後端算好，前端只顯示） */
+  menuStats(days) {
+    return http.get('/admin/menu/stats', days ? { days: days } : {});
+  },
   deleteMenuEntry(id) {
     return http.del('/admin/menu/' + id);
   },

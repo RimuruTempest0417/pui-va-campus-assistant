@@ -422,6 +422,66 @@ const missingMock = dataKeys.filter((k) => typeof mock[k] !== 'function');
 check('方法對齊（data↔api↔mock）', !missingApi.length && !missingMock.length,
   [missingApi.length ? 'api 缺 ' + missingApi.join(',') : '', missingMock.length ? 'mock 缺 ' + missingMock.join(',') : ''].filter(Boolean).join(' ') || `${dataKeys.length} 個方法`);
 
+// ── 後台菜單評分統計（W-101）：示範層與後端 /admin/menu/stats 同一組規則 ──
+{
+  const stats = await mock.menuStats({ days: 30 });
+  check(
+    '菜單評分統計：每道菜都有平均分與人數',
+    stats.items.length > 0 && stats.items.every((r) => r.count > 0 && r.avgScore > 0 && r.avgScore <= 5),
+    `${stats.items.length} 道，全校平均 ${stats.summary.avgScore}`,
+  );
+
+  const d3row = stats.items.filter((r) => r.dishId === 'd3')[0];
+  const distSum = d3row ? [1, 2, 3, 4, 5].reduce((s, k) => s + d3row.dist[k], 0) : -1;
+  check(
+    '菜單評分統計：1–5 分分佈加總等於人數',
+    !!d3row && distSum === d3row.count,
+    d3row ? `${JSON.stringify(d3row.dist)} → ${distSum} / ${d3row.count}` : '找不到 d3',
+  );
+
+  // 全校平均必須是「各菜精確平均 × 人數」的加權，不是各菜四捨五入後再平均
+  const totalSum = stats.items.reduce(
+    (s, r) => s + [1, 2, 3, 4, 5].reduce((x, k) => x + k * r.dist[k], 0),
+    0,
+  );
+  const totalCount = stats.summary.ratings;
+  const weighted = totalCount ? Math.round((totalSum / totalCount) * 10) / 10 : null;
+  check(
+    '菜單評分統計：全校平均是按人數加權',
+    weighted === stats.summary.avgScore,
+    `${weighted} vs ${stats.summary.avgScore}（${totalCount} 則）`,
+  );
+
+  check(
+    '菜單評分統計：樣本 < 3 不進最好／最差排名',
+    stats.best.every((x) => x.count >= 3) && stats.worst.every((x) => x.count >= 3),
+    `best ${stats.best.length}、worst ${stats.worst.length}、樣本不足 ${stats.summary.insufficient}`,
+  );
+  check(
+    '菜單評分統計：最差排序是 1–2 分比例遞減',
+    stats.worst.every((x, i, arr) => i === 0 || arr[i - 1].lowRate >= x.lowRate),
+    stats.worst.map((x) => `${x.name} ${x.lowRate}%`).join(' > ') || '沒有樣本足夠的菜',
+  );
+
+  // 改分後統計要跟著變（分佈與聚合同一份來源，不是兩份各自維護）
+  // 注意：這裡改的是 d4，前面 d3 已被自檢改過，不要混用
+  const beforeD4 = stats.items.filter((r) => r.dishId === 'd4')[0];
+  await data.rateDish('d4', { score: 1, liked: false });
+  const afterStats = await mock.menuStats({ days: 30 });
+  const afterD4 = afterStats.items.filter((r) => r.dishId === 'd4')[0];
+  check(
+    '菜單評分統計：改分後低分比例跟著變',
+    !!beforeD4 &&
+      !!afterD4 &&
+      afterD4.count === beforeD4.count + 1 &&
+      afterD4.lowCount === beforeD4.lowCount + 1 &&
+      afterD4.avgScore < beforeD4.avgScore,
+    beforeD4 && afterD4
+      ? `低分 ${beforeD4.lowCount} → ${afterD4.lowCount}，平均 ${beforeD4.avgScore} → ${afterD4.avgScore}`
+      : '找不到 d4',
+  );
+}
+
 // ── 失物智能匹配（W-9）──
 const m1 = await data.matches('i1'); // 藍色水壺（LOST）
 check('匹配命中相近物品', m1.items.some((x) => x.id === 'i7'), m1.items.map((x) => `${x.title} ${x.score}`).join(' / ') || '沒有推薦');
