@@ -3,7 +3,17 @@
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="cal-inner">
-      <view class="cal-head">
+      <!-- 檢視切換（月視圖／時間軸）：兩者同一份資料，不是兩頁 -->
+      <view class="cal-modes">
+        <view id="modeMonth" class="cal-mode {{mode === 'month' ? 'cal-mode--on' : ''}} {{pressedKey === 'mode-month' ? 'cal-mode--pressed' : ''}}"
+              data-id="mode-month" data-mode="month" catchtap="switchMode"
+              bindtouchstart="pressIn" bindtouchend="pressOut" bindtouchcancel="pressOut">{{L.k10}}</view>
+        <view id="modeTimeline" class="cal-mode {{mode === 'timeline' ? 'cal-mode--on' : ''}} {{pressedKey === 'mode-timeline' ? 'cal-mode--pressed' : ''}}"
+              data-id="mode-timeline" data-mode="timeline" catchtap="switchMode"
+              bindtouchstart="pressIn" bindtouchend="pressOut" bindtouchcancel="pressOut">{{L.k11}}</view>
+      </view>
+
+      <view wx:if="{{mode === 'month'}}" class="cal-head">
         <view class="cal-head__nav" data-dir="prev" bindtap="prevMonth">
           <text class="cal-head__arrow">‹</text>
         </view>
@@ -16,16 +26,6 @@
         </view>
       </view>
 
-      <view wx:if="{{sourceChips.length}}" class="cal-src">
-        <view wx:for="{{sourceChips}}" wx:key="key"
-              class="cal-src__chip {{sourceFilter === item.key ? 'cal-src__chip--on' : ''}}"
-              data-key="{{item.key}}" catchtap="pickSource">{{item.label}}</view>
-      </view>
-
-      <view class="cal-week">
-        <text wx:for="{{weekdays}}" wx:key="*this" class="cal-week__cell">{{item}}</text>
-      </view>
-
       <view wx:if="{{loading}}" class="ui-card"><pv-skeleton rows="4" /></view>
 
       <view wx:elif="{{failed}}" class="ui-card">
@@ -34,38 +34,92 @@
         </pv-empty>
       </view>
 
-      <view wx:elif="{{!failed}}" class="cal-grid">
-        <view wx:for="{{cells}}" wx:key="key"
-              class="cal-cell {{item.inMonth ? '' : 'cal-cell--out'}} {{item.key === selected ? 'cal-cell--on' : ''}} {{item.isToday ? 'cal-cell--today' : ''}}"
-              data-key="{{item.key}}" bindtap="selectDay">
-          <text class="cal-cell__day">{{item.day}}</text>
-          <view class="cal-dots">
-            <text wx:if="{{item.hasUrgent}}" class="cal-dot cal-dot--urgent" />
-            <text wx:elif="{{item.hasEvent}}" class="cal-dot cal-dot--event" />
-            <text wx:elif="{{item.hasSchool}}" class="cal-dot cal-dot--school" />
-            <text wx:elif="{{item.hasNotice}}" class="cal-dot cal-dot--notice" />
+      <block wx:elif="{{mode === 'month'}}">
+        <view wx:if="{{sourceChips.length}}" class="cal-src">
+          <view wx:for="{{sourceChips}}" wx:key="key"
+                class="cal-src__chip {{sourceFilter === item.key ? 'cal-src__chip--on' : ''}}"
+                data-key="{{item.key}}" catchtap="pickSource">{{item.label}}</view>
+        </view>
+
+        <view class="cal-week">
+          <text wx:for="{{weekdays}}" wx:key="*this" class="cal-week__cell">{{item}}</text>
+        </view>
+
+        <view class="cal-grid">
+          <view wx:for="{{cells}}" wx:key="key"
+                class="cal-cell {{item.inMonth ? '' : 'cal-cell--out'}} {{item.key === selected ? 'cal-cell--on' : ''}} {{item.isToday ? 'cal-cell--today' : ''}}"
+                data-key="{{item.key}}" bindtap="selectDay">
+            <text class="cal-cell__day">{{item.day}}</text>
+            <view class="cal-dots">
+              <text wx:if="{{item.hasUrgent}}" class="cal-dot cal-dot--urgent" />
+              <text wx:elif="{{item.hasEvent}}" class="cal-dot cal-dot--event" />
+              <text wx:elif="{{item.hasSchool}}" class="cal-dot cal-dot--school" />
+              <text wx:elif="{{item.hasNotice}}" class="cal-dot cal-dot--notice" />
+            </view>
           </view>
         </view>
-      </view>
 
-      <view class="cal-day">
-        <text class="cal-day__title">{{selectedText}}</text>
-        <text class="cal-day__count">{{items.length ? items.length + L.k04 : ''}}</text>
-      </view>
-
-      <pv-empty wx:if="{{!loading && !failed && !items.length}}" title="{{L.empty}}" desc="{{L.emptyDesc}}" />
-
-      <view wx:elif="{{items.length}}" class="ui-list">
-        <view wx:for="{{items}}" wx:key="id" class="cal-item" data-type="{{item.type}}" data-id="{{item.id}}" bindtap="openItem"
-              hover-class="cal-item--pressed" hover-start-time="0">
-          <view class="cal-item__head">
-            <pv-tag text="{{item.type === 'event' ? L.event : item.type === 'school' ? L.school : (item.kind === 'URGENT' ? L.urgent : item.kind === 'CALENDAR' ? L.calendar : L.notice)}}"
-                    type="{{item.kind === 'URGENT' ? 'danger' : item.type === 'event' ? 'tint' : 'neutral'}}" />
-            <text wx:if="{{item.time}}" class="cal-item__time">{{item.time}}</text>
-          </view>
-          <text class="cal-item__title">{{item.title}}</text>
+        <view class="cal-day">
+          <text class="cal-day__title">{{selectedText}}</text>
+          <text class="cal-day__count">{{items.length ? items.length + L.k04 : ''}}</text>
         </view>
-      </view>
+
+        <pv-empty wx:if="{{!items.length}}" title="{{L.empty}}" desc="{{L.emptyDesc}}" />
+
+        <view wx:else class="ui-list ui-list--grouped">
+          <view wx:for="{{items}}" wx:key="id"
+                class="ui-card ui-card--row tl-row {{item.last ? 'ui-card--last' : ''}} {{pressedKey === item.id ? 'tl-row--pressed' : ''}}"
+                data-id="{{item.id}}" data-nav="{{item.nav}}" data-ref="{{item.refId}}"
+                bindtap="openItem" bindtouchstart="pressIn" bindtouchend="pressOut" bindtouchcancel="pressOut">
+            <view class="tl-row__main">
+              <text class="tl-row__title">{{item.title}}</text>
+              <text wx:if="{{item.meta}}" class="tl-row__meta">{{item.meta}}</text>
+            </view>
+            <pv-tag class="tl-row__tag" text="{{item.tagText}}" type="{{item.tagType}}" />
+          </view>
+        </view>
+      </block>
+
+      <block wx:else>
+        <!-- 時間軸：由今天起 60 天，只列有安排的那幾天 -->
+        <view class="tl-head">
+          <text class="tl-head__title">{{L.k12}}</text>
+          <text class="tl-head__range">{{tlRangeText}} · {{tlTotal}}{{L.k23}}</text>
+        </view>
+
+        <view wx:if="{{sourceChips.length}}" class="cal-src">
+          <view wx:for="{{sourceChips}}" wx:key="key"
+                class="cal-src__chip {{sourceFilter === item.key ? 'cal-src__chip--on' : ''}}"
+                data-key="{{item.key}}" catchtap="pickSource">{{item.label}}</view>
+        </view>
+
+        <pv-empty wx:if="{{!tlDays.length}}" title="{{L.k19}}" desc="{{L.k20}}" />
+
+        <block wx:else>
+          <view wx:for="{{tlDays}}" wx:for-item="day" wx:key="key" class="tl-day">
+            <view class="tl-day__head" data-key="{{day.key}}" bindtap="jumpToDay">
+              <view class="tl-day__mark tl-day__mark--{{day.tone}}"></view>
+              <text class="tl-day__date">{{day.label}}</text>
+              <text class="tl-day__week">{{day.weekdayText}}</text>
+              <text wx:if="{{day.badge}}" class="tl-day__badge">{{day.badge}}</text>
+              <text class="tl-day__count ui-num">{{day.count}}</text>
+            </view>
+            <view class="ui-list ui-list--grouped">
+              <view wx:for="{{day.items}}" wx:for-item="row" wx:key="id"
+                    class="ui-card ui-card--row tl-row {{row.last ? 'ui-card--last' : ''}} {{pressedKey === row.id ? 'tl-row--pressed' : ''}}"
+                    data-id="{{row.id}}" data-nav="{{row.nav}}" data-ref="{{row.refId}}"
+                    bindtap="openItem" bindtouchstart="pressIn" bindtouchend="pressOut" bindtouchcancel="pressOut">
+                <view class="tl-row__main">
+                  <text class="tl-row__title">{{row.title}}</text>
+                  <text wx:if="{{row.meta}}" class="tl-row__meta">{{row.meta}}</text>
+                </view>
+                <pv-tag class="tl-row__tag" text="{{row.tagText}}" type="{{row.tagType}}" />
+              </view>
+            </view>
+          </view>
+          <text class="tl-foot">{{L.k22}}</text>
+        </block>
+      </block>
     </view>
   </scroll-view>
 </view>

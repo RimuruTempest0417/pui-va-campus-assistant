@@ -66,15 +66,58 @@
 .cal-day__title { font-size: var(--pv-fs-headline); font-weight: 600; }
 .cal-day__count { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
 
-.cal-item {
-  background: var(--pv-surface); border-radius: var(--pv-r-lg);
-  padding: var(--pv-sp-3); margin-bottom: var(--pv-sp-2);
-  transition: transform var(--pv-dur-release) var(--pv-ease);
+/* 檢視切換：iOS 分段控制（底色 fill、選中白底＋粗體），44pt 高 */
+.cal-modes {
+  display: flex; flex-direction: row;
+  background: var(--pv-fill); border-radius: var(--pv-r-sm);
+  padding: 4rpx; margin: var(--pv-sp-2) 0;
 }
-.cal-item--pressed { transform: scale(0.985); transition-duration: var(--pv-dur-press); }
-.cal-item__head { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
-.cal-item__time { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
-.cal-item__title { display: block; margin-top: var(--pv-sp-1); font-size: var(--pv-fs-callout); font-weight: 600; }
+.cal-mode {
+  flex: 1; height: 80rpx; line-height: 80rpx; text-align: center;
+  border-radius: var(--pv-r-sm);
+  font-size: var(--pv-fs-subhead); color: var(--pv-label-2);
+  transition: background var(--pv-dur-release) var(--pv-ease), color var(--pv-dur-release) var(--pv-ease);
+}
+.cal-mode--on { background: var(--pv-surface); color: var(--pv-label); font-weight: 600; }
+.cal-mode--pressed { opacity: 0.88; }
+
+/* 一天一組：日期標題 + 一張 inset grouped 卡（列與列之間 1rpx 髮絲線） */
+.tl-head {
+  display: flex; flex-direction: row; align-items: baseline; justify-content: space-between;
+  padding: 0 0 var(--pv-sp-2);
+}
+.tl-head__title { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); letter-spacing: var(--pv-ls-section); }
+.tl-head__range { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+
+.tl-day { margin-bottom: var(--pv-sp-4); }
+.tl-day__head {
+  display: flex; flex-direction: row; align-items: center;
+  gap: var(--pv-sp-1);
+  padding: 0 0 var(--pv-sp-1);
+}
+.tl-day__mark { width: 8rpx; height: 28rpx; border-radius: 4rpx; flex-shrink: 0; background: var(--pv-label-3); }
+.tl-day__mark--urgent { background: var(--pv-brand); }
+.tl-day__mark--exam { background: var(--pv-warning); }
+.tl-day__mark--event { background: var(--pv-tint); }
+.tl-day__mark--plain { background: var(--pv-label-3); }
+.tl-day__date { font-size: var(--pv-fs-headline); font-weight: 600; color: var(--pv-label); }
+.tl-day__week { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+.tl-day__badge {
+  flex-shrink: 0; padding: 2rpx 12rpx; border-radius: var(--pv-r-pill);
+  background: var(--pv-tint-soft); color: var(--pv-tint);
+  font-size: var(--pv-fs-caption-2); font-weight: 600;
+}
+.tl-day__count { margin-left: auto; flex-shrink: 0; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+
+/* 一列：標題（可兩行）在左、標籤在右；膠囊不壓縮，標題 min-width: 0 才能換行 */
+.tl-row { display: flex; flex-direction: row; align-items: center; gap: var(--pv-sp-2); padding: 22rpx var(--pv-sp-3); }
+.tl-row__main { flex: 1; min-width: 0; }
+.tl-row__title { display: block; font-size: var(--pv-fs-callout); color: var(--pv-label); }
+.tl-row__meta { display: block; margin-top: 4rpx; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+.tl-row__tag { flex-shrink: 0; }
+.tl-row--pressed { background: var(--pv-fill); }
+
+.tl-foot { display: block; margin-top: var(--pv-sp-2); font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
 
 .cal-src { display: flex; flex-direction: row; flex-wrap: wrap; gap: var(--pv-sp-1); padding-bottom: var(--pv-sp-2); }
 .cal-src__chip {
