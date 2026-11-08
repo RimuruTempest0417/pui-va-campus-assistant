@@ -2837,10 +2837,28 @@ paths:
               schema:
                 type: object
                 properties:
+                  audience: { type: integer, description: 分母＝全體未停用帳號數（＝total，新呼叫端讀這個名字） }
                   total: { type: integer, description: 全體未停用帳號數 }
                   read: { type: integer }
                   unread: { type: integer }
-                  rate: { type: integer, description: 已讀百分比（四捨五入） }
+                  rate:
+                    type: integer
+                    nullable: true
+                    description: 已讀百分比（四捨五入）；分母 0 時回 null，不是 0
+                  byRole:
+                    type: array
+                    description: 六級各一列（即使該級 0 人也照列），順序固定 PARENT→SUPER_ADMIN
+                    items:
+                      type: object
+                      properties:
+                        role: { type: string }
+                        label: { type: string }
+                        total: { type: integer }
+                        read: { type: integer }
+                        unread: { type: integer }
+                        rate: { type: integer, nullable: true, description: 該級分母 0 時 null }
+                  firstReadAt: { type: string, format: date-time, nullable: true }
+                  lastReadAt: { type: string, format: date-time, nullable: true }
                   readers:
                     type: array
                     items:
@@ -2867,6 +2885,38 @@ paths:
                       unread: { type: boolean }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { description: 找不到這則公告或已經刪除 }
+
+  /admin/notices/{id}/read-stats/export:
+    get:
+      tags: [admin]
+      summary: 公告已讀名單 CSV（完整一份，只有網頁後台用；W-107）
+      description: |
+        畫面上的名單各截 30 位，貼群組或逐班催人時需要完整一份。
+        CSV 帶 UTF-8 BOM、`x-row-count` 標頭，並寫一筆 `notice.read_export` 審計（逐人已讀屬個資）。
+        分母口徑與 `/read-stats` 相同：未被停用的帳號。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string, enum: [ALL, READ, UNREAD], default: ALL }
+          description: 只匯出已讀或未讀的人；預設全部
+      responses:
+        '200':
+          description: CSV（text/csv; charset=utf-8，帶 BOM）
+          headers:
+            x-row-count:
+              schema: { type: string }
+              description: 實際匯出的資料列數（不含標頭）
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: 找不到這則公告或已經刪除 }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/notices/{id}/remind:
     post:

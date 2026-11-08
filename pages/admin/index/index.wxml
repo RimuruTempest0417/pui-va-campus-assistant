@@ -174,7 +174,7 @@
                 <pv-tag text="{{item.kind === 'URGENT' ? L.k88 : item.kind === 'CALENDAR' ? L.k89 : L.k90}}" type="{{item.kind === 'URGENT' ? 'danger' : 'neutral'}}" />
               </view>
               <text wx:if="{{item.scheduled}}" class="ui-meta">{{L.k254}} {{item.publishText}}</text>
-              <text class="ui-meta">{{L.k224}} {{item.read}} / {{item.total}}</text>
+              <text class="ui-meta">{{L.k224}} {{item.read}} / {{item.total}}（{{item.readText}}）</text>
               <view class="row-actions">
                 <pv-button wx:if="{{item.scheduled}}" size="sm" type="plain" data-id="{{item.id}}" data-version="{{item.version}}" bind:tap="publishNoticeNow">{{L.k253}}</pv-button>
                 <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="openNoticeStats">{{L.k225}}</pv-button>
@@ -187,6 +187,10 @@
             </view>
             <view wx:if="{{noticeStats && noticeStats.id === item.id}}" class="ui-card ui-card--row {{index === noticeList.length - 1 ? 'ui-card--last' : ''}}">
               <text class="ui-section">{{L.k224}} {{noticeStats.readText}}</text>
+              <text class="ui-section">{{L.k483}}</text>
+              <view wx:for="{{noticeStats.roles}}" wx:key="key" class="ui-meta">{{item.text}}</view>
+              <text wx:if="{{noticeStats.roleEmptyText}}" class="ui-meta">{{noticeStats.roleEmptyText}}</text>
+              <text wx:if="{{noticeStats.lastText}}" class="ui-meta">{{noticeStats.lastText}}</text>
               <text class="ui-meta">{{L.k227}}{{noticeStats.readerText}}</text>
               <text class="ui-meta">{{L.k228}}{{noticeStats.unreadText}}</text>
               <text wx:if="{{noticeStats.moreText}}" class="ui-meta">{{noticeStats.moreText}}</text>

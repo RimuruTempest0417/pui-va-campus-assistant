@@ -335,6 +335,10 @@ Page({
       k236: i18n.pick("：只會通知還沒看過的人，已經看過的不會再收到。"),
       k237: i18n.pick("發送"),
       k238: i18n.pick("催讀失敗"),
+      // W-107 公告已讀率：各級切片與時間
+      k483: i18n.pick("各級已讀"),
+      k484: i18n.pick("最近已讀"),
+      k485: i18n.pick("沒有人可讀"),
       // W-55 活動回饋統計
       k239: i18n.pick("還沒有人回饋"),
       k240: i18n.pick("回覆率 "),
@@ -2628,7 +2632,13 @@ Page({
     try {
       const res = await admin.notices();
       // W-58：排程中的公告要看得見「幾號幾點會上線」，否則老師只能靠記憶
-      const items = (res.items || []).map((n) => Object.assign({}, n, { publishText: dateTimeText(n.publishedAt) }));
+      // W-107：每列直接寫出「已讀 12 / 480（3%）」；分母 0 時寫「沒有人可讀」而不是 0%
+      const items = (res.items || []).map((n) =>
+        Object.assign({}, n, {
+          publishText: dateTimeText(n.publishedAt),
+          readText: n.total ? Math.round((n.read / n.total) * 100) + '%' : this.data.L.k485,
+        }),
+      );
       this.setData({ noticeList: items });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到公告：') + (e.message || e.code) });
@@ -2636,21 +2646,39 @@ Page({
   },
 
   // ───────── W-54 已讀統計／催讀 ─────────
-  /** 取一則公告的已讀／未讀名單；名單在畫面上只放得下前 30 位，多的用旗標提示 */
+  /**
+   * 取一則公告的已讀／未讀名單；名單在畫面上只放得下前 30 位，多的用旗標提示。
+   *
+   * W-107：多顯示「各級已讀」（六級各自 read/total）與最近一次已讀時間 ——
+   * 只有一個總比率時，老師看不出是學生沒看還是家長沒看，也就不知道要催誰。
+   * 該級 0 人的列不顯示（`0 / 0` 只是噪音），全部 0 人時改寫「沒有人可讀」。
+   */
   async loadNoticeStats(id) {
     try {
       const s = await admin.noticeReadStats(id);
+      const L = this.data.L;
       const names = (list) => (list || []).map((u) => u.nickname || i18n.pick('匿名')).join('、').slice(0, 160);
+      const pct = (v) => (v === null || v === undefined ? L.k485 : v + '%');
+      const roles = (s.byRole || [])
+        .filter((r) => r.total > 0)
+        .map((r) => ({
+          key: r.role,
+          text: (r.label || r.role) + ' ' + r.read + ' / ' + r.total + '（' + pct(r.rate) + '）',
+        }));
+      const lastText = s.lastReadAt ? L.k484 + ' ' + dateTimeText(s.lastReadAt) : '';
       this.setData({
         noticeStats: {
           id,
           read: s.read,
           total: s.total,
           rate: s.rate,
-          readText: s.read + ' / ' + s.total + '（' + s.rate + '%）',
-          readerText: names(s.readers) || this.data.L.k230,
-          unreadText: names(s.unreadUsers) || this.data.L.k231,
-          moreText: s.truncated && (s.truncated.readers || s.truncated.unread) ? this.data.L.k229 : '',
+          readText: s.read + ' / ' + s.total + '（' + pct(s.rate) + '）',
+          roles,
+          roleEmptyText: roles.length ? '' : L.k485,
+          lastText,
+          readerText: names(s.readers) || L.k230,
+          unreadText: names(s.unreadUsers) || L.k231,
+          moreText: s.truncated && (s.truncated.readers || s.truncated.unread) ? L.k229 : '',
         },
       });
     } catch (err) {
