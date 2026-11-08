@@ -462,6 +462,25 @@ function save(data) {
   return data;
 }
 
+// ── W-109 個人校曆訂閱（示範模式）──
+// 刻意放在示範資料本體之外：權杖不屬於 seed，加進 seed 就要升 SEED_VERSION，
+// 而升版會把使用者所有示範操作清掉 —— 為了一支權杖不值得。
+const DEMO_CAL_TOKEN_KEY = 'pv_demo_calendar_token';
+
+function demoCalendarToken() {
+  try {
+    return String(wx.getStorageSync(DEMO_CAL_TOKEN_KEY) || '');
+  } catch (e) {
+    return '';
+  }
+}
+
+/** 與後端 `/me/calendar/token` 同一個形狀（前端只認這個） */
+function calendarTokenShape(token) {
+  if (!token) return { enabled: false, token: null, path: null, createdAt: null, days: 90 };
+  return { enabled: true, token: token, path: '/calendar/me.ics?token=' + token, createdAt: null, days: 90 };
+}
+
 // ── W-96 示範通知：分組／分組未讀數／分組全部已讀 ──
 // 這份對照必須與後端 src/lib/notify-groups.ts 一致，否則同一則通知在示範模式與真 API
 // 會落在不同口袋（使用者切了來源就找不到東西，而且沒有任何錯誤訊息）。
@@ -4095,5 +4114,26 @@ module.exports = {
     }
 
     return Promise.reject({ code: 'VALIDATION_FAILED', message: '不支援的匯出類型' });
+  },
+
+  /**
+   * W-109 個人校曆訂閱（示範模式）
+   *
+   * 示範模式沒有真的 `.ics` 端點可以分享，所以只模擬「權杖的存在與撤銷」這件事：
+   * 產生後存進 storage、重新整理還在、按撤銷就消失。刻意**不假裝生出一份日曆**，
+   * 因為那會讓使用者以為訂閱成功了（靜默降級是最容易露餡的地方）。
+   */
+  calendarToken() {
+    const token = demoCalendarToken();
+    return Promise.resolve(calendarTokenShape(token));
+  },
+  rotateCalendarToken() {
+    const token = 'demo' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    wx.setStorageSync(DEMO_CAL_TOKEN_KEY, token);
+    return Promise.resolve(calendarTokenShape(token));
+  },
+  revokeCalendarToken() {
+    wx.removeStorageSync(DEMO_CAL_TOKEN_KEY);
+    return Promise.resolve(calendarTokenShape(''));
   },
 };

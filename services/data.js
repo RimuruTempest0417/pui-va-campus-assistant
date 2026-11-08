@@ -306,4 +306,9 @@ module.exports = {
   // ── W-102 個資自主：匯出自己的成績／出缺席／借閱／請假（回 CSV 純文字）──
   // 刻意不加進 CACHEABLE：這是「當下要帶走的檔案」，不是畫面，快取只會讓人拿到舊資料。
   myExport: (...a) => call('myExport', a),
+
+  // ── W-109 個人校曆訂閱（看狀態／產生／撤銷；.ics 本身由日曆 App 自己抓）──
+  calendarToken: (...a) => call('calendarToken', a),
+  rotateCalendarToken: (...a) => call('rotateCalendarToken', a),
+  revokeCalendarToken: (...a) => call('revokeCalendarToken', a),
 };

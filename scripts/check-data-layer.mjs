@@ -1802,6 +1802,34 @@ check('簽到：我的報名帶簽到時間',
   );
   // 匯出是「當下要帶走的檔案」，進快取只會讓人拿到舊資料
   check('我的資料：匯出不做離線快取', !!block && block.indexOf('myExport') === -1, block ? 'CACHEABLE 沒有 myExport' : '找不到 CACHEABLE');
+
+  // ── W-109 訂閱校曆（示範模式模擬「權杖的存在與撤銷」）──
+  // 重點是「重新整理還在、按撤銷就消失」，而且示範模式不會假裝生出一份日曆。
+  wx.removeStorageSync('pv_demo_calendar_token');
+  const cal0 = await data.calendarToken();
+  check('訂閱校曆：未產生時 enabled=false 且沒有網址', cal0 && cal0.enabled === false && !cal0.path, JSON.stringify(cal0));
+
+  const cal1 = await data.rotateCalendarToken();
+  const calPath = String((cal1 && cal1.path) || '');
+  check(
+    '訂閱校曆：產生後 enabled=true 且路徑帶權杖',
+    cal1 && cal1.enabled === true && calPath.indexOf('/calendar/me.ics?token=') === 0 && cal1.token && calPath.indexOf(cal1.token) > 0,
+    calPath,
+  );
+  const cal2 = await data.calendarToken();
+  check('訂閱校曆：重新整理後權杖還在（不是每次重產生）', cal2 && cal2.enabled === true && cal2.token === cal1.token, String(cal2 && cal2.token));
+
+  const cal3 = await data.rotateCalendarToken();
+  check('訂閱校曆：重新產生會換一支新權杖（舊網址失效）', cal3 && cal3.token && cal3.token !== cal1.token, `${cal1.token} → ${cal3.token}`);
+
+  const cal4 = await data.revokeCalendarToken();
+  const cal5 = await data.calendarToken();
+  check(
+    '訂閱校曆：撤銷後兩個入口都回未開啟',
+    cal4 && cal4.enabled === false && cal5 && cal5.enabled === false && !cal5.path,
+    `${JSON.stringify(cal4)} / ${JSON.stringify(cal5)}`,
+  );
+  check('訂閱校曆：狀態不做離線快取（權杖屬個人狀態）', !!block && block.indexOf('calendarToken') === -1, block ? 'CACHEABLE 沒有 calendarToken' : '找不到 CACHEABLE');
 }
 
 // ── 輸出 ──

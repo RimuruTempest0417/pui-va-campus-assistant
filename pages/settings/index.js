@@ -68,6 +68,23 @@ Page({
       k64: i18n.pick("匯出失敗"),
       k65: i18n.pick("列"),
       k66: i18n.pick("還沒有資料"),
+      // ── W-109 訂閱校曆（把校曆放進手機內建日曆）──
+      k67: i18n.pick("訂閱校曆"),
+      k68: i18n.pick("校曆訂閱"),
+      k69: i18n.pick("未開啟。產生一組網址，貼進手機日曆的「訂閱行事曆」就好。"),
+      k70: i18n.pick("已開啟。日曆 App 每隔幾小時會自己回來更新，不必再打開小程序。"),
+      k71: i18n.pick("產生網址"),
+      k72: i18n.pick("已開啟"),
+      k73: i18n.pick("複製訂閱網址"),
+      k74: i18n.pick("複製"),
+      k75: i18n.pick("重新產生"),
+      k76: i18n.pick("舊網址會立刻失效"),
+      k77: i18n.pick("停止訂閱"),
+      k78: i18n.pick("撤銷"),
+      k79: i18n.pick("這條網址等於一把鑰匙：只給自己的裝置用，不要貼到群組。重新產生或停止訂閱之後，舊網址立刻失效。"),
+      k80: i18n.pick("示範模式沒有真的日曆網址，關掉示範資料後再產生。"),
+      k81: i18n.pick("產生中…"),
+      k82: i18n.pick("已複製訂閱網址"),
 
     };
   },
@@ -98,6 +115,10 @@ Page({
     tfa2faUrl: 'https://pui-va-campus-server.vercel.app/admin/2fa-ui',
     // W-102：正在匯出的那一類（四個按鈕共用一個鎖，避免連點疊出四份檔案）
     exporting: '',
+    // W-109 訂閱校曆：權杖狀態與忙碌鎖（產生／重新產生／撤銷共用）
+    calToken: { enabled: false, path: null },
+    calUrl: '',
+    calBusy: false,
   },
 
   onLoad() {
@@ -130,6 +151,9 @@ Page({
     this.setData(Object.assign({ L: this.labels() }, this.labelOptions()));
     this.refresh();
     this.loadTwoFactor();
+    // 已登入才問訂閱狀態：訪客沒有權杖，問了只會多一條 401
+    if (this.data.loggedIn) this.loadCalendarToken();
+    else this.setData({ calToken: { enabled: false, path: null }, calUrl: '' });
   },
 
   refresh() {
@@ -253,6 +277,104 @@ Page({
     } finally {
       this.setData({ exporting: '' });
     }
+  },
+
+  /**
+   * W-109 訂閱校曆：把「全校公告與活動 ＋ 我的報名／假單／功課截止」放進手機內建日曆。
+   *
+   * 為什麼是網址而不是檔案：日曆 App 訂閱一份網址之後會自己回來更新（每幾小時），
+   * 而 `.ics` 下載一次就永遠停在那一刻。代價是網址裡帶著權杖，所以它必須能一鍵撤銷 ——
+   * 這也是「重新產生」要讓舊網址立刻失效的原因。
+   */
+  async loadCalendarToken() {
+    try {
+      const r = await data.calendarToken();
+      this.applyCalendarToken(r);
+    } catch (e) {
+      // 讀不到就維持「未開啟」：這一列只是設定頁的一個選項，不該為它彈錯
+      this.setData({ calToken: { enabled: false, path: null }, calUrl: '' });
+    }
+  },
+
+  applyCalendarToken(r) {
+    const info = r || {};
+    const path = info.path ? String(info.path) : '';
+    const base = String(request.apiBase() || '').replace(/\/+$/, '');
+    this.setData({
+      calToken: { enabled: !!info.enabled, path: path },
+      // 示範模式產生的網址指不到任何東西，不要讓它看起來像真的可以訂閱
+      calUrl: info.enabled && path && !this.data.isDemo ? base + path : '',
+    });
+  },
+
+  /** 第一次產生（已開啟時不做事：重新產生是另一顆按鈕，要按的人明確知道舊網址會失效） */
+  async ensureCalendarToken() {
+    if (this.data.calBusy) return;
+    if (this.data.calToken && this.data.calToken.enabled) return;
+    this.setData({ calBusy: true });
+    try {
+      this.applyCalendarToken(await data.rotateCalendarToken());
+    } catch (e) {
+      reporter.reportError('[settings.calendarToken] ' + (data.messageOf ? data.messageOf(e) : ''));
+      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+    } finally {
+      this.setData({ calBusy: false });
+    }
+  },
+
+  async rotateCalendarToken() {
+    if (this.data.calBusy) return;
+    const L = this.data.L || {};
+    const ok = await this.confirmCalendar(L.k75 || '', L.k76 || '');
+    if (!ok) return;
+    this.setData({ calBusy: true });
+    try {
+      this.applyCalendarToken(await data.rotateCalendarToken());
+    } catch (e) {
+      reporter.reportError('[settings.calendarRotate] ' + (data.messageOf ? data.messageOf(e) : ''));
+      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+    } finally {
+      this.setData({ calBusy: false });
+    }
+  },
+
+  async revokeCalendarToken() {
+    if (this.data.calBusy) return;
+    const L = this.data.L || {};
+    const ok = await this.confirmCalendar(L.k77 || '', L.k76 || '');
+    if (!ok) return;
+    this.setData({ calBusy: true });
+    try {
+      await data.revokeCalendarToken();
+      this.setData({ calToken: { enabled: false, path: null }, calUrl: '' });
+    } catch (e) {
+      reporter.reportError('[settings.calendarRevoke] ' + (data.messageOf ? data.messageOf(e) : ''));
+      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+    } finally {
+      this.setData({ calBusy: false });
+    }
+  },
+
+  copyCalendarUrl() {
+    const url = String(this.data.calUrl || '');
+    if (!url) return;
+    const L = this.data.L || {};
+    wx.setClipboardData({
+      data: url,
+      success: () => wx.showToast({ title: L.k82 || '', icon: 'none' }),
+    });
+  },
+
+  /** 一律用原生 showModal：自製的「再按一次」在 Skyline 下第二次點擊落不到同一顆按鈕 */
+  confirmCalendar(title, content) {
+    return new Promise((resolve) => {
+      wx.showModal({
+        title: String(title || ''),
+        content: String(content || ''),
+        success: (res) => resolve(!!(res && res.confirm)),
+        fail: () => resolve(false),
+      });
+    });
   },
 
   goNotifications() {

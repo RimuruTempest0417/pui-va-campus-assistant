@@ -908,6 +908,61 @@ paths:
         '403': { description: 不是自己的資料（家長未綁定時同一句訊息） }
         '422': { description: type 不認識 }
 
+  /me/calendar/token:
+    get:
+      tags: [me]
+      summary: 我的校曆訂閱狀態（未產生過回 enabled=false）
+      description: |
+        個人校曆訂閱：日曆 App 訂閱時不會帶 `Authorization`，所以 `.ics` 那一端用網址上的權杖。
+        這裡只回狀態與相對路徑，前端自己接上目前的後端位址（換 API base 不必重新產生權杖）。
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled: { type: boolean }
+                  token: { type: string, nullable: true }
+                  path:
+                    type: string
+                    nullable: true
+                    description: "相對路徑，例如 /calendar/me.ics?token=…"
+                  createdAt: { type: string, format: date-time, nullable: true }
+                  days: { type: integer, description: 預設視窗天數（90） }
+        '401': { description: 未登入 }
+    post:
+      tags: [me]
+      summary: 產生／重新產生校曆訂閱權杖（舊權杖立刻失效）
+      description: |
+        重新產生＝直接換掉舊值。外流的網址從此 404，這比「兩支並存」安全。
+        權杖是 128 bit 隨機值，沒有時效，只能由使用者自己撤銷。
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 新的權杖與路徑（形狀同 GET）
+          content:
+            application/json:
+              schema: { type: object }
+        '401': { description: 未登入 }
+        '429': { description: 產生太頻繁（每分鐘 20 次） }
+    delete:
+      tags: [me]
+      summary: 撤銷校曆訂閱權杖（舊網址立刻 404）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 已撤銷
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled: { type: boolean, enum: [false] }
+        '401': { description: 未登入 }
+
   /parents/me/children:
     get:
       tags: [parents]
@@ -3084,6 +3139,32 @@ paths:
           content:
             text/calendar:
               schema: { type: string }
+        '422': { description: days 不在 7–365 之間 }
+
+  /calendar/me.ics:
+    get:
+      tags: [calendar]
+      summary: 個人校曆訂閱（權杖在網址上，日曆 App 自己回來抓）
+      description: |
+        給日曆 App「訂閱」用的網址：公開的公告與活動（與 `/calendar/export.ics` 同一支查詢）
+        加上只有本人看得到的行程 —— 我的報名（正取／候補）、已批准的假單、本人班別的功課截止。
+        報名資訊是**合併**進該活動的說明，不會多出第二個事件；個人行程的 `UID` 帶 `me-` 前綴。
+        權杖不符、已撤銷、帳號停用一律 404（不揭露權杖是否存在）；`cache-control: private`。
+      parameters:
+        - { in: query, name: token, required: true, schema: { type: string } }
+        - in: query
+          name: days
+          schema: { type: integer, minimum: 7, maximum: 365, default: 90 }
+      responses:
+        '200':
+          description: iCalendar 文件（`x-event-count` 總筆數、`x-personal-count` 個人行程筆數）
+          headers:
+            x-event-count: { schema: { type: integer } }
+            x-personal-count: { schema: { type: integer } }
+          content:
+            text/calendar:
+              schema: { type: string }
+        '404': { description: 權杖不存在／已撤銷／帳號停用 }
         '422': { description: days 不在 7–365 之間 }
 
   # ── 活動回饋（W-31） ──

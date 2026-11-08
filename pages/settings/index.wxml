@@ -108,6 +108,40 @@
         </view>
       </pv-card>
 
+      <!-- W-109 訂閱校曆：日曆 App 訂閱網址後自己回來更新（含我的報名／假單／功課截止） -->
+      <block wx:if="{{loggedIn}}">
+        <text class="set-group">{{L.k67}}</text>
+        <pv-card>
+          <view class="set-row" bindtap="ensureCalendarToken">
+            <view class="set-row__main">
+              <text class="set-row__title">{{L.k68}}</text>
+              <text class="set-row__sub">{{isDemo ? L.k80 : (calToken.enabled ? L.k70 : L.k69)}}</text>
+            </view>
+            <text class="set-row__value">{{calBusy ? L.k81 : (calToken.enabled ? L.k72 : L.k71)}}</text>
+          </view>
+          <view wx:if="{{calUrl}}" class="set-row set-row--sep" bindtap="copyCalendarUrl">
+            <view class="set-row__main">
+              <text class="set-row__title">{{L.k73}}</text>
+              <text class="set-row__sub">{{calUrl}}</text>
+            </view>
+            <text class="set-row__value">{{L.k74}}</text>
+          </view>
+          <view wx:if="{{calToken.enabled}}" class="set-row set-row--sep" bindtap="rotateCalendarToken">
+            <view class="set-row__main">
+              <text class="set-row__title">{{L.k75}}</text>
+              <text class="set-row__sub">{{L.k76}}</text>
+            </view>
+          </view>
+          <view wx:if="{{calToken.enabled}}" class="set-row set-row--sep" bindtap="revokeCalendarToken">
+            <view class="set-row__main">
+              <text class="set-row__title">{{L.k77}}</text>
+            </view>
+            <text class="set-row__value">{{L.k78}}</text>
+          </view>
+          <text class="set-hint">{{L.k79}}</text>
+        </pv-card>
+      </block>
+
       <!-- W-102 我的資料：自己的紀錄自己帶走（複製成 CSV 文字，不需要下載權限） -->
       <block wx:if="{{loggedIn}}">
         <text class="set-group">{{L.k55}}</text>
