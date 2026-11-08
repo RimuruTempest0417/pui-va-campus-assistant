@@ -4439,6 +4439,76 @@ paths:
             text/csv:
               schema: { type: string }
 
+  /admin/library/overdue:
+    get:
+      tags: [admin]
+      summary: 全校逾期清單（館員催還；按逾期天數由多到少）
+      description: >-
+        只列未歸還且已過應還日的書。逾期天數按澳門日界算，
+        days=0 與 days=1 同義（當天到期不算逾期）。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: days
+          in: query
+          schema: { type: integer, minimum: 0, maximum: 365, default: 0 }
+          description: '0 = 只要逾期就列；7 = 只列逾期滿 7 天以上'
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        '200':
+          description: 逾期清單＋摘要
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        book: { type: object }
+                        user: { type: object }
+                        studentNo: { type: string, description: '由 sc: 帳號抽出的純學號；微信帳號為空字串' }
+                        borrowedAt: { type: string, format: date-time }
+                        dueAt: { type: string, format: date-time }
+                        overdueDays: { type: integer }
+                        renewals: { type: integer }
+                  total: { type: integer }
+                  page: { type: integer }
+                  limit: { type: integer }
+                  hasMore: { type: boolean }
+                  days: { type: integer }
+                  summary:
+                    type: object
+                    properties:
+                      count: { type: integer }
+                      worstDays: { type: integer }
+                      people: { type: integer }
+                      withinWeek: { type: integer }
+        '403': { description: '權限不足（需要 library:manage）' }
+
+  /admin/library/overdue/export:
+    get:
+      tags: [admin]
+      summary: 逾期清單 CSV（UTF-8 BOM；與清單同一份名單）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: days
+          in: query
+          schema: { type: integer, minimum: 0, maximum: 365, default: 0 }
+      responses:
+        '200':
+          description: 'CSV 檔（text/csv；x-row-count 為列數；上限 5000 列；寫 library.overdue_export 審計）'
+          content:
+            text/csv:
+              schema: { type: string }
+
   /admin/library/remind:
     post:
       tags: [admin]
