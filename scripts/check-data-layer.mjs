@@ -1830,6 +1830,20 @@ check('簽到：我的報名帶簽到時間',
     `${JSON.stringify(cal4)} / ${JSON.stringify(cal5)}`,
   );
   check('訂閱校曆：狀態不做離線快取（權杖屬個人狀態）', !!block && block.indexOf('calendarToken') === -1, block ? 'CACHEABLE 沒有 calendarToken' : '找不到 CACHEABLE');
+
+  // ── W-110 訂閱再加深：天數可調（網址帶 days，權杖不變）──
+  const calD30 = await data.rotateCalendarToken(30);
+  check(
+    '訂閱校曆：選 30 天會寫進網址（換範圍不必重產生權杖）',
+    calD30 && calD30.days === 30 && String(calD30.path || '').indexOf('&days=30') > 0,
+    String(calD30 && calD30.path),
+  );
+  const calD90 = await data.calendarToken(90);
+  check(
+    '訂閱校曆：預設 90 天不帶 days 參數（權杖不變、網址維持短）',
+    calD90 && calD90.enabled === true && calD90.token === calD30.token && String(calD90.path || '').indexOf('days=') === -1,
+    String(calD90 && calD90.path),
+  );
 }
 
 // ── 輸出 ──

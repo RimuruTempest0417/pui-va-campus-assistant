@@ -299,11 +299,12 @@ module.exports = {
   // ── W-109 個人校曆訂閱 ──
   // 日曆 App 訂閱時不會帶 Authorization，所以取 `.ics` 的那一端用網址上的權杖；
   // 這三支只負責「看狀態／產生／撤銷」，本身仍要登入。
-  calendarToken() {
-    return http.get('/me/calendar/token');
+  calendarToken(days) {
+    return http.get('/me/calendar/token', { days: days });
   },
-  rotateCalendarToken() {
-    return http.post('/me/calendar/token', {});
+  rotateCalendarToken(days) {
+    // days 走 query（POST 的 data 是 body，帶不上查詢參數）
+    return http.post('/me/calendar/token' + (days ? '?days=' + days : ''), {});
   },
   revokeCalendarToken() {
     return http.del('/me/calendar/token');

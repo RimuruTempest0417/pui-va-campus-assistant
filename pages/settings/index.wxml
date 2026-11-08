@@ -119,6 +119,17 @@
             </view>
             <text class="set-row__value">{{calBusy ? L.k81 : (calToken.enabled ? L.k72 : L.k71)}}</text>
           </view>
+          <view wx:if="{{calToken.enabled}}" class="set-row set-row--sep set-cal">
+            <view class="set-row__main">
+              <text class="set-row__title">{{L.k83}}</text>
+              <text class="set-row__sub">{{L.k84}}</text>
+            </view>
+            <view class="seg set-cal__seg">
+              <view wx:for="{{calDayOptions}}" wx:key="key"
+                    class="seg__item {{calDays === item.key ? 'seg__item--on' : ''}}"
+                    data-key="{{item.key}}" catchtap="pickCalDays">{{item.label}}</view>
+            </view>
+          </view>
           <view wx:if="{{calUrl}}" class="set-row set-row--sep" bindtap="copyCalendarUrl">
             <view class="set-row__main">
               <text class="set-row__title">{{L.k73}}</text>

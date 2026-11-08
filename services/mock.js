@@ -476,9 +476,17 @@ function demoCalendarToken() {
 }
 
 /** 與後端 `/me/calendar/token` 同一個形狀（前端只認這個） */
-function calendarTokenShape(token) {
-  if (!token) return { enabled: false, token: null, path: null, createdAt: null, days: 90 };
-  return { enabled: true, token: token, path: '/calendar/me.ics?token=' + token, createdAt: null, days: 90 };
+function calendarTokenShape(token, days) {
+  const span = Number(days) === 30 || Number(days) === 180 ? Number(days) : 90;
+  const suffix = span === 90 ? '' : '&days=' + span;
+  if (!token) return { enabled: false, token: null, path: null, createdAt: null, days: span };
+  return {
+    enabled: true,
+    token: token,
+    path: '/calendar/me.ics?token=' + token + suffix,
+    createdAt: null,
+    days: span,
+  };
 }
 
 // ── W-96 示範通知：分組／分組未讀數／分組全部已讀 ──
@@ -4123,14 +4131,14 @@ module.exports = {
    * 產生後存進 storage、重新整理還在、按撤銷就消失。刻意**不假裝生出一份日曆**，
    * 因為那會讓使用者以為訂閱成功了（靜默降級是最容易露餡的地方）。
    */
-  calendarToken() {
+  calendarToken(days) {
     const token = demoCalendarToken();
-    return Promise.resolve(calendarTokenShape(token));
+    return Promise.resolve(calendarTokenShape(token, days));
   },
-  rotateCalendarToken() {
+  rotateCalendarToken(days) {
     const token = 'demo' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
     wx.setStorageSync(DEMO_CAL_TOKEN_KEY, token);
-    return Promise.resolve(calendarTokenShape(token));
+    return Promise.resolve(calendarTokenShape(token, days));
   },
   revokeCalendarToken() {
     wx.removeStorageSync(DEMO_CAL_TOKEN_KEY);

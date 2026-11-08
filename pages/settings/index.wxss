@@ -28,3 +28,7 @@
 
 /* 同一張卡裡的多列：用髮絲線分隔，不要每列一張卡 */
 .set-row--sep { border-top: 1rpx solid var(--pv-sep); }
+
+/* W-110 訂閱範圍：標題一行、分段控制佔滿整行（三個數字擠在右邊會被壓扁） */
+.set-cal { flex-direction: column; align-items: stretch; gap: var(--pv-sp-2); }
+.set-cal__seg { width: 100%; }

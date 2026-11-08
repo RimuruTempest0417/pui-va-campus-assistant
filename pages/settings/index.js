@@ -7,6 +7,14 @@ const roleLabel = require('../../utils/role').label;
 const adminApi = require('../../services/admin');
 const reporter = require('../../utils/reporter');
 
+/**
+ * W-110 訂閱校曆的天數（30／90／180）。存 storage：重新編譯、換頁再回來都還在。
+ * 刻意只給三個選項而不是自由輸入：日曆看多遠是「習慣」不是「參數」，
+ * 三個夠用，也不會有人填 100000 天讓後端每次抓整個學年。
+ */
+const CAL_DAYS_KEY = 'pv_cal_days';
+const CAL_DAYS = [30, 90, 180];
+
 Page({
   labels() {
     return {
@@ -85,6 +93,12 @@ Page({
       k80: i18n.pick("示範模式沒有真的日曆網址，關掉示範資料後再產生。"),
       k81: i18n.pick("產生中…"),
       k82: i18n.pick("已複製訂閱網址"),
+      // ── W-110 訂閱範圍（天數）＋借閱／借用也在日曆裡 ──
+      k83: i18n.pick("訂閱範圍"),
+      k84: i18n.pick("日曆上要看多遠。改完不必重新產生網址，日曆 App 下次抓取就換成新的範圍。"),
+      k85: i18n.pick("30 天"),
+      k86: i18n.pick("90 天"),
+      k87: i18n.pick("180 天"),
 
     };
   },
@@ -119,6 +133,9 @@ Page({
     calToken: { enabled: false, path: null },
     calUrl: '',
     calBusy: false,
+    // W-110 訂閱範圍（天數）：30／90／180 三選一，預設 90
+    calDays: 90,
+    calDayOptions: [],
   },
 
   onLoad() {
@@ -144,16 +161,49 @@ Page({
         { key: 'zh-Hant', label: i18n.pick('繁體') },
         { key: 'zh-Hans', label: i18n.pick('簡體') },
       ],
+      calDayOptions: [
+        { key: 30, label: i18n.pick('30 天') },
+        { key: 90, label: i18n.pick('90 天') },
+        { key: 180, label: i18n.pick('180 天') },
+      ],
     };
   },
 
   onShow() {
-    this.setData(Object.assign({ L: this.labels() }, this.labelOptions()));
+    this.setData(Object.assign({ L: this.labels(), calDays: this.calDaysPref() }, this.labelOptions()));
     this.refresh();
     this.loadTwoFactor();
     // 已登入才問訂閱狀態：訪客沒有權杖，問了只會多一條 401
     if (this.data.loggedIn) this.loadCalendarToken();
     else this.setData({ calToken: { enabled: false, path: null }, calUrl: '' });
+  },
+
+  /** W-110 訂閱範圍：讀 storage，只認 30／90／180，其餘一律回 90 */
+  calDaysPref() {
+    try {
+      const v = Number(wx.getStorageSync(CAL_DAYS_KEY));
+      if (CAL_DAYS.indexOf(v) !== -1) return v;
+    } catch (e) {
+      // 讀不到用預設
+    }
+    return 90;
+  },
+
+  /** 換天數：權杖不變，只是換一條帶 `days=` 的網址 */
+  async pickCalDays(e) {
+    const key = Number((e && e.currentTarget && e.currentTarget.dataset.key) || 0);
+    if (CAL_DAYS.indexOf(key) === -1 || key === this.data.calDays || this.data.calBusy) return;
+    this.setData({ calDays: key, calBusy: true });
+    try {
+      wx.setStorageSync(CAL_DAYS_KEY, key);
+      this.applyCalendarToken(await data.calendarToken(key));
+    } catch (err) {
+      // 讀不到就留在原本的範圍：這一列只是顯示設定，不該為它彈錯
+      reporter.reportError('[settings.pickCalDays] ' + (data.messageOf ? data.messageOf(err) : ''));
+      this.setData({ calDays: this.calDaysPref() });
+    } finally {
+      this.setData({ calBusy: false });
+    }
   },
 
   refresh() {
@@ -288,7 +338,7 @@ Page({
    */
   async loadCalendarToken() {
     try {
-      const r = await data.calendarToken();
+      const r = await data.calendarToken(this.data.calDays || 90);
       this.applyCalendarToken(r);
     } catch (e) {
       // 讀不到就維持「未開啟」：這一列只是設定頁的一個選項，不該為它彈錯
@@ -300,8 +350,17 @@ Page({
     const info = r || {};
     const path = info.path ? String(info.path) : '';
     const base = String(request.apiBase() || '').replace(/\/+$/, '');
+    const days = CAL_DAYS.indexOf(Number(info.days)) !== -1 ? Number(info.days) : this.data.calDays || 90;
+    if (days !== this.data.calDays) {
+      try {
+        wx.setStorageSync(CAL_DAYS_KEY, days);
+      } catch (e) {
+        // storage 不可用只影響下次開啟時的預設值
+      }
+    }
     this.setData({
       calToken: { enabled: !!info.enabled, path: path },
+      calDays: days,
       // 示範模式產生的網址指不到任何東西，不要讓它看起來像真的可以訂閱
       calUrl: info.enabled && path && !this.data.isDemo ? base + path : '',
     });
@@ -313,7 +372,7 @@ Page({
     if (this.data.calToken && this.data.calToken.enabled) return;
     this.setData({ calBusy: true });
     try {
-      this.applyCalendarToken(await data.rotateCalendarToken());
+      this.applyCalendarToken(await data.rotateCalendarToken(this.data.calDays || 90));
     } catch (e) {
       reporter.reportError('[settings.calendarToken] ' + (data.messageOf ? data.messageOf(e) : ''));
       wx.showToast({ title: data.messageOf(e), icon: 'none' });
@@ -329,7 +388,7 @@ Page({
     if (!ok) return;
     this.setData({ calBusy: true });
     try {
-      this.applyCalendarToken(await data.rotateCalendarToken());
+      this.applyCalendarToken(await data.rotateCalendarToken(this.data.calDays || 90));
     } catch (e) {
       reporter.reportError('[settings.calendarRotate] ' + (data.messageOf ? data.messageOf(e) : ''));
       wx.showToast({ title: data.messageOf(e), icon: 'none' });

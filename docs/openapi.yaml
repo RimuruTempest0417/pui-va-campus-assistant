@@ -915,7 +915,13 @@ paths:
       description: |
         個人校曆訂閱：日曆 App 訂閱時不會帶 `Authorization`，所以 `.ics` 那一端用網址上的權杖。
         這裡只回狀態與相對路徑，前端自己接上目前的後端位址（換 API base 不必重新產生權杖）。
+        `days` 只影響回傳的 `path`（要帶幾天）；**換天數不必重新產生權杖**，預設 90 時路徑不帶參數。
       security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: days
+          schema: { type: integer, minimum: 7, maximum: 365, default: 90 }
+          description: 希望網址涵蓋的天數（設定頁提供 30／90／180）
       responses:
         '200':
           description: OK
@@ -3147,7 +3153,8 @@ paths:
       summary: 個人校曆訂閱（權杖在網址上，日曆 App 自己回來抓）
       description: |
         給日曆 App「訂閱」用的網址：公開的公告與活動（與 `/calendar/export.ics` 同一支查詢）
-        加上只有本人看得到的行程 —— 我的報名（正取／候補）、已批准的假單、本人班別的功課截止。
+        加上只有本人看得到的行程 —— 我的報名（正取／候補）、已批准的假單、本人班別的功課截止、
+        **未歸還的借閱到期**（`me-loan-`）與**已批准的場地／器材借用**（`me-booking-`）。
         報名資訊是**合併**進該活動的說明，不會多出第二個事件；個人行程的 `UID` 帶 `me-` 前綴。
         權杖不符、已撤銷、帳號停用一律 404（不揭露權杖是否存在）；`cache-control: private`。
       parameters:
