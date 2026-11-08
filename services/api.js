@@ -289,6 +289,8 @@ module.exports = {
   acceptRepair(id) { return http.post('/admin/repairs/' + id + '/accept', {}); },
   finishRepair(id, body) { return http.post('/admin/repairs/' + id + '/done', body || {}); },
   repairStats() { return http.get('/admin/repairs/stats'); },
+  // W-113 審批時效：假單／場地器材／報修三組用同一把尺（days 7–365，預設 30）
+  approvalStats(days) { return http.get('/admin/approvals/stats', days ? { days: days } : {}); },
 
   // ── W-102 個資自主：匯出自己的成績／出缺席／借閱／請假（後端回 CSV 純文字）──
   // `text: true` 讓請求層不要嘗試 JSON 解析；家長帶 studentId 取子女，其餘一律只拿自己。

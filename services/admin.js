@@ -417,4 +417,11 @@ module.exports = {
   repairStats() {
     return http.get('/admin/repairs/stats');
   },
+  /**
+   * W-113 審批時效：假單／場地器材／報修三組同一把尺。
+   * 回的是「近 N 天送出的單，我們多快處理完」，沒有樣本時各時數是 null（不是 0）。
+   */
+  approvalStats(days) {
+    return http.get('/admin/approvals/stats', days ? { days: days } : {});
+  },
 };

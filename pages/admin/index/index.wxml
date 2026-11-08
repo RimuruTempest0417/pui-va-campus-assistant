@@ -56,6 +56,24 @@
             <pv-button size="sm" type="plain" bind:tap="logout">{{L.k10}}</pv-button>
           </view>
         </pv-card>
+
+        <!-- W-113 審批時效：假單／場地器材／報修三組同一把尺（中位時數）。
+             沒有樣本顯示「—」而不是 0；取不到就整段不出現，上面的概況照常。 -->
+        <block wx:if="{{approvalRows.length}}">
+          <text class="ui-section">{{L.k486}}</text>
+          <view class="ui-list ui-list--grouped">
+            <view wx:for="{{approvalRows}}" wx:key="key"
+                  class="ui-card ui-card--row {{index === approvalRows.length - 1 ? 'ui-card--last' : ''}}">
+              <view class="ui-row-between">
+                <text class="ui-title ap-row__label">{{item.label}}</text>
+                <text class="ui-meta ap-row__hours">{{item.p50Text}}</text>
+              </view>
+              <text class="ui-meta">{{item.metaText}}</text>
+            </view>
+          </view>
+          <text class="ui-meta ap-note">{{L.k487}}</text>
+        </block>
+        <text wx:if="{{approvalHint}}" class="ui-meta ap-note">{{approvalHint}}</text>
       </block>
 
       <!-- 待審認領 -->

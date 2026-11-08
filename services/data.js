@@ -302,6 +302,8 @@ module.exports = {
   acceptRepair: (...a) => call('acceptRepair', a),
   finishRepair: (...a) => call('finishRepair', a),
   repairStats: (...a) => call('repairStats', a),
+  // W-113 審批時效（示範層用同一組示範資料算出同形狀，斷網演示時這一段也不能是空的）
+  approvalStats: (...a) => call('approvalStats', a),
 
   // ── W-102 個資自主：匯出自己的成績／出缺席／借閱／請假（回 CSV 純文字）──
   // 刻意不加進 CACHEABLE：這是「當下要帶走的檔案」，不是畫面，快取只會讓人拿到舊資料。

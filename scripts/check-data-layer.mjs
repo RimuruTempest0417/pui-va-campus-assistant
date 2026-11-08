@@ -1539,6 +1539,84 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-113 審批時效（三組同一把尺；樣本只算已批准、沒有樣本回 null）──
+{
+  const wide = await data.approvalStats(90);
+  const narrow = await data.approvalStats(7);
+  const gOf = (res, key) => (res.groups || []).filter((g) => g.key === key)[0] || {};
+  const leaveWide = gOf(wide, 'leave');
+  const leaveNarrow = gOf(narrow, 'leave');
+  const bookingWide = gOf(wide, 'booking');
+  const repairWide = gOf(wide, 'repair');
+
+  check(
+    '審批時效：三組齊全（假單／場地器材／報修）',
+    (wide.groups || []).length === 3 && ['leave', 'booking', 'repair'].every((key) => !!gOf(wide, key).counts),
+    (wide.groups || []).map((g) => g.key).join('、'),
+  );
+  check(
+    '審批時效：件數等於各狀態加總（送出多少張對得起來）',
+    (wide.groups || []).every((g) => {
+      const sum = Object.keys(g.counts).filter((k) => k !== 'total').reduce((n, k) => n + (g.counts[k] || 0), 0);
+      return sum === g.counts.total;
+    }),
+    (wide.groups || []).map((g) => g.counts.total).join('／'),
+  );
+  check(
+    '審批時效：已駁回不進時效（三個樣本會把中位數拉到 20 小時）',
+    leaveWide.hours.samples === 2 && leaveWide.hours.p50 === 10 && leaveWide.hours.avg === 15,
+    `${leaveWide.hours.samples} 個樣本／p50 ${leaveWide.hours.p50}／avg ${leaveWide.hours.avg}`,
+  );
+  check(
+    '審批時效：沒有樣本回 null 不是 0（近 7 天沒有已批准的假單）',
+    leaveNarrow.hours.samples === 0 && leaveNarrow.hours.p50 === null && leaveNarrow.hours.avg === null,
+    `${leaveNarrow.hours.samples} 個樣本／p50 ${String(leaveNarrow.hours.p50)}`,
+  );
+  check(
+    '審批時效：借用與報修用同一個形狀（p50／p90／avg 都有鍵）',
+    ['p50', 'p90', 'avg'].every((k) => k in bookingWide.hours && k in repairWide.hours) &&
+      !!repairWide.doneHours &&
+      ['p50', 'p90', 'avg'].every((k) => k in repairWide.doneHours),
+    `借用 ${bookingWide.hours.samples} 樣本／報修完成 ${repairWide.doneHours.samples} 樣本`,
+  );
+
+  // 畫面文字由 utils/approval.js 的純函式組出來：規則（沒樣本顯示「—」、報修分接單與完成）要在這裡釘住
+  const approvalUtil = require(join(here, '..', 'utils', 'approval.js'));
+  const t = {
+    unit: '小時', near: '近', dayUnit: '天送出的單', countUnit: '張', pending: '待審', approved: '已批',
+    average: '平均', acceptAverage: '接單平均', done: '完成', inProgress: '處理中', median: '中位',
+    labels: { leave: '假單', booking: '場地／器材', repair: '報修' },
+  };
+  const blankRow = approvalUtil.summarize(
+    { days: 30, groups: [{ key: 'leave', counts: { total: 0, pending: 0, approved: 0 }, hours: { samples: 0, p50: null, p90: null, avg: null } }] },
+    t,
+  )[0];
+  check(
+    '審批時效：沒有樣本顯示「—」不是 0 小時',
+    blankRow.p50Text.indexOf('—') !== -1 && blankRow.metaText.indexOf('0 小時') === -1,
+    blankRow.p50Text + ' / ' + blankRow.metaText,
+  );
+  const rowTexts = approvalUtil.summarize(wide, t);
+  check(
+    '審批時效：三行都有名稱與中位數',
+    rowTexts.length === 3 && rowTexts.every((row) => !!row.label && row.p50Text.indexOf('中位') === 0),
+    rowTexts.map((row) => row.label).join('、'),
+  );
+  check(
+    '審批時效：報修那行分開寫接單與完成',
+    rowTexts[2].metaText.indexOf('接單平均') !== -1 && rowTexts[2].metaText.indexOf('完成') !== -1,
+    rowTexts[2].metaText.slice(0, 48),
+  );
+
+  const adminSrcAp = readFileSync(join(here, '..', 'services', 'admin.js'), 'utf8');
+  const adminWxmlAp = readFileSync(join(here, '..', 'pages', 'admin', 'index', 'index.wxml'), 'utf8');
+  check(
+    '審批時效：有真 API 端點＋畫面入口（不是只有方法沒人呼叫）',
+    adminSrcAp.indexOf('/admin/approvals/stats') !== -1 && adminWxmlAp.indexOf('approvalRows') !== -1,
+    '概況 → 審批時效',
+  );
+}
+
 // ── W-94 教師端班級總覽（聚合數字必須與各模組清單同一份口徑）──
 {
   await data.switchDemoUser('示範老師', 'demo-user', 'TEACHER');

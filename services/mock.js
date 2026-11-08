@@ -223,7 +223,7 @@ function seed() {
       { id: 'r6', kind: 'EQUIPMENT', name: '舊投影機（已下架）', location: '器材室 A', description: '燈泡壞了，等報廢。', openFrom: '08:00', openTo: '17:00', maxHours: 4, needsApproval: false, status: 'ARCHIVED', version: 0 },
     ],
     resourceBookings: [
-      { id: 'rb1', resourceId: 'r1', userId: 'demo-other', startAt: venue.slotIso(venue.dateOptions(3)[1].value, '10:00'), endAt: venue.slotIso(venue.dateOptions(3)[1].value, '12:00'), purpose: '化學科分組實驗', status: 'APPROVED', createdAt: now - 6 * h, rejectReason: null },
+      { id: 'rb1', resourceId: 'r1', userId: 'demo-other', startAt: venue.slotIso(venue.dateOptions(3)[1].value, '10:00'), endAt: venue.slotIso(venue.dateOptions(3)[1].value, '12:00'), purpose: '化學科分組實驗', status: 'APPROVED', createdAt: now - 6 * h, reviewedAt: now - 4 * h, rejectReason: null },
       { id: 'rb2', resourceId: 'r1', userId: 'demo-other', startAt: venue.slotIso(venue.dateOptions(3)[1].value, '14:00'), endAt: venue.slotIso(venue.dateOptions(3)[1].value, '16:00'), purpose: '物理科補課', status: 'PENDING', createdAt: now - 2 * h, rejectReason: null },
       { id: 'rb3', resourceId: 'r2', userId: 'demo-user', startAt: venue.slotIso(venue.dateOptions(3)[2].value, '15:00'), endAt: venue.slotIso(venue.dateOptions(3)[2].value, '16:30'), purpose: '班際籃球練習', status: 'PENDING', createdAt: now - 3 * h, rejectReason: null },
     ],
@@ -1132,6 +1132,88 @@ function shapeRepair(row) {
     acceptedAt: row.acceptedAt ? new Date(row.acceptedAt).toISOString() : null,
     completedAt: row.completedAt ? new Date(row.completedAt).toISOString() : null,
     hours: hours,
+  };
+}
+
+/**
+ * W-113 審批時效（示範層）
+ *
+ * 與後端 `/admin/approvals/stats` 同一組口徑：窗口看「送出時間」、樣本只算已批准
+ * （報修只算已接單）、沒有樣本回 null 不是 0、百分位用 nearest-rank。
+ * 示範層自己算一套（例如拿平均數代替中位數）的話，斷網演示與線上會出現兩組數字，
+ * 而 Gary 的驗收方式正好是把兩邊對照著看。
+ */
+function demoHours(rows, fromMs, toMs, pickFrom, pickTo, allow) {
+  return rows
+    .filter((row) => row.createdAt != null && row.createdAt >= fromMs && row.createdAt <= toMs && allow(row))
+    .map((row) => (pickTo(row) - pickFrom(row)) / 3600000)
+    .filter((value) => typeof value === 'number' && isFinite(value) && value >= 0);
+}
+
+function demoPercentile(values, p) {
+  const list = values.slice().sort((a, b) => a - b);
+  if (!list.length) return null;
+  const rank = Math.ceil((p / 100) * list.length);
+  const value = list[Math.min(list.length, Math.max(1, rank)) - 1];
+  return typeof value === 'number' ? Math.round(value * 10) / 10 : null;
+}
+
+function demoBucket(values) {
+  const avg = values.length
+    ? Math.round((values.reduce((sum, v) => sum + v, 0) / values.length) * 10) / 10
+    : null;
+  return { samples: values.length, p50: demoPercentile(values, 50), p90: demoPercentile(values, 90), avg: avg };
+}
+
+function demoApprovalStats(data, days) {
+  const to = Date.now();
+  const from = to - days * 86400000;
+  const leaves = data.leaves || [];
+  const bookings = data.resourceBookings || [];
+  const repairs = data.repairs || [];
+
+  const inWindow = (row) => row.createdAt != null && row.createdAt >= from && row.createdAt <= to;
+  const countBy = (rows, pick) => {
+    const out = {};
+    rows.forEach((row) => {
+      const key = pick(row);
+      out[key] = (out[key] || 0) + 1;
+    });
+    return out;
+  };
+  const lc = countBy(leaves.filter(inWindow), (row) => row.status);
+  const bc = countBy(bookings.filter(inWindow), (row) => row.status);
+  const rc = countBy(repairs.filter(inWindow), (row) => row.status);
+  // 件數一律用「視窗內有幾列」算，不要拿各狀態相加 —— 少了某個狀態時 undefined 會變成 NaN
+  const totalOf = (rows) => rows.filter(inWindow).length;
+
+  const leaveHours = demoHours(leaves, from, to, (r) => r.createdAt, (r) => r.reviewedAt, (r) => r.status === 'APPROVED' && r.reviewedAt != null);
+  const bookingHours = demoHours(bookings, from, to, (r) => r.createdAt, (r) => r.reviewedAt, (r) => r.status === 'APPROVED' && r.reviewedAt != null);
+  const acceptHours = demoHours(repairs, from, to, (r) => r.createdAt, (r) => r.acceptedAt, (r) => r.status !== 'CANCELLED' && r.acceptedAt != null);
+  const doneHours = demoHours(repairs, from, to, (r) => r.createdAt, (r) => r.completedAt, (r) => r.status === 'DONE' && r.completedAt != null);
+
+  return {
+    days: days,
+    from: new Date(from).toISOString(),
+    to: new Date(to).toISOString(),
+    groups: [
+      {
+        key: 'leave',
+        counts: { total: totalOf(leaves), pending: lc.PENDING || 0, approved: lc.APPROVED || 0, rejected: lc.REJECTED || 0, cancelled: lc.CANCELLED || 0 },
+        hours: demoBucket(leaveHours),
+      },
+      {
+        key: 'booking',
+        counts: { total: totalOf(bookings), pending: bc.PENDING || 0, approved: bc.APPROVED || 0, rejected: bc.REJECTED || 0, cancelled: bc.CANCELLED || 0 },
+        hours: demoBucket(bookingHours),
+      },
+      {
+        key: 'repair',
+        counts: { total: totalOf(repairs), pending: rc.PENDING || 0, inProgress: rc.IN_PROGRESS || 0, done: rc.DONE || 0, cancelled: rc.CANCELLED || 0 },
+        hours: demoBucket(acceptHours),
+        doneHours: demoBucket(doneHours),
+      },
+    ],
   };
 }
 
@@ -4160,6 +4242,18 @@ module.exports = {
     }
 
     return Promise.reject({ code: 'VALIDATION_FAILED', message: '不支援的匯出類型' });
+  },
+
+  /**
+   * W-113 審批時效（示範層）：假單／場地器材／報修三組用同一把尺。
+   * 沒有樣本時 p50／p90／avg 回 null —— 畫面要顯示「—」，不是 0 小時。
+   */
+  approvalStats(query) {
+    // 與 services/api.js 同一個簽名：可以傳數字（90）或 { days: 90 }
+    const q = typeof query === 'number' ? { days: query } : query || {};
+    const raw = Number(q.days);
+    const days = raw >= 7 && raw <= 365 ? Math.round(raw) : 30;
+    return Promise.resolve(demoApprovalStats(db(), days));
   },
 
   /**

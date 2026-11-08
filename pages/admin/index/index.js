@@ -8,6 +8,7 @@ const theme = require('../../../utils/theme');
 const { decorateBook, decorateLoan } = require('../../../utils/book');
 const venueUtil = require('../../../utils/venue');
 const giveawayUtil = require('../../../utils/giveaway');
+const approval = require('../../../utils/approval');
 
 const TABS = [
   { key: 'stats', label: i18n.pick('概況') },
@@ -266,6 +267,15 @@ Page({
       k157: i18n.pick("本週概況"),
       k158: i18n.pick("累計"),
       k159: i18n.pick("點卡片跳到對應分頁"),
+      // ── W-113 審批時效（概況多一段三列表）──
+      k486: i18n.pick("審批時效"),
+      k487: i18n.pick("樣本只算已批准；已取消與已駁回不進時效，沒有樣本顯示「—」"),
+      k488: i18n.pick("假單"),
+      k489: i18n.pick("場地／器材"),
+      k490: i18n.pick("報修"),
+      k491: i18n.pick("待審"),
+      k492: i18n.pick("中位"),
+      k493: i18n.pick("近"),
       // W-41：登入失敗鎖定（帳號層級，與 IP 限流互補）
       k160: i18n.pick(" · 已鎖定"),
       k161: i18n.pick("解除鎖定"),
@@ -670,6 +680,9 @@ Page({
     repairStatsText: '',
     repairByLocation: [],
     repairTimeline: [],
+    // ── W-113 審批時效：假單／場地器材／報修三組同一把尺（沒有樣本顯示「—」）──
+    approvalRows: [],
+    approvalHint: '',
     // ── 課表（W-73）：匯入 CSV 先檢查再寫入；下面列出每個班幾格 ──
     ttCsv: '',
     ttBusy: false,
@@ -975,6 +988,39 @@ Page({
       this.setData({ stats: stats, ovCards: this.buildOvCards(ov) });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到數據：') + (e.message || e.code) });
+    }
+    // W-113 審批時效單獨打：它與上面兩支無關，失敗時只要這一段不出現，不要讓整頁變紅。
+    this.loadApprovalStats();
+  },
+
+  /**
+   * 審批時效（W-113）：後台最常被問的是「假單送了多久會批」。
+   * 三組用同一把尺（中位時數），沒有樣本顯示「—」而不是 0 —— 0 小時的意思是「立刻處理完」。
+   * 取不到就整段不出現，概況其他數字照常。
+   */
+  async loadApprovalStats() {
+    try {
+      const res = await admin.approvalStats();
+      const L = this.data.L;
+      // 文字組裝在 utils/approval.js 的純函式裡（check-data-layer 直接餵假資料驗規則）
+      const rows = approval.summarize(res, {
+        unit: i18n.pick('小時'),
+        near: L.k493,
+        dayUnit: i18n.pick('天送出的單'),
+        countUnit: i18n.pick('張'),
+        pending: L.k491,
+        approved: i18n.pick('已批'),
+        average: i18n.pick('平均'),
+        acceptAverage: i18n.pick('接單平均'),
+        done: i18n.pick('完成'),
+        inProgress: i18n.pick('處理中'),
+        median: L.k492,
+        labels: { leave: L.k488, booking: L.k489, repair: L.k490 },
+      });
+      this.setData({ approvalRows: rows, approvalHint: '' });
+    } catch (e) {
+      // 只有這一段消失，不影響概況其他數字；但把原因留在 hint 方便排查
+      this.setData({ approvalRows: [], approvalHint: i18n.pick('審批時效暫時取不到：') + ((e && (e.message || e.code)) || '') });
     }
   },
 

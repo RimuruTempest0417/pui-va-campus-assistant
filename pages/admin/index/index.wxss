@@ -237,3 +237,9 @@
 }
 .pick--on { background: var(--pv-tint); border-color: var(--pv-tint); }
 .pick__mark { color: var(--pv-on-tint); font-size: var(--pv-fs-caption-2); line-height: 1; }
+
+/* W-113 審批時效：左邊名稱佔滿剩餘寬度，右邊「中位 X 小時」不被壓扁
+   （標題寫 flex:1 而不設 min-width:0 時，右邊的小字實測會被擠成看不見）。 */
+.ap-row__label { flex: 1; min-width: 0; }
+.ap-row__hours { flex-shrink: 0; margin-left: var(--pv-sp-2); }
+.ap-note { display: block; margin-top: var(--pv-sp-1); }
