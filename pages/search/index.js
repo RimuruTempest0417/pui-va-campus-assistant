@@ -28,6 +28,8 @@ function typeLabel(type) {
   if (type === 'resource') return i18n.pick('場地與器材');
   if (type === 'leave') return i18n.pick('我的假單');
   if (type === 'repair') return i18n.pick('我的報修');
+  if (type === 'loan') return i18n.pick('我的借閱');
+  if (type === 'booking') return i18n.pick('我的借用');
   return i18n.pick('公告');
 }
 
@@ -52,6 +54,18 @@ function repairStatusLabel(status) {
   if (status === 'DONE') return i18n.pick('已完成');
   if (status === 'CANCELLED') return i18n.pick('已取消');
   return i18n.pick('待接單');
+}
+
+/** 借閱狀態（W-111）：badge 是 ACTIVE／OVERDUE —— 搜自己借的書，最要緊的是「有沒有逾期」 */
+function loanBadge(status) {
+  return status === 'OVERDUE' ? i18n.pick('已逾期') : i18n.pick('借閱中');
+}
+
+/** 借用狀態（W-111）：badge 直接是狀態碼（只會是待審批／已批准兩種） */
+function bookingStatusLabel(status) {
+  if (status === 'APPROVED') return i18n.pick('已批准');
+  if (status === 'REJECTED') return i18n.pick('已駁回');
+  return i18n.pick('待審批');
 }
 
 function noticeBadge(kind) {
@@ -90,6 +104,9 @@ const ROUTE = {
   // 我的假單／我的報修（W-105）：都跳各自的清單頁，不接 id（假單與報修沒有詳情頁）
   leave: '/pages/leaves/mine/index',
   repair: '/pages/repair/index/index',
+  // 我的借閱／我的借用（W-111）：跳館藏與場地詳情，接的是 book／resource 的 id（後端回的就是它）
+  loan: '/pages/library/detail/index?id=',
+  booking: '/pages/venues/detail/index?id=',
 };
 
 /** 哪些類別的網址要吃 id（功課／假單／報修不吃：它們跳的是整頁清單） */
@@ -105,6 +122,8 @@ const NEEDS_ID = {
   resource: true,
   leave: false,
   repair: false,
+  loan: true,
+  booking: true,
 };
 
 /** 餐別文字：午餐／小賣部。與菜單頁同一個語彙，不另造新詞 */
@@ -194,6 +213,17 @@ function decorateRow(row) {
     badgeLabel = repairStatusLabel(row.badge);
     badgeTag = row.badge === 'DONE' ? 'tint' : row.badge === 'CANCELLED' ? 'neutral' : 'warning';
     metaText = (row.location ? row.location + ' · ' : '') + fromNow(row.date);
+  } else if (row.type === 'loan') {
+    // 我的借閱（W-111）：`date` 是到期日（不是借出日），第二行直接寫「到期 2026/11/19」——
+    // 搜自己借的書，要看的就是「什麼時候要還」；逾期的那筆轉警示色。
+    badgeLabel = loanBadge(row.badge);
+    badgeTag = row.badge === 'OVERDUE' ? 'warning' : 'tint';
+    metaText = i18n.pick('到期') + ' ' + dateTimeText(row.date).split(' ')[0];
+  } else if (row.type === 'booking') {
+    // 我的借用（W-111）：`date` 是使用時段的開始時間，第二行寫「時間 · 地點」。
+    badgeLabel = bookingStatusLabel(row.badge);
+    badgeTag = row.badge === 'APPROVED' ? 'tint' : 'warning';
+    metaText = dateTimeText(row.date) + (row.location ? ' · ' + row.location : '');
   } else {
     const t = (row.badge || '').split(':')[0];
     const s = (row.badge || '').split(':')[1];
@@ -217,9 +247,9 @@ Page({
   labels() {
     return {
       title: i18n.pick('搜尋'),
-      placeholder: i18n.pick('搜尋公告、活動、失物、轉贈、館藏、場地、菜單、功課、假單與報修'),
+      placeholder: i18n.pick('搜尋公告、活動、失物、轉贈、館藏、場地、菜單、功課、假單、報修與借閱'),
       hintTitle: i18n.pick('想找什麼？'),
-      hintDesc: i18n.pick('輸入關鍵字，一次搜遍公告、活動、失物、轉贈、館藏、場地、菜單、功課、提案，以及你自己送出的假單與報修'),
+      hintDesc: i18n.pick('輸入關鍵字，一次搜遍公告、活動、失物、轉贈、館藏、場地、菜單、功課、提案，以及你自己送出的假單、報修、借閱與借用'),
       recent: i18n.pick('最近搜尋'),
       clearRecent: i18n.pick('清除'),
       failed: i18n.pick('搜尋失敗'),
@@ -266,7 +296,7 @@ Page({
         const patch = { typeFilters: filters };
         // 已經切到功課／假單／報修才發現沒權限（例如切了角色）→ 回到「全部」，不要停在一個空結果上
         if (
-          ['homework', 'leave', 'repair'].indexOf(this.data.typeFilter) !== -1 &&
+          ['homework', 'leave', 'repair', 'loan', 'booking'].indexOf(this.data.typeFilter) !== -1 &&
           !filters.some((f) => f.key === this.data.typeFilter)
         ) {
           patch.typeFilter = 'all';
@@ -308,6 +338,9 @@ Page({
       // W-105：我的假單／我的報修 —— 與功課同一組身分（學生以上、家長沒有）
       list.push({ key: 'leave', label: i18n.pick('假單') });
       list.push({ key: 'repair', label: i18n.pick('報修') });
+      // W-111：我的借閱／我的借用 —— 同一組身分（library:borrow／resource:book 都是學生以上）
+      list.push({ key: 'loan', label: i18n.pick('借閱') });
+      list.push({ key: 'booking', label: i18n.pick('借用') });
     }
     list.push({ key: 'proposal', label: i18n.pick('提案') });
     return list;

@@ -1727,7 +1727,7 @@ module.exports = {
     const low = q.toLowerCase();
     const data = db();
     const now = Date.now();
-    const wanted = (opts.types || 'notice,event,item,giveaway,menu,homework,proposal,book,resource,leave,repair').split(',').map((s) => s.trim());
+    const wanted = (opts.types || 'notice,event,item,giveaway,menu,homework,proposal,book,resource,leave,repair,loan,booking').split(',').map((s) => s.trim());
     const groups = [];
 
     const hitScore = (title) => (String(title || '').toLowerCase().indexOf(low) !== -1 ? 2 : 1);
@@ -1937,6 +1937,44 @@ module.exports = {
         .sort((a, b) => b.score - a.score || String(b.date).localeCompare(String(a.date)))
         .slice(0, limit);
       groups.push({ type: 'repair', count: items.length, items: items });
+    }
+
+    // W-111：我的借閱／我的場地借用 —— 與後端同一條規則：
+    // 只認登入者（不吃參數）、借閱只回未歸還、借用只回待審批與已批准，家長與訪客兩組都不出現。
+    if (wanted.indexOf('loan') !== -1 && canMine) {
+      const books = data.books || [];
+      const items = (data.loans || [])
+        .filter((row) => row.userId === meSelf.id && !row.returnedAt)
+        .map((row) => ({ row: row, book: books.filter((b) => b.id === row.bookId)[0] }))
+        .filter((x) => x.book)
+        .filter((x) => [x.book.title, x.book.author, x.book.callNumber].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((x) => ({
+          id: x.book.id, type: 'loan', title: x.book.title, snippet: bestSnippet([x.book.author, x.book.callNumber]),
+          badge: new Date(x.row.dueAt).getTime() < now ? 'OVERDUE' : 'ACTIVE',
+          date: new Date(x.row.dueAt).toISOString(), score: hitScore(x.book.title),
+        }))
+        // 到期日由近到遠：與後端同一個排序（搜自己借的書，最想知道哪本最快到期）
+        .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)))
+        .slice(0, limit);
+      groups.push({ type: 'loan', count: items.length, items: items });
+    }
+
+    if (wanted.indexOf('booking') !== -1 && canMine) {
+      const resources = data.resources || [];
+      const items = (data.resourceBookings || [])
+        .filter((row) => row.userId === meSelf.id)
+        .filter((row) => row.status === 'PENDING' || row.status === 'APPROVED')
+        .map((row) => ({ row: row, res: resources.filter((r) => r.id === row.resourceId)[0] }))
+        .filter((x) => x.res)
+        .filter((x) => [x.res.name, x.res.location, x.row.purpose].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((x) => ({
+          id: x.res.id, type: 'booking', title: x.res.name, snippet: bestSnippet([x.row.purpose]),
+          badge: x.row.status, date: new Date(x.row.startAt).toISOString(), score: hitScore(x.res.name),
+          location: x.res.location || '',
+        }))
+        .sort((a, b) => b.score - a.score || String(b.date).localeCompare(String(a.date)))
+        .slice(0, limit);
+      groups.push({ type: 'booking', count: items.length, items: items });
     }
 
     const kept = groups.filter((g) => g.count > 0);

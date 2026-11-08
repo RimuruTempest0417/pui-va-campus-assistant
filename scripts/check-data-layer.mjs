@@ -420,6 +420,61 @@ check(
   'pages/search/index.js',
 );
 
+// ── W-111 我的借閱／我的借用進搜尋 ──
+// 與 W-105 同一個形狀：只認登入者、只回「還沒結束」的那幾筆，家長與訪客連分組都不出現。
+const sLoan = await data.search({ q: '街巷', types: 'loan' });
+const sLoanGroup = sLoan.groups.filter((g) => g.type === 'loan')[0] || { count: 0, items: [] };
+check(
+  '搜尋：我的借閱也搜得到（打「街巷」找到自己借的那本）',
+  sLoanGroup.count === 1 && (sLoanGroup.items[0] || {}).id === 'b1' && (sLoanGroup.items[0] || {}).badge === 'ACTIVE',
+  sLoanGroup.items.map((i) => i.id + '·' + i.badge).join(' / ') || '沒有結果',
+);
+// b7 那筆已經逾期 6 天：搜尋結果要說得出來（逾期不看就沒有人會還書）
+const sLoanLate = await data.search({ q: '飲食', types: 'loan' });
+const sLoanLateItem = ((sLoanLate.groups.filter((g) => g.type === 'loan')[0] || {}).items || [])[0] || {};
+check('搜尋：逾期借閱標成 OVERDUE', sLoanLateItem.badge === 'OVERDUE', sLoanLateItem.badge || '沒有結果');
+// l3／l4 是別人的借閱（demo-other）：關鍵字對得上也不該出現
+const sLoanOther = await data.search({ q: '演算法', types: 'loan' });
+check('搜尋：別人的借閱搜不到', sLoanOther.total === 0, `total ${sLoanOther.total}`);
+
+const sBooking = await data.search({ q: '籃球', types: 'booking' });
+const sBookingGroup = sBooking.groups.filter((g) => g.type === 'booking')[0] || { count: 0, items: [] };
+check(
+  '搜尋：我的借用也搜得到（打「籃球」找到自己排的那個時段）',
+  sBookingGroup.count === 1 && (sBookingGroup.items[0] || {}).id === 'r2' && (sBookingGroup.items[0] || {}).badge === 'PENDING',
+  sBookingGroup.items.map((i) => i.id + '·' + i.badge).join(' / ') || '沒有結果',
+);
+check(
+  '搜尋：借用結果帶地點（第二行要知道在哪裡）',
+  (sBookingGroup.items[0] || {}).location === '地下操場',
+  (sBookingGroup.items[0] || {}).location || '沒有地點',
+);
+// rb1／rb2 是別人的借用（demo-other）：物理實驗室也搜不到
+const sBookingOther = await data.search({ q: '實驗室', types: 'booking' });
+check('搜尋：別人的借用搜不到', sBookingOther.total === 0, `total ${sBookingOther.total}`);
+
+// 家長：兩類都不出現（家長沒有 library:borrow／resource:book）
+await data.switchDemoUser('示範家長', 'demo-parent', 'PARENT');
+const sLoanParent = await data.search({ q: '街巷', types: 'loan' });
+const sBookingParent = await data.search({ q: '籃球', types: 'booking' });
+check(
+  '搜尋：家長看不到借閱與借用兩組',
+  sLoanParent.groups.length === 0 && sBookingParent.groups.length === 0,
+  `借閱 ${sLoanParent.groups.length} 組／借用 ${sBookingParent.groups.length} 組`,
+);
+await data.switchDemoUser('示範學生', 'demo-user', 'STUDENT');
+
+check(
+  '搜尋：借閱與借用有類型 chip，且跳館藏／場地詳情（接 id）',
+  searchPageJs.indexOf("key: 'loan'") !== -1 &&
+    searchPageJs.indexOf("key: 'booking'") !== -1 &&
+    searchPageJs.indexOf("loan: '/pages/library/detail/index?id='") !== -1 &&
+    searchPageJs.indexOf("booking: '/pages/venues/detail/index?id='") !== -1 &&
+    searchPageJs.indexOf('loan: true') !== -1 &&
+    searchPageJs.indexOf('booking: true') !== -1,
+  'pages/search/index.js',
+);
+
 
 
 
