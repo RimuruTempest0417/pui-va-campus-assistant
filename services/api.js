@@ -264,6 +264,8 @@ module.exports = {
   homeworkPending(id) { return http.get('/homework/' + id + '/pending'); },
   /** W-94：教師端班級總覽（班級由後端從帳號決定，前端不傳） */
   classOverview(query) { return http.get('/teacher/class', query || {}); },
+  /** W-106：本班出席率月報（與後台月報同一份聚合，班級由後端從帳號決定） */
+  classAttendance(query) { return http.get('/teacher/class/attendance', query || {}); },
 
   // ── W-88 校園提案（查詢訪客可看；提案／連署要登入；回覆是校內職員）──
   listProposals(query) { return http.get('/proposals', query || {}); },

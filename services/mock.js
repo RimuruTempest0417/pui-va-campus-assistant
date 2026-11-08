@@ -769,6 +769,29 @@ function leaveDate(offsetDays) {
   return d.toISOString().slice(0, 10);
 }
 
+function pad2(n) {
+  return (n < 10 ? '0' : '') + n;
+}
+
+/** 示範層的「這個月」`YYYY-MM`：用本地時間取，不要用 toISOString（月初 8 點前會少一個月） */
+function demoMonth(now) {
+  const d = now || new Date();
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1);
+}
+
+/**
+ * 示範層的穩定雜湊（0–1）：出席率月報的缺席／請假／遲到要「每次打開都一樣」。
+ * 用 Math.random 的話，同一天重新整理數字就會變 —— 示範時看起來像資料在亂跳。
+ */
+function demoRatio(seed) {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i += 1) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 4294967296;
+}
+
 const LEAVE_KIND_LABEL = { SICK: '病假', PERSONAL: '事假', OFFICIAL: '公假' };
 const LEAVE_STATUS_LABEL = { PENDING: '待審批', APPROVED: '已批准', REJECTED: '已駁回', CANCELLED: '已取消' };
 
@@ -3489,6 +3512,92 @@ module.exports = {
           .map((row) => ({ id: row.id, location: row.location, equipment: row.equipment, status: row.status, urgency: row.urgency, createdAt: new Date(row.createdAt).toISOString() })),
       },
       generatedAt: new Date().toISOString(),
+    });
+  },
+
+  /**
+   * W-106 本班出席率月報（示範層）
+   *
+   * 形狀與後端 `/teacher/class/attendance` 一致，規則也照抄：
+   * 非教職員 403、老師帶別班 403、沒班級 422、沒有紀錄時出席率是 `null`。
+   *
+   * 示範資料是**用日期與座號算出來的穩定值**（`demoRatio`），不是 `Math.random`：
+   * 同一個月重新整理幾次，缺席人數都要一樣 —— 示範時數字亂跳比沒有資料更難看。
+   * 只算週一到週五，而且不含未來日期（老師看的是「這個月到目前為止」）。
+   */
+  classAttendance(query) {
+    const data = db();
+    const me = data.user || {};
+    const manager = ['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (!manager) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '本班出席率是老師與校方在看的' });
+    }
+    const q = query || {};
+    const myClass = [me.grade, me.className].filter(Boolean).join('') || DEMO_CLASS;
+    const isAdmin = me.role === 'ADMIN' || me.role === 'SUPER_ADMIN';
+    if (q.className && q.className !== myClass && !isAdmin) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只能看自己那一班' });
+    }
+    const className = (isAdmin && q.className) || myClass;
+    if (!className) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '你的帳號還沒有班級資料，請找校務處在後台設定班級' });
+    }
+
+    const month = /^\d{4}-\d{2}$/.test(q.month || '') ? q.month : demoMonth();
+    const year = Number(month.slice(0, 4));
+    const mon = Number(month.slice(5, 7));
+    const classSize = 24; // 與 classOverview／homeworkStats 同一個示範班級人數
+    const todayKey = leaveDate(0);
+
+    const byDay = [];
+    const summary = { records: 0, present: 0, late: 0, absent: 0, leave: 0, rate: null };
+    const daysInMonth = new Date(year, mon, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = year + '-' + pad2(mon) + '-' + pad2(day);
+      if (date > todayKey) break; // 未來不造假資料
+      const weekday = new Date(year, mon - 1, day).getDay();
+      if (weekday === 0 || weekday === 6) continue; // 週末不記出缺席
+      let absent = 0;
+      let leave = 0;
+      let late = 0;
+      for (let i = 0; i < classSize; i += 1) {
+        const r = demoRatio(month + '|' + date + '|' + i);
+        if (r < 0.03) absent += 1;
+        else if (r < 0.06) leave += 1;
+        else if (r < 0.14) late += 1;
+      }
+      const records = classSize;
+      const present = records - absent - leave - late;
+      const rate = Math.round(((records - absent) / records) * 1000) / 10;
+      byDay.push({ date: date, day: day, records: records, late: late, absent: absent, rate: rate });
+      summary.records += records;
+      summary.present += present;
+      summary.late += late;
+      summary.absent += absent;
+      summary.leave += leave;
+    }
+    summary.rate = summary.records ? Math.round(((summary.records - summary.absent) / summary.records) * 1000) / 10 : null;
+
+    const worstDays = byDay
+      .filter((row) => row.absent > 0)
+      .sort((a, b) => b.absent - a.absent || String(a.date).localeCompare(String(b.date)))
+      .slice(0, 3)
+      .map((row) => ({ date: row.date, day: row.day, absent: row.absent, records: row.records, rate: row.rate }));
+
+    return Promise.resolve({
+      className: className,
+      grade: me.grade || '',
+      role: me.role,
+      month: month,
+      yearTerm: q.yearTerm || null,
+      range: { from: year + '-' + pad2(mon) + '-01', to: year + '-' + pad2(mon) + '-' + pad2(daysInMonth) },
+      days: daysInMonth,
+      activeDays: byDay.length,
+      students: byDay.length ? classSize : 0,
+      summary: summary,
+      byDay: byDay,
+      worstDays: worstDays,
+      truncated: false,
     });
   },
 

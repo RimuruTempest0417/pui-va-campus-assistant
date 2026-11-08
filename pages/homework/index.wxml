@@ -39,6 +39,44 @@
               <text class="hw-ov__line-text">{{item.text}}</text>
             </view>
           </view>
+
+          <!-- W-106：本班出席率月報（點一列原地展開每日明細，不開新頁） -->
+          <view wx:if="{{attendance}}" class="hw-ov__block">
+            <view
+              class="hw-att__head {{attPressed ? 'is-pressed' : ''}}"
+              bindtap="toggleAttendance"
+              bindtouchstart="pressAtt"
+              bindtouchend="releaseAtt"
+              bindtouchcancel="releaseAtt"
+            >
+              <view class="hw-att__text">
+                <text class="hw-att__title">{{L.k55}}</text>
+                <text class="hw-att__sub">{{attendance.subText}}</text>
+              </view>
+              <text class="hw-att__rate ui-num">{{attendance.rateText}}</text>
+            </view>
+            <view wx:if="{{attendanceOpen}}" class="hw-att__detail">
+              <view wx:if="{{attendance.empty}}" class="hw-ov__line">
+                <text class="hw-ov__line-text">{{L.k60}}</text>
+              </view>
+              <block wx:else>
+                <text class="hw-ov__caption">{{L.k58}}</text>
+                <view wx:for="{{attendance.dayLines}}" wx:key="key" class="hw-ov__line">
+                  <text class="hw-att__date">{{item.dateText}}</text>
+                  <text class="hw-ov__line-text">{{item.text}}</text>
+                </view>
+                <view wx:if="{{attendance.worstLines.length}}" class="hw-att__worst">
+                  <text class="hw-ov__caption">{{L.k59}}</text>
+                  <view wx:for="{{attendance.worstLines}}" wx:key="key" class="hw-ov__line">
+                    <text class="hw-att__date">{{item.dateText}}</text>
+                    <text class="hw-ov__line-text">{{item.text}}</text>
+                  </view>
+                </view>
+              </block>
+              <text class="hw-att__hint">{{L.k62}}</text>
+            </view>
+            <text wx:else class="hw-att__hint">{{L.k61}}</text>
+          </view>
         </view>
       </view>
 

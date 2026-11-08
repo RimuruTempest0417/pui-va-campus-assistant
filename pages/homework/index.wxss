@@ -66,6 +66,25 @@
 .hw-ov__line { display: flex; flex-direction: row; align-items: center; padding: 4rpx 0; }
 .hw-ov__line-text { flex: 1; min-width: 0; font-size: var(--pv-fs-footnote); color: var(--pv-label); }
 
+/* W-106：本班出席率（一列可點，原地展開每日明細；按壓回饋自己設 state，不用 hover-class） */
+.hw-att__head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--pv-sp-2);
+  min-height: 88rpx;
+  transition: transform 180ms cubic-bezier(.32, .72, 0, 1), opacity 180ms cubic-bezier(.32, .72, 0, 1);
+}
+.hw-att__head.is-pressed { transform: scale(0.96); opacity: 0.88; transition-duration: 60ms; }
+.hw-att__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2rpx; }
+.hw-att__title { font-size: var(--pv-fs-subhead); color: var(--pv-label); }
+.hw-att__sub { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+.hw-att__rate { flex-shrink: 0; font-size: var(--pv-fs-title-3); color: var(--pv-label); }
+.hw-att__detail { margin-top: 4rpx; }
+.hw-att__date { width: 96rpx; flex-shrink: 0; font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+.hw-att__worst { margin-top: var(--pv-sp-2); }
+.hw-att__hint { display: block; padding: 4rpx 0; font-size: var(--pv-fs-caption-1); color: var(--pv-tint); }
+
 /* 一列＝一項功課：整個 row 都是可點區域（打勾），不做成一項一張卡 */
 .hw-row {
   display: flex;

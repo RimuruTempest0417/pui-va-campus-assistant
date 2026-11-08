@@ -78,6 +78,16 @@ Page({
       k53: i18n.pick('沒有待審假單'),
       // ── W-98 離線快取 ──
       k54: i18n.pick('離線資料 · 上次更新'),
+      // ── W-106 本班出席率月報 ──
+      k55: i18n.pick('本月出席率'),
+      k56: i18n.pick('人日'),
+      k57: i18n.pick('缺席'),
+      k58: i18n.pick('每日明細'),
+      k59: i18n.pick('缺席最多的三天'),
+      k60: i18n.pick('本月還沒有出缺席紀錄'),
+      k61: i18n.pick('看每日明細'),
+      k62: i18n.pick('收起明細'),
+      k63: i18n.pick('天有紀錄'),
     };
   },
 
@@ -101,6 +111,10 @@ Page({
     overviewStats: [],
     subjectLines: [],
     leaveLines: [],
+    // W-106：本班出席率月報（老師在看的那一列；點一下原地展開）
+    attendance: null,
+    attendanceOpen: false,
+    attPressed: false,
     formOpen: false,
     formSubject: '',
     formTitle: '',
@@ -179,6 +193,53 @@ Page({
     };
   },
 
+  /**
+   * W-106：本班出席率月報的顯示形狀
+   *
+   * 所有文字在 JS 裡組好（`dayLines`／`worstLines`），WXML 只做 `{{item.text}}`：
+   * 模板裡拼字串會讓繁／簡切換時有一半翻不到，而且日期格式在兩邊會長得不一樣。
+   * `rate` 是 `null` 時寫「—」而不是 0% —— 這個月一筆紀錄都沒有，不代表全班曠課。
+   */
+  attendanceView(info) {
+    const L = this.data.L;
+    if (!info || !info.summary) return null;
+    const s = info.summary;
+    const rateText = s.rate == null ? '—' : String(s.rate) + '%';
+    const subText = (L.k57 || '') + ' ' + (s.absent || 0) + ' ' + (L.k56 || '') +
+      ' · ' + (info.activeDays || 0) + ' ' + (L.k63 || '');
+    const dayLines = (info.byDay || []).map((row) => ({
+      key: row.date,
+      dateText: String(row.date).slice(5).replace('-', '/'),
+      text: (L.k57 || '') + ' ' + (row.absent || 0) + ' ' + (L.k56 || '') +
+        ' · ' + (row.rate == null ? '—' : String(row.rate) + '%'),
+    }));
+    const worstLines = (info.worstDays || []).map((row) => ({
+      key: row.date,
+      dateText: String(row.date).slice(5).replace('-', '/'),
+      text: (L.k57 || '') + ' ' + (row.absent || 0) + ' ' + (L.k56 || ''),
+    }));
+    return {
+      month: info.month,
+      rateText: rateText,
+      subText: subText,
+      dayLines: dayLines,
+      worstLines: worstLines,
+      empty: !dayLines.length,
+    };
+  },
+
+  toggleAttendance() {
+    this.setData({ attendanceOpen: !this.data.attendanceOpen, attPressed: false });
+  },
+
+  pressAtt() {
+    this.setData({ attPressed: true });
+  },
+
+  releaseAtt() {
+    this.setData({ attPressed: false });
+  },
+
   async load() {
     this.setData({ loading: true, failed: false });
     data.offlineReset(); // W-98：這批載入有沒有吃到快取
@@ -189,6 +250,10 @@ Page({
       // W-94：老師另有「班級總覽」。取不到（例如帳號還沒設班級 → 422）就整區不出現，
       // 不要讓一個附加資訊把整頁打成「載入失敗」。
       const overview = res.canCreate ? await data.classOverview().catch(() => null) : null;
+      // W-106：本班出席率月報。取不到（沒班級 422、舊後端 404）就整列不出現，
+      // 不要讓一個附加資訊把整頁打成「載入失敗」。
+      const attendanceRaw = res.canCreate ? await data.classAttendance().catch(() => null) : null;
+      const attendance = this.attendanceView(attendanceRaw);
       const countById = {};
       if (stats && stats.items) stats.items.forEach((s) => { countById[s.id] = s; });
       const items = (res.items || []).map((item) => {
@@ -218,6 +283,8 @@ Page({
         overviewStats: view.overviewStats,
         subjectLines: view.subjectLines,
         leaveLines: view.leaveLines,
+        attendance: attendance,
+        attendanceOpen: this.data.attendanceOpen && !!attendance,
         offlineText: data.offlineText(this.data.L.k54 || ''),
       });
     } catch (e) {

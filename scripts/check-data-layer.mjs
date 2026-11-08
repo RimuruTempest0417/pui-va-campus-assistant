@@ -1529,6 +1529,61 @@ check('簽到：我的報名帶簽到時間',
   );
 }
 
+// ── W-106 本班出席率月報（與後台月報同一份口徑：缺席 = 人日、請假不算缺席、沒紀錄回 null）──
+{
+  await data.switchDemoUser('示範老師', 'demo-user', 'TEACHER');
+  const att = await data.classAttendance();
+
+  check('本班出席率：老師看得到自己班', att && att.className && att.summary && att.summary.records > 0, `${att && att.className}／${att && att.summary && att.summary.records} 人日`);
+  check(
+    '本班出席率：四類加總等於紀錄人日',
+    att && att.summary && att.summary.present + att.summary.late + att.summary.absent + att.summary.leave === att.summary.records,
+    att && att.summary ? `${att.summary.present}+${att.summary.late}+${att.summary.absent}+${att.summary.leave}` : '沒有資料',
+  );
+  check(
+    '本班出席率：出席率＝(人日−缺席)÷人日，遲到仍算出席',
+    att && att.summary && att.summary.rate === Math.round(((att.summary.records - att.summary.absent) / att.summary.records) * 1000) / 10,
+    `${att && att.summary && att.summary.rate}%`,
+  );
+  check(
+    '本班出席率：每日明細加總等於 summary',
+    att && (att.byDay || []).length > 0 &&
+      att.byDay.reduce((n, d) => n + d.records, 0) === att.summary.records &&
+      att.byDay.reduce((n, d) => n + d.absent, 0) === att.summary.absent,
+    `${(att && (att.byDay || []).length) || 0} 天`,
+  );
+  check(
+    '本班出席率：缺席最多的三天最多 3 筆、只含有缺席的日子且由多到少',
+    att && (att.worstDays || []).every((d) => d.absent > 0) &&
+      (att.worstDays || []).length <= 3 &&
+      (att.worstDays || []).every((d, i, arr) => i === 0 || arr[i - 1].absent >= d.absent),
+    `${(att && (att.worstDays || []).length) || 0} 天`,
+  );
+  check(
+    '本班出席率：示範層重新整理數字不會跳（穩定雜湊）',
+    await data.classAttendance().then((again) => again.summary.records === (att && att.summary && att.summary.records) && again.summary.absent === att.summary.absent),
+    '同一個月兩次呼叫相同',
+  );
+
+  const future = await data.classAttendance({ month: '2099-01' });
+  check('本班出席率：還沒有紀錄的月份回 null 而不是 0%', future && future.summary.rate === null && (future.byDay || []).length === 0, `${future && future.summary && future.summary.rate}`);
+
+  const otherAtt = await data.classAttendance({ className: '高二忠' }).then(() => null).catch((e) => e);
+  check('本班出席率：老師帶別班被擋', otherAtt && otherAtt.code === 'FORBIDDEN', otherAtt ? otherAtt.code : '沒有拒絕');
+
+  await data.switchDemoUser('示範學生', 'demo-user', 'STUDENT');
+  const attAsStudent = await data.classAttendance().then(() => null).catch((e) => e);
+  check('本班出席率：學生被擋', attAsStudent && attAsStudent.code === 'FORBIDDEN', attAsStudent ? attAsStudent.code : '沒有拒絕');
+
+  const apiSrcAtt = readFileSync(join(here, '..', 'services', 'api.js'), 'utf8');
+  const hwWxmlAtt = readFileSync(join(here, '..', 'pages', 'homework', 'index.wxml'), 'utf8');
+  check(
+    '本班出席率：有畫面入口＋真 API 端點',
+    hwWxmlAtt.indexOf('L.k55') !== -1 && hwWxmlAtt.indexOf('attendance.dayLines') !== -1 && apiSrcAtt.indexOf("'/teacher/class/attendance'") !== -1,
+    '功課頁 → 本月出席率',
+  );
+}
+
 // ── W-96 通知中心分組（示範層與後端同一份口袋）──
 {
   await data.switchDemoUser('示範學生', 'demo-user', 'STUDENT');
