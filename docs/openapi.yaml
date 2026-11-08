@@ -3062,6 +3062,30 @@ paths:
                         count: { type: integer }
                         error: { type: string, nullable: true }
 
+  # ── 校曆匯出（W-108：輸出 iCalendar，公開內容） ──
+  /calendar/export.ics:
+    get:
+      tags: [calendar]
+      summary: 把公告與活動匯出成 .ics（今天起 90 天，訪客也可下載）
+      description: |
+        每筆公告與活動一個 `VEVENT`（全天事件，`DTSTART;VALUE=DATE` 用澳門日界）。
+        RFC 5545 跳脫（逗號／分號／反斜線）、換行寫成字面 `\n`、每行 75 octets 折行；
+        軟刪除、未到發佈時間、已過期、草稿與已取消的活動都不輸出。
+      parameters:
+        - in: query
+          name: days
+          schema: { type: integer, minimum: 7, maximum: 365, default: 90 }
+      responses:
+        '200':
+          description: iCalendar 文件（`x-event-count` 是筆數）
+          headers:
+            x-event-count:
+              schema: { type: integer }
+          content:
+            text/calendar:
+              schema: { type: string }
+        '422': { description: days 不在 7–365 之間 }
+
   # ── 活動回饋（W-31） ──
   /events/{id}/feedback:
     post:
