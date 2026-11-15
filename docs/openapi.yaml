@@ -88,6 +88,76 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /auth/school:
+    post:
+      tags: [auth]
+      security: []
+      summary: 家校通帳密直接登入（不需微信授權、不需管理員先開帳號）
+      description: |
+        先向培華家校通（app.puiva.edu.mo）驗證這組帳密，通過才簽發本系統 JWT。
+        使用者對應：`User.openid = "sc:" + 帳號`（微信 openid 不含冒號，兩邊不撞）；
+        已存在就直接登入（角色不動，家長／老師由後台指派），不存在才建立 STUDENT。
+        **密碼不落庫**：只換 token；要同步成績才另外走 `/school/link`（AES-256-GCM 加密保存）。
+        連續失敗 5 次鎖 15 分鐘；帳號不存在與密碼錯誤回同一句話。
+        家校通連不上回 503 `SCHOOL_UNAVAILABLE`（可改用校內帳號），不是密碼錯。
+        **帳號前綴決定角色**（只在第一次建立時用）：`s…` → `STUDENT`、純數字或 `pv…` → `PARENT`、
+        其他格式 → `STUDENT` 並回 `accountType: other`。家長登入時自動把「他看得到的學號」
+        （家校通首頁列出的 ＋ 帳號本身的數字）建成 `parent_links`，**不需要管理員先綁定**。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account, password]
+              properties:
+                account: { type: string, description: 家校通帳號（不含空白與冒號） }
+                password: { type: string, description: 家校通密碼（只用於本次請求） }
+      responses:
+        '200':
+          description: 登入成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  role: { type: string, enum: [SUPER_ADMIN, ADMIN, STAFF, TEACHER, PARENT, STUDENT] }
+                  nickname: { type: string }
+                  account: { type: string, description: '本系統帳號（sc:<家校通帳號>）' }
+                  created: { type: boolean, description: 是否本次才建立 }
+                  source: { type: string, enum: [school] }
+                  accountType: { type: string, enum: [student, parent, other], description: 由帳號前綴判斷的類型；other 代表格式不在規範內（建成學生，等指示） }
+                  children:
+                    type: array
+                    description: 家長本次自動對應到的子女（學生為空陣列；依定案一位家長帳號＝一位子女）
+                    items:
+                      type: object
+                      properties:
+                        studentId: { type: string }
+                        studentNo: { type: string }
+                        nickname: { type: string, nullable: true }
+                  linkedChildren: { type: integer, description: 自動對應到的子女數（＝children.length；前端顯示「已對應 N 位」用這個） }
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      nickname: { type: string }
+                      avatarUrl: { type: string, nullable: true }
+                      role: { type: string }
+                      grade: { type: string, nullable: true }
+                      className: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503':
+          description: 家校通暫時連不上（SCHOOL_UNAVAILABLE）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /auth/me:
     get:
       tags: [auth]
@@ -738,14 +808,26 @@ paths:
   /search:
     get:
       tags: [search]
-      summary: 全校搜尋（公告／活動／失物；只看得到的人搜得到）
+      summary: 全校搜尋（公告／活動／失物／二手轉贈／菜單／功課／提案／館藏／場地器材／我的假單／我的報修；只看得到的人搜得到）
       description: |
         可見性規則由各模組自己決定：公告沿用 `visibleNoticeWhere`（排除軟刪除／預約未到／已過期），
-        活動與失物排除軟刪除。失物的聯絡方式（contactValue）一律不回傳。
-        標題命中（score 2）排在只有內文命中（score 1）之前，同分依日期新到舊。
+        活動與失物排除軟刪除，轉贈只回 `status = AVAILABLE`（已贈出／已下架不算還拿得到），
+        菜單只回「今天以後」的排菜（翻上個月的菜色沒有意義），
+        功課只回「自己那一班」（班級取自 JWT 對應的使用者，前端不能指定別班；未登入與家長沒有這一組），
+        提案排除軟刪除（撤回／下架），但「暫不採納」仍回（提過沒做本身也是資訊），
+        館藏只回 `ACTIVE` 且未刪的書（比對書名／作者／索書號；**借完了照樣回**，
+        用 `badge = OUT` 表示，借不到不等於搜不到），
+        場地器材只回 `ACTIVE` 且未刪（比對名稱與位置；`badge` 是「種類:狀態」）。
+        **我的假單／我的報修是「個人資料」兩類**：`studentId`／`reporterId` 一律取 JWT 的 `sub`，
+        不吃 query 上的任何 id（帶別人的 id 也不會變），因此每個人只搜得到自己送出的那幾筆；
+        家長沒有 `leave:create`／`repair:create`，未登入也沒有 —— 這兩種身分連分組都不出現。
+        假單的 `title` 是「假別＋日期」（例「病假 2026/11/09」）、`badge` 是「假別:狀態」；
+        報修的 `title` 是「地點＋器材」、`badge` 是狀態、`location` 另外帶。
+        失物與轉贈的聯絡方式（contactValue）一律不回傳。
+        標題命中（score 2）排在只有內文命中（score 1）之前，同分依日期新到舊（菜單同分依日期由近到遠、功課依截止時間由近到遠）。
       parameters:
         - { in: query, name: q, required: true, schema: { type: string, minLength: 1, maxLength: 50 } }
-        - { in: query, name: types, schema: { type: string, example: notice,event,item }, description: 逗號分隔，預設三類全搜 }
+        - { in: query, name: types, schema: { type: string, example: notice,event,item,giveaway,menu,homework,proposal,book,resource,leave,repair,loan,booking }, description: '逗號分隔：notice／event／item／giveaway／menu／homework／proposal／book／resource／leave／repair／loan／booking，預設十四類全搜（leave／repair／loan／booking 只回自己的）' }
         - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 20, default: 5 }, description: 每一類最多幾筆 }
       responses:
         '200':
@@ -762,7 +844,7 @@ paths:
                     items:
                       type: object
                       properties:
-                        type: { type: string, enum: [notice, event, item] }
+                        type: { type: string, enum: [notice, event, item, giveaway, menu, homework, proposal, book, resource, leave, repair] }
                         count: { type: integer }
                         items:
                           type: array
@@ -800,6 +882,92 @@ paths:
       summary: 我的訂閱同意記錄
       responses:
         '200': { description: OK }
+
+  /me/export:
+    get:
+      tags: [me]
+      summary: 匯出自己的成績／出缺席／借閱／請假（CSV，帶 UTF-8 BOM）
+      description: |
+        個資自主：使用者自己把紀錄帶走，不必請校務處匯出。
+        學生只能取自己；家長可帶 `studentId` 取綁定的子女（未綁定與查無此人一律 403 同一句訊息，
+        避免端點變成學號探測器）；家長不帶 `studentId` 且只有一位子女時自動使用該子女。
+        回應是 `text/csv`，`x-row-count` 標頭回資料列數（不含標頭列）。
+      parameters:
+        - { in: query, name: type, required: true, schema: { type: string, enum: [grades, attendance, library, leaves] } }
+        - { in: query, name: studentId, schema: { type: string }, description: 家長匯出子女時使用；其他身分帶別人的 id 一律 403 }
+      responses:
+        '200':
+          description: CSV 檔案（UTF-8 BOM、CRLF 換行）
+          headers:
+            x-row-count: { schema: { type: string } }
+            content-disposition: { schema: { type: string } }
+          content:
+            text/csv:
+              schema: { type: string }
+        '401': { description: 未登入 }
+        '403': { description: 不是自己的資料（家長未綁定時同一句訊息） }
+        '422': { description: type 不認識 }
+
+  /me/calendar/token:
+    get:
+      tags: [me]
+      summary: 我的校曆訂閱狀態（未產生過回 enabled=false）
+      description: |
+        個人校曆訂閱：日曆 App 訂閱時不會帶 `Authorization`，所以 `.ics` 那一端用網址上的權杖。
+        這裡只回狀態與相對路徑，前端自己接上目前的後端位址（換 API base 不必重新產生權杖）。
+        `days` 只影響回傳的 `path`（要帶幾天）；**換天數不必重新產生權杖**，預設 90 時路徑不帶參數。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: days
+          schema: { type: integer, minimum: 7, maximum: 365, default: 90 }
+          description: 希望網址涵蓋的天數（設定頁提供 30／90／180）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled: { type: boolean }
+                  token: { type: string, nullable: true }
+                  path:
+                    type: string
+                    nullable: true
+                    description: "相對路徑，例如 /calendar/me.ics?token=…"
+                  createdAt: { type: string, format: date-time, nullable: true }
+                  days: { type: integer, description: 預設視窗天數（90） }
+        '401': { description: 未登入 }
+    post:
+      tags: [me]
+      summary: 產生／重新產生校曆訂閱權杖（舊權杖立刻失效）
+      description: |
+        重新產生＝直接換掉舊值。外流的網址從此 404，這比「兩支並存」安全。
+        權杖是 128 bit 隨機值，沒有時效，只能由使用者自己撤銷。
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 新的權杖與路徑（形狀同 GET）
+          content:
+            application/json:
+              schema: { type: object }
+        '401': { description: 未登入 }
+        '429': { description: 產生太頻繁（每分鐘 20 次） }
+    delete:
+      tags: [me]
+      summary: 撤銷校曆訂閱權杖（舊網址立刻 404）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 已撤銷
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled: { type: boolean, enum: [false] }
+        '401': { description: 未登入 }
 
   /parents/me/children:
     get:
@@ -927,6 +1095,119 @@ paths:
                             status: { type: string }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  /parents/me/children/{studentId}/grades:
+    parameters:
+      - { in: path, name: studentId, required: true, schema: { type: string } }
+    get:
+      tags: [parents]
+      summary: 子女的成績（家長端；形狀與 /school/grades 一致）
+      parameters:
+        - { in: query, name: yearTerm, schema: { type: string } }
+        - { in: query, name: term, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        studentId: { type: string }
+                        yearTerm: { type: string }
+                        term: { type: string }
+                        className: { type: string, nullable: true }
+                        courseName: { type: string }
+                        content: { type: string, nullable: true }
+                        testType: { type: string }
+                        testDate: { type: string, format: date }
+                        score: { type: number, nullable: true }
+                        source: { type: string, enum: [SYNC, MANUAL] }
+                  years:
+                    type: array
+                    items: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /parents/me/children/{studentId}/attendance:
+    parameters:
+      - { in: path, name: studentId, required: true, schema: { type: string } }
+    get:
+      tags: [parents]
+      summary: 子女的出缺席（家長端；含 summary）
+      parameters:
+        - { in: query, name: yearTerm, schema: { type: string } }
+        - { in: query, name: term, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/AttendanceRecord' }
+                  summary:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      late: { type: integer }
+                      absent: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /parents/me/children/{studentId}/sync:
+    parameters:
+      - { in: path, name: studentId, required: true, schema: { type: string } }
+    post:
+      tags: [parents]
+      summary: 用家長自己的家校通連結同步子女的成績／出缺席（寫在子女那列）
+      description: |
+        家長的家校通帳號本來就能看到子女，所以用**家長自己**已加密保存的 `SchoolLink`
+        登入家校通，抓回來的資料寫在**子女**身上。閘門為角色 PARENT ＋ 已存在 `parent_links`。
+        尚未連結家校通回 422；家校通帳密失效回 401。
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                yearTerms:
+                  type: array
+                  maxItems: 6
+                  items: { type: string }
+      responses:
+        '200':
+          description: 同步完成
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  yearTerms: { type: array, items: { type: string } }
+                  grades: { type: integer }
+                  attendance: { type: integer }
+                  remaining: { type: integer, description: 還有幾段沒同步（0＝全部完成） }
+                  done: { type: boolean, description: 與 /school/sync 同一支分批邏輯，游標存在家長的 SchoolLink }
+                  thisBatch:
+                    type: object
+                    properties:
+                      from: { type: string, nullable: true }
+                      to: { type: string, nullable: true }
+                  syncedAt: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /parents/me/children/{studentId}/events/{eventId}/signup:
     parameters:
@@ -1233,6 +1514,103 @@ paths:
         '409': { description: 這天是同步資料，不能手動覆蓋 }
         '404': { $ref: '#/components/responses/NotFound' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/school/attendance/monthly:
+    get:
+      tags: [school]
+      summary: "出席率月報（需 school:manage；按班級與按日聚合，不新增表）"
+      description: |
+        資料來源只有 `attendance_records`（家校通同步 ＋ 老師手動補登）。
+        出席率 ＝ 1 − 缺席天數 ÷ 有紀錄天數：**遲到算出席**、**請假不算缺席**（否則每次病假都會壓低班級出席率，
+        跟學校算的數字對不上）。沒有紀錄時 `rate` 回 null（不是 0%）。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: month, schema: { type: string, pattern: '^\\d{4}-\\d{2}$' }, description: 例 2026-11；留空＝本月（Asia/Macau） }
+        - { in: query, name: yearTerm, schema: { type: string, maxLength: 16 } }
+        - { in: query, name: grade, schema: { type: string, maxLength: 16 } }
+        - { in: query, name: className, schema: { type: string, maxLength: 32 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  month: { type: string }
+                  yearTerm: { type: string, nullable: true }
+                  range:
+                    type: object
+                    properties:
+                      from: { type: string, format: date }
+                      to: { type: string, format: date }
+                  days: { type: integer }
+                  students: { type: integer, description: 當月有紀錄的學生數 }
+                  summary:
+                    type: object
+                    properties:
+                      records: { type: integer, description: 人日 }
+                      present: { type: integer }
+                      late: { type: integer }
+                      absent: { type: integer }
+                      leave: { type: integer }
+                      rate: { type: number, nullable: true }
+                  byClass:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        grade: { type: string }
+                        className: { type: string }
+                        students: { type: integer }
+                        records: { type: integer }
+                        present: { type: integer }
+                        late: { type: integer }
+                        absent: { type: integer }
+                        leave: { type: integer }
+                        rate: { type: number, nullable: true }
+                  byDay:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        day: { type: integer }
+                        records: { type: integer }
+                        late: { type: integer }
+                        absent: { type: integer }
+                        rate: { type: number, nullable: true, description: 當天出席率（人日）；沒有紀錄回 null }
+                  truncated: { type: boolean, description: true＝超過 4 萬列上限，前端要提示縮小範圍 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /admin/school/attendance/monthly/export:
+    get:
+      tags: [school]
+      summary: "出席率月報 CSV 匯出（需 school:manage）"
+      description: |
+        W-104。與 `GET /admin/school/attendance/monthly` **共用同一份聚合**（`src/lib/attendance-monthly.ts`），
+        所以匯出筆數一定等於月報上的班級數（`groupBy=class`）或天數（`groupBy=day`）。
+        回應是 UTF-8 BOM 的 `text/csv`，欄位全包雙引號；`x-row-count` 標頭回列數（不必下載檔案就能驗）。
+        每次匯出寫一筆 `attendance.export` 審計。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: month, schema: { type: string, pattern: '^\\d{4}-\\d{2}$' }, description: 例 2026-11；留空＝本月（Asia/Macau，與月報同一支判斷） }
+        - { in: query, name: yearTerm, schema: { type: string, maxLength: 16 } }
+        - { in: query, name: grade, schema: { type: string, maxLength: 16 } }
+        - { in: query, name: className, schema: { type: string, maxLength: 32 } }
+        - { in: query, name: groupBy, schema: { type: string, enum: [class, day], default: class }, description: class＝每班一列（校務處月底要的數字）；day＝整月一天一列 }
+      responses:
+        '200':
+          description: CSV（`text/csv; charset=utf-8`，帶 BOM）
+          headers:
+            x-row-count: { schema: { type: integer }, description: 實際列數（不含表頭） }
+            content-disposition: { schema: { type: string }, description: 例 `attachment; filename="attendance-2026-11.csv"` }
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/school/attendance/{id}:
     parameters:
@@ -2048,28 +2426,46 @@ paths:
   /notifications:
     get:
       tags: [notifications]
-      summary: 我的通知（最近 50 筆）
+      summary: 我的通知（最近 50 筆；W-96 支援分組）
       security: [{ bearerAuth: [] }]
       parameters:
         - in: query
           name: unreadOnly
           schema: { type: string, enum: ['0', '1'] }
+        - in: query
+          name: group
+          schema: { type: string, enum: [ALL, HOMEWORK, LIBRARY, APPROVAL, REPAIR, OTHER] }
+          description: 不帶＝ALL。APPROVAL 收假單與場地借用
       responses:
         '200':
-          description: 通知列表與未讀數
+          description: 通知列表、未讀數與各組統計
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  unread: { type: integer }
+                  unread: { type: integer, description: 全部未讀數（不隨 group 改變） }
+                  group: { type: string, enum: [ALL, HOMEWORK, LIBRARY, APPROVAL, REPAIR, OTHER] }
+                  groups:
+                    type: array
+                    description: 每個口袋的 total／unread，固定六列（ALL 在最前）
+                    items:
+                      type: object
+                      properties:
+                        key: { type: string }
+                        total: { type: integer }
+                        unread: { type: integer }
                   items:
                     type: array
                     items:
                       type: object
                       properties:
                         id: { type: string }
-                        kind: { type: string, enum: [EVENT, CLAIM, NOTICE, ITEM, SYSTEM], description: ITEM＝失物配對主動通知（W-57） }
+                        kind:
+                          type: string
+                          enum: [EVENT, CLAIM, NOTICE, ITEM, SYSTEM, HOMEWORK, PROPOSAL, REPAIR, LIBRARY, LEAVE, BOOKING]
+                          description: ITEM＝失物配對主動通知（W-57）；LIBRARY／LEAVE／BOOKING 自 W-96 起分開記
+                        group: { type: string, description: 該 kind 所屬的口袋 }
                         title: { type: string }
                         body: { type: string, nullable: true }
                         link: { type: string, nullable: true }
@@ -2079,8 +2475,12 @@ paths:
   /notifications/unread-count:
     get:
       tags: [notifications]
-      summary: 未讀數（首頁鈴鐺）
+      summary: 未讀數（首頁鈴鐺；可只算某一組）
       security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: group
+          schema: { type: string, enum: [ALL, HOMEWORK, LIBRARY, APPROVAL, REPAIR, OTHER] }
       responses:
         '200':
           description: 未讀數
@@ -2114,6 +2514,33 @@ paths:
                 properties:
                   ok: { type: boolean }
                   unread: { type: integer }
+
+  /notifications/read-all:
+    patch:
+      tags: [notifications]
+      summary: 一次全部已讀（W-96；可只清某一組，只動自己的通知）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group: { type: string, enum: [ALL, HOMEWORK, LIBRARY, APPROVAL, REPAIR, OTHER] }
+      responses:
+        '200':
+          description: 已清除，回傳清了幾筆與剩下未讀數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  cleared: { type: integer }
+                  unread: { type: integer }
+                  group: { type: string }
+        '422': { description: group 不是合法值（不會退化成全部已讀） }
 
   # ── 檢舉 ──
   /reports:
@@ -2471,10 +2898,28 @@ paths:
               schema:
                 type: object
                 properties:
+                  audience: { type: integer, description: 分母＝全體未停用帳號數（＝total，新呼叫端讀這個名字） }
                   total: { type: integer, description: 全體未停用帳號數 }
                   read: { type: integer }
                   unread: { type: integer }
-                  rate: { type: integer, description: 已讀百分比（四捨五入） }
+                  rate:
+                    type: integer
+                    nullable: true
+                    description: 已讀百分比（四捨五入）；分母 0 時回 null，不是 0
+                  byRole:
+                    type: array
+                    description: 六級各一列（即使該級 0 人也照列），順序固定 PARENT→SUPER_ADMIN
+                    items:
+                      type: object
+                      properties:
+                        role: { type: string }
+                        label: { type: string }
+                        total: { type: integer }
+                        read: { type: integer }
+                        unread: { type: integer }
+                        rate: { type: integer, nullable: true, description: 該級分母 0 時 null }
+                  firstReadAt: { type: string, format: date-time, nullable: true }
+                  lastReadAt: { type: string, format: date-time, nullable: true }
                   readers:
                     type: array
                     items:
@@ -2501,6 +2946,38 @@ paths:
                       unread: { type: boolean }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { description: 找不到這則公告或已經刪除 }
+
+  /admin/notices/{id}/read-stats/export:
+    get:
+      tags: [admin]
+      summary: 公告已讀名單 CSV（完整一份，只有網頁後台用；W-107）
+      description: |
+        畫面上的名單各截 30 位，貼群組或逐班催人時需要完整一份。
+        CSV 帶 UTF-8 BOM、`x-row-count` 標頭，並寫一筆 `notice.read_export` 審計（逐人已讀屬個資）。
+        分母口徑與 `/read-stats` 相同：未被停用的帳號。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string, enum: [ALL, READ, UNREAD], default: ALL }
+          description: 只匯出已讀或未讀的人；預設全部
+      responses:
+        '200':
+          description: CSV（text/csv; charset=utf-8，帶 BOM）
+          headers:
+            x-row-count:
+              schema: { type: string }
+              description: 實際匯出的資料列數（不含標頭）
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: 找不到這則公告或已經刪除 }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/notices/{id}/remind:
     post:
@@ -2529,6 +3006,73 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { description: 找不到這則公告或已經刪除 }
         '422': { description: 公告已過期，不需要再催讀 }
+
+  /admin/menu/stats:
+    get:
+      tags: [admin]
+      summary: 菜單評分統計（近 N 天，需 menu:manage）
+      description: |
+        平均分／評分人數／1–5 分分佈／按讚比例都由後端算，兩套後台只負責顯示。
+        樣本 < 3 人的菜色 `enough = false`，只列在 `items`，不進 `best`／`worst` 排名。
+        已下架（`isActive = false`）的菜不進統計。`days` 範圍 7–365，預設 30。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: days, in: query, required: false, schema: { type: integer, minimum: 7, maximum: 365, default: 30 } }
+      responses:
+        '200':
+          description: 統計結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  days: { type: integer }
+                  from: { type: string, format: date }
+                  to: { type: string, format: date }
+                  sampleMin: { type: integer, example: 3 }
+                  summary:
+                    type: object
+                    properties:
+                      ratings: { type: integer }
+                      dishes: { type: integer }
+                      avgScore: { type: number, nullable: true, description: '按人數加權；沒人評分回 null' }
+                      lowCount: { type: integer, description: '1–2 分的則數' }
+                      lowRate: { type: number, nullable: true }
+                      insufficient: { type: integer, description: '樣本不足的菜色數' }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        dishId: { type: string }
+                        name: { type: string }
+                        mealType: { type: string, enum: [LUNCH, SNACK] }
+                        avgScore: { type: number }
+                        count: { type: integer }
+                        likedCount: { type: integer }
+                        likedRate: { type: number }
+                        lowCount: { type: integer }
+                        lowRate: { type: number }
+                        dist:
+                          type: object
+                          properties:
+                            '1': { type: integer }
+                            '2': { type: integer }
+                            '3': { type: integer }
+                            '4': { type: integer }
+                            '5': { type: integer }
+                        enough: { type: boolean }
+                  best:
+                    type: array
+                    description: '平均分最高（只含 enough = true），最多 5 筆'
+                    items: { type: object }
+                  worst:
+                    type: array
+                    description: '1–2 分比例最高（只含 enough = true），最多 5 筆'
+                    items: { type: object }
+        '401': { description: 未登入 }
+        '403': { description: '沒有 menu:manage 能力' }
+        '422': { description: 'days 超出 7–365' }
 
   /admin/menu/{id}:
     delete:
@@ -2578,6 +3122,57 @@ paths:
                         ok: { type: boolean }
                         count: { type: integer }
                         error: { type: string, nullable: true }
+
+  # ── 校曆匯出（W-108：輸出 iCalendar，公開內容） ──
+  /calendar/export.ics:
+    get:
+      tags: [calendar]
+      summary: 把公告與活動匯出成 .ics（今天起 90 天，訪客也可下載）
+      description: |
+        每筆公告與活動一個 `VEVENT`（全天事件，`DTSTART;VALUE=DATE` 用澳門日界）。
+        RFC 5545 跳脫（逗號／分號／反斜線）、換行寫成字面 `\n`、每行 75 octets 折行；
+        軟刪除、未到發佈時間、已過期、草稿與已取消的活動都不輸出。
+      parameters:
+        - in: query
+          name: days
+          schema: { type: integer, minimum: 7, maximum: 365, default: 90 }
+      responses:
+        '200':
+          description: iCalendar 文件（`x-event-count` 是筆數）
+          headers:
+            x-event-count:
+              schema: { type: integer }
+          content:
+            text/calendar:
+              schema: { type: string }
+        '422': { description: days 不在 7–365 之間 }
+
+  /calendar/me.ics:
+    get:
+      tags: [calendar]
+      summary: 個人校曆訂閱（權杖在網址上，日曆 App 自己回來抓）
+      description: |
+        給日曆 App「訂閱」用的網址：公開的公告與活動（與 `/calendar/export.ics` 同一支查詢）
+        加上只有本人看得到的行程 —— 我的報名（正取／候補）、已批准的假單、本人班別的功課截止、
+        **未歸還的借閱到期**（`me-loan-`）與**已批准的場地／器材借用**（`me-booking-`）。
+        報名資訊是**合併**進該活動的說明，不會多出第二個事件；個人行程的 `UID` 帶 `me-` 前綴。
+        權杖不符、已撤銷、帳號停用一律 404（不揭露權杖是否存在）；`cache-control: private`。
+      parameters:
+        - { in: query, name: token, required: true, schema: { type: string } }
+        - in: query
+          name: days
+          schema: { type: integer, minimum: 7, maximum: 365, default: 90 }
+      responses:
+        '200':
+          description: iCalendar 文件（`x-event-count` 總筆數、`x-personal-count` 個人行程筆數）
+          headers:
+            x-event-count: { schema: { type: integer } }
+            x-personal-count: { schema: { type: integer } }
+          content:
+            text/calendar:
+              schema: { type: string }
+        '404': { description: 權杖不存在／已撤銷／帳號停用 }
+        '422': { description: days 不在 7–365 之間 }
 
   # ── 活動回饋（W-31） ──
   /events/{id}/feedback:
@@ -2830,6 +3425,37 @@ paths:
       responses:
         '200': { description: OK }
 
+  /admin/classes:
+    get:
+      tags: [admin]
+      summary: 班級名單視圖（班級＝User.className 的集合，含各班人數、是否有課表／功課、未分班人數）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+        '403': { description: '需要 user:assign:teacher（資訊管理員以上）' }
+
+  /admin/classes/{className}/members:
+    post:
+      tags: [admin]
+      summary: 批次把帳號加入／移出某一班（action ADD／REMOVE，REMOVE 只清本來就在這一班的人）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: className, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userIds]
+              properties:
+                userIds: { type: array, items: { type: string } }
+                action: { type: string, enum: [ADD, REMOVE], default: ADD }
+      responses:
+        '200': { description: OK }
+        '422': { description: 班名不合法或沒有選人 }
+        '403': { description: 能力不足或想調整同等／更高權限帳號 }
+
   /admin/users/{id}/password:
     patch:
       tags: [admin]
@@ -2928,12 +3554,15 @@ paths:
               schema:
                 type: object
                 properties:
-                  linked: { type: boolean }
+                  linked: { type: boolean, description: 是否已儲存家校通同步憑證（SchoolLink） }
+                  childrenCount: { type: integer, description: '家長已對應的子女數（parent_links）；與 linked 是兩件事：有子女不一定已連結同步' }
                   studentNo: { type: string, nullable: true }
                   studentName: { type: string, nullable: true }
                   className: { type: string, nullable: true }
                   lastSyncAt: { type: string, format: date-time, nullable: true }
                   lastError: { type: string, nullable: true, description: 上次同步失敗原因（成功時清空） }
+                  pendingCells: { type: integer, description: '分批同步還有幾段沒抓（0＝全部完成）；家長端據此顯示「還有 N 段未同步」' }
+                  syncStartedAt: { type: string, format: date-time, nullable: true, description: 這一輪同步第一次按下來的時間 }
                   cryptoReady: { type: boolean, description: 後端是否已設定 SCHOOL_CRED_KEY }
         '401': { description: 未登入 }
 
@@ -2983,7 +3612,14 @@ paths:
   /school/sync:
     post:
       tags: [school]
-      summary: 立即同步（預設當前學年＋上一個學年；手動觸發與排程共用）
+      summary: 分批同步（由近而遠；每批最多用 25 秒，剩下的靠游標續傳）
+      description: |
+        一次完整同步實測 44.5 秒（Vercel 這支函式 60 秒就砍），所以改成**分批**：
+        - 由近而遠：學年由新到舊，學年內第一段→第三段；預設取最近 6 個學年。
+        - 游標落庫：跑到哪一格記在 `SchoolLink.syncCursor`，下次從那一格接上，不從頭。
+        - 每批時間預算 25 秒（`SCHOOL_SYNC_BUDGET_MS` 可調）；預算內能抓幾格就抓幾格。
+        - 回 `done`／`remaining`：`done=false` 時前端顯示「還有 N 段未同步，可再按一次」，
+          **不自動連發**（家長網路慢會排隊卡住）。
       security: [{ bearerAuth: [] }]
       requestBody:
         required: false
@@ -2994,12 +3630,12 @@ paths:
               properties:
                 yearTerms:
                   type: array
-                  maxItems: 6
-                  description: 指定學年（不帶就抓當前＋上一個學年）
+                  maxItems: 20
+                  description: 指定學年（不帶就取上游清單最近 6 個學年）
                   items: { type: string, maxLength: 16 }
       responses:
         '200':
-          description: 同步結果
+          description: 同步結果（一批）
           content:
             application/json:
               schema:
@@ -3009,12 +3645,29 @@ paths:
                   yearTerms:
                     type: array
                     items: { type: string }
-                  grades: { type: integer, description: 寫入的成績筆數 }
-                  attendance: { type: integer, description: 寫入的出缺席筆數 }
+                  grades: { type: integer, description: 實際寫入的成績筆數（已去重，與資料庫筆數一致） }
+                  attendance: { type: integer, description: 實際寫入的出缺席天數（已去重；上游會把同一天回三次） }
+                  skipped: { type: integer, description: 上游重複回傳而被略過的筆數（診斷用） }
+                  termsDone: { type: integer, description: 這一批完成幾個學段格 }
+                  partial: { type: boolean, description: 'true＝時間預算用完，後面還有格子（等於 !done）' }
+                  thisBatch:
+                    type: object
+                    description: 這一批從哪一格跑到哪一格（人看得懂的標籤，例「2026/2027 第一段」）
+                    properties:
+                      from: { type: string, nullable: true }
+                      to: { type: string, nullable: true }
+                  synced:
+                    type: object
+                    properties:
+                      grades: { type: integer }
+                      attendance: { type: integer }
+                  remaining: { type: integer, description: 還有幾段沒同步（0＝全部完成） }
+                  done: { type: boolean, description: true＝全部學年同步完成、游標已清空 }
                   syncedAt: { type: string, format: date-time }
         '401': { description: 家校通帳號或密碼已失效，請重新連結 }
         '422': { description: 尚未連結家校通 }
         '501': { description: 後端未設定 SCHOOL_CRED_KEY }
+        '503': { description: 學校系統暫時連不上（SCHOOL_UNAVAILABLE）；可改用手動輸入 }
 
   /school/grades:
     get:
@@ -3148,6 +3801,2636 @@ paths:
         '401': { description: 未登入 }
         '422': { description: 參數不合法 }
 
+  # ── 圖書館借閱（W-66） ──
+  # 館藏查詢對訪客開放；借還要登入；館藏管理是校內職員（library:manage）。
+  # 可借量一律由後端交易內列鎖扣減，前端不自己判斷「還有沒有」。
+  /resources:
+    get:
+      tags: [resources]
+      summary: 場地／器材清單（訪客可看）
+      parameters:
+        - { name: kind, in: query, schema: { type: string, enum: [VENUE, EQUIPMENT] } }
+        - { name: q, in: query, schema: { type: string, maxLength: 60 }, description: 名稱／位置／說明 }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 場地與器材清單（openNow 依 Asia/Macau 判定）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        kind: { type: string, enum: [VENUE, EQUIPMENT] }
+                        name: { type: string }
+                        location: { type: string, nullable: true }
+                        openFrom: { type: string, description: 'HH:mm（澳門時間）' }
+                        openTo: { type: string }
+                        hoursText: { type: string, description: '例 08:00–18:00' }
+                        maxHours: { type: integer }
+                        needsApproval: { type: boolean }
+                        openNow: { type: boolean }
+                        upcoming: { type: integer, description: 未來未結束的預約數 }
+                  total: { type: integer }
+                  page: { type: integer }
+    post:
+      tags: [resources]
+      summary: 新增場地／器材（resource:manage：校內職員）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, name]
+              properties:
+                kind: { type: string, enum: [VENUE, EQUIPMENT] }
+                name: { type: string, maxLength: 80 }
+                location: { type: string, maxLength: 80 }
+                description: { type: string, maxLength: 2000 }
+                openFrom: { type: string, description: 'HH:mm，預設 08:00' }
+                openTo: { type: string, description: 'HH:mm，預設 18:00' }
+                maxHours: { type: integer, minimum: 1, maximum: 12, default: 4 }
+                needsApproval: { type: boolean, default: true }
+      responses:
+        '201':
+          description: 已建立
+        '403': { description: 能力不足（學生／老師） }
+
+  /resources/pending:
+    get:
+      tags: [resources]
+      summary: 待審批借用申請（resource:approve：老師以上）
+      responses:
+        '200':
+          description: pending 待審、handled 最近處理過的 20 筆
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending:
+                    type: array
+                    items: { $ref: '#/components/schemas/ResourceBooking' }
+                  handled:
+                    type: array
+                    items: { $ref: '#/components/schemas/ResourceBooking' }
+
+  /resources/all:
+    get:
+      tags: [resources]
+      summary: 場地總表（含已下架；resource:manage）
+      responses:
+        '200':
+          description: 全部資源與各自的預約總數
+        '403': { description: 能力不足 }
+
+  /resources/bookings/mine:
+    get:
+      tags: [resources]
+      summary: 我的借用申請
+      responses:
+        '200':
+          description: 自己的全部申請（新到舊），附待審／已批准筆數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ResourceBooking' }
+                  pending: { type: integer }
+                  upcoming: { type: integer }
+
+  /resources/bookings/{id}:
+    delete:
+      tags: [resources]
+      summary: 取消自己的申請（PENDING／APPROVED）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已取消，時段釋放 }
+        '404': { description: 不是自己的申請或不存在（同一句話，防探測） }
+        '409': { description: 申請已結束（已駁回／已取消） }
+    patch:
+      tags: [resources]
+      summary: 審批（APPROVE／REJECT，resource:approve）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [APPROVE, REJECT] }
+                reason: { type: string, maxLength: 200, description: 駁回原因（會通知申請人） }
+      responses:
+        '200': { description: 已處理，申請人收到站內通知 }
+        '403': { description: 能力不足 }
+        '409': { description: 已處理過，或同時段還有另一筆待審 }
+
+  /resources/{id}:
+    get:
+      tags: [resources]
+      summary: 場地詳情（未來 14 天時段＋我的申請）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 詳情；訪客也能看，mine 為空、canBook=false
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resource:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      name: { type: string }
+                      hoursText: { type: string }
+                      maxHours: { type: integer }
+                      needsApproval: { type: boolean }
+                      openNow: { type: boolean }
+                  bookings:
+                    type: array
+                    items: { $ref: '#/components/schemas/ResourceBooking' }
+                  mine:
+                    type: array
+                    items: { $ref: '#/components/schemas/ResourceBooking' }
+                  canBook: { type: boolean }
+                  canApprove: { type: boolean }
+                  canManage: { type: boolean }
+        '404': { description: 找不到或已下架 }
+    patch:
+      tags: [resources]
+      summary: 修改場地／器材（帶 version 做樂觀鎖，resource:manage）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已更新（version +1） }
+        '409': { description: 版本不符，請重新載入 }
+    delete:
+      tags: [resources]
+      summary: 下架（軟刪除；resource:manage）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已下架，前台看不到 }
+        '409': { description: 還有未結束的預約 }
+
+  /resources/{id}/bookings:
+    post:
+      tags: [resources]
+      summary: 送出借用申請（resource:book）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [startAt, endAt, purpose]
+              properties:
+                startAt: { type: string, format: date-time }
+                endAt: { type: string, format: date-time }
+                purpose: { type: string, maxLength: 200 }
+      responses:
+        '201':
+          description: 已建立（needsApproval=false 時直接 APPROVED）
+        '409': { description: 時段重疊（CONFLICT，附衝突時段） }
+        '422': { description: 超過最長時數／跨日／不在開放時間內／過去時段 }
+
+  /library/books:
+    get:
+      tags: [library]
+      summary: 館藏列表（訪客可看）
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 60 }, description: 書名／作者／書號／索書號 }
+        - { name: category, in: query, schema: { type: string, maxLength: 40 } }
+        - { name: available, in: query, schema: { type: string, enum: ['1', '0'] }, description: '1＝只看現在借得到的' }
+        - { name: sort, in: query, schema: { type: string, enum: [new, title, hot] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 館藏清單
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        isbn: { type: string, nullable: true }
+                        title: { type: string }
+                        author: { type: string, nullable: true }
+                        category: { type: string, nullable: true }
+                        callNumber: { type: string, nullable: true, description: 索書號（排架位置） }
+                        coverImage: { type: string, nullable: true }
+                        totalCopies: { type: integer }
+                        availableCopies: { type: integer }
+                        loanDays: { type: integer }
+                        waiting: { type: integer, description: 排隊（候補＋已留書）人數 }
+                        borrowable: { type: boolean, description: 現在有可借量（可能被留書佔住，實際能不能借看後端） }
+                  page: { type: integer }
+                  limit: { type: integer }
+                  total: { type: integer }
+                  hasMore: { type: boolean }
+
+  /library/books/{id}:
+    get:
+      tags: [library]
+      summary: 書籍詳情（含我的借閱／我的預約）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 詳情；未登入時 myLoan／myReservation 皆為 null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  book:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      title: { type: string }
+                      availableCopies: { type: integer }
+                      waiting: { type: integer }
+                      loans90d: { type: integer, description: 近 90 天借出次數（熱門度） }
+                      borrowable: { type: boolean }
+                  myLoan:
+                    nullable: true
+                    type: object
+                    properties:
+                      id: { type: string }
+                      dueAt: { type: string, format: date-time }
+                      overdueDays: { type: integer }
+                      dueSoon: { type: boolean, description: 3 天內到期 }
+                      renewals: { type: integer }
+                  myReservation:
+                    nullable: true
+                    type: object
+                    properties:
+                      id: { type: string }
+                      status: { type: string, enum: [WAITING, READY] }
+                      position: { type: integer, description: 候補順位（READY 時為 0） }
+                      readyAt: { type: string, format: date-time, nullable: true }
+                      holdHours: { type: integer, description: 留書期限（小時） }
+                  totalLoans: { type: integer }
+        '404': { description: 找不到或已刪除 }
+
+  /library/isbn/{isbn}:
+    get:
+      tags: [library]
+      summary: 用書號查書（掃碼）
+      parameters:
+        - { name: isbn, in: path, required: true, schema: { type: string, minLength: 10 } }
+      responses:
+        '200':
+          description: 查不到也回 200（found=false），前端據此顯示「登記新書」
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  found: { type: boolean }
+                  isbn: { type: string, description: 正規化後的純數字書號 }
+                  book: { type: object, nullable: true }
+        '422': { description: 書號格式不正確 }
+
+  /library/hot:
+    get:
+      tags: [library]
+      summary: 熱門榜（近 N 天借出次數前 5 名，可調筆數與窗口）
+      parameters:
+        - name: limit
+          in: query
+          description: 取幾本（1–10，預設 5；後台用 10）
+          schema: { type: integer, minimum: 1, maximum: 10, default: 5 }
+        - name: days
+          in: query
+          description: 統計窗口天數（7–365，預設 90）
+          schema: { type: integer, minimum: 7, maximum: 365, default: 90 }
+      responses:
+        '200':
+          description: 熱門書清單
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        title: { type: string }
+                        author: { type: string, nullable: true }
+                        loans: { type: integer }
+                  limit: { type: integer }
+                  days: { type: integer }
+
+  /library/loans:
+    post:
+      tags: [library]
+      summary: 借書（可借就借出，沒書就排候補）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bookId: { type: string }
+                isbn: { type: string, description: 掃碼得到的書號（與 bookId 二選一） }
+      responses:
+        '201':
+          description: 借書成功（kind=loan）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  kind: { type: string, enum: [loan] }
+                  loan:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      dueAt: { type: string, format: date-time }
+                      renewals: { type: integer }
+                  availableCopies: { type: integer }
+                  waiting: { type: integer }
+        '200':
+          description: 沒可借的 → 回候補（kind=reservation，不是錯誤）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  kind: { type: string, enum: [reservation] }
+                  message: { type: string, description: 例「已幫你排候補第 3 位」 }
+                  reservation:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      status: { type: string, enum: [WAITING, READY] }
+                      position: { type: integer }
+        '401': { description: 未登入 }
+        '404': { description: 找不到這本書（或書號不在館藏） }
+        '409': { description: 'ALREADY_BORROWED（已借未還）／ALREADY_RESERVED（已排候補）' }
+        '422': { description: 已下架或參數不合法 }
+
+  /library/loans/mine:
+    get:
+      tags: [library]
+      summary: 我的借閱與預約
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 我的借閱＋我的候補
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activeCount: { type: integer }
+                  overdueCount: { type: integer }
+                  loans:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        book: { type: object }
+                        borrowedAt: { type: string, format: date-time }
+                        dueAt: { type: string, format: date-time }
+                        returnedAt: { type: string, format: date-time, nullable: true }
+                        overdueDays: { type: integer }
+                        dueSoon: { type: boolean }
+                        renewals: { type: integer }
+                  reservations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        book: { type: object }
+                        status: { type: string, enum: [WAITING, READY] }
+                        position: { type: integer }
+                        readyAt: { type: string, format: date-time, nullable: true }
+        '401': { description: 未登入 }
+
+  /library/loans/{id}/return:
+    post:
+      tags: [library]
+      summary: 還書（本人或圖書館職員代還）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已歸還；有人候補時 promotedUserId 不為 null（後端已發站內通知）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  bookId: { type: string }
+                  overdueDays: { type: integer }
+                  promotedUserId: { type: string, nullable: true }
+                  availableCopies: { type: integer }
+                  waiting: { type: integer }
+        '403': { description: 不是自己的書且沒有管理能力 }
+        '409': { description: ALREADY_RETURNED（重複還或別人先還了） }
+
+  /library/loans/{id}/renew:
+    post:
+      tags: [library]
+      summary: 續借（上限 1 次）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已續借（從原到期日往後延，不是從今天算）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dueAt: { type: string, format: date-time }
+                  renewals: { type: integer }
+                  loanDays: { type: integer }
+        '409': { description: 'RENEW_LIMIT／LOAN_OVERDUE／LOAN_QUEUED（有人在等）' }
+
+  /library/reservations/{id}:
+    delete:
+      tags: [library]
+      summary: 取消預約（順位自動重排）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已取消；若讓出的是已留書的位子，promotedUserId 是最早候補
+        '403': { description: 不是自己的預約 }
+        '422': { description: 這筆預約已經結束 }
+
+  /admin/library/books:
+    get:
+      tags: [admin]
+      summary: 館藏管理清單（含下架）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: includeArchived, in: query, schema: { type: string, enum: ['1', '0'] } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 30 } }
+      responses:
+        '200': { description: 清單（每列帶借閱／預約筆數） }
+        '403': { description: '權限不足（需要 library:manage）' }
+    post:
+      tags: [admin]
+      summary: 新增館藏
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string, maxLength: 120 }
+                isbn: { type: string, description: 會正規化成純數字 }
+                author: { type: string, maxLength: 80 }
+                publisher: { type: string, maxLength: 80 }
+                category: { type: string, maxLength: 40 }
+                callNumber: { type: string, maxLength: 40 }
+                coverImage: { type: string, format: uri }
+                summary: { type: string, maxLength: 2000 }
+                totalCopies: { type: integer, minimum: 1, maximum: 999, default: 1 }
+                loanDays: { type: integer, minimum: 1, maximum: 90, default: 14 }
+      responses:
+        '201': { description: 建好的書 }
+        '409': { description: 書號重複 }
+
+  /admin/library/books/{id}:
+    patch:
+      tags: [admin]
+      summary: 修改館藏（帶 version 防覆蓋）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                isbn: { type: string }
+                totalCopies: { type: integer }
+                loanDays: { type: integer }
+                version: { type: integer, description: 讀到的那個版本；不符回 409 }
+      responses:
+        '200': { description: 改好的書 }
+        '409': { description: 版本不符或書號重複 }
+        '422': { description: 館藏量不能少於借出中的本數 }
+    delete:
+      tags: [admin]
+      summary: 刪除館藏（軟刪除，只在前台消失）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已刪除 }
+        '422': { description: 還有書借出中 }
+
+  /admin/library/books/{id}/archive:
+    post:
+      tags: [admin]
+      summary: 下架／重新上架
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                archived: { type: boolean, default: true }
+      responses:
+        '200': { description: 已下架／已上架 }
+        '404': { description: 找不到 }
+
+  /admin/library/loans:
+    get:
+      tags: [admin]
+      summary: 借閱紀錄（誰借了什麼、什麼時候到期、哪些逾期）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [active, overdue, returned, all], default: active } }
+        - { name: q, in: query, schema: { type: string }, description: 書名／借閱人／帳號 }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 30 } }
+      responses:
+        '200':
+          description: 紀錄＋統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        book: { type: object }
+                        user: { type: object }
+                        dueAt: { type: string, format: date-time }
+                        returnedAt: { type: string, format: date-time, nullable: true }
+                        overdueDays: { type: integer }
+                  total: { type: integer }
+                  summary:
+                    type: object
+                    properties:
+                      active: { type: integer }
+                      overdue: { type: integer }
+
+  /admin/library/loans.csv:
+    get:
+      tags: [admin]
+      summary: 借閱紀錄 CSV（UTF-8 BOM）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [active, overdue, returned, all], default: all } }
+      responses:
+        '200':
+          description: CSV 檔（text/csv）
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /admin/library/overdue:
+    get:
+      tags: [admin]
+      summary: 全校逾期清單（館員催還；按逾期天數由多到少）
+      description: >-
+        只列未歸還且已過應還日的書。逾期天數按澳門日界算，
+        days=0 與 days=1 同義（當天到期不算逾期）。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: days
+          in: query
+          schema: { type: integer, minimum: 0, maximum: 365, default: 0 }
+          description: '0 = 只要逾期就列；7 = 只列逾期滿 7 天以上'
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        '200':
+          description: 逾期清單＋摘要
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        book: { type: object }
+                        user: { type: object }
+                        studentNo: { type: string, description: '由 sc: 帳號抽出的純學號；微信帳號為空字串' }
+                        borrowedAt: { type: string, format: date-time }
+                        dueAt: { type: string, format: date-time }
+                        overdueDays: { type: integer }
+                        renewals: { type: integer }
+                  total: { type: integer }
+                  page: { type: integer }
+                  limit: { type: integer }
+                  hasMore: { type: boolean }
+                  days: { type: integer }
+                  summary:
+                    type: object
+                    properties:
+                      count: { type: integer }
+                      worstDays: { type: integer }
+                      people: { type: integer }
+                      withinWeek: { type: integer }
+        '403': { description: '權限不足（需要 library:manage）' }
+
+  /admin/library/overdue/export:
+    get:
+      tags: [admin]
+      summary: 逾期清單 CSV（UTF-8 BOM；與清單同一份名單）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: days
+          in: query
+          schema: { type: integer, minimum: 0, maximum: 365, default: 0 }
+      responses:
+        '200':
+          description: 'CSV 檔（text/csv；x-row-count 為列數；上限 5000 列；寫 library.overdue_export 審計）'
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /admin/library/remind:
+    post:
+      tags: [admin]
+      summary: 催還（到期前 2 天內＋逾期，一天只催一次）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 已提醒筆數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  checked: { type: integer }
+
+  /cron/library-reminders:
+    get:
+      tags: [admin]
+      summary: 圖書館催還（定時任務，與活動提醒分開一支）
+      description: 認證同 /cron/reminders（CRON_SECRET，不是 JWT）；未設定時回 503 CRON_DISABLED。
+      security: []
+      responses:
+        '200': { description: 已提醒筆數 }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+    post:
+      tags: [admin]
+      summary: 圖書館催還（手動觸發用 POST）
+      security: []
+      responses:
+        '200': { description: 同 GET }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+
+  /cron/homework-reminders:
+    get:
+      tags: [admin]
+      summary: 功課提醒（24 小時內到期＋已逾期，只發給還沒打勾的學生）
+      description: >-
+        認證同 /cron/reminders（CRON_SECRET，不是 JWT）；未設定時回 503 CRON_DISABLED。
+        同一天重跑不會重複發（去重窗口是澳門時區的當天）。已打勾的學生、別班學生、已收回的功課都不會收到。
+      security: []
+      responses:
+        '200':
+          description: 這一輪檢查與送出的統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checked: { type: integer, description: 檢查了幾則功課 }
+                  sent: { type: integer, description: 實際送出的通知數 }
+                  skipped: { type: integer, description: 同一天已提醒過而跳過的人數 }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        className: { type: string }
+                        subject: { type: string }
+                        title: { type: string }
+                        stage: { type: string, enum: [soon, overdue] }
+                        targets: { type: integer }
+                        sent: { type: integer }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+    post:
+      tags: [admin]
+      summary: 功課提醒（手動觸發用 POST）
+      security: []
+      responses:
+        '200': { description: 同 GET }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+
+  /cron/daily:
+    get:
+      tags: [admin]
+      summary: 每日一次（圖書館催還＋功課提醒）
+      description: >-
+        Vercel Cron 每天打這支。兩件事各自 try/catch，其中一件失敗不會讓另一件沒跑；
+        回應固定列出兩邊的結果與 errors，排程 log 一眼看得出哪一段沒做。
+      security: []
+      responses:
+        '200':
+          description: 兩個任務各自的結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  elapsedMs: { type: integer }
+                  library: { type: object, nullable: true }
+                  homework: { type: object, nullable: true }
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        task: { type: string }
+                        message: { type: string }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+    post:
+      tags: [admin]
+      summary: 每日一次（手動觸發）
+      security: []
+      responses:
+        '200': { description: 同 GET }
+        '401': { description: 密鑰不正確或沒有帶 }
+        '503': { description: 後端未設定 CRON_SECRET（端點停用） }
+
+  # ── 二手書／校服轉贈（W-68） ──
+  # 清單與詳情對訪客開放；送出、修改、申請要登入；後台總表限 giveaway:manage。
+  # 聯絡方式只回物主本人與「被接受」的申請人，前端不要自己藏。
+  # 「刪除」＝下架（status=CLOSED），可再上架，沒有硬刪除。
+  /giveaways:
+    get:
+      tags: [giveaways]
+      summary: 轉贈清單（訪客可看）
+      description: 只回 status=AVAILABLE；已贈出／已下架的貼文不會出現在這裡（詳情頁仍可讀）。
+      parameters:
+        - { name: kind, in: query, schema: { type: string, enum: [BOOK, UNIFORM, OTHER] } }
+        - { name: q, in: query, schema: { type: string, maxLength: 60 }, description: 標題／說明／細節／面交地點 }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 轉贈清單（新到舊）；contactName／contactValue 一律 null，myRequest 也是 null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/GiveawayItem' }
+                  total: { type: integer }
+                  page: { type: integer }
+    post:
+      tags: [giveaways]
+      summary: 送出轉贈（giveaway:create）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, title]
+              properties:
+                kind: { type: string, enum: [BOOK, UNIFORM, OTHER] }
+                title: { type: string, minLength: 2, maxLength: 80 }
+                body: { type: string, maxLength: 2000, description: 物品狀況／為什麼送出 }
+                condition: { type: string, enum: [LIKE_NEW, GOOD, FAIR], default: GOOD }
+                detail: { type: string, maxLength: 40, description: '細節，例「第 3 冊」／「150 碼」' }
+                pickupPlace: { type: string, maxLength: 60, description: 面交地點 }
+                imageUrl: { type: string, maxLength: 512, description: 只收 http(s) 連結（COS 未開通前不上傳） }
+                contactName: { type: string, maxLength: 40, description: 只給被接受的申請人看 }
+                contactValue: { type: string, maxLength: 80, description: 例 電話／微信號 }
+      responses:
+        '201':
+          description: 已建立（status=AVAILABLE，version=0）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  item: { $ref: '#/components/schemas/GiveawayItem' }
+        '401': { description: 未登入 }
+        '403': { description: '能力不足（giveaway:create）' }
+        '422': { description: 欄位驗證失敗（例 標題少於 2 字、imageUrl 不是 http(s)） }
+
+  /giveaways/mine:
+    get:
+      tags: [giveaways]
+      summary: 我的轉贈（我送出的＋我申請的）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: posted 我送出的（各 100 筆為限，含聯絡方式與待審數）；requests 我申請的（附物品摘要）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posted:
+                    type: array
+                    items: { $ref: '#/components/schemas/GiveawayItem' }
+                  requests:
+                    type: array
+                    items: { $ref: '#/components/schemas/GiveawayRequestSummary' }
+        '401': { description: 未登入 }
+
+  /giveaways/{id}:
+    get:
+      tags: [giveaways]
+      summary: 轉贈詳情（訪客可看基本資料）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 詳情；聯絡方式只有物主、被接受的申請人、職員拿得到。requests 只有物主與職員看得到，其他人是空陣列
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  item: { $ref: '#/components/schemas/GiveawayItem' }
+                  requests:
+                    type: array
+                    items: { $ref: '#/components/schemas/GiveawayRequestSummary' }
+                  isOwner: { type: boolean }
+                  canRequest: { type: boolean, description: '可申請＝有 giveaway:request、不是物主、仍是 AVAILABLE、且我還沒申請過' }
+                  canManage: { type: boolean }
+        '404': { description: 找不到；或已贈出／已下架且你不是物主、申請過的人、職員（同一句話，防探測） }
+    patch:
+      tags: [giveaways]
+      summary: 修改自己的轉贈（帶 version 做樂觀鎖）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind: { type: string, enum: [BOOK, UNIFORM, OTHER] }
+                title: { type: string, minLength: 2, maxLength: 80 }
+                body: { type: string, maxLength: 2000, description: 空字串＝清空 }
+                condition: { type: string, enum: [LIKE_NEW, GOOD, FAIR] }
+                detail: { type: string, maxLength: 40 }
+                pickupPlace: { type: string, maxLength: 60 }
+                imageUrl: { type: string, maxLength: 512, description: 空字串＝清空 }
+                contactName: { type: string, maxLength: 40 }
+                contactValue: { type: string, maxLength: 80 }
+                version: { type: integer, minimum: 0, description: 不帶就不做版本比對 }
+      responses:
+        '200':
+          description: 已更新（version 加 1）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  item: { $ref: '#/components/schemas/GiveawayItem' }
+        '401': { description: 未登入 }
+        '403': { description: '不是物主（giveaway:manage 可代改）' }
+        '404': { description: 找不到這件轉贈物品 }
+        '409': { description: 版本不符（請重新載入）或已贈出（只有職員能改） }
+        '422': { description: 欄位驗證失敗 }
+
+  /giveaways/{id}/status:
+    post:
+      tags: [giveaways]
+      summary: 下架／重新上架（物主或 giveaway:manage）
+      description: 不做硬刪除也不做軟刪除，「刪掉」就是 status=CLOSED，可再改回 AVAILABLE。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [AVAILABLE, CLOSED] }
+      responses:
+        '200':
+          description: 已改狀態（version 加 1；下架會寫 closedAt，上架會清掉）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  status: { type: string, enum: [AVAILABLE, CLOSED] }
+        '401': { description: 未登入 }
+        '403': { description: '不是物主（giveaway:manage 可代改）' }
+        '404': { description: 找不到這件轉贈物品 }
+        '409': { description: 已贈出（GIVEN）不能再改狀態 }
+
+  /giveaways/{id}/requests:
+    post:
+      tags: [giveaways]
+      summary: 申請索取（giveaway:request）
+      description: 同一人對同一件只留一列；取消後再申請是復活原本那筆，不會多一列。物主會收到站內通知。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message: { type: string, maxLength: 200, description: 給物主的話（會進通知） }
+      responses:
+        '201':
+          description: 已送出申請（status=PENDING）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  requestId: { type: string }
+        '401': { description: 未登入 }
+        '403': { description: '能力不足（giveaway:request）' }
+        '404': { description: 找不到這件轉贈物品 }
+        '409': { description: 已申請過在等回覆／物主已留給你／物品已被領取或已下架 }
+        '422': { description: 這是你自己送出的物品 }
+
+  /giveaways/requests/{id}:
+    delete:
+      tags: [giveaways]
+      summary: 取消自己的申請（只有 PENDING 可取消）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已取消（status=CANCELLED），可再重新申請 }
+        '401': { description: 未登入 }
+        '403': { description: 只能取消自己的申請 }
+        '404': { description: 找不到這筆申請 }
+        '409': { description: 這筆申請已經處理過了（已接受／已駁回／已取消） }
+    patch:
+      tags: [giveaways]
+      summary: 物主決定給誰（ACCEPT／REJECT）
+      description: 接受＝物品同時變 GIVEN，並在同一交易把其他待審申請一併標成 REJECTED；條件式更新擋「兩個視窗同時按接受」。申請人會收到站內通知。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [ACCEPT, REJECT] }
+      responses:
+        '200':
+          description: 已處理
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  action: { type: string, enum: [ACCEPT, REJECT] }
+        '401': { description: 未登入 }
+        '403': { description: '只有物主可以決定要給誰（giveaway:manage 可代處理）' }
+        '404': { description: 找不到這筆申請 }
+        '409': { description: 這筆申請已處理過，或物品已經不是 AVAILABLE }
+
+  /admin/giveaways:
+    get:
+      tags: [admin]
+      summary: 轉贈總表（含已贈出／已下架；giveaway:manage）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [all, AVAILABLE, GIVEN, CLOSED], default: all } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 100 } }
+      responses:
+        '200':
+          description: 全部貼文（含聯絡方式，新到舊）與各狀態筆數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/GiveawayItem' }
+                  stats:
+                    type: object
+                    properties:
+                      available: { type: integer }
+                      given: { type: integer }
+                      closed: { type: integer }
+                      pendingRequests: { type: integer, description: 全站待審申請數 }
+        '403': { description: 能力不足 }
+
+  # ── W-72 請假申請 ──────────────────────────────────────────────
+  /leaves:
+    post:
+      tags: [leaves]
+      summary: 送出假單（學生自己／家長代已綁定的子女）
+      description: |
+        角色分流：學生只能替自己送（studentId 傳別人的一律 403）；
+        家長一定要帶 studentId，而且必須存在於 parent_links（未綁定與「不存在的人」回同一句 403，防學號探測）。
+        同一學生「待審批／已批准」的日期區間不能重疊（409）；已駁回／已取消的不佔日期。
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, fromDate, toDate, reason]
+              properties:
+                studentId: { type: string, description: 家長必填；學生留空（後端一律用自己的 id） }
+                kind: { type: string, enum: [SICK, PERSONAL, OFFICIAL] }
+                fromDate: { type: string, example: '2026-11-12', description: 'YYYY-MM-DD（只到天）' }
+                toDate: { type: string, example: '2026-11-13' }
+                reason: { type: string, minLength: 2, maxLength: 300 }
+                attachmentUrl: { type: string, maxLength: 512 }
+      responses:
+        '201':
+          description: 已送出（status=PENDING）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  leave: { $ref: '#/components/schemas/LeaveRequest' }
+        '401': { description: 未登入 }
+        '403': { description: 能力不足／只能替自己請假／沒有綁定這位學生 }
+        '409': { description: 同一段日期已經有假單（待審批或已批准） }
+        '422': { description: 日期格式錯、結束早於開始、超過 60 天、原因太短 }
+
+  /leaves/mine:
+    get:
+      tags: [leaves]
+      summary: 我的假單（學生看自己；家長看子女）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 由新到舊（最多 100 筆）＋待審批／已批准筆數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/LeaveRequest' }
+                  pending: { type: integer }
+                  approved: { type: integer }
+                  studentName: { type: string, nullable: true }
+        '401': { description: 未登入 }
+
+  /leaves/{id}:
+    get:
+      tags: [leaves]
+      summary: 單張假單（送出者／學生本人／可審批的老師與職員）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 假單＋是否可以審批
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  leave: { $ref: '#/components/schemas/LeaveRequest' }
+                  canReview: { type: boolean }
+        '403': { description: 看不到這張假單 }
+        '404': { description: 找不到這張假單 }
+    delete:
+      tags: [leaves]
+      summary: 取消假單（只有待審批，且只有送出者／學生本人）
+      description: 取消是狀態改成 CANCELLED（不刪列）—— 請假紀錄要留著，月底統計才對得上。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已取消 }
+        '403': { description: 只能取消自己的假單 }
+        '409': { description: 已批准／已駁回／已取消，不能再取消 }
+
+  /admin/leaves:
+    get:
+      tags: [admin]
+      summary: "假單清單（leave:review；老師／校務處）"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [PENDING, APPROVED, REJECTED, CANCELLED, ALL], default: PENDING } }
+        - { name: q, in: query, schema: { type: string, maxLength: 40 }, description: 學生暱稱或原因 }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 待審批依開始日期由近到遠；其他狀態依處理時間由新到舊
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/LeaveRequest' }
+                  total: { type: integer }
+                  page: { type: integer }
+                  counts:
+                    type: object
+                    properties:
+                      PENDING: { type: integer }
+                      APPROVED: { type: integer }
+                      REJECTED: { type: integer }
+                      CANCELLED: { type: integer }
+        '403': { description: 能力不足 }
+
+  /admin/leaves/{id}:
+    patch:
+      tags: [admin]
+      summary: "審批假單（leave:review；駁回必填原因）"
+      description: 條件式寫入（where status=PENDING）—— 兩位老師同時按批准，第二位回 409。批完發站內通知給送出者與學生本人。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [APPROVE, REJECT] }
+                reason: { type: string, maxLength: 200, description: 駁回時必填 }
+      responses:
+        '200':
+          description: 已處理（回更新後的狀態與日期摘要）
+        '403': { description: 能力不足 }
+        '404': { description: 找不到這張假單 }
+        '409': { description: 這張已經被其他老師處理過了 }
+        '422': { description: 駁回沒寫原因 }
+
+  /admin/leaves/export:
+    get:
+      tags: [admin]
+      summary: "假單 CSV 匯出（leave:review；帶 UTF-8 BOM，Excel 直接開）"
+      description: |
+        欄位：學號／姓名／年級／班別／假別／起訖／天數／狀態／送出者／審批人／審批時間／原因。
+        學號由 `sc:` 家校通帳號取出（微信帳號的老師留空）；原因裡的引號成對加倍、換行改成空白。
+        一次最多 5000 張，筆數放在 `x-row-count` 回應標頭（curl 驗得到、不必下載檔案）；每次匯出寫一筆 `leave.export` 審計。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [PENDING, APPROVED, REJECTED, CANCELLED, ALL], default: ALL } }
+        - { name: from, in: query, schema: { type: string, format: date }, description: 開始日期下限（含） }
+        - { name: to, in: query, schema: { type: string, format: date }, description: 開始日期上限（含） }
+      responses:
+        '200':
+          description: CSV（text/csv; charset=utf-8）
+          headers:
+            x-row-count:
+              schema: { type: string }
+              description: 匯出筆數
+            content-disposition:
+              schema: { type: string }
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { description: 能力不足 }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  # ── W-73 班級課表 ──────────────────────────────────────────────
+  /timetable:
+    get:
+      tags: [timetable]
+      summary: 班級課表（訪客可看；沒帶 className 就用登入者自己的班級）
+      description: 節次時間全校共用一份（第一次讀取自動補第 1–8 節預設值），回傳每格的 timeText 由後端組好。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: className, in: query, schema: { type: string, maxLength: 32 }, description: 例「高二仁」；留空時登入者用自己的班級 }
+      responses:
+        '200':
+          description: 該班整週課表＋可選班級＋節次
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  className: { type: string }
+                  classes: { type: array, items: { type: string } }
+                  periods:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        period: { type: integer }
+                        startTime: { type: string, example: '08:10' }
+                        endTime: { type: string, example: '08:50' }
+                  weekdays:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        weekday: { type: integer }
+                        label: { type: string }
+                  slots: { type: array, items: { $ref: '#/components/schemas/TimetableSlot' } }
+
+  /timetable/today:
+    get:
+      tags: [timetable]
+      summary: 今天的課與「現在／下一節」（澳門時間；週末或放假回 schoolDay=false）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: className, in: query, schema: { type: string, maxLength: 32 } }
+        - { name: at, in: query, schema: { type: string, format: date-time }, description: 指定時間算節次（測試／示範用；不帶就是現在） }
+      responses:
+        '200':
+          description: 今天課表＋current／next＋給首頁一行的 nextText；放假時再回 dayOff 與原因
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  className: { type: string }
+                  schoolDay: { type: boolean, description: 週末或當天停課都是 false }
+                  dayOff:
+                    type: object
+                    nullable: true
+                    description: 停課依據（週末為 null）。W-82：當天的 CALENDAR 公告或壓到上課時段 ≥3 小時的全校活動
+                    properties:
+                      source: { type: string, enum: [notice, event] }
+                      id: { type: string }
+                      title: { type: string }
+                      reason: { type: string, example: 重陽節假期（校曆公告） }
+                  dayOffReason: { type: string, example: 重陽節假期（校曆公告）, description: 空字串＝不是放假（含週末） }
+                  date: { type: string, example: '2026-11-06' }
+                  weekday: { type: integer }
+                  weekdayLabel: { type: string }
+                  slots: { type: array, items: { $ref: '#/components/schemas/TimetableSlot' } }
+                  current: { $ref: '#/components/schemas/TimetableSlot' }
+                  next: { $ref: '#/components/schemas/TimetableSlot' }
+                  nextText: { type: string, example: '數學 · 302（10:30）' }
+
+  /homework:
+    get:
+      tags: [homework]
+      summary: 自己班級的功課清單（登入後才有班級；逾期由後端算）
+      description: 學生只能看自己那一班，帶 className 也一樣；沒班級的人回 needsClass=true 與空清單，不是錯誤。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: scope, in: query, schema: { type: string, enum: [all, todo, done], default: all }, description: todo＝還沒打勾、done＝已打勾 }
+        - { name: className, in: query, schema: { type: string, maxLength: 32 }, description: 只有老師以上有效；學生一律用自己那一班 }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 60 } }
+      responses:
+        '200':
+          description: 功課清單與統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  className: { type: string }
+                  needsClass: { type: boolean }
+                  canCreate: { type: boolean, description: 老師以上才有「出功課」按鈕 }
+                  message: { type: string }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        className: { type: string }
+                        subject: { type: string, example: 數學 }
+                        title: { type: string, example: 習作 4.2 第 1–10 題 }
+                        detail: { type: string }
+                        links:
+                          type: array
+                          description: "附件連結（W-84）：只收 http(s)、上限 5 條；name 可空，前端沒名稱時顯示「附件 N」"
+                          items:
+                            type: object
+                            properties:
+                              name: { type: string, maxLength: 60 }
+                              url: { type: string, maxLength: 300 }
+                        dueAt: { type: string, format: date-time }
+                        dueMs: { type: integer }
+                        done: { type: boolean }
+                        doneAt: { type: string }
+                        overdue: { type: boolean }
+                        mine: { type: boolean, description: 是不是自己出的（只有自己出的可以收回） }
+                        version: { type: integer }
+                  stats:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      done: { type: integer }
+                      todo: { type: integer }
+                      overdue: { type: integer }
+        '401':
+          description: 未登入（功課不是公開內容）
+    post:
+      tags: [homework]
+      summary: 為班級出一項功課（老師）
+      description: 同一班同一科同一天同一個標題回 409，避免連點兩下建兩筆。只帶日期時視為當天 23:59（澳門時間）。
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, title, dueAt]
+              properties:
+                className: { type: string, description: 留空＝自己那一班 }
+                subject: { type: string, maxLength: 40 }
+                title: { type: string, maxLength: 120 }
+                detail: { type: string, maxLength: 500 }
+                links:
+                  type: array
+                  maxItems: 5
+                  description: "附件連結（W-84）：只收 http(s) 開頭，上限 5 條；重複的只留一條，非 http(s) 回 422。字串或 { name, url } 都收。"
+                  items:
+                    oneOf:
+                      - { type: string, maxLength: 300 }
+                      - type: object
+                        properties:
+                          name: { type: string, maxLength: 60 }
+                          url: { type: string, maxLength: 300 }
+                dueAt: { type: string, example: '2026-11-09' }
+      responses:
+        '201':
+          description: 已建立
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  className: { type: string }
+                  dueAt: { type: string, format: date-time }
+                  links:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name: { type: string }
+                        url: { type: string }
+                  version: { type: integer }
+        '409':
+          description: 同一班今天已經有同一科的同一項功課
+
+  /homework/{id}:
+    patch:
+      tags: [homework]
+      summary: 修改一項功課（作者本人或管理員；帶 version 擋併發覆蓋）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject: { type: string, maxLength: 40 }
+                title: { type: string, maxLength: 120 }
+                detail: { type: string, maxLength: 500 }
+                links:
+                  type: array
+                  maxItems: 5
+                  description: "附件連結（W-84）：帶空陣列＝清空附件；不帶就維持原樣（不要用 null 當清空）。"
+                  items:
+                    oneOf:
+                      - { type: string, maxLength: 300 }
+                      - type: object
+                        properties:
+                          name: { type: string, maxLength: 60 }
+                          url: { type: string, maxLength: 300 }
+                dueAt: { type: string }
+                version: { type: integer, description: 選填；帶了才做條件式更新 }
+      responses:
+        '200':
+          description: 已更新（回新版號）
+        '409':
+          description: 版號不符（別人先改了）
+    delete:
+      tags: [homework]
+      summary: 收回一項功課（軟刪除；作者本人或管理員）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已收回（資料列保留，前台不再出現）
+
+  /homework/{id}/done:
+    post:
+      tags: [homework]
+      summary: 打勾（我交了）；連按兩次也只有一列
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已打勾
+        '403':
+          description: 不是你們班的功課
+    delete:
+      tags: [homework]
+      summary: 取消打勾
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已取消
+
+  /homework/stats:
+    get:
+      tags: [homework]
+      summary: 老師看這一班每項功課「幾個人交了」（一支端點回全部）
+      description: 只回數字不回姓名（要點名請走名單／簽到）。權限是 `homework:create`（老師以上）。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: className, in: query, schema: { type: string, maxLength: 32 }, description: 留空＝自己那一班 }
+      responses:
+        '200':
+          description: 全班人數與每項功課的交件數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  className: { type: string }
+                  total: { type: integer, description: 班上人數（不含被封禁的帳號） }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        done: { type: integer }
+        '403':
+          description: 不是老師（學生／家長沒有 homework:create）
+
+  /teacher/class:
+    get:
+      tags: [homework]
+      summary: 教師端「班級總覽」（本班功課未交、待審假單、報修處理中，一支聚合端點）
+      description: |
+        導師在朝會前 30 秒掌握全班：本班人數、功課未交人次（依科目分組）、待審假單與今天請假人數、報修待處理件數。
+
+        三條規則：①班級由後端從 `User.className` 決定，**不信前端傳來的班級**（老師帶別班回 403，管理員以上可指定）；
+        ②每一格都與各模組清單用同一份查詢條件（功課 `deletedAt: null`、請假 `status='PENDING'`、報修只算本班同學送出的）；
+        ③帳號沒有班級回 422 並說明找校務處設定。只回數字與最近三筆，不回全班姓名（要點名請走 `/homework/{id}/pending`）。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: className, in: query, schema: { type: string, maxLength: 32 }, description: 留空＝自己那一班（只有管理員以上可以指定別班） }
+      responses:
+        '200':
+          description: 本班的功課／請假／報修聚合數字
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  className: { type: string }
+                  grade: { type: string }
+                  role: { type: string }
+                  classSize: { type: integer, description: 該班級底下未封禁帳號數（與 /homework/stats 同一套算法） }
+                  homework:
+                    type: object
+                    properties:
+                      items: { type: integer, description: 未收回的功課項數 }
+                      overdueItems: { type: integer, description: 已過截止時間的項數 }
+                      pendingTotal: { type: integer, description: 全部功課的「未打勾」人次合計 }
+                      subjects:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            subject: { type: string }
+                            items: { type: integer }
+                            pending: { type: integer }
+                            overdue: { type: integer }
+                      upcoming:
+                        type: array
+                        description: 未到期的最近三項
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            subject: { type: string }
+                            title: { type: string }
+                            dueAt: { type: string, format: date-time }
+                            done: { type: integer }
+                            total: { type: integer }
+                  leaves:
+                    type: object
+                    properties:
+                      pending: { type: integer }
+                      approvedToday: { type: integer, description: 今天請假中的人數（已批准且日期涵蓋今天） }
+                      latest:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            studentId: { type: string }
+                            nickname: { type: string }
+                            kind: { type: string }
+                            kindText: { type: string }
+                            fromDate: { type: string, format: date }
+                            toDate: { type: string, format: date }
+                  repairs:
+                    type: object
+                    properties:
+                      pending: { type: integer }
+                      inProgress: { type: integer }
+                      latest:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            location: { type: string }
+                            equipment: { type: string }
+                            status: { type: string }
+                            urgency: { type: string }
+                            createdAt: { type: string, format: date-time }
+                  generatedAt: { type: string, format: date-time }
+        '403':
+          description: 學生／家長看不到（這頁是本班行政視角），或老師帶了別班
+        '422':
+          description: 帳號還沒有班級資料（CLASS 未設定）
+
+  /teacher/class/attendance:
+    get:
+      tags: [school]
+      summary: 本班出席率月報（班主任，班級由帳號決定）
+      description: |
+        班主任每天要回答家長「我這個月出席幾天」，不必為了看本班一行數字去後台翻全校月報。
+
+        口徑與 `GET /admin/school/attendance/monthly` **同一份聚合**（`lib/attendance-monthly`）：
+        出席率＝1 − 缺席 ÷ 有紀錄的人日；**遲到算出席**、**請假不算缺席**；沒有紀錄回 `null`（畫面顯示「—」），
+        **不回 0%**。班級一律由後端從 `User.className` 決定，老師帶別班 403、沒班級 422。
+        能力：`leave:review`（老師與校內職員）；學生與家長 403。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: month, in: query, schema: { type: string, pattern: '^\d{4}-\d{2}$' }, description: 留空＝這個月（澳門時區） }
+        - { name: yearTerm, in: query, schema: { type: string, maxLength: 16 }, description: 例 2026/2027；留空＝不分學年 }
+        - { name: className, in: query, schema: { type: string, maxLength: 32 }, description: 留空＝自己那一班（只有管理員以上可以指定別班） }
+      responses:
+        '200':
+          description: 本班本月的人日統計、每日明細與缺席最多的三天
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  className: { type: string }
+                  grade: { type: string }
+                  role: { type: string }
+                  month: { type: string, description: 'YYYY-MM' }
+                  yearTerm: { type: string, nullable: true }
+                  range: { type: object, properties: { from: { type: string, format: date }, to: { type: string, format: date } } }
+                  days: { type: integer, description: 該月天數 }
+                  activeDays: { type: integer, description: 有出缺席紀錄的天數 }
+                  students: { type: integer, description: 本月有紀錄的學生數 }
+                  summary:
+                    type: object
+                    properties:
+                      records: { type: integer, description: 人日（一天一人算一筆） }
+                      present: { type: integer }
+                      late: { type: integer, description: 遲到仍算出席 }
+                      absent: { type: integer }
+                      leave: { type: integer, description: 請假不算缺席 }
+                      rate: { type: number, nullable: true, description: 一位小數；沒有紀錄時是 null }
+                  byDay:
+                    type: array
+                    description: 只含有紀錄的日子（整月空白日不回）
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        day: { type: integer }
+                        records: { type: integer }
+                        late: { type: integer }
+                        absent: { type: integer }
+                        rate: { type: number, nullable: true }
+                  worstDays:
+                    type: array
+                    description: 缺席最多的三天（最多 3 筆，只含有缺席的日子）
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        day: { type: integer }
+                        absent: { type: integer }
+                        records: { type: integer }
+                        rate: { type: number, nullable: true }
+                  truncated: { type: boolean, description: 超過 4 萬筆人日上限時為 true }
+        '403':
+          description: 學生／家長看不到，或老師帶了別班
+        '422':
+          description: 帳號還沒有班級資料，或月份格式不是 YYYY-MM
+
+  /homework/{id}/pending:
+    get:
+      tags: [homework]
+      summary: 某一項功課的未交名單（老師）
+      description: 只回暱稱與 id（不回帳號）；封禁帳號不計入。清單一次幾十項，每項都帶名單會變幾百筆，所以名單獨立一支、點下去才抓。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 班上人數、已交數與未交名單
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  className: { type: string }
+                  total: { type: integer }
+                  done: { type: integer }
+                  pending:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        nickname: { type: string }
+        '403':
+          description: 不是老師
+        '404':
+          description: 找不到這項功課（含已收回）
+
+  /parents/me/children/{studentId}/homework:
+    get:
+      tags: [parent, homework]
+      summary: 家長看子女這一班的功課（唯讀）
+      description: 只用 parent_links 反查，不接受前端傳班級；打勾狀態是子女自己打的，家長只看不改。未綁定與「這個人不存在」回同一句 403（防學號探測）。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: studentId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 子女班級的功課清單與統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  className: { type: string }
+                  studentName: { type: string }
+                  needsClass: { type: boolean }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        subject: { type: string }
+                        title: { type: string }
+                        detail: { type: string }
+                        links:
+                          type: array
+                          description: "附件連結（W-84）：只收 http(s)、上限 5 條；name 可空，前端沒名稱時顯示「附件 N」"
+                          items:
+                            type: object
+                            properties:
+                              name: { type: string, maxLength: 60 }
+                              url: { type: string, maxLength: 300 }
+                        dueAt: { type: string, format: date-time }
+                        dueMs: { type: integer }
+                        done: { type: boolean }
+                        doneAt: { type: string }
+                        overdue: { type: boolean }
+                  stats:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      done: { type: integer }
+                      todo: { type: integer }
+                      overdue: { type: integer }
+        '403':
+          description: 沒有綁定這位學生（與「不存在」同一句）
+
+  /admin/homework:
+    get:
+      tags: [admin, homework]
+      summary: "後台功課一覽（跨班，需要 homework:manage）"
+      description: "校務處／資訊管理員視角 —— 每個班幾項功課、每項完成率、已過期幾項。只回數字不回姓名（要名單請打 /homework/{id}/pending）。完成率的分母是「這一班有幾個帳號」，班上還沒有人註冊時 rate 回 null（不要顯示成 0%）。"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: className, in: query, schema: { type: string, maxLength: 32 }, description: 留空＝全部班級 }
+        - { name: scope, in: query, schema: { type: string, enum: [all, open, overdue], default: all }, description: "all＝全部、open＝還沒到期、overdue＝已過期" }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 300, default: 120 } }
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 30, default: 7 }, description: "完成率趨勢要看幾天（W-84）；按「派功課那天」分組，不是按截止日" }
+      responses:
+        '200':
+          description: 每班統計、功課清單與完成率趨勢
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scope: { type: string }
+                  className: { type: string }
+                  classNames: { type: array, items: { type: string }, description: 篩選用的班級清單 }
+                  counts:
+                    type: object
+                    properties:
+                      classes: { type: integer }
+                      items: { type: integer }
+                      overdue: { type: integer }
+                  classes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        className: { type: string }
+                        items: { type: integer }
+                        overdue: { type: integer }
+                        done: { type: integer }
+                        total: { type: integer }
+                        students: { type: integer }
+                        rate: { type: integer, nullable: true }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        className: { type: string }
+                        subject: { type: string }
+                        title: { type: string }
+                        links:
+                          type: array
+                          description: 附件連結（W-84）
+                          items:
+                            type: object
+                            properties:
+                              name: { type: string }
+                              url: { type: string }
+                        dueAt: { type: string, format: date-time }
+                        done: { type: integer }
+                        total: { type: integer }
+                        rate: { type: integer, nullable: true }
+                        overdue: { type: boolean }
+                        createdByName: { type: string }
+                        mine: { type: boolean }
+                        version: { type: integer }
+                  trend:
+                    type: object
+                    description: "完成率趨勢（W-84）：按「派功課那天」分組；分母是「當天派了幾項 × 班上幾人」，沒有資料的那天 rate 為 null、average 也為 null（不要顯示 0%）"
+                    properties:
+                      days: { type: integer }
+                      local:
+                        type: object
+                        properties:
+                          from: { type: string, example: '2026-11-01' }
+                          to: { type: string, example: '2026-11-07' }
+                      average: { type: integer, nullable: true, description: 整個窗口的加權完成率 }
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            date: { type: string, example: '2026-11-07' }
+                            label: { type: string, example: '11/7' }
+                            items: { type: integer, description: 那天派了幾項功課 }
+                            done: { type: integer }
+                            total: { type: integer, description: 項目數 × 班上人數 }
+                            rate: { type: integer, nullable: true }
+        '403': { description: "能力不足（老師只有 homework:create，看不到全校）" }
+
+  /admin/demo-data:
+    get:
+      tags: [admin, demo]
+      summary: 目前有多少示範資料（system:config，只有最高權限）
+      description: "後台「示範資料」分頁上方三個數字：示範場地／器材、示範館藏、示範課表格數，以及課表用了哪些班級。數字一律由後端算，前端不要用「我剛按了幾次」推。"
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 示範資料統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  counts:
+                    type: object
+                    properties:
+                      venues: { type: integer }
+                      books: { type: integer }
+                      timetableSlots: { type: integer }
+                  classes:
+                    type: array
+                    description: 有示範課表的班級
+                    items: { type: string }
+        '403': { description: "能力不足（system:config 只有最高權限）" }
+    post:
+      tags: [admin, demo]
+      summary: 示範資料一鍵匯入／清除（system:config，只有最高權限）
+      description: "給老師演示用的真資料：寫進資料庫後前台（場地借用／圖書館／班級課表）真的讀得到，不是前端寫死的假資料。`SEED` 是幂等的（同名／同書號的示範資料會更新、不重複新增），遇到**非示範**的同名資料會跳過並在 `skipped` 回報、絕不覆蓋；`CLEAR` 只刪 `demo = true` 的那批，真實資料一筆不動。寫入與清除都會寫一筆審計紀錄。"
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, action]
+              properties:
+                kind: { type: string, enum: [venues, library, timetable, all], description: "venues＝場地與器材、library＝館藏、timetable＝班級課表、all＝三種一起" }
+                action: { type: string, enum: [SEED, CLEAR] }
+                className: { type: string, maxLength: 32, description: "課表班級；留空＝管理者自己的班級，再沒有就用示範班級" }
+      responses:
+        '200':
+          description: 這次匯入／清除了什麼
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  kind: { type: string }
+                  action: { type: string }
+                  className: { type: string }
+                  seeded:
+                    type: object
+                    properties:
+                      venues: { type: integer }
+                      books: { type: integer }
+                      timetableSlots: { type: integer }
+                  cleared:
+                    type: object
+                    properties:
+                      venues: { type: integer }
+                      books: { type: integer }
+                      timetableSlots: { type: integer }
+                      bookings: { type: integer, description: 跟著示範場地一起刪掉的借用申請 }
+                      loans: { type: integer, description: 跟著示範館藏一起刪掉的借閱紀錄 }
+                  skipped:
+                    type: object
+                    description: 因為已有非示範的同名資料而沒寫入的筆數
+                    properties:
+                      venues: { type: integer }
+                      books: { type: integer }
+                      timetableSlots: { type: integer }
+        '403': { description: "能力不足（system:config 只有最高權限）" }
+
+  /admin/timetable:
+    get:
+      tags: [admin]
+      summary: 全部班級課表（timetable:manage）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 每個班幾格＋全部格子＋節次
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  classes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name: { type: string }
+                        slots: { type: integer }
+                  items: { type: array, items: { $ref: '#/components/schemas/TimetableSlot' } }
+        '403': { description: 能力不足 }
+    post:
+      tags: [admin]
+      summary: 新增／覆蓋一格（同一班同一節再送一次就是改那一格）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [className, weekday, period, subject]
+              properties:
+                className: { type: string, maxLength: 32 }
+                weekday: { type: integer, minimum: 1, maximum: 5 }
+                period: { type: integer, minimum: 1, maximum: 8 }
+                subject: { type: string, maxLength: 40 }
+                teacherName: { type: string, maxLength: 40 }
+                room: { type: string, maxLength: 40 }
+      responses:
+        '201': { description: 已寫入 }
+        '403': { description: 能力不足 }
+        '422': { description: 欄位驗證失敗 }
+
+  /admin/timetable/{id}:
+    delete:
+      tags: [admin]
+      summary: 刪除一格課表（timetable:manage）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已刪除 }
+        '403': { description: 能力不足 }
+        '404': { description: 找不到這一格 }
+
+  /admin/timetable/import:
+    post:
+      tags: [admin]
+      summary: CSV 匯入（預設 dryRun：先檢查再寫入）
+      description: |
+        `班級,星期,節次,科目,老師,課室`；星期可寫 1–5 或 一–五，節次 1–8。
+        已存在的格子回 `EXISTS`（不覆蓋）、同一份檔案裡重複回 `DUPLICATE`、
+        格式錯的列放進 `errors` 並帶行號。
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [csv]
+              properties:
+                csv: { type: string, maxLength: 20000 }
+                dryRun: { type: boolean, default: true }
+      responses:
+        '200':
+          description: 逐列結果（ok／created／errors／rows）
+        '403': { description: 能力不足 }
+        '422': { description: CSV 空白或太長 }
+
+  # ── W-88 校園提案與連署 ──────────────────────────────────────────────
+  /proposals:
+    get:
+      tags: [proposals]
+      summary: 提案清單（訪客可看；票數由後端算）
+      description: 已刪除的提案一律不出現。counts 是各狀態件數（ALL 為總數），goal 是新提案的預設門檻。
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [ALL, OPEN, REVIEWING, PLANNED, DONE, DECLINED], default: ALL } }
+        - { name: category, in: query, schema: { type: string, enum: [FACILITY, STUDY, ACTIVITY, CANTEEN, OTHER] } }
+        - { name: q, in: query, schema: { type: string, maxLength: 60 }, description: 比對標題與內容 }
+        - { name: sort, in: query, schema: { type: string, enum: [new, support], default: new } }
+        - { name: scope, in: query, schema: { type: string, enum: [all, mine, supported], default: all }, description: supported 是「我連署過的」；未登入時 mine 與 supported 回空清單 }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 清單與統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  page: { type: integer }
+                  goal: { type: integer, example: 20 }
+                  counts:
+                    type: object
+                    properties:
+                      OPEN: { type: integer }
+                      REVIEWING: { type: integer }
+                      PLANNED: { type: integer }
+                      DONE: { type: integer }
+                      DECLINED: { type: integer }
+                      ALL: { type: integer }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Proposal' }
+    post:
+      tags: [proposals]
+      summary: 提出建議（作者自動算第一位連署人）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, body]
+              properties:
+                title: { type: string, minLength: 4, maxLength: 80 }
+                body: { type: string, minLength: 10, maxLength: 2000 }
+                category: { type: string, enum: [FACILITY, STUDY, ACTIVITY, CANTEEN, OTHER], default: OTHER }
+      responses:
+        '201':
+          description: 已建立（supportCount 從 1 起算）
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Proposal' }
+        '401': { description: 未登入 }
+        '403': { description: 家長沒有權限提出建議 }
+        '422': { description: 標題或內容太短 }
+
+  /proposals/{id}:
+    get:
+      tags: [proposals]
+      summary: 提案詳情（含回覆、前 12 位連署人與我的權限旗標）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 詳情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/Proposal' }
+                  - type: object
+                    properties:
+                      body: { type: string }
+                      reply:
+                        type: object
+                        nullable: true
+                        properties:
+                          body: { type: string }
+                          byName: { type: string, nullable: true }
+                          at: { type: string, format: date-time }
+                      supporters:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            nickname: { type: string }
+                            role: { type: string }
+                      canEdit: { type: boolean, description: 作者且狀態仍是 OPEN }
+                      canReply: { type: boolean, description: "需要 proposal:reply（校內職員以上）" }
+                      canModerate: { type: boolean }
+        '404': { description: 找不到或已撤回 }
+    patch:
+      tags: [proposals]
+      summary: 作者改內容（只有 OPEN；帶 version 防覆蓋）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string, minLength: 4, maxLength: 80 }
+                body: { type: string, minLength: 10, maxLength: 2000 }
+                category: { type: string, enum: [FACILITY, STUDY, ACTIVITY, CANTEEN, OTHER] }
+                version: { type: integer, minimum: 0, description: 選填；不帶就照舊成功並遞增 }
+      responses:
+        '200':
+          description: 已更新
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Proposal' }
+        '403': { description: 不是提案人 }
+        '404': { description: 找不到 }
+        '409': { description: 版本不符或校方已開始處理 }
+    delete:
+      tags: [proposals]
+      summary: 撤回／下架（軟刪除，回收桶救得回來）
+      description: "作者只能在狀態仍是 OPEN 時撤回；校方（proposal:moderate）任何狀態都可以下架。"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已刪除
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  deleted: { type: boolean }
+                  id: { type: string }
+        '403': { description: 不是提案人也不是校方 }
+        '404': { description: 找不到 }
+        '409': { description: 校方已開始處理，作者不能撤回 }
+
+  /proposals/{id}/support:
+    post:
+      tags: [proposals]
+      summary: 連署（一人一票；重複按回 already 為 true，不加票）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 目前票數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  already: { type: boolean, description: 之前已經連署過（這次沒有加票） }
+                  supportCount: { type: integer }
+                  goal: { type: integer }
+                  reached: { type: boolean }
+        '401': { description: 未登入 }
+        '403': { description: 家長沒有連署權限 }
+        '404': { description: 找不到 }
+        '409': { description: 提案已結案（DONE 或 DECLINED）不能再連署 }
+    delete:
+      tags: [proposals]
+      summary: 取消連署（提案人不能取消自己那一票）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 目前票數
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  supportCount: { type: integer }
+                  goal: { type: integer }
+                  reached: { type: boolean }
+        '403': { description: 家長沒有連署權限 }
+        '404': { description: 找不到 }
+        '422': { description: 提案人不能取消自己的連署 }
+
+  /proposals/{id}/supports:
+    get:
+      tags: [proposals]
+      summary: 完整連署名單（分頁；詳情只帶前 12 位）
+      description: 依連署時間由早到晚（與詳情同一順序，同一毫秒時以 userId 排）；訪客也讀得到。
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 一頁名單
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  proposalId: { type: string }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        nickname: { type: string, nullable: true }
+                        role: { type: string }
+                        grade: { type: string, nullable: true }
+                        className: { type: string, nullable: true }
+                        at: { type: string, format: date-time }
+                  total: { type: integer }
+                  page: { type: integer }
+                  limit: { type: integer }
+                  hasMore: { type: boolean }
+                  supportCount: { type: integer }
+                  goal: { type: integer }
+        '404': { description: 找不到（含已下架） }
+        '422': { description: page／limit 超出範圍 }
+
+  /admin/proposals:
+    get:
+      tags: [admin, proposals]
+      summary: 後台提案清單與統計（校內職員以上）
+      description: counts／categories／stats 都由後端算，前端不要自己再加總。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [ALL, OPEN, REVIEWING, PLANNED, DONE, DECLINED], default: ALL } }
+        - { name: category, in: query, schema: { type: string, enum: [FACILITY, STUDY, ACTIVITY, CANTEEN, OTHER] } }
+        - { name: q, in: query, schema: { type: string, maxLength: 60 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 清單與統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Proposal' }
+                  counts:
+                    type: object
+                    properties:
+                      OPEN: { type: integer }
+                      REVIEWING: { type: integer }
+                      PLANNED: { type: integer }
+                      DONE: { type: integer }
+                      DECLINED: { type: integer }
+                      ALL: { type: integer }
+                  categories:
+                    type: object
+                    properties:
+                      FACILITY: { type: integer }
+                      STUDY: { type: integer }
+                      ACTIVITY: { type: integer }
+                      CANTEEN: { type: integer }
+                      OTHER: { type: integer }
+                  stats:
+                    type: object
+                    properties:
+                      proposals: { type: integer }
+                      supports: { type: integer, description: 連署人次的總和 }
+                      reached: { type: integer, description: 已達門檻的提案數 }
+        '403': { description: 老師與學生沒有提案回覆權限 }
+
+  /admin/proposals/{id}:
+    get:
+      tags: [admin, proposals]
+      summary: 單一提案（含回覆內容，供後台編輯）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 詳情
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Proposal' }
+        '403': { description: 權限不足 }
+        '404': { description: 找不到 }
+
+  /admin/proposals/{id}/reply:
+    post:
+      tags: [admin, proposals]
+      summary: 回覆並改狀態（通知提案人與所有連署人）
+      description: 不帶 status 時，OPEN 會自動變 REVIEWING；其他狀態原樣保留。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reply]
+              properties:
+                reply: { type: string, minLength: 2, maxLength: 2000 }
+                status: { type: string, enum: [OPEN, REVIEWING, PLANNED, DONE, DECLINED] }
+      responses:
+        '200':
+          description: 已回覆（notified 是實際送出通知的人數）
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/Proposal' }
+                  - type: object
+                    properties:
+                      notified: { type: integer, example: 6 }
+        '403': { description: 權限不足 }
+        '404': { description: 找不到 }
+        '422': { description: 回覆太短 }
+
+  /repairs:
+    post:
+      tags: [repairs]
+      summary: 送出課室設備報修（學生／老師／職員）
+      description: |
+        送出後會以站內通知通知所有總務與管理員；報修人自己也會在「我的報修」看到這一筆。
+        照片目前只收 http(s) 連結（COS 直傳未接）。
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [location, equipment, description]
+              properties:
+                location: { type: string, minLength: 1, maxLength: 60, example: 304 室 }
+                equipment: { type: string, minLength: 1, maxLength: 40, example: 冷氣 }
+                description: { type: string, minLength: 4, maxLength: 500, example: 出風口滴水，滴到第二排的桌上 }
+                urgency: { type: string, enum: [LOW, NORMAL, HIGH], default: NORMAL }
+                photoUrl: { type: string, maxLength: 512 }
+      responses:
+        '201':
+          description: 已送出
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repair: { $ref: '#/components/schemas/Repair' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: 家長或訪客不能報修 }
+        '422': { description: 欄位不完整或照片不是 http(s) }
+
+  /repairs/mine:
+    get:
+      tags: [repairs]
+      summary: 我的報修（含進行中與已完成數量）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Repair' }
+                  active: { type: integer }
+                  done: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /repairs/{id}:
+    get:
+      tags: [repairs]
+      summary: 單張報修（報修人或總務）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repair: { $ref: '#/components/schemas/Repair' }
+        '403': { description: 不是報修人也不是總務 }
+        '404': { description: 找不到 }
+    delete:
+      tags: [repairs]
+      summary: 取消自己的報修（只有待接單時）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 已取消 }
+        '403': { description: 只能取消自己送的 }
+        '409': { description: 已被接單或已處理 }
+
+  /admin/repairs:
+    get:
+      tags: [admin, repairs]
+      summary: 報修清單（總務／校務處）
+      description: |
+        待接單預設按急迫度（HIGH 先）再按送出時間排序；其他狀態按更新時間。
+        counts 是各狀態筆數。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [PENDING, IN_PROGRESS, DONE, CANCELLED, ALL], default: PENDING } }
+        - { name: location, in: query, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Repair' }
+                  total: { type: integer }
+                  page: { type: integer }
+                  counts:
+                    type: object
+                    properties:
+                      PENDING: { type: integer }
+                      IN_PROGRESS: { type: integer }
+                      DONE: { type: integer }
+                      CANCELLED: { type: integer }
+        '403': { description: '沒有 repair:handle 權限' }
+
+  /admin/repairs/{id}/accept:
+    post:
+      tags: [admin, repairs]
+      summary: 接單（條件式更新，誰先按誰拿到）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已接單
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repair: { $ref: '#/components/schemas/Repair' }
+        '404': { description: 找不到 }
+        '409': { description: 已被其他同事接走或已被送出者取消 }
+
+  /admin/repairs/{id}/done:
+    post:
+      tags: [admin, repairs]
+      summary: 標記完成（可寫處理備註）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string, maxLength: 300, example: 換了排水管，已測試 }
+      responses:
+        '200':
+          description: 已完成
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repair: { $ref: '#/components/schemas/Repair' }
+        '404': { description: 找不到 }
+        '409': { description: 還沒有人接單或已處理 }
+
+  /admin/repairs/stats:
+    get:
+      tags: [admin, repairs]
+      summary: 報修統計（狀態、平均處理時數、近 7 天、熱門地點）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  counts:
+                    type: object
+                    properties:
+                      PENDING: { type: integer }
+                      IN_PROGRESS: { type: integer }
+                      DONE: { type: integer }
+                      CANCELLED: { type: integer }
+                  avgHours: { type: number, nullable: true, description: 平均完成時數（回報 → 按完成） }
+                  avgAcceptHours: { type: number, nullable: true, description: 平均接單時數（回報 → 總務按接單）；沒人接單時為 null }
+                  acceptedCount: { type: integer, description: 已接單筆數（含已完成的） }
+                  doneCount: { type: integer }
+                  byLocation:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        location: { type: string }
+                        count: { type: integer }
+                  timeline:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, example: '2026-11-06' }
+                        label: { type: string, example: '11-06' }
+                        count: { type: integer }
+        '403': { description: 權限不足 }
+
+  /admin/approvals/stats:
+    get:
+      tags: [admin]
+      summary: 審批時效（假單／場地器材／報修同一把尺：件數、待審、中位與平均時數）
+      description: >-
+        窗口是「送出時間」（`createdAt`）落在最近 `days` 天，不是審批時間 ——
+        「這一週送來的單我們處理得多快」才是校方要看的。
+        樣本只算已批准（`APPROVED`；報修是已接單），已取消與已駁回不進時效但仍計入 `counts`。
+        時數單位是小時、一位小數，百分位用 nearest-rank（固定落在真實樣本上）。
+        沒有樣本回 `null` 而不是 0（0 小時的意思是「立刻處理完」）。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: days
+          in: query
+          schema: { type: integer, minimum: 7, maximum: 365, default: 30 }
+          description: 往前看幾天送出的單；亂填或超出範圍回 422
+      responses:
+        '200':
+          description: 三組時效
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  days: { type: integer }
+                  from: { type: string, format: date-time }
+                  to: { type: string, format: date-time }
+                  groups:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key: { type: string, enum: [leave, booking, repair] }
+                        counts:
+                          type: object
+                          description: 'leave 與 booking 是 total/pending/approved/rejected/cancelled；repair 是 total/pending/inProgress/done/cancelled'
+                        hours:
+                          type: object
+                          description: '樣本數與時數（leave 與 booking 是送出到批准；repair 是送出到接單）'
+                          properties:
+                            samples: { type: integer }
+                            p50: { type: number, nullable: true }
+                            p90: { type: number, nullable: true }
+                            avg: { type: number, nullable: true }
+                        doneHours:
+                          type: object
+                          description: '只有 repair 有（送出到完成，只算 DONE）'
+                          properties:
+                            samples: { type: integer }
+                            p50: { type: number, nullable: true }
+                            p90: { type: number, nullable: true }
+                            avg: { type: number, nullable: true }
+        '403': { description: '權限不足（stats:read 是資訊管理員以上）' }
+        '422': { description: '參數不合法（days 必須 7–365）' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -3183,20 +6466,174 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
 
   schemas:
-    SearchHit:
+    Proposal:
       type: object
-      description: 搜尋結果的一列（公告／活動／失物共用）
+      description: 一個校園提案（W-88）。supportCount 與 goal 一起看才有意義；reached 代表是否已達門檻。
       properties:
         id: { type: string }
-        type: { type: string, enum: [notice, event, item] }
+        title: { type: string, example: 圖書館段考前延長開放時間 }
+        category: { type: string, enum: [FACILITY, STUDY, ACTIVITY, CANTEEN, OTHER] }
+        status: { type: string, enum: [OPEN, REVIEWING, PLANNED, DONE, DECLINED] }
+        supportCount: { type: integer, example: 6 }
+        goal: { type: integer, example: 20 }
+        reached: { type: boolean }
+        reachedAt: { type: string, format: date-time, nullable: true }
+        repliedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        isMine: { type: boolean }
+        mySupported: { type: boolean }
+        version: { type: integer }
+        author:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+            grade: { type: string, nullable: true }
+            className: { type: string, nullable: true }
+    Repair:
+      type: object
+      description: 一張課室設備報修單（W-89）。status 走 PENDING→IN_PROGRESS→DONE，送出者可在 PENDING 時取消。
+      properties:
+        id: { type: string }
+        location: { type: string, example: 304 室 }
+        equipment: { type: string, example: 冷氣 }
+        description: { type: string, example: 出風口滴水，滴到第二排的桌上 }
+        urgency: { type: string, enum: [LOW, NORMAL, HIGH] }
+        urgencyText: { type: string, example: 急 }
+        status: { type: string, enum: [PENDING, IN_PROGRESS, DONE, CANCELLED] }
+        statusText: { type: string, example: 待接單 }
+        photoUrl: { type: string, nullable: true }
+        note: { type: string, nullable: true, description: 處理備註（完成時可寫） }
+        reporter:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+            grade: { type: string, nullable: true }
+            className: { type: string, nullable: true }
+        handler:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        acceptedAt: { type: string, format: date-time, nullable: true }
+        completedAt: { type: string, format: date-time, nullable: true }
+        hours: { type: number, nullable: true, description: 送出到完成的實際時數（只有已完成才有） }
+    ResourceBooking:
+      type: object
+      description: 一筆場地／器材借用申請（W-67）
+      properties:
+        id: { type: string }
+        resourceId: { type: string }
+        resource:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            name: { type: string }
+            kind: { type: string, enum: [VENUE, EQUIPMENT] }
+            location: { type: string, nullable: true }
+        userId: { type: string }
+        user:
+          type: object
+          nullable: true
+          description: 只回暱稱，不回 openid
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        dateText: { type: string, description: '澳門時間 YYYY-MM-DD，前端直接顯示' }
+        timeText: { type: string, description: '例 10:00–12:00' }
+        purpose: { type: string }
+        status: { type: string, enum: [PENDING, APPROVED, REJECTED, CANCELLED] }
+        rejectReason: { type: string, nullable: true }
+        past: { type: boolean, description: 時段已過 }
+
+    GiveawayItem:
+      type: object
+      description: 一件轉贈物品（W-68）。contactName／contactValue 只對物主、被接受的申請人、職員有值，其他情況為 null
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [BOOK, UNIFORM, OTHER] }
+        kindLabel: { type: string, description: 例 書籍／校服／其他 }
+        title: { type: string }
+        body: { type: string, nullable: true, description: 物品狀況／為什麼送出 }
+        condition: { type: string, enum: [LIKE_NEW, GOOD, FAIR] }
+        conditionLabel: { type: string, description: 例 幾乎全新／良好／可用 }
+        detail: { type: string, nullable: true, description: 細節，例 第 3 冊 }
+        pickupPlace: { type: string, nullable: true, description: 面交地點 }
+        imageUrl: { type: string, nullable: true }
+        status: { type: string, enum: [AVAILABLE, GIVEN, CLOSED] }
+        statusLabel: { type: string, description: 例 可申請／已贈出／已下架 }
+        version: { type: integer, description: 樂觀鎖版本；PATCH 時原樣帶回 }
+        ownerId: { type: string }
+        ownerNickname: { type: string, description: 沒有暱稱時回「同學」 }
+        ownerClass: { type: string, nullable: true, description: 例 初二 甲 }
+        contactName: { type: string, nullable: true }
+        contactValue: { type: string, nullable: true }
+        requestCount: { type: integer, description: 索取申請總數 }
+        pendingCount: { type: integer, description: 待審申請數 }
+        myRequest:
+          type: object
+          nullable: true
+          description: 我對這件物品的申請（沒有或未登入為 null）
+          properties:
+            id: { type: string }
+            status: { type: string, enum: [PENDING, ACCEPTED, REJECTED, CANCELLED] }
+            createdAt: { type: string, format: date-time }
+        givenAt: { type: string, format: date-time, nullable: true }
+        closedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time, nullable: true }
+
+    GiveawayRequestSummary:
+      type: object
+      description: 一筆索取申請（W-68）。物主在詳情頁看到的列有申請人資料；「我申請的」列表則帶 item 摘要
+      properties:
+        id: { type: string }
+        userId: { type: string, description: 申請人（只在物主／職員視角出現） }
+        nickname: { type: string, nullable: true, description: 申請人暱稱；沒有時回「同學」 }
+        className: { type: string, nullable: true, description: 申請人班級，例 初二 甲 }
+        message: { type: string, nullable: true, description: 申請時給物主的話 }
+        status: { type: string, enum: [PENDING, ACCEPTED, REJECTED, CANCELLED] }
+        createdAt: { type: string, format: date-time }
+        decidedAt: { type: string, format: date-time, nullable: true, description: 物主決定的時間 }
+        item:
+          type: object
+          description: 申請的物品摘要（只在 /giveaways/mine 的 requests 出現）
+          properties:
+            id: { type: string }
+            kind: { type: string, enum: [BOOK, UNIFORM, OTHER] }
+            kindLabel: { type: string }
+            title: { type: string }
+            detail: { type: string, nullable: true }
+            status: { type: string, enum: [AVAILABLE, GIVEN, CLOSED] }
+            ownerNickname: { type: string }
+
+    SearchHit:
+      type: object
+      description: 搜尋結果的一列（公告／活動／失物／轉贈／菜單／功課／提案／館藏／場地器材共用）
+      properties:
+        id: { type: string, description: 功課＝功課 id（前端跳清單頁）、提案＝提案 id、館藏＝書 id、場地器材＝資源 id }
+        type: { type: string, enum: [notice, event, item, giveaway, menu, homework, proposal, book, resource] }
         title: { type: string }
         snippet: { type: string, description: 命中處前後各約 30 字的摘要；沒有內文時退回地點 }
         badge:
           type: string
           nullable: true
-          description: '公告＝kind（NORMAL／URGENT／CALENDAR）；活動＝status；失物＝「type:status」（LOST:OPEN）'
-        date: { type: string, format: date-time, description: 公告＝發佈時間、活動＝開始時間、失物＝遺失／拾獲時間 }
+          description: '公告＝kind（NORMAL／URGENT／CALENDAR）；活動＝status；失物＝「type:status」（LOST:OPEN）；轉贈＝kind；菜單＝餐別；功課＝科目；提案＝「category:status」（FACILITY:OPEN）；館藏＝AVAILABLE／OUT（借完仍回）；場地器材＝「kind:status」（VENUE:ACTIVE）'
+        date: { type: string, format: date-time, description: 公告＝發佈時間、活動＝開始時間、失物＝遺失／拾獲時間、功課＝截止時間、提案＝提出時間、館藏／場地＝建立時間 }
         score: { type: integer, description: 標題命中 2、只有內文命中 1 }
+        className: { type: string, description: 功課專用：班級（後端依 JWT 決定，前端不能指定別班） }
+        supportCount: { type: integer, description: 提案專用：連署數 }
+        goal: { type: integer, description: 提案專用：連署門檻 }
+        available: { type: integer, description: 館藏專用：可借冊數 }
+        total: { type: integer, description: 館藏專用：總冊數 }
+        location: { type: string, description: 場地器材專用：位置（例「三樓」「器材室 A」） }
 
     ErrorLog:
       type: object
@@ -3268,6 +6705,52 @@ components:
         role: { type: string, enum: [STUDENT, TEACHER, ADMIN] }
         grade: { type: string, nullable: true }
         className: { type: string, nullable: true }
+
+    TimetableSlot:
+      type: object
+      description: 課表的一格（W-73）。timeText 由後端用節次表組好，前端不再拼時間
+      nullable: true
+      properties:
+        id: { type: string }
+        className: { type: string, example: 高二仁 }
+        weekday: { type: integer, minimum: 1, maximum: 5 }
+        period: { type: integer, minimum: 1, maximum: 8 }
+        subject: { type: string, example: 數學 }
+        teacherName: { type: string, nullable: true }
+        room: { type: string, nullable: true, example: '302' }
+        timeText: { type: string, example: '09:45–10:25' }
+
+    LeaveRequest:
+      type: object
+      description: 一張假單（W-72）。日期只到天，dateText／days 由後端算好，前端不重算時區
+      properties:
+        id: { type: string }
+        studentId: { type: string }
+        student:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+            grade: { type: string, nullable: true }
+            className: { type: string, nullable: true }
+        createdById: { type: string, description: 送出者（家長代請假時與學生不同人） }
+        source: { type: string, enum: [STUDENT, PARENT], description: '誰送出的（W-99）：STUDENT 學生本人、PARENT 家長代送。由 createdById 與 studentId 比對算出，不另存欄位' }
+        sourceText: { type: string, example: 家長代送 }
+        kind: { type: string, enum: [SICK, PERSONAL, OFFICIAL] }
+        kindText: { type: string, example: 病假 }
+        from: { type: string, example: '2026-11-12' }
+        to: { type: string, example: '2026-11-13' }
+        dateText: { type: string, example: '2026/11/12–11/13' }
+        days: { type: integer, example: 2 }
+        reason: { type: string }
+        attachmentUrl: { type: string, nullable: true }
+        status: { type: string, enum: [PENDING, APPROVED, REJECTED, CANCELLED] }
+        statusText: { type: string, example: 待審批 }
+        rejectReason: { type: string, nullable: true }
+        reviewedAt: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        canCancel: { type: boolean, description: 只有待審批才是 true }
 
     LostItemInput:
       type: object

@@ -1,0 +1,37 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/print.wxss";
+
+/* 列印頁工具列：兩顆按鈕之間一定要有 gap（自訂組件的 margin 不穿透宿主） */
+.toolbar__btns { display: flex; flex-direction: row; gap: var(--pv-sp-2); }
+.toolbar__row--tight { margin-top: 0; }
+
+/* ── 紙上的課表格子：節次 × 星期，沒課的格子也留白 ── */
+.grid { margin-top: var(--pv-sp-2); }
+
+.grow {
+  display: flex;
+  flex-direction: row;
+  min-height: 116rpx;
+  border-bottom: 1rpx solid var(--pv-sep);
+}
+.grow--head { min-height: 56rpx; border-bottom: 2rpx solid var(--pv-label); }
+.grow--last { border-bottom: 2rpx solid var(--pv-label); }
+
+.gc {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 8rpx 8rpx;
+  border-right: 1rpx solid var(--pv-sep);
+  overflow: hidden;
+}
+.gc--no { width: 22%; flex-shrink: 0; }
+.gc--day { flex: 1; min-width: 0; }
+.gc--end { border-right: 0; }
+
+.gc__label { font-size: var(--pv-fs-caption-2); font-weight: 600; color: var(--pv-label); }
+.gc__period { font-size: var(--pv-fs-footnote); font-weight: 600; color: var(--pv-label); }
+.gc__time { font-size: var(--pv-fs-caption-2); color: var(--pv-label-2); margin-top: 2rpx; }
+.gc__subject { font-size: var(--pv-fs-footnote); font-weight: 600; color: var(--pv-label); }
+.gc__meta { font-size: var(--pv-fs-caption-2); color: var(--pv-label-2); margin-top: 4rpx; }

@@ -1,0 +1,33 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/print.wxss";
+
+/* 列印頁工具列：兩顆按鈕之間一定要有 gap（自訂組件的 margin 不穿透宿主） */
+.toolbar__btns { display: flex; flex-direction: row; gap: var(--pv-sp-2); }
+.toolbar__row--tight { margin-top: 0; }
+
+/* ── 紙上的成績單：學段一段一段往下排，段與段之間用粗線分開 ── */
+.tsection { margin-top: var(--pv-sp-2); }
+.tsection__head {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 6rpx;
+  border-bottom: 2rpx solid var(--pv-label);
+}
+.tsection__term { font-size: var(--pv-fs-footnote); font-weight: 700; color: var(--pv-label); }
+.tsection__avg { font-size: var(--pv-fs-caption-2); color: var(--pv-label-2); flex-shrink: 0; }
+
+/* 分數欄靠右、固定寬度；用既有 .c 系列（print.wxss）避免兩套欄寬並存 */
+.c--score { width: 16%; flex-shrink: 0; text-align: right; }
+
+/* ── 出缺席摘要：一張紙只出現一次，放在所有學段之後 ── */
+.tattend {
+  margin-top: var(--pv-sp-3);
+  padding-top: var(--pv-sp-2);
+  border-top: 2rpx solid var(--pv-label);
+  display: flex;
+  flex-direction: column;
+}
+.tattend__title { font-size: var(--pv-fs-caption-1); font-weight: 600; color: var(--pv-label); }
+.tattend__text { margin-top: 6rpx; font-size: var(--pv-fs-caption-2); color: var(--pv-label-2); }

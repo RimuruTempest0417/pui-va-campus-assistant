@@ -5,7 +5,10 @@
 
 ---
 
-## 1. 資料表總覽（13 張）
+## 1. 資料表總覽（核心 13 張 ＋ 後續模組 23 張，共 36 張）
+
+> 下表是專案起點的核心 13 張，逐欄說明仍在這裡；**v0.49 之後新增的模組**（回收桶、錯誤日誌、推送紀錄、家校通三張、評分／組隊／附件／回饋、圖書館三張、場地兩張、轉贈兩張、請假一張、課表兩張）以 `prisma/schema.prisma` 為唯一來源，欄位命名與 `docs/openapi.yaml` 對應。
+> 目前 schema 共 **36 張表／31 支 migration**（每次加表都會有一支 migration，`npm run check:drift` 會對本機與 Neon 兩邊）。
 
 | 表 | 用途 | 關鍵設計 |
 |---|---|---|
@@ -98,7 +101,7 @@ UPDATE events
 
 ---
 
-## 5. 端點一覽（47 個操作 / 42 條路徑，全部已在 `docs/openapi.yaml` 定義並驗證）
+## 5. 端點一覽（195 個操作 / 164 條路徑，全部已在 `docs/openapi.yaml` 定義並驗證）
 
 ### 認證 `/auth`
 | 方法 | 路徑 | 說明 |
@@ -168,6 +171,44 @@ UPDATE events
 | DELETE | `/admin/parents/link/:id` | 解除綁定 |
 
 > 隔離規則：`studentId` 只是查詢鍵，必須存在於 `parent_links` 才算數；未綁定回 **403 且訊息固定**（不區分「不存在」與「不是你的孩子」），避免學號探測。
+
+### 請假 `/leaves`（W-72；送出要登入，審批要 `leave:review`）
+| 方法 | 路徑 | 說明 |
+|---|---|---|
+| POST | `/leaves` | 送出假單；學生只能替自己（傳別人的 `studentId` 回 403），家長必須帶 `studentId` 且已綁定（未綁定與不存在回同一句 403）；同段日期重疊回 409 |
+| GET | `/leaves/mine` | 我的假單（學生看自己／家長看子女）＋待審批與已批准筆數 |
+| GET | `/leaves/:id` | 單張假單（送出者／學生本人／具 `leave:review` 的老師與職員） |
+| DELETE | `/leaves/:id` | 取消（只有 `PENDING`；改狀態不刪列，月底統計才對得上） |
+| GET | `/admin/leaves` | 假單清單（狀態篩選＋`counts`；待審批依開始日期由近到遠） |
+| PATCH | `/admin/leaves/:id` | 批准／駁回（駁回必填原因）；**條件式更新 `where status='PENDING'`**，兩人同時批只有一位成立、另一位 409；批完通知送出者與學生 |
+
+> 日期只到「天」（`@db.Date`，字串 `2026-11-12`）：請假是「哪幾天不在」，不是幾點幾分；`dateText`／`days` 由後端算好，前端不重算時區。
+
+### 課室設備報修 `/repairs`（W-89；送出要登入，接單要 `repair:handle`）
+| 方法 | 路徑 | 說明 |
+|---|---|---|
+| POST | `/repairs` | 送出報修（`location`／`equipment`／`description` 必填、`urgency` 三級、`photoUrl` 只收 http(s)）；送出時通知所有總務與管理員 |
+| GET | `/repairs/mine` | 我的報修＋`active`（待接單＋處理中）與 `done` 筆數 |
+| GET | `/repairs/:id` | 單張（報修人或具 `repair:handle`） |
+| DELETE | `/repairs/:id` | 取消（只有送出者、只有 `PENDING`；已接單回 409） |
+| GET | `/admin/repairs` | 清單（狀態／地點／關鍵字篩選＋`counts`；待接單按急迫度再按送出時間） |
+| POST | `/admin/repairs/:id/accept` | 接單：**條件式更新 `where status='PENDING'`**，同事同時按只有一位成立、其餘 409；處理人記成目前登入者，通知報修人 |
+| POST | `/admin/repairs/:id/done` | 完成（只能從 `IN_PROGRESS`，可寫 `note`）；通知報修人 |
+| GET | `/admin/repairs/stats` | 各狀態筆數、`avgHours`（只算已完成）、`doneCount`、`byLocation`（前 10）、`timeline`（近 7 天，澳門時區） |
+
+> 權限：`repair:create` 學生以上（**家長沒有**）；`repair:handle` 校內職員與管理員（**老師沒有** —— 老師負責發現與回報，接單與結案是總務的行政流程）。地點與設備是自由文字＋前端常用 chips，不建課室表：學校的課室叫法每學年都在變。
+
+### 課表 `/timetable`（W-73；讀取連訪客都能看，維護要 `timetable:manage`＝STAFF 以上）
+| 方法 | 路徑 | 說明 |
+|---|---|---|
+| GET | `/timetable` | 某班整週課表（`className` 留空就用登入者自己的班級）＋可選班級＋節次時間；第一次讀取自動補第 1–8 節預設值 |
+| GET | `/timetable/today` | 今天的課＋`current`／`next`＋給首頁一行的 `nextText`；**用澳門時區算**（可帶 `at` 指定時間驗證），週末回 `schoolDay: false` |
+| GET | `/admin/timetable` | 全部班級（每班幾格＋全部格子＋節次） |
+| POST | `/admin/timetable` | 寫入／覆蓋一格（唯一鍵 `className+weekday+period`，再送一次就是改那一格） |
+| DELETE | `/admin/timetable/:id` | 刪掉一格 |
+| POST | `/admin/timetable/import` | CSV 匯入，**預設 dryRun**：`EXISTS`（已有課不覆蓋）／`DUPLICATE`（同檔重複）／`errors`（帶行號） |
+
+> 為什麼「第幾節」在後端算：前端算等於把節次規則與時區抄第二份，手機時間設錯就會顯示錯的課。節次時間全校共用一份（一間學校只有一個時間表），每個班各存一份遲早出現「3 班第 4 節 10:30、4 班 10:35」。
 
 ### 管理 `/admin`（需 TEACHER / ADMIN）
 | 方法 | 路徑 | 說明 |

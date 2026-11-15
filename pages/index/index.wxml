@@ -42,7 +42,9 @@
   <pv-card wx:elif="{{failed}}">
     <pv-empty tone="warning" title="{{L.failed}}" desc="{{L.failedDesc}}：{{apiBaseText}}">
       <view class="home__retry" bindtap="onRetry">{{L.k01}}</view>
+      <view class="home__retry" bindtap="goLogin">{{L.k36}}</view>
       <view class="home__retry home__retry--plain" bindtap="goDev">{{L.k02}}</view>
+      <view class="home__hint">{{L.k37}}</view>
     </pv-empty>
   </pv-card>
 
@@ -63,6 +65,32 @@
       <text class="urgent__arrow">›</text>
     </view>
 
+    <!-- 今日待辦（W-93）：一張卡三行，資料源與功課／課表／通知頁相同；訪客不顯示 -->
+    <block wx:if="{{todoVisible}}">
+      <view class="pv-group-title">{{L.k35}}</view>
+      <view class="ui-list ui-list--grouped todo-list">
+        <view
+          wx:for="{{todoRows}}"
+          wx:key="key"
+          class="todo-row {{item.last ? 'todo-row--last' : ''}} {{todoKey === item.key ? 'todo-row--pressed' : ''}}"
+          data-key="{{item.key}}"
+          bindtouchstart="onTodoTouchStart"
+          bindtouchend="onTodoTouchEnd"
+          bindtouchcancel="onTodoTouchEnd"
+          bindtap="onTapTodo"
+        >
+          <view class="todo-row__main">
+            <text class="todo-row__label">{{item.label}}</text>
+            <text wx:if="{{item.detail}}" class="todo-row__detail">{{item.detail}}</text>
+          </view>
+          <view class="todo-row__right">
+            <text class="todo-row__value todo-row__value--{{item.tone}}">{{item.value}}</text>
+            <pv-icon name="chevron" size="20" tone="muted" />
+          </view>
+        </view>
+      </view>
+    </block>
+
     <!-- 四宮格 -->
     <view class="grid">
       <view
@@ -79,6 +107,150 @@
         <text class="grid__label">{{item.label}}</text>
         <text class="grid__sub">{{item.sub}}</text>
       </view>
+    </view>
+
+    <!-- 圖書館（W-66）：一條入口列，不破壞四宮格的 2×2 -->
+    <view
+      class="lib {{libPressed ? 'lib--pressed' : ''}}"
+      bindtouchstart="onLibTouchStart"
+      bindtouchend="onLibTouchEnd"
+      bindtouchcancel="onLibTouchEnd"
+      bindtap="goLibrary"
+    >
+      <view class="lib__icon"><pv-icon name="book" size="40" tone="tint" /></view>
+      <view class="lib__main">
+        <text class="lib__title">{{L.k16}}</text>
+        <text class="lib__sub">{{libraryText}}</text>
+      </view>
+      <pv-icon name="chevron" size="24" tone="muted" />
+    </view>
+
+    <!-- 場地／器材借用（W-67）：第二條入口列，與圖書館同一個語彙 -->
+    <view
+      class="lib {{venuePressed ? 'lib--pressed' : ''}}"
+      bindtouchstart="onVenueTouchStart"
+      bindtouchend="onVenueTouchEnd"
+      bindtouchcancel="onVenueTouchEnd"
+      bindtap="goVenues"
+    >
+      <view class="lib__icon"><pv-icon name="events" size="40" tone="tint" /></view>
+      <view class="lib__main">
+        <text class="lib__title">{{L.k20}}</text>
+        <text class="lib__sub">{{venueText}}</text>
+      </view>
+      <pv-icon name="chevron" size="24" tone="muted" />
+    </view>
+
+    <!-- 二手轉贈（W-68）：第三條入口列，與圖書館／場地同一個語彙 -->
+    <view
+      class="lib {{giveawayPressed ? 'lib--pressed' : ''}}"
+      bindtouchstart="onGvTouchStart"
+      bindtouchend="onGvTouchEnd"
+      bindtouchcancel="onGvTouchEnd"
+      bindtap="goGiveaway"
+    >
+      <view class="lib__icon"><pv-icon name="gift" size="40" tone="tint" /></view>
+      <view class="lib__main">
+        <text class="lib__title">{{L.k21}}</text>
+        <text class="lib__sub">{{giveawayText}}</text>
+      </view>
+      <pv-icon name="chevron" size="24" tone="muted" />
+    </view>
+
+    <!-- 測驗倒數（W-69）：第四條入口列，與圖書館／場地／轉贈同一個語彙 -->
+    <view
+      class="lib {{studyPressed ? 'lib--pressed' : ''}}"
+      bindtouchstart="onStudyTouchStart"
+      bindtouchend="onStudyTouchEnd"
+      bindtouchcancel="onStudyTouchEnd"
+      bindtap="goStudy"
+    >
+      <view class="lib__icon"><pv-icon name="notices" size="40" tone="tint" /></view>
+      <view class="lib__main">
+        <text class="lib__title">{{L.k22}}</text>
+        <text class="lib__sub">{{studyText}}</text>
+      </view>
+      <pv-icon name="chevron" size="24" tone="muted" />
+    </view>
+
+    <!-- 請假申請（W-72）：第五條入口列，與圖書館／場地／轉贈／測驗倒數同一個語彙 -->
+    <view
+      class="lib {{leavePressed ? 'lib--pressed' : ''}}"
+      bindtouchstart="onLeaveTouchStart"
+      bindtouchend="onLeaveTouchEnd"
+      bindtouchcancel="onLeaveTouchEnd"
+      bindtap="goLeaves"
+    >
+      <view class="lib__icon"><pv-icon name="leave" size="40" tone="tint" /></view>
+      <view class="lib__main">
+        <text class="lib__title">{{L.k27}}</text>
+        <text class="lib__sub">{{L.k28}}</text>
+      </view>
+      <pv-icon name="chevron" size="24" tone="muted" />
+    </view>
+
+    <!-- 今日課表（W-73）：第六條入口列；副標直接寫「下一節：數學 · 302（10:30）」 -->
+    <view
+      class="lib {{timetablePressed ? 'lib--pressed' : ''}}"
+      bindtouchstart="onTtTouchStart"
+      bindtouchend="onTtTouchEnd"
+      bindtouchcancel="onTtTouchEnd"
+      bindtap="goTimetable"
+    >
+      <view class="lib__icon"><pv-icon name="events" size="40" tone="tint" /></view>
+      <view class="lib__main">
+        <text class="lib__title">{{L.k29}}</text>
+        <text class="lib__sub">{{timetableText}}</text>
+      </view>
+      <pv-icon name="chevron" size="24" tone="muted" />
+    </view>
+
+    <!-- 功課（W-76）：第七條入口列；副標直接寫「3 項未交」 -->
+    <view
+      class="lib {{homeworkPressed ? 'lib--pressed' : ''}}"
+      bindtouchstart="onHwTouchStart"
+      bindtouchend="onHwTouchEnd"
+      bindtouchcancel="onHwTouchEnd"
+      bindtap="goHomework"
+    >
+      <view class="lib__icon"><pv-icon name="items" size="40" tone="tint" /></view>
+      <view class="lib__main">
+        <text class="lib__title">{{L.k31}}</text>
+        <text class="lib__sub">{{homeworkText}}</text>
+      </view>
+      <pv-icon name="chevron" size="24" tone="muted" />
+    </view>
+
+    <!-- 校園提案（W-88）：第八條入口列；副標是「N 個提案 · M 個等你連署」 -->
+    <view
+      class="lib {{proposalPressed ? 'lib--pressed' : ''}}"
+      bindtouchstart="onPpTouchStart"
+      bindtouchend="onPpTouchEnd"
+      bindtouchcancel="onPpTouchEnd"
+      bindtap="goProposals"
+    >
+      <view class="lib__icon"><pv-icon name="idea" size="40" tone="tint" /></view>
+      <view class="lib__main">
+        <text class="lib__title">{{L.k32}}</text>
+        <text class="lib__sub">{{proposalsText}}</text>
+      </view>
+      <pv-icon name="chevron" size="24" tone="muted" />
+    </view>
+
+    <!-- 課室報修（W-89）：第九條入口列；副標是「N 張處理中」 -->
+    <view
+      class="lib {{repairPressed ? 'lib--pressed' : ''}}"
+      bindtouchstart="onRpTouchStart"
+      bindtouchend="onRpTouchEnd"
+      bindtouchcancel="onRpTouchEnd"
+      bindtap="goRepair"
+    >
+      <view class="lib__icon"><pv-icon name="repair" size="40" tone="tint" /></view>
+      <view class="lib__main">
+        <text class="lib__title">{{L.k34}}</text>
+        <text class="lib__sub">{{repairText}}</text>
+      </view>
+      <pv-icon name="chevron" size="24" tone="muted" />
     </view>
 
     <!-- 今日午餐 ＋ 小賣部（合成一張卡，內部用小標題與髮絲線分組） -->
@@ -124,6 +296,7 @@
           <view class="kids__sum-main">
             <text class="kids__sum-line">{{parentSummary.grade}}{{parentSummary.className ? ' · ' + parentSummary.className + L.k14 : ''}}{{parentSummary ? '' : L.k15}}</text>
             <text class="kids__sum-meta" wx:if="{{parentSummary}}">{{parentSummary.signupCount}} 個報名 · {{parentSummary.claimCount}} 件認領 · {{parentSummary.unreadNotices}} 則未讀</text>
+            <text class="kids__sum-hw {{parentSummary.homeworkOverdue ? 'is-warn' : ''}}" wx:if="{{parentSummary}}">{{parentSummary.homeworkText}}</text>
           </view>
           <text class="kids__go">{{L.k09}}</text>
         </view>

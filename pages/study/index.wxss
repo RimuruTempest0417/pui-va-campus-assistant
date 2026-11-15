@@ -1,0 +1,86 @@
+@import "../../styles/tokens.wxss";
+@import "../../styles/ui.wxss";
+
+.study-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+
+/* 區塊標題列：左邊小節標題、右邊進度／身分（沒有可點元素，所以不加卡片） */
+.head {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pv-sp-2);
+  padding: 0 var(--pv-sp-1);
+}
+
+/* ── 倒數列：左邊天數、右邊標題 ── */
+.exam {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--pv-sp-2);
+  width: 100%;
+  min-height: 88rpx;
+  padding: 6rpx 0;
+  box-sizing: border-box;
+}
+.exam__when { flex-shrink: 0; min-width: 132rpx; }
+.exam__when-text {
+  font-size: var(--pv-fs-subhead);
+  font-weight: 600;
+  color: var(--pv-label-2);
+  letter-spacing: var(--pv-ls-body);
+}
+.exam__when-text--soon { color: var(--pv-danger); }
+.exam__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.exam__title { display: block; }
+.exam__meta { margin-top: 4rpx; }
+
+/* ── 溫習列：左邊勾選、右邊科目 ── */
+.subj {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--pv-sp-2);
+  width: 100%;
+  min-height: 88rpx;
+  padding: 6rpx 0;
+  box-sizing: border-box;
+}
+.subj__check {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: var(--pv-r-pill);
+  border: 2rpx solid var(--pv-label-3);
+  box-sizing: border-box;
+  flex-shrink: 0;
+  margin-top: 6rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.subj__check--on {
+  background: var(--pv-tint);
+  border-color: var(--pv-tint);
+}
+.subj__tick { font-size: var(--pv-fs-caption-1); color: var(--pv-on-tint); line-height: 1; }
+.subj__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.subj__name { flex: 1; min-width: 0; }
+.subj__name--done { color: var(--pv-label-3); }
+.subj__right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--pv-sp-2);
+  flex-shrink: 0;
+}
+.subj__reason { margin-top: 4rpx; }
+
+.foot {
+  display: block;
+  font-size: var(--pv-fs-caption-1);
+  color: var(--pv-label-3);
+  line-height: 1.5;
+  padding: var(--pv-sp-3) var(--pv-sp-1) 0;
+}
+.foot + .foot { padding-top: var(--pv-sp-1); }

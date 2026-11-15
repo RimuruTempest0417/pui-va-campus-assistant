@@ -1,0 +1,60 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{isEdit ? L.k02 : L.k01}}" back="{{true}}" />
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="form-inner">
+      <view class="ui-list ui-list--grouped">
+        <view class="ui-card ui-card--row">
+          <text class="ui-field__label">{{L.k03}}</text>
+          <view class="cat-row">
+            <view
+              wx:for="{{categoryTabs}}"
+              wx:key="key"
+              class="cat {{category === item.key ? 'is-active' : ''}}"
+              data-key="{{item.key}}"
+              bindtap="onCategoryChange"
+            >{{item.label}}</view>
+          </view>
+        </view>
+
+        <view class="ui-card ui-card--row">
+          <text class="ui-field__label">{{L.k04}}</text>
+          <input
+            class="ui-input"
+            placeholder="{{L.k05}}"
+            placeholder-class="ui-placeholder"
+            value="{{title}}"
+            maxlength="80"
+            data-field="title"
+            bindinput="onInput"
+          />
+        </view>
+
+        <view class="ui-card ui-card--row ui-card--last">
+          <text class="ui-field__label">{{L.k06}}</text>
+          <textarea
+            class="ui-textarea"
+            placeholder="{{L.k07}}"
+            placeholder-class="ui-placeholder"
+            value="{{body}}"
+            maxlength="2000"
+            auto-height
+            data-field="body"
+            bindinput="onInput"
+          />
+        </view>
+      </view>
+
+      <text wx:if="{{!isEdit}}" class="hint">{{L.k19}}</text>
+
+      <view class="actions">
+        <pv-button
+          type="filled"
+          block="{{true}}"
+          loading="{{submitting}}"
+          disabled="{{submitting}}"
+          bind:tap="submit"
+        >{{submitting ? L.k10 : (isEdit ? L.k09 : L.k08)}}</pv-button>
+      </view>
+    </view>
+  </scroll-view>
+</view>

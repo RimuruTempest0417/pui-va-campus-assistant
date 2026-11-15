@@ -1,0 +1,15 @@
+{
+  "navigationBarTitleText": "圖書館",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "onReachBottomDistance": 80,
+  "usingComponents": {
+    "pv-navbar": "/components/pv-navbar/index",
+    "pv-tag": "/components/pv-tag/index",
+    "pv-empty": "/components/pv-empty/index",
+    "pv-skeleton": "/components/pv-skeleton/index",
+    "pv-button": "/components/pv-button/index",
+    "pv-icon": "/components/pv-icon/index"
+  },
+  "navigationStyle": "custom"
+}

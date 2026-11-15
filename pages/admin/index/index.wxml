@@ -56,6 +56,24 @@
             <pv-button size="sm" type="plain" bind:tap="logout">{{L.k10}}</pv-button>
           </view>
         </pv-card>
+
+        <!-- W-113 審批時效：假單／場地器材／報修三組同一把尺（中位時數）。
+             沒有樣本顯示「—」而不是 0；取不到就整段不出現，上面的概況照常。 -->
+        <block wx:if="{{approvalRows.length}}">
+          <text class="ui-section">{{L.k486}}</text>
+          <view class="ui-list ui-list--grouped">
+            <view wx:for="{{approvalRows}}" wx:key="key"
+                  class="ui-card ui-card--row {{index === approvalRows.length - 1 ? 'ui-card--last' : ''}}">
+              <view class="ui-row-between">
+                <text class="ui-title ap-row__label">{{item.label}}</text>
+                <text class="ui-meta ap-row__hours">{{item.p50Text}}</text>
+              </view>
+              <text class="ui-meta">{{item.metaText}}</text>
+            </view>
+          </view>
+          <text class="ui-meta ap-note">{{L.k487}}</text>
+        </block>
+        <text wx:if="{{approvalHint}}" class="ui-meta ap-note">{{approvalHint}}</text>
       </block>
 
       <!-- 待審認領 -->
@@ -174,7 +192,7 @@
                 <pv-tag text="{{item.kind === 'URGENT' ? L.k88 : item.kind === 'CALENDAR' ? L.k89 : L.k90}}" type="{{item.kind === 'URGENT' ? 'danger' : 'neutral'}}" />
               </view>
               <text wx:if="{{item.scheduled}}" class="ui-meta">{{L.k254}} {{item.publishText}}</text>
-              <text class="ui-meta">{{L.k224}} {{item.read}} / {{item.total}}</text>
+              <text class="ui-meta">{{L.k224}} {{item.read}} / {{item.total}}（{{item.readText}}）</text>
               <view class="row-actions">
                 <pv-button wx:if="{{item.scheduled}}" size="sm" type="plain" data-id="{{item.id}}" data-version="{{item.version}}" bind:tap="publishNoticeNow">{{L.k253}}</pv-button>
                 <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="openNoticeStats">{{L.k225}}</pv-button>
@@ -187,6 +205,10 @@
             </view>
             <view wx:if="{{noticeStats && noticeStats.id === item.id}}" class="ui-card ui-card--row {{index === noticeList.length - 1 ? 'ui-card--last' : ''}}">
               <text class="ui-section">{{L.k224}} {{noticeStats.readText}}</text>
+              <text class="ui-section">{{L.k483}}</text>
+              <view wx:for="{{noticeStats.roles}}" wx:key="key" class="ui-meta">{{item.text}}</view>
+              <text wx:if="{{noticeStats.roleEmptyText}}" class="ui-meta">{{noticeStats.roleEmptyText}}</text>
+              <text wx:if="{{noticeStats.lastText}}" class="ui-meta">{{noticeStats.lastText}}</text>
               <text class="ui-meta">{{L.k227}}{{noticeStats.readerText}}</text>
               <text class="ui-meta">{{L.k228}}{{noticeStats.unreadText}}</text>
               <text wx:if="{{noticeStats.moreText}}" class="ui-meta">{{noticeStats.moreText}}</text>
@@ -341,8 +363,43 @@
                 data-role="{{item.key}}" bindtap="filterUsers">{{item.label}}</view>
         </view>
 
+        <!-- W-86 班級：班級＝使用者的 className 集合，這裡只做篩選與批次指派（不另建班級表） -->
+        <view class="filter-row">
+          <view class="chip {{userQuery.className === '' ? 'chip--on' : ''}}" data-cls="" bindtap="filterUsersClass">{{L.k400}}</view>
+          <view class="chip {{userQuery.className === '__none__' ? 'chip--on' : ''}}" data-cls="__none__" bindtap="filterUsersClass">{{L.k401}} {{classStats.unassigned}}</view>
+          <view class="chip {{classPanel ? 'chip--on' : ''}}" bindtap="toggleClassPanel">{{L.k402}}</view>
+        </view>
+        <view wx:if="{{classes.length}}" class="filter-row">
+          <view wx:for="{{classes}}" wx:key="className"
+                class="chip {{userQuery.className === item.className ? 'chip--on' : ''}}"
+                data-cls="{{item.className}}" bindtap="filterUsersClass">{{item.className}} {{item.students}}</view>
+        </view>
+
+        <view wx:if="{{classPanel}}" class="class-panel">
+          <view class="ui-row-between">
+            <text class="ui-section">{{L.k415}}</text>
+            <text class="ui-meta">{{L.k411}}</text>
+          </view>
+          <view class="filter-row">
+            <input class="field__input" style="flex:1" value="{{classPick}}" bindinput="onClassPick" placeholder="{{L.k404}}" />
+            <pv-button size="sm" type="plain" bind:tap="pickUnassigned">{{L.k405}}</pv-button>
+          </view>
+          <text class="ui-meta">{{pickedCount ? (L.k410 + pickedCount) : L.k413}}</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="filled" loading="{{classBusy}}" disabled="{{classBusy}}" data-action="ADD" bind:tap="applyClassMembers">{{L.k408}}</pv-button>
+            <pv-button size="sm" type="plain" disabled="{{classBusy}}" data-action="REMOVE" bind:tap="applyClassMembers">{{L.k409}}</pv-button>
+          </view>
+        </view>
+
         <view wx:if="{{users.length}}" class="ui-list ui-list--grouped">
         <view wx:for="{{users}}" wx:key="id" class="ui-card ui-card--row {{index === users.length - 1 ? 'ui-card--last' : ''}}">
+          <!-- W-86 批次指派：整列 88rpx 都可點，不必瞄準小圓圈 -->
+          <view wx:if="{{classPanel}}" class="pick-row" data-index="{{index}}" bindtap="togglePickUser">
+            <view class="pick {{item.picked ? 'pick--on' : ''}}">
+              <text wx:if="{{item.picked}}" class="pick__mark">✓</text>
+            </view>
+            <text class="ui-meta">{{item.className || L.k412}}</text>
+          </view>
           <view class="ui-row-between">
             <text class="ui-title">{{item.nickname || item.openid}}</text>
             <pv-tag text="{{item.role}} Lv{{item.level}}" type="{{(item.bannedAt || item.locked) ? 'danger' : 'neutral'}}" />
@@ -425,6 +482,42 @@
 
       <!-- 補登成績與出缺席（W-53 第二階段：老師／職員在小程序內就能補，不必回電腦） -->
       <block wx:elif="{{tab === 'school'}}">
+        <!-- W-95：出席率月報（全校／按班級）—— 數字由後端聚合，前端只顯示 -->
+        <pv-card>
+          <view class="ui-row-between">
+            <text class="ui-section">{{L.k460}}</text>
+            <picker mode="date" fields="month" value="{{amMonth}}" bindchange="onAmMonth">
+              <view class="chip">{{amMonth}}</view>
+            </picker>
+          </view>
+          <pv-skeleton wx:if="{{amBusy}}" rows="2" />
+          <text wx:elif="{{amLoaded}}" class="ui-meta">{{L.k465}} {{amStats.students}} {{L.k466}} {{amStats.records}} {{L.k467}} {{amStats.rateText}} · {{L.k468}} {{amStats.late}} · {{L.k469}} {{amStats.leave}} · {{L.k470}} {{amStats.absent}}</text>
+          <text wx:if="{{amLoaded && !amStats.records}}" class="ui-meta">{{L.k463}}</text>
+          <text wx:if="{{amTruncated}}" class="ui-meta">{{L.k462}}</text>
+          <text wx:if="{{amError}}" class="ui-meta">{{amError}}</text>
+        </pv-card>
+
+        <view wx:if="{{amRows.length}}" class="ui-list ui-list--grouped">
+          <view wx:for="{{amRows}}" wx:key="key" class="ui-card ui-card--row {{index === amRows.length - 1 ? 'ui-card--last' : ''}}">
+            <view class="ui-row-between">
+              <text class="ui-title">{{item.title}}</text>
+              <text class="ui-num">{{item.rateText}}</text>
+            </view>
+            <text class="ui-meta">{{L.k471}} {{item.students}} {{L.k472}} {{item.absent}}</text>
+          </view>
+        </view>
+
+        <pv-card wx:if="{{amLoaded}}">
+          <text class="ui-section">{{L.k470}} / {{L.k468}}</text>
+          <view wx:if="{{amDays.length}}">
+            <view wx:for="{{amDays}}" wx:key="key" class="ui-row-between">
+              <text class="ui-meta">{{item.dateText}}</text>
+              <text class="ui-meta">{{L.k470}} {{item.absent}} {{L.k473}} {{item.late}}</text>
+            </view>
+          </view>
+          <text wx:else class="ui-meta">{{L.k474}}</text>
+        </pv-card>
+
         <pv-card>
           <text class="ui-section ui-mt-2">{{L.k163}}</text>
           <input class="field__input" value="{{scQuery}}" bindinput="onSchoolQuery" bindconfirm="findSchoolStudents" confirm-type="search" placeholder="{{L.k164}}" />
@@ -452,6 +545,9 @@
             <pv-tag text="{{scPicked.account}}" type="neutral" />
           </view>
           <text class="ui-meta">{{scPicked.meta}}</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="plain" bind:tap="openTranscript">{{L.k461}}</pv-button>
+          </view>
           <view class="filter-row">
             <view wx:for="{{scModes}}" wx:key="key" class="chip {{scMode === item.key ? 'chip--on' : ''}}"
                   data-key="{{item.key}}" bindtap="pickSchoolMode">{{item.label}}</view>
@@ -718,6 +814,33 @@
           </view>
         </pv-card>
 
+        <!-- W-101 評分統計：校方看得到「哪道菜最不受歡迎」，評分不再只進不出 -->
+        <block wx:if="{{menuStats && menuStats.items.length}}">
+          <text class="ui-section ui-mt-2">{{L.k475}}</text>
+          <view class="ui-list ui-list--grouped">
+            <view class="signup-row">
+              <text class="signup-row__name">{{menuSummaryText}}</text>
+            </view>
+            <view
+              wx:for="{{menuStatRows}}"
+              wx:key="dishId"
+              class="signup-row {{index === menuStatRows.length - 1 ? 'signup-row--last' : ''}}"
+            >
+              <view class="lib-row__main">
+                <text class="signup-row__name">{{item.name}}</text>
+                <text class="ui-meta">{{item.metaText}}</text>
+              </view>
+              <pv-tag wx:if="{{!item.enough}}" text="{{L.k481}}" type="neutral" />
+            </view>
+          </view>
+          <block wx:if="{{menuWorst.length}}">
+            <text class="ui-section ui-mt-2">{{L.k482}}</text>
+            <view class="filter-row">
+              <view wx:for="{{menuWorst}}" wx:key="dishId" class="chip chip--ghost">{{item.text}}</view>
+            </view>
+          </block>
+        </block>
+
         <text class="ui-section ui-mt-2">本週已排（{{menuWeekStart}} 起）</text>
         <view wx:if="{{menuEntries.length}}" class="ui-list ui-list--grouped">
           <view wx:for="{{menuEntries}}" wx:key="id" class="signup-row {{index === menuEntries.length - 1 ? 'signup-row--last' : ''}}">
@@ -726,6 +849,652 @@
           </view>
         </view>
         <pv-empty wx:if="{{!menuEntries.length}}" title="{{L.k80}}" desc="" />
+      </block>
+
+      <!-- 圖書館（W-66）：館藏登記與借閱紀錄兩個子模式 -->
+      <block wx:elif="{{tab === 'library'}}">
+        <view class="filter-row">
+          <view
+            wx:for="{{libModes}}"
+            wx:key="key"
+            class="chip {{libMode === item.key ? 'chip--on' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="switchLibMode"
+          >{{item.label}}</view>
+        </view>
+
+        <block wx:if="{{libMode === 'books'}}">
+          <pv-card>
+            <view class="ui-row-between">
+              <text class="ui-title">{{libForm.id ? L.k273 : L.k272}}</text>
+              <pv-button wx:if="{{libForm.id}}" size="sm" type="plain" bind:tap="libResetForm">{{L.k283}}</pv-button>
+            </view>
+
+            <text class="ui-section ui-mt-2">{{L.k274}}</text>
+            <input class="field__input" value="{{libForm.title}}" data-field="title" bindinput="onLibField" />
+
+            <view class="ui-row-between ui-mt-2">
+              <text class="ui-section">{{L.k275}}</text>
+              <view class="lib-scan" bindtap="libScan">{{L.k282}}</view>
+            </view>
+            <input class="field__input" value="{{libForm.isbn}}" data-field="isbn" bindinput="onLibField" />
+
+            <text class="ui-section ui-mt-2">{{L.k276}}</text>
+            <input class="field__input" value="{{libForm.author}}" data-field="author" bindinput="onLibField" />
+
+            <view class="lib-two">
+              <view class="lib-two__col">
+                <text class="ui-section ui-mt-2">{{L.k277}}</text>
+                <input class="field__input" value="{{libForm.category}}" data-field="category" bindinput="onLibField" />
+              </view>
+              <view class="lib-two__col">
+                <text class="ui-section ui-mt-2">{{L.k278}}</text>
+                <input class="field__input" value="{{libForm.callNumber}}" data-field="callNumber" bindinput="onLibField" />
+              </view>
+            </view>
+
+            <view class="lib-two">
+              <view class="lib-two__col">
+                <text class="ui-section ui-mt-2">{{L.k279}}</text>
+                <input class="field__input" type="number" value="{{libForm.totalCopies}}" data-field="totalCopies" bindinput="onLibField" />
+              </view>
+              <view class="lib-two__col">
+                <text class="ui-section ui-mt-2">{{L.k280}}</text>
+                <input class="field__input" type="number" value="{{libForm.loanDays}}" data-field="loanDays" bindinput="onLibField" />
+              </view>
+            </view>
+
+            <view class="row-actions">
+              <pv-button type="filled" loading="{{libSaving}}" disabled="{{libSaving}}" bind:tap="libSave">{{L.k281}}</pv-button>
+            </view>
+          </pv-card>
+
+          <view wx:if="{{libBooks.length}}" class="ui-list ui-list--grouped">
+            <view wx:for="{{libBooks}}" wx:key="id" class="signup-row {{index === libBooks.length - 1 ? 'signup-row--last' : ''}}">
+              <view class="lib-row">
+                <view class="lib-row__main">
+                  <text class="signup-row__name">{{item.title}}</text>
+                  <text class="ui-meta">{{item.stockText}}</text>
+                </view>
+                <view class="row-actions">
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="libEdit">{{L.k284}}</pv-button>
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" data-archived="{{item.status === 'ACTIVE'}}" bind:tap="libArchive">{{item.status === 'ACTIVE' ? L.k285 : L.k286}}</pv-button>
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" data-title="{{item.title}}" bind:tap="libDelete">{{L.k287}}</pv-button>
+                </view>
+              </view>
+            </view>
+          </view>
+          <pv-empty wx:else title="{{L.k288}}" desc="{{L.k289}}" />
+        </block>
+
+        <block wx:else>
+          <view class="ui-row-between">
+            <text class="ui-meta">{{L.k290}} {{libSummary.active}} · {{L.k291}} {{libSummary.overdue}}</text>
+            <pv-button size="sm" type="tinted" bind:tap="libRemind">{{L.k294}}</pv-button>
+          </view>
+
+          <view class="filter-row">
+            <view
+              wx:for="{{libStatuses}}"
+              wx:key="key"
+              class="chip {{libStatus === item.key ? 'chip--on' : ''}}"
+              data-key="{{item.key}}"
+              bindtap="pickLibStatus"
+            >{{item.label}}</view>
+          </view>
+
+          <view wx:if="{{libLoans.length}}" class="ui-list ui-list--grouped">
+            <view wx:for="{{libLoans}}" wx:key="id" class="signup-row {{index === libLoans.length - 1 ? 'signup-row--last' : ''}}">
+              <view class="lib-row">
+                <view class="lib-row__main">
+                  <text class="signup-row__name">{{item.book.title}}</text>
+                  <text class="ui-meta">{{item.user.nickname}} · {{item.dueText}}</text>
+                  <text class="ui-meta">{{item.statusLabel}}</text>
+                </view>
+                <view wx:if="{{!item.returnedAt}}" class="row-actions">
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="libReturn">{{L.k293}}</pv-button>
+                </view>
+              </view>
+            </view>
+          </view>
+          <pv-empty wx:else title="{{L.k296}}" desc="" />
+        </block>
+      </block>
+
+      <block wx:elif="{{tab === 'giveaways'}}">
+        <view class="stat-grid">
+          <view class="stat"><text class="stat__num ui-num">{{gvStats.available}}</text><text class="stat__label">{{L.k330}}</text></view>
+          <view class="stat"><text class="stat__num ui-num">{{gvStats.given}}</text><text class="stat__label">{{L.k335}}</text></view>
+          <view class="stat"><text class="stat__num ui-num">{{gvStats.closed}}</text><text class="stat__label">{{L.k332}}</text></view>
+          <view class="stat"><text class="stat__num ui-num">{{gvStats.pendingRequests}}</text><text class="stat__label">{{L.k334}}</text></view>
+        </view>
+
+        <view class="filter-row">
+          <view
+            wx:for="{{gvStatuses}}"
+            wx:key="key"
+            class="chip {{gvStatus === item.key ? 'chip--on' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="switchGvStatus"
+          >{{item.label}}</view>
+        </view>
+
+        <view wx:if="{{gvItems.length}}" class="ui-list ui-list--grouped">
+          <view
+            wx:for="{{gvItems}}"
+            wx:key="id"
+            class="signup-row {{index === gvItems.length - 1 ? 'signup-row--last' : ''}}"
+          >
+            <view class="lib-row">
+              <view class="lib-row__main">
+                <text class="signup-row__name">{{item.title}}</text>
+                <text class="ui-meta">{{item.kindText}} · {{item.metaText}}</text>
+                <text class="ui-meta">{{item.ownerNickname}}<block wx:if="{{item.ownerClass}}"> · {{item.ownerClass}}</block></text>
+                <text class="ui-meta">{{item.applyText}}</text>
+              </view>
+              <view class="row-actions">
+                <pv-tag text="{{item.statusText}}" type="{{item.statusTag}}" />
+                <pv-button
+                  wx:if="{{item.status !== 'GIVEN'}}"
+                  size="sm"
+                  type="plain"
+                  data-id="{{item.id}}"
+                  data-next="{{item.status === 'CLOSED' ? 'AVAILABLE' : 'CLOSED'}}"
+                  data-title="{{item.title}}"
+                  bind:tap="gvToggle"
+                >{{item.status === 'CLOSED' ? L.k332 : L.k331}}</pv-button>
+              </view>
+            </view>
+          </view>
+        </view>
+        <pv-empty wx:else title="{{L.k333}}" desc="" />
+      </block>
+
+      <!-- W-72 假單：待審批優先，一手批／駁；駁回要寫原因（會通知家長與學生） -->
+      <block wx:elif="{{tab === 'leaves'}}">
+        <view class="filter-row">
+          <view
+            wx:for="{{leaveStatuses}}"
+            wx:key="key"
+            class="chip {{leaveStatus === item.key ? 'chip--on' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="switchLeaveStatus"
+          >{{item.label}}{{item.key === 'PENDING' && leaveCounts.PENDING ? ' ' + leaveCounts.PENDING : ''}}</view>
+        </view>
+
+        <view wx:if="{{leaveItems.length}}" class="ui-list ui-list--grouped">
+          <view
+            wx:for="{{leaveItems}}"
+            wx:key="id"
+            class="signup-row {{index === leaveItems.length - 1 ? 'signup-row--last' : ''}}"
+          >
+            <view class="lib-row">
+              <view class="lib-row__main">
+                <text class="signup-row__name">{{item.student.nickname}} · {{item.kindText}}</text>
+                <text class="ui-meta">{{item.dateText}} · {{item.days}} {{L.k345}}</text>
+                <text wx:if="{{item.createdById !== item.studentId}}" class="ui-meta">{{L.k346}}</text>
+                <text class="ui-meta">{{item.reason}}</text>
+                <text wx:if="{{item.rejectReason}}" class="ui-meta">{{item.rejectReason}}</text>
+              </view>
+              <view wx:if="{{item.status === 'PENDING'}}" class="row-actions">
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="leaveApprove">{{L.k303}}</pv-button>
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="leaveReject">{{L.k304}}</pv-button>
+              </view>
+              <pv-tag wx:else text="{{item.statusText}}" type="{{item.statusTone}}" />
+            </view>
+          </view>
+        </view>
+        <pv-empty wx:else title="{{L.k337}}" desc="{{L.k338}}" />
+      </block>
+
+      <!-- W-73 課表：貼 CSV → 先檢查 → 確認匯入；下面列出每個班幾格 -->
+      <block wx:elif="{{tab === 'timetable'}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row ui-card--last">
+            <text class="ui-field__label">{{L.k348}}</text>
+            <textarea
+              class="ui-textarea"
+              placeholder="{{L.k354}}"
+              placeholder-class="ui-placeholder"
+              value="{{ttCsv}}"
+              maxlength="20000"
+              bindinput="onTtCsv"
+            />
+          </view>
+        </view>
+
+        <view class="row-actions" style="margin-top:12rpx">
+          <pv-button size="sm" type="plain" loading="{{ttBusy}}" data-dry="1" bind:tap="ttRun">{{L.k349}}</pv-button>
+          <pv-button size="sm" type="tinted" loading="{{ttBusy}}" data-dry="0" bind:tap="ttRun">{{ttBusy ? L.k351 : L.k350}}</pv-button>
+        </view>
+
+        <text wx:if="{{ttSummary}}" class="ui-meta" style="margin-top:12rpx">{{ttSummary}}</text>
+
+        <view wx:if="{{ttErrors.length}}" class="ui-list ui-list--grouped" style="margin-top:12rpx">
+          <view
+            wx:for="{{ttErrors}}"
+            wx:key="line"
+            class="signup-row {{index === ttErrors.length - 1 ? 'signup-row--last' : ''}}"
+          >
+            <text class="ui-meta">{{item.line}}：{{item.message}}</text>
+          </view>
+        </view>
+
+        <view wx:if="{{ttRows.length}}" class="ui-list ui-list--grouped" style="margin-top:12rpx">
+          <view
+            wx:for="{{ttRows}}"
+            wx:key="line"
+            class="signup-row {{index === ttRows.length - 1 ? 'signup-row--last' : ''}}"
+          >
+            <text class="ui-meta">{{item.className}} · {{item.weekday}} · {{item.period}} · {{item.subject}} {{item.statusText}}</text>
+          </view>
+        </view>
+
+        <block wx:if="{{ttClasses.length}}">
+          <text class="group-sub">{{L.k347}}</text>
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{ttClasses}}"
+              wx:key="name"
+              class="signup-row {{index === ttClasses.length - 1 ? 'signup-row--last' : ''}}"
+            >
+              <view class="lib-row">
+                <text class="signup-row__name">{{item.name}}</text>
+                <text class="ui-meta">{{item.slots}} 格</text>
+              </view>
+            </view>
+          </view>
+        </block>
+        <pv-empty wx:else title="{{L.k353}}" desc="{{L.k354}}" />
+      </block>
+
+      <!-- W-77 功課：跨班一覽（校務處視角）。點一項展開未交名單，右邊可收回（軟刪除） -->
+      <block wx:elif="{{tab === 'homework'}}">
+        <view class="filter-row">
+          <view
+            wx:for="{{hwScopes}}"
+            wx:key="key"
+            class="chip {{hwScope === item.key ? 'chip--on' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="switchHwScope"
+          >{{item.label}}</view>
+        </view>
+
+        <view wx:if="{{hwClassNames.length}}" class="filter-row">
+          <view class="chip {{hwClass === '' ? 'chip--on' : ''}}" data-key="" bindtap="switchHwClass">{{L.k375}}</view>
+          <view
+            wx:for="{{hwClassNames}}"
+            wx:key="*this"
+            class="chip {{hwClass === item ? 'chip--on' : ''}}"
+            data-key="{{item}}"
+            bindtap="switchHwClass"
+          >{{item}}</view>
+        </view>
+
+        <text wx:if="{{hwSummary}}" class="ui-meta" style="margin:8rpx 0 12rpx">{{hwSummary}}</text>
+
+        <!-- W-84 完成率趨勢：最近 7 天按「派功課那天」分組（CSS 柱狀，不引圖表庫） -->
+        <view wx:if="{{hwTrend.length}}" class="hw-trend">
+          <view class="hw-trend__head">
+            <text class="group-sub">{{L.k398}}</text>
+            <text class="ui-meta">{{hwTrendText}}</text>
+          </view>
+          <view class="hw-trend__bars">
+            <view wx:for="{{hwTrend}}" wx:key="date" class="hw-bar">
+              <text class="hw-bar__rate">{{item.rateText}}</text>
+              <view class="hw-bar__track">
+                <view class="hw-bar__fill {{item.items > 0 ? '' : 'is-empty'}}" style="height: {{item.barH}}rpx"></view>
+              </view>
+              <text class="hw-bar__label">{{item.label}}</text>
+            </view>
+          </view>
+          <text class="ui-meta">{{L.k399}}</text>
+        </view>
+
+        <block wx:if="{{hwClasses.length}}">
+          <text class="group-sub">{{L.k377}}</text>
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{hwClasses}}"
+              wx:key="className"
+              class="signup-row {{index === hwClasses.length - 1 ? 'signup-row--last' : ''}}"
+            >
+              <view class="lib-row">
+                <view class="lib-row__main">
+                  <text class="signup-row__name">{{item.className}}</text>
+                  <text class="ui-meta">{{item.metaText}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </block>
+
+        <view wx:if="{{hwItems.length}}" class="ui-list ui-list--grouped">
+          <view
+            wx:for="{{hwItems}}"
+            wx:key="id"
+            class="signup-row {{index === hwItems.length - 1 ? 'signup-row--last' : ''}}"
+          >
+            <view class="lib-row">
+              <view class="lib-row__main" data-id="{{item.id}}" bindtap="hwToggle">
+                <text class="signup-row__name">{{item.subject}} · {{item.title}}</text>
+                <text class="ui-meta">{{item.className}} · {{item.dueText}} · {{item.progressText}}</text>
+                <text wx:if="{{item.overdue}}" class="ui-meta">{{L.k374}}</text>
+                <block wx:if="{{hwOpenId === item.id}}">
+                  <text wx:if="{{hwPendingHint}}" class="ui-meta">{{hwPendingHint}}</text>
+                  <block wx:else>
+                    <text class="ui-meta">{{L.k371}}（{{hwPendingCount}}/{{hwPendingTotal}}）</text>
+                    <text wx:if="{{hwPendingNames}}" class="ui-meta">{{hwPendingNames}}</text>
+                  </block>
+                </block>
+              </view>
+              <view class="row-actions">
+                <pv-button size="sm" type="plain" data-id="{{item.id}}" data-title="{{item.title}}" bind:tap="hwDelete">{{L.k358}}</pv-button>
+              </view>
+            </view>
+          </view>
+        </view>
+        <pv-empty wx:else title="{{L.k363}}" desc="{{L.k364}}" />
+      </block>
+
+      <block wx:elif="{{tab === 'venues'}}">
+        <view class="filter-row">
+          <view
+            wx:for="{{venModes}}"
+            wx:key="key"
+            class="chip {{venMode === item.key ? 'chip--on' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="switchVenMode"
+          >{{item.label}}</view>
+        </view>
+
+        <block wx:if="{{venMode === 'pending'}}">
+          <view wx:if="{{venPending.length}}" class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{venPending}}"
+              wx:key="id"
+              class="signup-row {{index === venPending.length - 1 ? 'signup-row--last' : ''}}"
+            >
+              <view class="lib-row">
+                <view class="lib-row__main">
+                  <text class="signup-row__name">{{item.resource.name}}</text>
+                  <text class="ui-meta">{{item.dateText}} {{item.timeText}}</text>
+                  <text class="ui-meta">{{L.k302}} {{item.user.nickname}}</text>
+                  <text class="ui-meta">{{L.k328}} {{item.purpose}}</text>
+                </view>
+                <view class="row-actions">
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="venApprove">{{L.k303}}</pv-button>
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="venReject">{{L.k304}}</pv-button>
+                </view>
+              </view>
+            </view>
+          </view>
+          <pv-empty wx:else title="{{L.k305}}" desc="" />
+
+          <block wx:if="{{venHandled.length}}">
+            <text class="group-sub">{{L.k306}}</text>
+            <view class="ui-list ui-list--grouped">
+              <view
+                wx:for="{{venHandled}}"
+                wx:key="id"
+                class="signup-row {{index === venHandled.length - 1 ? 'signup-row--last' : ''}}"
+              >
+                <view class="lib-row">
+                  <view class="lib-row__main">
+                    <text class="signup-row__name">{{item.resource.name}}</text>
+                    <text class="ui-meta">{{item.dateText}} {{item.timeText}} · {{item.user.nickname}}</text>
+                    <text wx:if="{{item.rejectReason}}" class="ui-meta">{{item.rejectReason}}</text>
+                  </view>
+                  <pv-tag text="{{item.statusLabel}}" type="{{item.status === 'APPROVED' ? 'success' : 'neutral'}}" />
+                </view>
+              </view>
+            </view>
+          </block>
+        </block>
+
+        <block wx:else>
+          <pv-card>
+            <view class="ui-row-between">
+              <text class="ui-title">{{venForm.id ? L.k308 : L.k307}}</text>
+              <pv-button wx:if="{{venForm.id}}" size="sm" type="plain" bind:tap="venResetForm">{{L.k307}}</pv-button>
+            </view>
+
+            <view class="filter-row filter-row--tight">
+              <picker mode="selector" range="{{venKindLabels}}" value="{{venForm.kind === 'EQUIPMENT' ? 1 : 0}}" bindchange="venKindChange">
+                <view class="chip chip--on">{{venForm.kind === 'EQUIPMENT' ? L.k327 : L.k326}}</view>
+              </picker>
+            </view>
+
+            <text class="ui-section ui-mt-2">{{L.k309}}</text>
+            <input class="field__input" value="{{venForm.name}}" data-field="name" bindinput="onVenField" />
+
+            <text class="ui-section ui-mt-2">{{L.k310}}</text>
+            <input class="field__input" value="{{venForm.location}}" data-field="location" bindinput="onVenField" />
+
+            <view class="lib-two">
+              <view class="lib-two__col">
+                <text class="ui-section ui-mt-2">{{L.k311}}</text>
+                <input class="field__input" value="{{venForm.openFrom}}" data-field="openFrom" bindinput="onVenField" />
+              </view>
+              <view class="lib-two__col">
+                <text class="ui-section ui-mt-2">{{L.k312}}</text>
+                <input class="field__input" type="number" value="{{venForm.maxHours}}" data-field="maxHours" bindinput="onVenField" />
+              </view>
+            </view>
+
+            <text class="ui-section ui-mt-2">{{L.k311}}</text>
+            <input class="field__input" value="{{venForm.openTo}}" data-field="openTo" bindinput="onVenField" />
+
+            <view class="filter-row filter-row--tight">
+              <view class="chip {{venForm.needsApproval ? 'chip--on' : ''}}" data-v="1" bindtap="venSetApproval">{{L.k313}}</view>
+              <view class="chip {{!venForm.needsApproval ? 'chip--on' : ''}}" data-v="0" bindtap="venSetApproval">{{L.k329}}</view>
+            </view>
+
+            <view class="row-actions">
+              <pv-button type="filled" loading="{{venSaving}}" disabled="{{venSaving}}" bind:tap="venSave">{{L.k299}}</pv-button>
+            </view>
+          </pv-card>
+
+          <view wx:if="{{venResources.length}}" class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{venResources}}"
+              wx:key="id"
+              class="signup-row {{index === venResources.length - 1 ? 'signup-row--last' : ''}}"
+            >
+              <view class="lib-row">
+                <view class="lib-row__main">
+                  <text class="signup-row__name">{{item.name}}</text>
+                  <text class="ui-meta">{{item.kindLabel}} · {{item.hoursText}} · {{L.k312}} {{item.maxHours}}</text>
+                  <text class="ui-meta">{{item.needsApproval ? L.k313 : L.k329}}</text>
+                </view>
+                <view class="row-actions">
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" bind:tap="venEdit">{{L.k308}}</pv-button>
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" data-name="{{item.name}}" bind:tap="venArchive">{{L.k314}}</pv-button>
+                </view>
+              </view>
+            </view>
+          </view>
+          <pv-empty wx:else title="{{L.k315}}" desc="{{L.k316}}" />
+        </block>
+      </block>
+
+      <!-- W-88 校園提案：學生提建議、同學連署，校方在這裡回覆並改狀態 -->
+      <block wx:elif="{{tab === 'proposals'}}">
+        <view class="filter-row">
+          <view class="chip {{ppFilter === 'ALL' ? 'chip--on' : ''}}" data-key="ALL" bindtap="switchPpFilter">{{L.k420}}</view>
+          <view class="chip {{ppFilter === 'OPEN' ? 'chip--on' : ''}}" data-key="OPEN" bindtap="switchPpFilter">{{L.ppStatusOPEN}}</view>
+          <view class="chip {{ppFilter === 'REVIEWING' ? 'chip--on' : ''}}" data-key="REVIEWING" bindtap="switchPpFilter">{{L.ppStatusREVIEWING}}</view>
+          <view class="chip {{ppFilter === 'PLANNED' ? 'chip--on' : ''}}" data-key="PLANNED" bindtap="switchPpFilter">{{L.ppStatusPLANNED}}</view>
+          <view class="chip {{ppFilter === 'DONE' ? 'chip--on' : ''}}" data-key="DONE" bindtap="switchPpFilter">{{L.ppStatusDONE}}</view>
+          <view class="chip {{ppFilter === 'DECLINED' ? 'chip--on' : ''}}" data-key="DECLINED" bindtap="switchPpFilter">{{L.ppStatusDECLINED}}</view>
+        </view>
+
+        <text wx:if="{{ppStatsText}}" class="ui-meta" style="margin:8rpx 0 4rpx">{{ppStatsText}}</text>
+        <view wx:if="{{ppCategories.length}}" class="filter-row">
+          <view wx:for="{{ppCategories}}" wx:key="key" class="chip chip--ghost">{{item.label}} {{item.count}}</view>
+        </view>
+
+        <block wx:if="{{ppItems.length}}">
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{ppItems}}"
+              wx:key="id"
+              class="signup-row {{index === ppItems.length - 1 ? 'signup-row--last' : ''}}"
+            >
+              <view class="lib-row">
+                <view class="lib-row__main" data-id="{{item.id}}" bindtap="ppToggle">
+                  <text class="signup-row__name">{{item.title}}</text>
+                  <text class="ui-meta">{{item.authorText}} · {{item.categoryText}} · {{item.timeText}}</text>
+                  <text class="ui-meta">{{L.k439}} {{item.countText}} · {{item.statusText}}{{item.reachedText ? ' · ' + item.reachedText : ''}}</text>
+                  <block wx:if="{{ppReplyId === item.id}}">
+                    <text class="group-sub">{{L.k436}}</text>
+                    <textarea
+                      class="pp-reply"
+                      placeholder="{{L.k437}}"
+                      placeholder-class="ui-placeholder"
+                      value="{{ppReplyText}}"
+                      maxlength="2000"
+                      auto-height
+                      bindinput="ppReplyInput"
+                    />
+                    <view class="filter-row">
+                      <view
+                        wx:for="{{ppStatusOptions}}"
+                        wx:for-item="opt"
+                        wx:key="key"
+                        class="chip {{ppReplyStatus === opt.key ? 'chip--on' : ''}}"
+                        data-key="{{opt.key}}"
+                        bindtap="ppPickStatus"
+                      >{{opt.label}}</view>
+                    </view>
+                    <view class="row-actions">
+                      <pv-button size="sm" type="filled" loading="{{ppSaving}}" disabled="{{ppSaving}}" data-id="{{item.id}}" bind:tap="ppSubmitReply">{{L.k438}}</pv-button>
+                    </view>
+                  </block>
+                  <block wx:elif="{{item.replyBody}}">
+                    <text class="ui-meta">{{item.replyBy}} · {{item.replyText}}</text>
+                    <text class="ui-meta">{{item.replyBody}}</text>
+                  </block>
+                </view>
+                <view class="row-actions">
+                  <pv-button size="sm" type="plain" data-id="{{item.id}}" data-title="{{item.title}}" bind:tap="ppRemove">{{L.k431}}</pv-button>
+                </view>
+              </view>
+            </view>
+          </view>
+        </block>
+        <pv-empty wx:else title="{{L.k434}}" desc="{{L.k435}}" />
+      </block>
+
+      <!-- W-89 課室設備報修：待接單優先，接單／完成都在原地做完（不另開頁） -->
+      <block wx:elif="{{tab === 'repair'}}">
+        <view class="filter-row">
+          <view
+            wx:for="{{repairStatuses}}"
+            wx:key="key"
+            class="chip {{repairStatus === item.key ? 'chip--on' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="switchRepairStatus"
+          >{{item.label}}{{item.key === 'PENDING' && repairCounts.PENDING ? ' ' + repairCounts.PENDING : ''}}</view>
+        </view>
+
+        <text wx:if="{{repairStatsText}}" class="ui-meta" style="margin:8rpx 0 4rpx">{{repairStatsText}}</text>
+        <view wx:if="{{repairByLocation.length}}" class="filter-row">
+          <view wx:for="{{repairByLocation}}" wx:key="location" class="chip chip--ghost">{{item.location}} {{item.count}}</view>
+        </view>
+
+        <block wx:if="{{repairItems.length}}">
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{repairItems}}"
+              wx:key="id"
+              class="signup-row {{index === repairItems.length - 1 ? 'signup-row--last' : ''}}"
+            >
+              <view class="lib-row">
+                <view class="lib-row__main">
+                  <text class="signup-row__name">{{item.placeText}}</text>
+                  <view class="filter-row filter-row--tight">
+                    <pv-tag text="{{item.urgencyText}}" type="{{item.urgencyTone}}" />
+                    <pv-tag text="{{item.statusText}}" type="{{item.statusTone}}" />
+                  </view>
+                  <text class="ui-meta">{{L.k449}} {{item.reporterText}} · {{item.timeText}}</text>
+                  <text class="ui-meta">{{item.description}}</text>
+                  <text wx:if="{{item.handlerText}}" class="ui-meta">{{L.k447}} {{item.handlerText}}</text>
+                  <text wx:if="{{item.note}}" class="ui-meta">{{L.k447}}：{{item.note}}</text>
+                </view>
+                <view class="row-actions">
+                  <pv-button
+                    wx:if="{{item.status === 'PENDING'}}"
+                    size="sm"
+                    type="filled"
+                    data-id="{{item.id}}"
+                    bind:tap="repairAccept"
+                  >{{L.k440}}</pv-button>
+                  <pv-button
+                    wx:elif="{{item.status === 'IN_PROGRESS'}}"
+                    size="sm"
+                    type="plain"
+                    data-id="{{item.id}}"
+                    bind:tap="repairFinish"
+                  >{{L.k441}}</pv-button>
+                </view>
+              </view>
+            </view>
+          </view>
+        </block>
+        <pv-empty wx:else title="{{L.k442}}" desc="{{L.k443}}" />
+      </block>
+
+      <!-- W-81 示範資料（只有最高權限）：匯入會真的寫進資料庫，清除只刪示範那批 -->
+      <block wx:elif="{{tab === 'demo'}}">
+        <pv-card>
+          <text class="ui-title">{{L.k381}}</text>
+          <text class="ui-meta demo-hint">{{L.k382}}</text>
+
+          <view class="ui-list ui-list--grouped demo-sum">
+            <view class="ui-card ui-card--row demo-row">
+              <text class="ui-field__label demo-row__label">{{L.k383}}</text>
+              <view class="demo-row__ops">
+                <text class="ui-meta demo-row__num">{{demoCounts.venues}}{{L.k395}}</text>
+                <pv-button size="sm" type="plain" disabled="{{demoBusy}}" data-kind="venues" bind:tap="demoKindSeed">{{L.k416}}</pv-button>
+                <pv-button size="sm" type="destructive" disabled="{{demoBusy}}" data-kind="venues" bind:tap="demoKindClear">{{L.k417}}</pv-button>
+              </view>
+            </view>
+            <view class="ui-card ui-card--row demo-row">
+              <text class="ui-field__label demo-row__label">{{L.k384}}</text>
+              <view class="demo-row__ops">
+                <text class="ui-meta demo-row__num">{{demoCounts.books}}{{L.k395}}</text>
+                <pv-button size="sm" type="plain" disabled="{{demoBusy}}" data-kind="library" bind:tap="demoKindSeed">{{L.k416}}</pv-button>
+                <pv-button size="sm" type="destructive" disabled="{{demoBusy}}" data-kind="library" bind:tap="demoKindClear">{{L.k417}}</pv-button>
+              </view>
+            </view>
+            <view class="ui-card ui-card--row ui-card--last demo-row">
+              <text class="ui-field__label demo-row__label">{{L.k385}}</text>
+              <view class="demo-row__ops">
+                <text class="ui-meta demo-row__num">{{demoCounts.timetableSlots}}{{L.k392}}</text>
+                <pv-button size="sm" type="plain" disabled="{{demoBusy}}" data-kind="timetable" bind:tap="demoKindSeed">{{L.k416}}</pv-button>
+                <pv-button size="sm" type="destructive" disabled="{{demoBusy}}" data-kind="timetable" bind:tap="demoKindClear">{{L.k417}}</pv-button>
+              </view>
+            </view>
+          </view>
+
+          <text class="ui-section ui-mt-2">{{L.k386}}</text>
+          <input class="field__input" value="{{demoClass}}" placeholder="高二仁" bindinput="onDemoClass" />
+          <text wx:if="{{demoClassText}}" class="ui-meta demo-hint">{{L.k419}}：{{demoClassText}}</text>
+
+          <view class="row-actions">
+            <pv-button type="filled" loading="{{demoBusy}}" disabled="{{demoBusy}}" bind:tap="demoSeed">{{L.k387}}</pv-button>
+            <pv-button type="destructive" loading="{{demoBusy}}" disabled="{{demoBusy}}" bind:tap="demoClear">{{L.k388}}</pv-button>
+          </view>
+
+          <text wx:if="{{demoHint}}" class="ui-meta demo-hint">{{demoHint}}</text>
+        </pv-card>
+
+        <pv-empty
+          wx:if="{{!demoCounts.venues && !demoCounts.books && !demoCounts.timetableSlots}}"
+          title="{{L.k393}}"
+          desc="{{L.k394}}"
+        />
       </block>
 
       <!-- 批次匯入（活動／菜單共用同一塊面板） -->

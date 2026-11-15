@@ -1,0 +1,225 @@
+#!/usr/bin/env node
+/**
+ * 家長視角的「成績與出缺席」頁面邏輯模擬（不需要開發者工具）。
+ *
+ * 為什麼要有：家長免綁定（v0.83.0）讓同一頁要服務兩種身分 ——
+ * 學生讀 `/school/grades`（自己的），家長讀 `/parents/me/children/:id/*`（子女的）。
+ * 這種「依身分換資料來源」的分支，編譯不會報錯、`check-project` 也不會紅，
+ * 只有真的以家長身分打開那一頁才會知道有沒有讀錯人。實測踩過一次：
+ * 頁面把家長當學生，畫面永遠空白（而所有守門全綠）。
+ *
+ * 做法：把 `pages/school/index.js` 放進 vm，`services/data` 換成間諜物件，
+ * 分別以 PARENT／STUDENT 跑 onLoad，斷言：
+ *   - 家長：讀的是子女端點、預設第一位子女、切換子女會重抓、成績與 summary 有渲染
+ *   - 學生：讀的是自己的端點、完全不碰子女端點
+ * 它不能取代真機（手感與版面要人看），但能擋住「資料來源接錯」這一類。
+ */
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const root = path.join(__dirname, '..');
+
+function buildHarness(role, offlineBanner) {
+  const calls = { children: 0, childGrades: null, childAttendance: null, selfGrades: 0, selfAttendance: 0, offlineReset: 0 };
+  const dataStub = {
+    // W-98：離線快取入口。頁面載入前 reset、載入後取文字；沒有快取時回空字串（橫幅不出現）。
+    offlineReset: () => { calls.offlineReset += 1; },
+    offlineText: (prefix) => (offlineBanner ? String(prefix || '') + ' 14:32' : ''),
+    schoolStatus: () => Promise.resolve({ linked: role === 'STUDENT', studentNo: '3201301037', className: '高二丙' }),
+    parentChildren: () => { calls.children += 1; return Promise.resolve({ items: [{ studentId: 'c1', nickname: '甲同學' }, { studentId: 'c2', nickname: '乙同學' }] }); },
+    parentChildGrades: (id) => { calls.childGrades = id; return Promise.resolve({ items: [{ id: 'g1', courseName: '數學', testDate: '2026-10-09', score: 88, source: 'SYNC' }], years: ['2026/2027'] }); },
+    parentChildAttendance: (id) => { calls.childAttendance = id; return Promise.resolve({ items: [{ id: 'a1', date: '2026-10-12', amStatus: 'late', isAmLate: true, source: 'SYNC' }], summary: { total: 1, late: 1, absent: 0 } }); },
+    // W-76：家長端的第三個分頁（唯讀功課）。少了這支，loadAll 會在 Promise.all 裡炸掉整頁
+    parentChildHomework: (id) => { calls.childHomework = id; return Promise.resolve({ className: '高二仁', items: [{ id: 'h1', subject: '數學', title: '習作 4.2', dueAt: '2026-11-09T15:59:00.000Z', dueMs: 0, done: false, overdue: false }], stats: { total: 1, done: 0, todo: 1, overdue: 0 } }); },
+    parentChildSync: (id) => { calls.childSync = id; return Promise.resolve({ ok: true, grades: 1 }); },
+    schoolGrades: () => { calls.selfGrades += 1; return Promise.resolve({ items: [{ id: 'sg1', courseName: '化學', testDate: '2026-10-08', score: 91, source: 'SYNC' }], years: ['2026/2027'] }); },
+    schoolAttendance: () => { calls.selfAttendance += 1; return Promise.resolve({ items: [{ id: 'sa1', date: '2026-10-11', amStatus: 'normal', isAmLate: false, source: 'SYNC' }], summary: { total: 1, late: 0, absent: 0 } }); },
+    schoolSync: () => Promise.resolve({ ok: true, grades: 1 }),
+    schoolLink: () => Promise.resolve({ linked: true }),
+    schoolUnlink: () => Promise.resolve({ linked: false }),
+    messageOf: (e) => (e && e.message) || String(e),
+    isDemo: () => false,
+  };
+
+  const storage = { pv_token: 'fake-token', pv_user: { role, nickname: role === 'PARENT' ? '甲家長' : '甲同學' } };
+  let pageObj = null;
+  const sandbox = {
+    Page: (o) => { pageObj = o; },
+    getApp: () => ({ globalData: {} }),
+    getCurrentPages: () => [],
+    wx: new Proxy({
+      getStorageSync: (k) => storage[k] || '',
+      setStorageSync: (k, v) => { storage[k] = v; },
+      removeStorageSync: (k) => { delete storage[k]; },
+      showToast: () => {}, showModal: () => {}, navigateTo: () => {}, navigateBack: () => {},
+    }, { get: (t, p) => (p in t ? t[p] : () => ({})) }),
+    console: { log() {}, info() {}, warn() {}, error() {} },
+    setTimeout: (f) => { try { f && f(); } catch (e) { /* 畫面層的計時器不影響斷言 */ } return 0; },
+    clearTimeout: () => {},
+    Promise, Date, Math, JSON, Object, Array, String, Number, Boolean, Error, RegExp, Map, Set,
+    require: (p) => {
+      if (p.includes('services/data')) return dataStub;
+      if (p.includes('utils/request')) return { getToken: () => storage.pv_token || '', setToken: (v) => { storage.pv_token = v; } };
+      if (p.includes('utils/i18n')) return { pick: (s) => s };
+      if (p.includes('utils/appearance')) return { themeClass: () => 'theme-light' };
+      if (p.includes('utils/reporter')) return { reportError: () => {} };
+      if (p.includes('config/config')) return { STORAGE_KEYS: { user: 'pv_user', token: 'pv_token' }, API_BASE_URL: 'https://example.test/api/v1' };
+      throw new Error('unexpected require: ' + p);
+    },
+    module: { exports: {} }, exports: {},
+  };
+  sandbox.global = sandbox;
+
+  const code = fs.readFileSync(path.join(root, 'pages/school/index.js'), 'utf8');
+  vm.runInNewContext(code, sandbox, { filename: 'pages/school/index.js' });
+  const inst = Object.assign(Object.create(null), pageObj);
+  inst.data = JSON.parse(JSON.stringify(pageObj.data || {}));
+  inst.setData = function (patch, cb) { Object.assign(this.data, patch || {}); if (typeof cb === 'function') cb.call(this); };
+  inst.route = 'pages/school/index';
+  return { inst, calls };
+}
+
+/**
+ * 首頁家長摘要（W-79）：`loadKidSummary` 除了子女概況，還會多讀一支「子女功課」。
+ * 這支失敗（沒設班級／後端暫時取不到）時，**只准那一行變「—」**，
+ * 不能讓整張家長卡變空白、也不能顯示 0（家長會以為小孩功課交齊了）。
+ */
+function buildHomeHarness(homeworkImpl) {
+  const dataStub = {
+    parentChild: () =>
+      Promise.resolve({
+        student: { nickname: '甲同學', grade: '初二', className: '忠' },
+        signups: [{ id: 's1' }, { id: 's2' }],
+        claimCount: 1,
+        unreadNotices: 3,
+      }),
+    parentChildHomework: homeworkImpl,
+  };
+  let pageObj = null;
+  const sandbox = {
+    Page: (o) => { pageObj = o; },
+    getApp: () => ({ globalData: {} }),
+    getCurrentPages: () => [],
+    wx: new Proxy({}, { get: (t, p) => (p in t ? t[p] : () => ({})) }),
+    console: { log() {}, info() {}, warn() {}, error() {} },
+    setTimeout: (f) => { try { f && f(); } catch (e) { /* 計時器不影響斷言 */ } return 0; },
+    clearTimeout: () => {},
+    Promise, Date, Math, JSON, Object, Array, String, Number, Boolean, Error, RegExp, Map, Set,
+    require: (p) => {
+      if (p.includes('services/data')) return dataStub;
+      if (p.includes('utils/date')) return { dateKey: () => '2026-11-06', weekday: () => '五', fromNow: () => '' };
+      if (p.includes('utils/i18n')) return { pick: (s) => s, t: (k) => k, greetingByHour: () => '' };
+      if (p.includes('utils/nav')) return { getNav: () => ({ navTotal: 0 }) };
+      if (p.includes('utils/appearance')) return { themeClass: () => 'theme-light' };
+      if (p.includes('utils/venue')) return { shapeResource: () => ({ openNow: false }) };
+      if (p.includes('utils/study')) return {};
+      if (p.includes('utils/todo')) return require(path.join(root, 'utils', 'todo.js'));
+      if (p.includes('utils/reporter')) return { reportError: () => {} };
+      throw new Error('unexpected require: ' + p);
+    },
+    module: { exports: {} }, exports: {},
+  };
+  sandbox.global = sandbox;
+
+  const code = fs.readFileSync(path.join(root, 'pages/index/index.js'), 'utf8');
+  vm.runInNewContext(code, sandbox, { filename: 'pages/index/index.js' });
+  const inst = Object.assign(Object.create(null), pageObj);
+  inst.data = JSON.parse(JSON.stringify(pageObj.data || {}));
+  inst.setData = function (patch, cb) { Object.assign(this.data, patch || {}); if (typeof cb === 'function') cb.call(this); };
+  inst.route = 'pages/index/index';
+  return inst;
+}
+
+const checks = [];
+const check = (name, ok) => checks.push({ name, ok: Boolean(ok) });
+
+(async () => {
+  // ── 家長 ──
+  const parent = buildHarness('PARENT');
+  await parent.inst.onLoad.call(parent.inst, {});
+  await new Promise((r) => setTimeout(r, 20));
+  const pd = parent.inst.data;
+
+  check('家長：isParent = true', pd.isParent === true);
+  check('家長：讀了子女清單', parent.calls.children === 1);
+  check('家長：children = 2 位', Array.isArray(pd.children) && pd.children.length === 2);
+  check('家長：預設選第一位子女', pd.activeChildId === 'c1');
+  check('家長：成績讀的是子女端點（c1）', parent.calls.childGrades === 'c1');
+  check('家長：出缺席讀的是子女端點（c1）', parent.calls.childAttendance === 'c1');
+  check('家長：完全沒有讀「自己的」成績／出缺席', parent.calls.selfGrades === 0 && parent.calls.selfAttendance === 0);
+  check('家長：成績有渲染（88）', pd.grades.length === 1 && pd.grades[0].scoreText === '88');
+  check('家長：出缺席 summary 有值', pd.summary && pd.summary.total === 1 && pd.summary.late === 1);
+  check('家長：沒有誤入失敗／載入中', pd.failed === false && pd.loading === false);
+
+  await parent.inst.pickChild.call(parent.inst, { currentTarget: { dataset: { id: 'c2' } } });
+  check('家長：切換到第二位子女會重抓', parent.calls.childGrades === 'c2' && pd.activeChildId === 'c2');
+
+  // ── 學生 ──
+  const student = buildHarness('STUDENT');
+  await student.inst.onLoad.call(student.inst, {});
+  await new Promise((r) => setTimeout(r, 20));
+  const sd = student.inst.data;
+
+  check('學生：isParent = false', sd.isParent === false);
+  check('學生：讀自己的成績／出缺席', student.calls.selfGrades === 1 && student.calls.selfAttendance === 1);
+  check('學生：完全不碰子女端點', student.calls.childGrades === null && student.calls.children === 0);
+  check('學生：成績有渲染（91）', sd.grades.length === 1 && sd.grades[0].scoreText === '91');
+
+  // ── W-98：成績頁的離線橫幅（有快取要寫出來、沒快取不許出現）──
+  check('離線：載入前會重置快取紀錄', student.calls.offlineReset > 0 && sd.offlineText === '');
+  const offlineRun = buildHarness('STUDENT', true);
+  await offlineRun.inst.onLoad.call(offlineRun.inst, {});
+  await new Promise((r) => setTimeout(r, 20));
+  check('離線：有快取時橫幅寫出時間（14:32）', /14:32/.test(offlineRun.inst.data.offlineText));
+  check('離線：橫幅出現時成績照常渲染', offlineRun.inst.data.grades.length === 1);
+
+  // ── 首頁家長摘要（W-79）：子女功課未交數 ──
+  const homeTodo = buildHomeHarness(() =>
+    Promise.resolve({ className: '初二忠', needsClass: false, items: [], stats: { total: 3, done: 1, todo: 2, overdue: 1 } }),
+  );
+  const sumTodo = await homeTodo.loadKidSummary.call(homeTodo, 'c1');
+  check('首頁家長卡：功課未交數 = 2', sumTodo.homeworkTodo === 2);
+  check('首頁家長卡：有逾期時文案寫「含逾期」', /2/.test(sumTodo.homeworkText) && sumTodo.homeworkText.indexOf('（含逾期）') !== -1);
+  check('首頁家長卡：功課沒有蓋掉報名／認領／未讀', sumTodo.signupCount === 2 && sumTodo.claimCount === 1 && sumTodo.unreadNotices === 3);
+
+  const homeFail = buildHomeHarness(() => Promise.reject({ code: 'NETWORK', message: 'boom' }));
+  const sumFail = await homeFail.loadKidSummary.call(homeFail, 'c1');
+  check('首頁家長卡：功課取不到顯示「—」而不是 0', sumFail.homeworkTodo === null && sumFail.homeworkText.indexOf('—') !== -1);
+  check('首頁家長卡：功課取不到時其他資料仍在', sumFail.signupCount === 2 && sumFail.nickname === '甲同學');
+
+  const homeDone = buildHomeHarness(() =>
+    Promise.resolve({ className: '初二忠', needsClass: false, items: [], stats: { total: 2, done: 2, todo: 0, overdue: 0 } }),
+  );
+  const sumDone = await homeDone.loadKidSummary.call(homeDone, 'c1');
+  check('首頁家長卡：全部交齊寫「功課都交了」', sumDone.homeworkText === '功課都交了');
+
+  const homeNoClass = buildHomeHarness(() =>
+    Promise.resolve({ className: '', needsClass: true, items: [], stats: { total: 0, done: 0, todo: 0, overdue: 0 } }),
+  );
+  const sumNoClass = await homeNoClass.loadKidSummary.call(homeNoClass, 'c1');
+  check('首頁家長卡：未設定班級顯示「—」', sumNoClass.homeworkText.indexOf('—') !== -1);
+
+  // ── 首頁「今日待辦」（W-93）：家長那張卡用的是子女的數字，不是家長自己的 ──
+  {
+    const todoMod = require(path.join(root, 'utils', 'todo.js'));
+    const rows = todoMod.rows({
+      role: 'PARENT',
+      kid: sumTodo,
+      unread: 3,
+      homework: { stats: { todo: 9, overdue: 9 } },
+      timetable: { schoolDay: true, nextText: '數學 · 302（10:30）' },
+    });
+    check('首頁今日待辦：家長只兩行（子女功課＋未讀通知）', rows.map((r) => r.key).join(',') === 'kid,notices');
+    check('首頁今日待辦：家長那行用子女的未交數（2）而不是自己的 9', rows[0].value.indexOf('2') !== -1 && rows[0].value.indexOf('9') === -1);
+  }
+
+  const bad = checks.filter((c) => !c.ok);
+  for (const c of bad) console.error(`  ✗ ${c.name}`);
+  if (bad.length) {
+    console.error(`❌ 家長視角模擬：${checks.length} 項中 ${bad.length} 項失敗`);
+    process.exitCode = 1;
+  } else {
+    console.log(`✅ 家長視角模擬通過（${checks.length} 項：家長讀子女、學生讀自己、首頁子女功課未交數，三條路徑互不污染）`);
+  }
+})();

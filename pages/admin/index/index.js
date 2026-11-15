@@ -5,6 +5,10 @@ const config = require('../../../config/config');
 const { dateKey, fromNow, dateTimeText } = require('../../../utils/date');
 const role = require('../../../utils/role');
 const theme = require('../../../utils/theme');
+const { decorateBook, decorateLoan } = require('../../../utils/book');
+const venueUtil = require('../../../utils/venue');
+const giveawayUtil = require('../../../utils/giveaway');
+const approval = require('../../../utils/approval');
 
 const TABS = [
   { key: 'stats', label: i18n.pick('概況') },
@@ -22,6 +26,15 @@ const TABS = [
   { key: 'audit', label: i18n.pick('審計') },
   { key: 'export', label: i18n.pick('名單') },
   { key: 'menu', label: i18n.pick('菜單') },
+  { key: 'library', label: i18n.pick('圖書館') },
+  { key: 'venues', label: i18n.pick('場地') },
+  { key: 'giveaways', label: i18n.pick('轉贈') },
+  { key: 'leaves', label: i18n.pick('假單') },
+  { key: 'timetable', label: i18n.pick('課表') },
+  { key: 'homework', label: i18n.pick('功課') },
+  { key: 'proposals', label: i18n.pick('提案') },
+  { key: 'repair', label: i18n.pick('報修') },
+  { key: 'demo', label: i18n.pick('示範資料') },
 ];
 
 // 學段三個固定值（後端 TERMS）：key 必須送原文，簡體下字形相同所以直接用 pick 的結果當 key
@@ -29,10 +42,10 @@ const TERM_KEYS = [i18n.pick('第一段'), i18n.pick('第二段'), i18n.pick('�
 
 const ROLE_TABS = {
   // 校內職員：排菜單＋匯出報名名單＋補登成績。沒有 event:create（不能開活動）、沒有 notice:create（不能發公告）
-  STAFF: ['notice', 'claims', 'school', 'menu', 'export'],
-  TEACHER: ['notice', 'school', 'events'],
-  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu'],
-  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu'],
+  STAFF: ['notice', 'claims', 'school', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'proposals', 'repair', 'export'],
+  TEACHER: ['notice', 'school', 'events', 'venues', 'leaves'],
+  ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework', 'proposals', 'repair'],
+  SUPER_ADMIN: ['stats', 'claims', 'items', 'trash', 'events', 'notice', 'school', 'users', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways', 'leaves', 'timetable', 'homework', 'proposals', 'repair', 'demo'],
 };
 
 // 離線備援：線上一律用 GET /admin/users 回來的 roles（帶 level，後端單一來源）。
@@ -74,6 +87,18 @@ function onWriteError(err, reload) {
 function versionPatch(dataset) {
   const v = Number((dataset || {}).version);
   return Number.isFinite(v) ? { version: v } : {};
+}
+
+/** 報修單的時間顯示：今天只寫「HH:mm」，其他日子寫「MM/DD HH:mm」（後台要一眼看出隔了多久） */
+function shortTime(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n) => (n < 10 ? '0' + n : String(n));
+  const hm = pad(d.getHours()) + ':' + pad(d.getMinutes());
+  const now = new Date();
+  const sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  return sameDay ? hm : pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + ' ' + hm;
 }
 
 Page({
@@ -242,6 +267,15 @@ Page({
       k157: i18n.pick("本週概況"),
       k158: i18n.pick("累計"),
       k159: i18n.pick("點卡片跳到對應分頁"),
+      // ── W-113 審批時效（概況多一段三列表）──
+      k486: i18n.pick("審批時效"),
+      k487: i18n.pick("樣本只算已批准；已取消與已駁回不進時效，沒有樣本顯示「—」"),
+      k488: i18n.pick("假單"),
+      k489: i18n.pick("場地／器材"),
+      k490: i18n.pick("報修"),
+      k491: i18n.pick("待審"),
+      k492: i18n.pick("中位"),
+      k493: i18n.pick("近"),
       // W-41：登入失敗鎖定（帳號層級，與 IP 限流互補）
       k160: i18n.pick(" · 已鎖定"),
       k161: i18n.pick("解除鎖定"),
@@ -311,6 +345,10 @@ Page({
       k236: i18n.pick("：只會通知還沒看過的人，已經看過的不會再收到。"),
       k237: i18n.pick("發送"),
       k238: i18n.pick("催讀失敗"),
+      // W-107 公告已讀率：各級切片與時間
+      k483: i18n.pick("各級已讀"),
+      k484: i18n.pick("最近已讀"),
+      k485: i18n.pick("沒有人可讀"),
       // W-55 活動回饋統計
       k239: i18n.pick("還沒有人回饋"),
       k240: i18n.pick("回覆率 "),
@@ -338,14 +376,355 @@ Page({
       k260: i18n.pick("已立即發佈"),
       k261: i18n.pick("報名截止日（選填，格式 2026-10-30）"),
       k262: i18n.pick("報名截止要早於活動當天"),
+      // ── W-66 圖書館分頁（k270 起，避免撞號）──
+      k270: i18n.pick("館藏"),
+      k271: i18n.pick("借閱紀錄"),
+      k272: i18n.pick("新增館藏"),
+      k273: i18n.pick("修改館藏"),
+      k274: i18n.pick("書名"),
+      k275: i18n.pick("書號 ISBN"),
+      k276: i18n.pick("作者"),
+      k277: i18n.pick("分類"),
+      k278: i18n.pick("索書號"),
+      k279: i18n.pick("館藏量"),
+      k280: i18n.pick("借期（天）"),
+      k281: i18n.pick("儲存"),
+      k282: i18n.pick("掃書號"),
+      k283: i18n.pick("取消"),
+      k284: i18n.pick("編輯"),
+      k285: i18n.pick("下架"),
+      k286: i18n.pick("上架"),
+      k287: i18n.pick("刪除"),
+      k288: i18n.pick("還沒有館藏"),
+      k289: i18n.pick("按上方「新增館藏」登記第一本書"),
+      k290: i18n.pick("借閱中"),
+      k291: i18n.pick("逾期"),
+      k292: i18n.pick("全部"),
+      k293: i18n.pick("代還"),
+      k294: i18n.pick("催還"),
+      k295: i18n.pick("已催還"),
+      k296: i18n.pick("目前沒有借閱紀錄"),
+      k297: i18n.pick("確定刪除這本書？"),
+      k298: i18n.pick("已刪除"),
+      k299: i18n.pick("已儲存"),
+      k300: i18n.pick("待審批"),
+      k301: i18n.pick("場地清單"),
+      k302: i18n.pick("申請人"),
+      k303: i18n.pick("批准"),
+      k304: i18n.pick("駁回"),
+      k305: i18n.pick("目前沒有待審批申請"),
+      k306: i18n.pick("已處理"),
+      k307: i18n.pick("新增場地／器材"),
+      k308: i18n.pick("編輯場地／器材"),
+      k309: i18n.pick("名稱"),
+      k310: i18n.pick("位置"),
+      k311: i18n.pick("開放時間"),
+      k312: i18n.pick("最長時數"),
+      k313: i18n.pick("需要老師批准"),
+      k314: i18n.pick("下架"),
+      k315: i18n.pick("目前沒有場地"),
+      k316: i18n.pick("先新增一個場地或器材"),
+      k317: i18n.pick("讀不到待審批申請："),
+      k318: i18n.pick("讀不到場地清單："),
+      k319: i18n.pick("請輸入名稱"),
+      k320: i18n.pick("關閉時間要晚於開放時間"),
+      k321: i18n.pick("駁回申請"),
+      k322: i18n.pick("寫一句原因（會通知申請人）"),
+      k323: i18n.pick("已駁回"),
+      k324: i18n.pick("已批准"),
+      k325: i18n.pick("確定下架這個場地？"),
+      k326: i18n.pick("場地"),
+      k327: i18n.pick("器材"),
+      k328: i18n.pick("用途"),
+      k329: i18n.pick("免審批"),
+      // ── W-68 轉贈分頁（k330 起，接在最大值後面，不要回頭撞號）──
+      k330: i18n.pick("可上架"),
+      k331: i18n.pick("下架"),
+      k332: i18n.pick("重新上架"),
+      k333: i18n.pick("目前沒有轉贈貼文"),
+      k334: i18n.pick("待回覆申請"),
+      k335: i18n.pick("已贈出"),
+      // ── W-72 請假分頁（k336 起）──
+      k336: i18n.pick("假單"),
+      k337: i18n.pick("目前沒有待審批的假單"),
+      k338: i18n.pick("學生與家長送出的假單會出現在這裡"),
+      k339: i18n.pick("讀不到假單："),
+      k340: i18n.pick("批准請假"),
+      k341: i18n.pick("駁回假單"),
+      k342: i18n.pick("寫一句原因（會通知家長與學生）"),
+      k343: i18n.pick("已批准請假"),
+      k344: i18n.pick("已駁回"),
+      k345: i18n.pick("天"),
+      k346: i18n.pick("家長代送"),
+      // ── W-73 課表分頁（k347 起）──
+      k347: i18n.pick("班級課表"),
+      k348: i18n.pick("貼上 CSV：班級,星期,節次,科目,老師,課室"),
+      k349: i18n.pick("先檢查"),
+      k350: i18n.pick("確認匯入"),
+      k351: i18n.pick("匯入中…"),
+      k352: i18n.pick("讀不到課表："),
+      k353: i18n.pick("目前還沒有任何班級的課表"),
+      k354: i18n.pick("貼上 CSV 後按「先檢查」，確認沒問題再匯入"),
+      k355: i18n.pick("這一格已經有課，不覆蓋"),
+      k356: i18n.pick("同一份裡重複"),
+      k357: i18n.pick("刪除"),
+      // ── W-77 功課分頁（k358 起）──
+      k358: i18n.pick("收回"),
+      k359: i18n.pick("收回這項功課？"),
+      k360: i18n.pick("收回後學生就看不到了，紀錄會留在垃圾桶"),
+      k361: i18n.pick("已收回"),
+      k362: i18n.pick("讀不到功課："),
+      k363: i18n.pick("還沒有任何功課"),
+      k364: i18n.pick("老師出功課後，這裡會列出每一班的派發情況"),
+      k366: i18n.pick("還沒有人交"),
+      k367: i18n.pick("完成率"),
+      k368: i18n.pick("班"),
+      k369: i18n.pick("項功課"),
+      k370: i18n.pick("讀取未交名單…"),
+      k371: i18n.pick("還沒交"),
+      k373: i18n.pick("位學生"),
+      k374: i18n.pick("已過期"),
+      k375: i18n.pick("全部班級"),
+      k376: i18n.pick("項已過期"),
+      k377: i18n.pick("各班完成率"),
+      // ── W-81 示範資料 ──
+      k380: i18n.pick("示範資料"),
+      k381: i18n.pick("示範資料一鍵匯入"),
+      k382: i18n.pick("匯入的是真實資料，只是多一個「示範」標記；清除時只刪這一批，真資料一筆不動。"),
+      k383: i18n.pick("場地與器材"),
+      k384: i18n.pick("館藏圖書"),
+      k385: i18n.pick("班級課表"),
+      k386: i18n.pick("課表班級（留空用你自己的班級）"),
+      k387: i18n.pick("匯入示範資料"),
+      k388: i18n.pick("清除示範資料"),
+      k389: i18n.pick("確定要清除示範資料？只會刪掉示範那批，真實資料不會動。"),
+      k390: i18n.pick("匯入完成"),
+      k391: i18n.pick("已清除示範資料"),
+      k392: i18n.pick("格"),
+      k393: i18n.pick("還沒有匯入任何示範資料"),
+      k394: i18n.pick("匯入時遇到同名的真實資料會跳過，不會覆蓋"),
+      k395: i18n.pick("項"),
+      // W-87 分項匯入：每列右側兩顆小按鈕（匯入／清除只作用在那一類）
+      k416: i18n.pick("匯入"),
+      k417: i18n.pick("清除"),
+      k418: i18n.pick("只清掉這一類的示範資料，真實資料不會動。"),
+      k419: i18n.pick("已匯入課表的班級"),
+      // ── W-88 校園提案（k420 起固定號，不要重跑遷移腳本重新編號）──
+      k420: i18n.pick("全部狀態"),
+      k421: i18n.pick("已達門檻"),
+      k422: i18n.pick("個提案"),
+      k423: i18n.pick("人次連署"),
+      k424: i18n.pick("個已達門檻"),
+      k425: i18n.pick("讀不到提案："),
+      k426: i18n.pick("回覆至少 2 個字"),
+      k427: i18n.pick("已回覆"),
+      k428: i18n.pick("已通知 "),
+      k429: i18n.pick(" 人"),
+      k430: i18n.pick("回覆失敗"),
+      k431: i18n.pick("下架"),
+      k432: i18n.pick("（下架後前台看不到，可在回收桶救回）"),
+      k433: i18n.pick("已下架"),
+      k434: i18n.pick("還沒有人提案"),
+      k435: i18n.pick("學生提出改善建議、同學連署，這裡回覆處理狀態。"),
+      k436: i18n.pick("回覆提案人與所有連署人"),
+      k437: i18n.pick("寫下處理結果或下一步"),
+      k438: i18n.pick("送出回覆"),
+      k439: i18n.pick("連署進度"),
+      k440: i18n.pick("接單"),
+      k441: i18n.pick("完成"),
+      k442: i18n.pick("沒有符合條件的報修單"),
+      k443: i18n.pick("換個狀態或清空搜尋再試"),
+      k444: i18n.pick("已接單"),
+      k445: i18n.pick("已標記完成"),
+      k446: i18n.pick("操作失敗"),
+      k447: i18n.pick("處理備註"),
+      k448: i18n.pick("例如：換了排水管，已測試"),
+      k449: i18n.pick("報修人"),
+      k450: i18n.pick("平均處理"),
+      k451: i18n.pick("小時"),
+      k452: i18n.pick("近 7 天新增"),
+      k453: i18n.pick("報修最多的地點"),
+      k454: i18n.pick("筆"),
+      k455: i18n.pick("讀不到報修清單："),
+      k456: i18n.pick("報修統計"),
+      k457: i18n.pick("還沒有完成的報修"),
+      k458: i18n.pick("平均接單"),
+      k459: i18n.pick("已接單"),
+      // W-95 收尾：出席率月報（小程序後台）＋成績單列印入口
+      k460: i18n.pick("出席率月報"),
+      k461: i18n.pick("列印成績單"),
+      k462: i18n.pick("資料過多（超過月報上限），請縮小到單一班級或換月份"),
+      k463: i18n.pick("這個月還沒有出缺席紀錄"),
+      k464: i18n.pick("這個月沒有明顯的缺席或遲到"),
+      k465: i18n.pick("全校"),
+      k466: i18n.pick("人 · 紀錄"),
+      k467: i18n.pick("筆 · 出席率"),
+      k468: i18n.pick("遲到"),
+      k469: i18n.pick("請假"),
+      k470: i18n.pick("缺席"),
+      k471: i18n.pick("學生"),
+      k472: i18n.pick("人 · 缺席"),
+      k473: i18n.pick("人次 · 遲到"),
+      k474: i18n.pick("沒有缺席與遲到的日子"),
+      k475: i18n.pick("近 30 天評分統計"),
+      k476: i18n.pick("全校平均"),
+      k477: i18n.pick("道菜"),
+      k478: i18n.pick("則評分"),
+      k479: i18n.pick("1–2 分"),
+      k480: i18n.pick("人"),
+      k481: i18n.pick("樣本不足"),
+      k482: i18n.pick("最常被評低分的菜"),
+      ppStatusOPEN: i18n.pick("收集中"),
+      ppStatusREVIEWING: i18n.pick("處理中"),
+      ppStatusPLANNED: i18n.pick("已列入計劃"),
+      ppStatusDONE: i18n.pick("已完成"),
+      ppStatusDECLINED: i18n.pick("暫不採納"),
+      ppCatFACILITY: i18n.pick("校園設施"),
+      ppCatSTUDY: i18n.pick("課堂學習"),
+      ppCatACTIVITY: i18n.pick("活動建議"),
+      ppCatCANTEEN: i18n.pick("餐飲"),
+      ppCatOTHER: i18n.pick("其他"),
+      // ── W-84 功課完成率趨勢 ──
+      k396: i18n.pick("最近 7 天還沒有派出的功課"),
+      k397: i18n.pick("平均"),
+      k398: i18n.pick("最近 7 天完成率"),
+      k399: i18n.pick("按「派功課那天」分組；柱子越高代表當天派出的功課交得越齊"),
+      // ── W-86 班級名單（k400 起固定號，不要重跑遷移腳本重新編號）──
+      k400: i18n.pick("全部班級"),
+      k401: i18n.pick("未分班"),
+      k402: i18n.pick("批次分班"),
+      k404: i18n.pick("班級名稱（例：高二仁）"),
+      k405: i18n.pick("只看未分班"),
+      k408: i18n.pick("加入這一班"),
+      k409: i18n.pick("移出這一班"),
+      k410: i18n.pick("已選 "),
+      k411: i18n.pick("先填班名，再勾選下面的學生"),
+      k412: i18n.pick("（未分班）"),
+      k413: i18n.pick("還沒選學生，按學生卡片上的圓圈勾選"),
+      k415: i18n.pick("班級名單"),
     };
   },
 
   data: {
     themeClass: appearance.themeClass(),
     theme,
+    // ── W-81 示範資料（只有最高權限看得到）──
+    demoBusy: false,
+    demoCounts: { venues: 0, books: 0, timetableSlots: 0 },
+    demoClasses: [],
+    demoClassText: '',
+    demoClass: '',
+    demoHint: '',
+    demoTotals: [],
     tabs: TABS,
     tab: 'stats',
+    // ── W-66 圖書館分頁 ──
+    libMode: 'books',
+    libModes: [
+      { key: 'books', label: i18n.pick('館藏') },
+      { key: 'loans', label: i18n.pick('借閱紀錄') },
+    ],
+    libBooks: [],
+    libLoans: [],
+    libSummary: { active: 0, overdue: 0 },
+    libStatus: 'active',
+    libStatuses: [
+      { key: 'active', label: i18n.pick('借閱中') },
+      { key: 'overdue', label: i18n.pick('逾期') },
+      { key: 'all', label: i18n.pick('全部') },
+    ],
+    libForm: { id: '', title: '', isbn: '', author: '', category: '', callNumber: '', totalCopies: '1', loanDays: '14' },
+    libSaving: false,
+    // ── 場地／器材（W-67）：待審批＋資源管理兩個子模式 ──
+    venMode: 'pending',
+    venModes: [
+      { key: 'pending', label: i18n.pick('待審批') },
+      { key: 'resources', label: i18n.pick('場地清單') },
+    ],
+    venPending: [],
+    venHandled: [],
+    venResources: [],
+    venKindLabels: [i18n.pick('場地'), i18n.pick('器材')],
+    venForm: { id: '', kind: 'VENUE', name: '', location: '', openFrom: '08:00', openTo: '18:00', maxHours: '4', needsApproval: true },
+    venSaving: false,
+    // ── 轉贈（W-68）：一個清單＋四張統計卡，操作只有下架／重新上架 ──
+    gvStatus: 'all',
+    gvStatuses: [
+      { key: 'all', label: i18n.pick('全部') },
+      { key: 'AVAILABLE', label: i18n.pick('可申請') },
+      { key: 'GIVEN', label: i18n.pick('已贈出') },
+      { key: 'CLOSED', label: i18n.pick('已下架') },
+    ],
+    gvItems: [],
+    gvStats: { available: 0, given: 0, closed: 0, pendingRequests: 0 },
+    // ── 請假（W-72）：待審優先；一手批／駁，駁回要寫原因（會通知家長與學生）──
+    leaveStatus: 'PENDING',
+    leaveStatuses: [
+      { key: 'PENDING', label: i18n.pick('待審批') },
+      { key: 'APPROVED', label: i18n.pick('已批准') },
+      { key: 'REJECTED', label: i18n.pick('已駁回') },
+      { key: 'ALL', label: i18n.pick('全部') },
+    ],
+    leaveItems: [],
+    leaveCounts: { PENDING: 0, APPROVED: 0, REJECTED: 0, CANCELLED: 0 },
+    // ── 課室設備報修（W-89）：待接單優先；接單是「誰先按誰拿到」，完成要寫備註 ──
+    repairStatus: 'PENDING',
+    repairStatuses: [
+      { key: 'PENDING', label: i18n.pick('待接單') },
+      { key: 'IN_PROGRESS', label: i18n.pick('處理中') },
+      { key: 'DONE', label: i18n.pick('已完成') },
+      { key: 'ALL', label: i18n.pick('全部') },
+    ],
+    repairItems: [],
+    repairCounts: { PENDING: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 },
+    repairStatsText: '',
+    repairByLocation: [],
+    repairTimeline: [],
+    // ── W-113 審批時效：假單／場地器材／報修三組同一把尺（沒有樣本顯示「—」）──
+    approvalRows: [],
+    approvalHint: '',
+    // ── 課表（W-73）：匯入 CSV 先檢查再寫入；下面列出每個班幾格 ──
+    ttCsv: '',
+    ttBusy: false,
+    ttClasses: [],
+    ttRows: [],
+    ttErrors: [],
+    ttSummary: '',
+    // ── 功課（W-77）：跨班一覽；點一項展開「誰還沒交」；收回＝軟刪除（回收桶看得到）──
+    hwScope: 'all',
+    hwScopes: [
+      { key: 'all', label: i18n.pick('全部') },
+      { key: 'open', label: i18n.pick('未到期') },
+      { key: 'overdue', label: i18n.pick('已過期') },
+    ],
+    hwClass: '',
+    hwClassNames: [],
+    hwClasses: [],
+    hwItems: [],
+    hwCounts: { classes: 0, items: 0, overdue: 0 },
+    hwSummary: '',
+    hwOpenId: '',
+    hwPending: [],
+    hwPendingCount: 0,
+    hwPendingTotal: 0,
+    hwPendingNames: '',
+    hwPendingHint: '',
+    // ── W-84 完成率趨勢：最近 7 天「派出去的有多少人交」（CSS 柱狀，不引圖表庫）──
+    hwTrend: [],
+    hwTrendAvg: null,
+    hwTrendText: '',
+    hwTrendFrom: '',
+    // ── W-88 校園提案：待處理清單、統計、回覆表單 ──
+    ppFilter: 'ALL',
+    ppItems: [],
+    ppCounts: { OPEN: 0, REVIEWING: 0, PLANNED: 0, DONE: 0, DECLINED: 0, ALL: 0 },
+    ppCategories: [],
+    ppStatsText: '',
+    ppReplyId: '',
+    ppReplyText: '',
+    ppReplyStatus: 'REVIEWING',
+    ppSaving: false,
+    ppStatusOptions: [],
     role: '',
     stats: { users: 0, items: { open: 0, claimed: 0, added7d: 0 }, claimsPending: 0, signups: { confirmed: 0, waitlist: 0 }, noticesActive: 0, ratings: { count: 0, avg: 0 } },
     // 第一屏五張數字卡：值與標籤在 loadStats 一起備好（WXML 不做運算）
@@ -401,6 +780,11 @@ Page({
     menu: { date: '', mealType: 'LUNCH', names: '' },
     menuWeekStart: '',
     menuEntries: [],
+    // W-101 評分統計（後端算好、前端只顯示；取不到時整段不出現，不要顯示 0 讓人誤會沒人評分）
+    menuStats: null,
+    menuStatRows: [],
+    menuWorst: [],
+    menuSummaryText: '',
     eventForm: { title: '', date: '', capacity: '20', location: '', groups: '', signupEnd: '' },
     teamsEnabled: false,
     creatingEvent: false,
@@ -428,6 +812,16 @@ Page({
     scGrades: [],
     scAttend: [],
     scSummaryText: '',
+    // W-95：出席率月報（後端聚合；小程序內就能看，不必回電腦）
+    amMonth: '',
+    amBusy: false,
+    amLoaded: false,
+    amError: '',
+    amSummary: '',
+    amTruncated: false,
+    amRows: [],
+    amDays: [],
+    amStats: { students: 0, records: 0, rateText: '—', late: 0, leave: 0, absent: 0 },
     // W-53 最後一段：批次匯入成績（一次貼多筆，先檢查再匯入）
     gBatchOpen: false,
     gBatchText: '',
@@ -445,10 +839,17 @@ Page({
       { key: 'leave', label: i18n.pick('請假') },
     ],
     roles: ROLES,
-    userQuery: { q: '', role: '' },
+    userQuery: { q: '', role: '', className: '' },
     meLevel: 0,
     userForm: { account: '', password: '', nickname: '', role: 'STUDENT' },
     creatingUser: false,
+    // W-86 班級名單：班級＝User.className 的集合視圖；這裡只放選單與批次指派的狀態
+    classes: [],
+    classStats: { unassigned: 0, total: 0 },
+    classPanel: false,
+    classPick: '',
+    pickedCount: 0,
+    classBusy: false,
     editingId: '',
     editForm: { nickname: '', account: '', password: '', role: 'STUDENT' },
     reports: [],
@@ -543,7 +944,7 @@ Page({
     else if (t === 'trash') p = this.loadTrash();
     else if (t === 'export') p = this.loadEventsForExport();
     else if (t === 'events') p = this.loadEventsAdmin();
-    else if (t === 'users') p = this.loadUsers();
+    else if (t === 'users') p = Promise.all([this.loadUsers(), this.loadClasses()]);
     else if (t === 'parents') p = this.loadParents();
     else if (t === 'school') p = this.loadSchool();
     else if (t === 'reports') p = this.loadReports();
@@ -552,6 +953,15 @@ Page({
     else if (t === 'audit') p = this.loadAudit();
     else if (t === 'notice') p = this.loadNoticeList();
     else if (t === 'menu') p = this.loadMenuWeek();
+    else if (t === 'library') p = this.loadLibrary();
+    else if (t === 'venues') p = this.loadVenues();
+    else if (t === 'giveaways') p = this.loadGiveaways();
+    else if (t === 'leaves') p = this.loadLeaves();
+    else if (t === 'timetable') p = this.loadTimetable();
+    else if (t === 'homework') p = this.loadHomework();
+    else if (t === 'proposals') p = this.loadProposals();
+    else if (t === 'repair') p = this.loadRepairs();
+    else if (t === 'demo') p = this.loadDemo();
 
     if (!p || typeof p.then !== 'function') {
       this.setData({ tabLoading: false });
@@ -578,6 +988,39 @@ Page({
       this.setData({ stats: stats, ovCards: this.buildOvCards(ov) });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到數據：') + (e.message || e.code) });
+    }
+    // W-113 審批時效單獨打：它與上面兩支無關，失敗時只要這一段不出現，不要讓整頁變紅。
+    this.loadApprovalStats();
+  },
+
+  /**
+   * 審批時效（W-113）：後台最常被問的是「假單送了多久會批」。
+   * 三組用同一把尺（中位時數），沒有樣本顯示「—」而不是 0 —— 0 小時的意思是「立刻處理完」。
+   * 取不到就整段不出現，概況其他數字照常。
+   */
+  async loadApprovalStats() {
+    try {
+      const res = await admin.approvalStats();
+      const L = this.data.L;
+      // 文字組裝在 utils/approval.js 的純函式裡（check-data-layer 直接餵假資料驗規則）
+      const rows = approval.summarize(res, {
+        unit: i18n.pick('小時'),
+        near: L.k493,
+        dayUnit: i18n.pick('天送出的單'),
+        countUnit: i18n.pick('張'),
+        pending: L.k491,
+        approved: i18n.pick('已批'),
+        average: i18n.pick('平均'),
+        acceptAverage: i18n.pick('接單平均'),
+        done: i18n.pick('完成'),
+        inProgress: i18n.pick('處理中'),
+        median: L.k492,
+        labels: { leave: L.k488, booking: L.k489, repair: L.k490 },
+      });
+      this.setData({ approvalRows: rows, approvalHint: '' });
+    } catch (e) {
+      // 只有這一段消失，不影響概況其他數字；但把原因留在 hint 方便排查
+      this.setData({ approvalRows: [], approvalHint: i18n.pick('審批時效暫時取不到：') + ((e && (e.message || e.code)) || '') });
     }
   },
 
@@ -1258,10 +1701,77 @@ Page({
     const patch = {};
     if (!this.data.gForm.testDate) patch['gForm.testDate'] = today;
     if (!this.data.aForm.date) patch['aForm.date'] = today;
+    if (!this.data.amMonth) patch.amMonth = today.slice(0, 7);
     if (Object.keys(patch).length) this.setData(patch);
-    if (this.data.scPicked) return this.loadSchoolData();
+    // 月報每次進分頁都重抓：老師剛補登完，快取會讓他以為沒生效（失敗只寫在那一區）
+    const tasks = [this.loadAttendanceMonthly()];
+    if (this.data.scPicked) tasks.push(this.loadSchoolData());
     // 還沒選學生：先列出最近 20 位，老師可以直接點，不必先打字
-    return this.loadSchoolStudents('', true);
+    else tasks.push(this.loadSchoolStudents('', true));
+    return Promise.all(tasks);
+  },
+
+  onAmMonth(e) {
+    this.setData({ amMonth: e.detail.value });
+    return this.loadAttendanceMonthly();
+  },
+
+  /**
+   * 出席率月報（W-95）。
+   * 口徑全部由後端算（遲到算出席、請假不算缺席、沒紀錄回 null），前端只負責顯示 ——
+   * 在頁面再算一次，遲早跟網頁後台／成績單三邊不一致。
+   * 文字一律交給 WXML 用 L.* 組（不要在這裡拼中文字串，否則簡體模式會漏翻）。
+   */
+  async loadAttendanceMonthly() {
+    if (this.data.amBusy) return;
+    const month = this.data.amMonth || dateKey().slice(0, 7);
+    this.setData({ amBusy: true, amError: '' });
+    try {
+      const res = await admin.schoolAttendanceMonthly(month);
+      const sum = res.summary || { records: 0, late: 0, leave: 0, absent: 0, rate: null };
+      const rows = (res.byClass || []).map((c) => ({
+        key: (c.grade || '') + '|' + (c.className || ''),
+        title: (c.grade || '') + (c.className || ''),
+        rateText: c.rate === null || c.rate === undefined ? '—' : c.rate + '%',
+        students: c.students,
+        records: c.records,
+        absent: c.absent,
+      }));
+      // 只挑「有缺席或遲到」的日子，最多 5 天 —— 31 天全列在手機上沒有意義
+      const days = (res.byDay || [])
+        .filter((d) => d.absent > 0 || d.late > 0)
+        .sort((a, b) => b.absent - a.absent || b.late - a.late)
+        .slice(0, 5)
+        .map((d) => ({ key: d.date, dateText: String(d.date).slice(5).replace('-', '/'), absent: d.absent, late: d.late }));
+      this.setData({
+        amBusy: false,
+        amLoaded: true,
+        amTruncated: !!res.truncated,
+        amRows: rows,
+        amDays: days,
+        amStats: {
+          students: res.students || 0,
+          records: sum.records || 0,
+          rateText: sum.rate === null || sum.rate === undefined ? '—' : sum.rate + '%',
+          late: sum.late || 0,
+          leave: sum.leave || 0,
+          absent: sum.absent || 0,
+        },
+      });
+    } catch (e) {
+      // 月報讀不到不影響上面的補登功能，只在這一區寫原因
+      this.setData({ amBusy: false, amLoaded: false, amError: (e && (e.message || e.code)) || '', amRows: [], amDays: [], amStats: { students: 0, records: 0, rateText: '—', late: 0, leave: 0, absent: 0 } });
+    }
+  },
+
+  /** 列印這位學生的成績單（W-95 收尾）：與學生／家長端同一頁，只是資料來源走後台端點 */
+  openTranscript() {
+    const p = this.data.scPicked;
+    if (!p) {
+      this.setData({ hint: i18n.pick('先在上面找一位學生') });
+      return;
+    }
+    wx.navigateTo({ url: '/pages/print/transcript/index?studentId=' + encodeURIComponent(p.id) });
   },
 
   onSchoolQuery(e) {
@@ -1617,7 +2127,12 @@ Page({
   async loadUsers() {
     try {
       const q = this.data.userQuery;
-      const res = await admin.users({ q: q.q || undefined, role: q.role || undefined });
+      const res = await admin.users({
+        q: q.q || undefined,
+        role: q.role || undefined,
+        // W-86：`__none__` 是「還沒分班」的哨符，後端認得
+        className: q.className || undefined,
+      });
       // roles 用後端回來的（帶 level 與 label，單一來源）；離線或舊後端才退回本地 ROLES
       const roles = (res.roles && res.roles.length) ? res.roles : ROLES;
       // W-41：最後登入時間換成本地時區、加上鎖定旗標（locked 由後端算，前端不比時間）
@@ -1625,10 +2140,25 @@ Page({
         ...u,
         locked: Boolean(u.locked),
         lastLoginText: u.lastLoginAt ? dateTimeText(u.lastLoginAt) : '',
+        picked: false,
       }));
-      this.setData({ users: users, meLevel: (res.me || {}).level || 0, roles: roles });
+      this.setData({ users: users, meLevel: (res.me || {}).level || 0, roles: roles, pickedCount: 0 });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到使用者：') + (e.message || e.code) });
+    }
+  },
+
+  /** W-86：班級清單（人數／有沒有課表／有沒有功課），給篩選 chips 與批次指派用 */
+  async loadClasses() {
+    try {
+      const res = await admin.classes();
+      this.setData({
+        classes: res.items || [],
+        classStats: { unassigned: res.unassigned || 0, total: res.total || 0 },
+      });
+    } catch (e) {
+      // 班級名單是加值資訊：讀不到不要讓整個使用者分頁變成失敗畫面
+      this.setData({ classes: [], classStats: { unassigned: 0, total: 0 } });
     }
   },
 
@@ -1644,6 +2174,89 @@ Page({
     const role = e.currentTarget.dataset.role;
     this.setData({ 'userQuery.role': this.data.userQuery.role === role ? '' : role });
     this.loadUsers();
+  },
+
+  /** 按班級篩選（點同一顆再點一次＝取消） */
+  filterUsersClass(e) {
+    const cls = e.currentTarget.dataset.cls || '';
+    const next = this.data.userQuery.className === cls ? '' : cls;
+    const patch = { 'userQuery.className': next };
+    // 點一個真實班級時，順手把它填進批次指派的班名，少打一次字
+    if (next && next !== '__none__') patch.classPick = next;
+    this.setData(patch);
+    this.loadUsers();
+  },
+
+  toggleClassPanel() {
+    const open = !this.data.classPanel;
+    const patch = { classPanel: open };
+    if (open && !this.data.classPick && this.data.userQuery.className && this.data.userQuery.className !== '__none__') {
+      patch.classPick = this.data.userQuery.className;
+    }
+    this.setData(patch);
+  },
+
+  onClassPick(e) {
+    this.setData({ classPick: e.detail.value });
+  },
+
+  /** 只看未分班的學生，班級名單一次補齊 */
+  pickUnassigned() {
+    this.setData({ 'userQuery.className': '__none__', classPanel: true });
+    this.loadUsers();
+  },
+
+  /** 勾選／取消一位學生（用索引，因為 users 是這一頁自己的副本） */
+  togglePickUser(e) {
+    const idx = Number(e.currentTarget.dataset.index);
+    const users = this.data.users || [];
+    if (!users[idx]) return;
+    const patch = {};
+    patch['users[' + idx + '].picked'] = !users[idx].picked;
+    const picked = users.filter((u, i) => (i === idx ? !u.picked : u.picked)).length;
+    patch.pickedCount = picked;
+    this.setData(patch);
+  },
+
+  async applyClassMembers(e) {
+    if (this.data.classBusy) return;
+    const action = e.currentTarget.dataset.action === 'REMOVE' ? 'REMOVE' : 'ADD';
+    const className = (this.data.classPick || '').trim();
+    const picked = (this.data.users || []).filter((u) => u.picked);
+    if (!className) {
+      wx.showToast({ title: i18n.pick('請先填班級名稱'), icon: 'none' });
+      return;
+    }
+    if (!picked.length) {
+      wx.showToast({ title: i18n.pick('請先選學生（勾選右邊的圓圈）'), icon: 'none' });
+      return;
+    }
+    const ok = await new Promise((resolve) => {
+      wx.showModal({
+        title: action === 'ADD' ? i18n.pick('加入班級') : i18n.pick('移出班級'),
+        content:
+          (action === 'ADD' ? i18n.pick('把這 ') : i18n.pick('從「') + className + i18n.pick('」移出這 ')) +
+          picked.length +
+          i18n.pick(' 位學生') +
+          (action === 'ADD' ? i18n.pick('加入「') + className + i18n.pick('」？') : i18n.pick('？')),
+        confirmText: action === 'ADD' ? i18n.pick('加入') : i18n.pick('移出'),
+        success: (r) => resolve(Boolean(r.confirm)),
+        fail: () => resolve(false),
+      });
+    });
+    if (!ok) return;
+
+    this.setData({ classBusy: true });
+    try {
+      const res = await admin.assignClass(className, picked.map((u) => u.id), action);
+      const n = (res && res.updated) || 0;
+      wx.showToast({ title: i18n.pick('已更新 ') + n + i18n.pick(' 位'), icon: 'success' });
+      this.setData({ classBusy: false, pickedCount: 0 });
+      await Promise.all([this.loadUsers(), this.loadClasses()]);
+    } catch (err) {
+      this.setData({ classBusy: false });
+      wx.showToast({ title: (err && err.message) || i18n.pick('更新失敗'), icon: 'none' });
+    }
   },
 
   onUserField(e) {
@@ -2065,7 +2678,13 @@ Page({
     try {
       const res = await admin.notices();
       // W-58：排程中的公告要看得見「幾號幾點會上線」，否則老師只能靠記憶
-      const items = (res.items || []).map((n) => Object.assign({}, n, { publishText: dateTimeText(n.publishedAt) }));
+      // W-107：每列直接寫出「已讀 12 / 480（3%）」；分母 0 時寫「沒有人可讀」而不是 0%
+      const items = (res.items || []).map((n) =>
+        Object.assign({}, n, {
+          publishText: dateTimeText(n.publishedAt),
+          readText: n.total ? Math.round((n.read / n.total) * 100) + '%' : this.data.L.k485,
+        }),
+      );
       this.setData({ noticeList: items });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到公告：') + (e.message || e.code) });
@@ -2073,21 +2692,39 @@ Page({
   },
 
   // ───────── W-54 已讀統計／催讀 ─────────
-  /** 取一則公告的已讀／未讀名單；名單在畫面上只放得下前 30 位，多的用旗標提示 */
+  /**
+   * 取一則公告的已讀／未讀名單；名單在畫面上只放得下前 30 位，多的用旗標提示。
+   *
+   * W-107：多顯示「各級已讀」（六級各自 read/total）與最近一次已讀時間 ——
+   * 只有一個總比率時，老師看不出是學生沒看還是家長沒看，也就不知道要催誰。
+   * 該級 0 人的列不顯示（`0 / 0` 只是噪音），全部 0 人時改寫「沒有人可讀」。
+   */
   async loadNoticeStats(id) {
     try {
       const s = await admin.noticeReadStats(id);
+      const L = this.data.L;
       const names = (list) => (list || []).map((u) => u.nickname || i18n.pick('匿名')).join('、').slice(0, 160);
+      const pct = (v) => (v === null || v === undefined ? L.k485 : v + '%');
+      const roles = (s.byRole || [])
+        .filter((r) => r.total > 0)
+        .map((r) => ({
+          key: r.role,
+          text: (r.label || r.role) + ' ' + r.read + ' / ' + r.total + '（' + pct(r.rate) + '）',
+        }));
+      const lastText = s.lastReadAt ? L.k484 + ' ' + dateTimeText(s.lastReadAt) : '';
       this.setData({
         noticeStats: {
           id,
           read: s.read,
           total: s.total,
           rate: s.rate,
-          readText: s.read + ' / ' + s.total + '（' + s.rate + '%）',
-          readerText: names(s.readers) || this.data.L.k230,
-          unreadText: names(s.unreadUsers) || this.data.L.k231,
-          moreText: s.truncated && (s.truncated.readers || s.truncated.unread) ? this.data.L.k229 : '',
+          readText: s.read + ' / ' + s.total + '（' + pct(s.rate) + '）',
+          roles,
+          roleEmptyText: roles.length ? '' : L.k485,
+          lastText,
+          readerText: names(s.readers) || L.k230,
+          unreadText: names(s.unreadUsers) || L.k231,
+          moreText: s.truncated && (s.truncated.readers || s.truncated.unread) ? L.k229 : '',
         },
       });
     } catch (err) {
@@ -2206,6 +2843,56 @@ Page({
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到菜單：') + (e.message || e.code) });
     }
+    // 統計與本週菜單各自獨立：統計取不到只讓那一段不出現，排菜單照常可用
+    this.loadMenuStats();
+  },
+
+  /**
+   * W-101 評分統計：平均分／人數／1–2 分比例全由後端算（兩套後台同一組數字）。
+   * 樣本 < 3 的菜只標「樣本不足」，不進「最常被評低分」的排名。
+   */
+  async loadMenuStats() {
+    const L = this.data.L;
+    try {
+      const res = await admin.menuStats(30);
+      const s = res.summary || {};
+      this.setData({
+        menuStats: res,
+        menuStatRows: (res.items || []).map((row) => ({
+          dishId: row.dishId,
+          name: row.name,
+          enough: !!row.enough,
+          metaText:
+            (row.avgScore || 0) +
+            ' · ' +
+            row.count +
+            ' ' +
+            L.k480 +
+            ' · ' +
+            L.k479 +
+            ' ' +
+            (row.lowCount || 0),
+        })),
+        menuWorst: (res.worst || []).map((w) => ({
+          dishId: w.dishId,
+          text: w.name + ' ' + w.lowRate + '%',
+        })),
+        menuSummaryText:
+          L.k476 +
+          ' ' +
+          (s.avgScore == null ? '—' : s.avgScore) +
+          ' · ' +
+          (s.dishes || 0) +
+          ' ' +
+          L.k477 +
+          ' · ' +
+          (s.ratings || 0) +
+          ' ' +
+          L.k478,
+      });
+    } catch (e) {
+      this.setData({ menuStats: null, menuStatRows: [], menuWorst: [], menuSummaryText: '' });
+    }
   },
 
   async deleteMenuEntry(e) {
@@ -2216,6 +2903,946 @@ Page({
       this.loadMenuWeek();
     } catch (err) {
       wx.showToast({ title: err.message || i18n.pick('移除失敗'), icon: 'none' });
+    }
+  },
+
+  // ───────── 圖書館（W-66） ─────────
+  // 館藏管理與借閱紀錄在同一個分頁的兩個子模式：圖書館職員日常只做兩件事 ——
+  // 「登記／改書」與「看誰還沒還」，把它們放在一起比開兩個分頁好找。
+  async loadLibrary() {
+    if (this.data.libMode === 'loans') {
+      try {
+        const res = await admin.libraryLoans({ status: this.data.libStatus });
+        this.setData({ libLoans: (res.items || []).map(decorateLoan), libSummary: res.summary || { active: 0, overdue: 0 } });
+      } catch (e) {
+        this.setData({ hint: i18n.pick('讀不到借閱紀錄：') + (e.message || e.code) });
+      }
+      return;
+    }
+    try {
+      const res = await admin.libraryBooks({ limit: 50 });
+      this.setData({ libBooks: (res.items || []).map(decorateBook) });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到館藏：') + (e.message || e.code) });
+    }
+  },
+
+  switchLibMode(e) {
+    this.setData({ libMode: e.currentTarget.dataset.key }, () => this.loadLibrary());
+  },
+
+  pickLibStatus(e) {
+    this.setData({ libStatus: e.currentTarget.dataset.key }, () => this.loadLibrary());
+  },
+
+  onLibField(e) {
+    const field = e.currentTarget.dataset.field;
+    if (!field) return;
+    this.setData({ ['libForm.' + field]: e.detail.value });
+  },
+
+  libScan() {
+    wx.scanCode({
+      scanType: ['barCode'],
+      success: (res) => {
+        const isbn = String(res.result || '').replace(/[^0-9Xx]/g, '');
+        if (isbn) this.setData({ 'libForm.isbn': isbn });
+      },
+      fail: () => {},
+    });
+  },
+
+  libResetForm() {
+    this.setData({
+      libForm: { id: '', title: '', isbn: '', author: '', category: '', callNumber: '', totalCopies: '1', loanDays: '14' },
+    });
+  },
+
+  /** 編輯：直接從清單那一列帶資料進來（不另外打一次詳情端點） */
+  libEdit(e) {
+    const id = e.currentTarget.dataset.id;
+    const book = this.data.libBooks.filter((b) => b.id === id)[0];
+    if (!book) return;
+    this.setData({
+      libForm: {
+        id: book.id,
+        title: book.title || '',
+        isbn: book.isbn || '',
+        author: book.author || '',
+        category: book.category || '',
+        callNumber: book.callNumber || '',
+        totalCopies: String(book.totalCopies || 1),
+        loanDays: String(book.loanDays || 14),
+        version: book.version,
+      },
+    });
+  },
+
+  async libSave() {
+    if (this.data.libSaving) return;
+    const f = this.data.libForm;
+    const title = String(f.title || '').trim();
+    if (!title) {
+      wx.showToast({ title: i18n.pick('請輸入書名'), icon: 'none' });
+      return;
+    }
+    const payload = {
+      title: title,
+      isbn: f.isbn || undefined,
+      author: f.author || undefined,
+      category: f.category || undefined,
+      callNumber: f.callNumber || undefined,
+      totalCopies: Number(f.totalCopies) || 1,
+      loanDays: Number(f.loanDays) || 14,
+    };
+
+    this.setData({ libSaving: true });
+    try {
+      if (f.id) {
+        // 帶 version：兩人先後存同一筆時後者會拿到 409，而不是靜默覆蓋
+        await admin.libraryBookUpdate(f.id, Object.assign({}, payload, { version: f.version }));
+      } else {
+        await admin.libraryBookCreate(payload);
+      }
+      this.setData({ libSaving: false });
+      wx.showToast({ title: i18n.pick('已儲存'), icon: 'success' });
+      this.libResetForm();
+      this.loadLibrary();
+    } catch (err) {
+      this.setData({ libSaving: false });
+      wx.showToast({ title: err.message || i18n.pick('儲存失敗'), icon: 'none' });
+    }
+  },
+
+  libArchive(e) {
+    const id = e.currentTarget.dataset.id;
+    const archived = e.currentTarget.dataset.archived === true || e.currentTarget.dataset.archived === 'true';
+    admin
+      .libraryBookArchive(id, archived)
+      .then(() => {
+        wx.showToast({ title: archived ? i18n.pick('已下架') : i18n.pick('已上架'), icon: 'success' });
+        this.loadLibrary();
+      })
+      .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+  },
+
+  /** 刪除一律用原生確認框（自製兩段式在 Skyline 下第二次點不到） */
+  libDelete(e) {
+    const id = e.currentTarget.dataset.id;
+    const title = e.currentTarget.dataset.title || '';
+    wx.showModal({
+      title: i18n.pick('確定刪除這本書？'),
+      content: title,
+      confirmText: i18n.pick('刪除'),
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .libraryBookDelete(id)
+          .then(() => {
+            wx.showToast({ title: i18n.pick('已刪除'), icon: 'success' });
+            this.loadLibrary();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('刪除失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  /** 代還：學生忘了帶書來也行，職員在系統上收回 */
+  libReturn(e) {
+    const id = e.currentTarget.dataset.id;
+    admin
+      .libraryReturn(id)
+      .then(() => {
+        wx.showToast({ title: i18n.pick('已歸還'), icon: 'success' });
+        this.loadLibrary();
+      })
+      .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+  },
+
+  libRemind() {
+    admin
+      .libraryRemind()
+      .then((res) => {
+        wx.showToast({ title: i18n.pick('已催還') + ' ' + ((res && res.checked) || 0), icon: 'none' });
+        this.loadLibrary();
+      })
+      .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+  },
+
+  // ── 轉贈（W-68）：校內職員日常只做一件事 —— 把不合適的貼文下架，之後可以再上架 ──
+  async loadGiveaways() {
+    try {
+      const res = await admin.giveaways(this.data.gvStatus);
+      this.setData({
+        gvItems: (res.items || []).map((item) => giveawayUtil.decorateItem(item)),
+        gvStats: res.stats || { available: 0, given: 0, closed: 0, pendingRequests: 0 },
+      });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到轉贈清單：') + (e.message || e.code) });
+    }
+  },
+
+  switchGvStatus(e) {
+    this.setData({ gvStatus: e.currentTarget.dataset.key || 'all' }, () => this.loadGiveaways());
+  },
+
+  gvToggle(e) {
+    const id = e.currentTarget.dataset.id;
+    const next = e.currentTarget.dataset.next;
+    const title = e.currentTarget.dataset.title || '';
+    if (!id || !next) return;
+    wx.showModal({
+      title: next === 'CLOSED' ? i18n.pick('下架這筆轉贈？') : i18n.pick('重新上架？'),
+      content: title,
+      confirmText: next === 'CLOSED' ? i18n.pick('下架') : i18n.pick('重新上架'),
+      cancelText: i18n.pick('再想想'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .setGiveawayStatus(id, next)
+          .then(() => {
+            wx.showToast({ title: next === 'CLOSED' ? i18n.pick('已下架') : i18n.pick('已上架'), icon: 'success' });
+            this.loadGiveaways();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // ───────── 場地／器材（W-67） ─────────
+  // 同一頁兩個子模式：老師日常只做「批／駁」，總務才需要「登記場地」。
+  async loadVenues() {
+    if (this.data.venMode === 'resources') {
+      try {
+        const res = await admin.resourcesAll();
+        this.setData({ venResources: (res.items || []).map((item) => venueUtil.shapeResource(item, Date.now())) });
+      } catch (e) {
+        this.setData({ hint: i18n.pick('讀不到場地清單：') + (e.message || e.code) });
+      }
+      return;
+    }
+    try {
+      const res = await admin.resourcePending();
+      const now = Date.now();
+      this.setData({
+        venPending: (res.pending || []).map((b) => venueUtil.shapeBooking(b, now)),
+        venHandled: (res.handled || []).map((b) => venueUtil.shapeBooking(b, now)),
+      });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到待審批申請：') + (e.message || e.code) });
+    }
+  },
+
+  switchVenMode(e) {
+    this.setData({ venMode: e.currentTarget.dataset.key }, () => this.loadVenues());
+  },
+
+  venApprove(e) {
+    const id = e.currentTarget.dataset.id;
+    admin
+      .resourceReview(id, { action: 'APPROVE' })
+      .then(() => {
+        wx.showToast({ title: i18n.pick('已批准'), icon: 'success' });
+        this.loadVenues();
+      })
+      .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+  },
+
+  /** 駁回一定要寫原因：學生看到「未通過」卻不知道為什麼，只會再送一次一樣的申請 */
+  venReject(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title: i18n.pick('駁回申請'),
+      editable: true,
+      placeholderText: i18n.pick('寫一句原因（會通知申請人）'),
+      confirmText: i18n.pick('駁回'),
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .resourceReview(id, { action: 'REJECT', reason: r.content || '' })
+          .then(() => {
+            wx.showToast({ title: i18n.pick('已駁回'), icon: 'success' });
+            this.loadVenues();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // ───────── 請假（W-72）─────────
+  // 老師與校務處都批得了（能力 leave:review）；名單依狀態篩，預設只看待審批。
+  async loadLeaves() {
+    try {
+      const res = await admin.leaves(this.data.leaveStatus);
+      const tone = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', CANCELLED: 'neutral' };
+      this.setData({
+        leaveItems: (res.items || []).map((row) => Object.assign({}, row, { statusTone: tone[row.status] || 'neutral' })),
+        leaveCounts: res.counts || this.data.leaveCounts,
+      });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到假單：') + (e.message || e.code) });
+    }
+  },
+
+  switchLeaveStatus(e) {
+    this.setData({ leaveStatus: e.currentTarget.dataset.key }, () => this.loadLeaves());
+  },
+
+  leaveApprove(e) {
+    const id = e.currentTarget.dataset.id;
+    admin
+      .reviewLeave(id, { action: 'APPROVE' })
+      .then(() => {
+        wx.showToast({ title: this.data.L.k343, icon: 'success' });
+        this.loadLeaves();
+      })
+      .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+  },
+
+  /** 駁回一定要寫原因：家長看到「未通過」卻不知道為什麼，只會再送一次一樣的假單 */
+  leaveReject(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title: this.data.L.k341,
+      editable: true,
+      placeholderText: this.data.L.k342,
+      confirmText: i18n.pick('駁回'),
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .reviewLeave(id, { action: 'REJECT', reason: r.content || '' })
+          .then(() => {
+            wx.showToast({ title: this.data.L.k344, icon: 'success' });
+            this.loadLeaves();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // ───────── 課室設備報修（W-89）─────────
+  // 總務與校務處（能力 repair:handle）接單與完成。接單是「誰先按誰拿到」：
+  // 被同事接走時後端回 409，這裡只提示並重抓清單，不自動重試（重試等於讓後按的人贏）。
+  async loadRepairs() {
+    const L = this.data.L;
+    try {
+      const [res, stats] = await Promise.all([
+        admin.repairs({ status: this.data.repairStatus }),
+        admin.repairStats().catch(() => null),
+      ]);
+      const tone = { PENDING: 'warning', IN_PROGRESS: 'tint', DONE: 'success', CANCELLED: 'neutral' };
+      const items = (res.items || []).map((row) =>
+        Object.assign({}, row, {
+          statusTone: tone[row.status] || 'neutral',
+          urgencyTone: row.urgency === 'HIGH' ? 'danger' : row.urgency === 'LOW' ? 'neutral' : 'warning',
+          placeText: row.location + ' · ' + row.equipment,
+          reporterText:
+            (row.reporter && row.reporter.nickname ? row.reporter.nickname : L.k449) +
+            (row.reporter && row.reporter.className ? ' · ' + row.reporter.className : ''),
+          handlerText: row.handler ? row.handler.nickname : '',
+          timeText: shortTime(row.createdAt),
+        }),
+      );
+
+      const patch = {
+        repairItems: items,
+        repairCounts: res.counts || this.data.repairCounts,
+      };
+      if (stats) {
+        patch.repairStatsText =
+          L.k458 +
+          ' ' +
+          (stats.avgAcceptHours == null ? '—' : stats.avgAcceptHours + ' ' + L.k451) +
+          '（' +
+          L.k459 +
+          ' ' +
+          (stats.acceptedCount || 0) +
+          ' ' +
+          L.k454 +
+          '） · ' +
+          L.k450 +
+          ' ' +
+          (stats.avgHours == null ? '—' : stats.avgHours + ' ' + L.k451) +
+          ' · ' +
+          L.k452 +
+          ' ' +
+          (stats.timeline || []).reduce((sum, d) => sum + d.count, 0) +
+          ' ' +
+          L.k454;
+        patch.repairByLocation = (stats.byLocation || []).slice(0, 5);
+        patch.repairTimeline = stats.timeline || [];
+      }
+      this.setData(patch);
+    } catch (e) {
+      this.setData({ hint: L.k455 + (e.message || e.code) });
+    }
+  },
+
+  switchRepairStatus(e) {
+    this.setData({ repairStatus: e.currentTarget.dataset.key }, () => this.loadRepairs());
+  },
+
+  repairAccept(e) {
+    const id = e.currentTarget.dataset.id;
+    admin
+      .acceptRepair(id)
+      .then(() => {
+        wx.showToast({ title: this.data.L.k444, icon: 'success' });
+        this.loadRepairs();
+      })
+      .catch((err) => {
+        wx.showToast({ title: err.message || this.data.L.k446, icon: 'none' });
+        this.loadRepairs();
+      });
+  },
+
+  /** 完成要寫備註（換了什麼零件／什麼時候再來看），家長與學生收到通知時看得到 */
+  repairFinish(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title: this.data.L.k441,
+      editable: true,
+      placeholderText: this.data.L.k448,
+      confirmText: this.data.L.k441,
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .finishRepair(id, { note: (r.content || '').trim() || undefined })
+          .then(() => {
+            wx.showToast({ title: this.data.L.k445, icon: 'success' });
+            this.loadRepairs();
+          })
+          .catch((err) => wx.showToast({ title: err.message || this.data.L.k446, icon: 'none' }));
+      },
+    });
+  },
+
+  // ───────── 課表（W-73）─────────
+  async loadTimetable() {
+    try {
+      const res = await admin.timetableAll();
+      this.setData({ ttClasses: res.classes || [], ttRows: [], ttErrors: [], ttSummary: '' });
+    } catch (e) {
+      this.setData({ hint: i18n.pick('讀不到課表：') + (e.message || e.code) });
+    }
+  },
+
+  onTtCsv(e) {
+    this.setData({ ttCsv: e.detail.value });
+  },
+
+  async ttRun(e) {
+    if (this.data.ttBusy) return;
+    const dryRun = e.currentTarget.dataset.dry !== '0';
+    if (!String(this.data.ttCsv || '').trim()) {
+      wx.showToast({ title: this.data.L.k354, icon: 'none' });
+      return;
+    }
+    this.setData({ ttBusy: true });
+    try {
+      const res = await admin.importTimetable({ csv: this.data.ttCsv, dryRun: dryRun });
+      const rows = (res.rows || []).map((row) =>
+        Object.assign({}, row, {
+          statusText: row.status === 'EXISTS' ? this.data.L.k355 : row.status === 'DUPLICATE' ? this.data.L.k356 : '',
+        }),
+      );
+      this.setData({
+        ttBusy: false,
+        ttRows: rows,
+        ttErrors: res.errors || [],
+        ttSummary: (res.dryRun ? this.data.L.k349 : this.data.L.k350) + '：' + res.ok + '/' + res.total + (res.created ? ' → ' + res.created : ''),
+      });
+      if (!dryRun) this.loadTimetable();
+    } catch (err) {
+      this.setData({ ttBusy: false });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
+    }
+  },
+
+  ttDelete(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title: this.data.L.k357,
+      content: i18n.pick('刪除這一格課表？'),
+      confirmText: this.data.L.k357,
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .deleteTimetableSlot(id)
+          .then(() => {
+            wx.showToast({ title: i18n.pick('已刪除'), icon: 'success' });
+            this.loadTimetable();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  onVenField(e) {
+    const field = e.currentTarget.dataset.field;
+    if (!field) return;
+    this.setData({ ['venForm.' + field]: e.detail.value });
+  },
+
+  venSetApproval(e) {
+    this.setData({ 'venForm.needsApproval': e.currentTarget.dataset.v === '1' });
+  },
+
+  venKindChange(e) {
+    const kinds = ['VENUE', 'EQUIPMENT'];
+    this.setData({ 'venForm.kind': kinds[Number(e.detail.value) || 0] });
+  },
+
+  venResetForm() {
+    this.setData({
+      venForm: { id: '', kind: 'VENUE', name: '', location: '', openFrom: '08:00', openTo: '18:00', maxHours: '4', needsApproval: true },
+    });
+  },
+
+  venEdit(e) {
+    const id = e.currentTarget.dataset.id;
+    const item = this.data.venResources.filter((r) => r.id === id)[0];
+    if (!item) return;
+    this.setData({
+      venForm: {
+        id: item.id,
+        kind: item.kind,
+        name: item.name || '',
+        location: item.location || '',
+        openFrom: item.openFrom || '08:00',
+        openTo: item.openTo || '18:00',
+        maxHours: String(item.maxHours || 4),
+        needsApproval: item.needsApproval !== false,
+        version: item.version,
+      },
+    });
+  },
+
+  async venSave() {
+    if (this.data.venSaving) return;
+    const f = this.data.venForm;
+    const name = String(f.name || '').trim();
+    if (!name) {
+      wx.showToast({ title: i18n.pick('請輸入名稱'), icon: 'none' });
+      return;
+    }
+    if (String(f.openFrom) >= String(f.openTo)) {
+      wx.showToast({ title: i18n.pick('關閉時間要晚於開放時間'), icon: 'none' });
+      return;
+    }
+    const payload = {
+      kind: f.kind || 'VENUE',
+      name: name,
+      location: f.location || undefined,
+      openFrom: f.openFrom,
+      openTo: f.openTo,
+      maxHours: Number(f.maxHours) || 4,
+      needsApproval: !!f.needsApproval,
+    };
+    this.setData({ venSaving: true });
+    try {
+      if (f.id) {
+        await admin.resourceUpdate(f.id, Object.assign({}, payload, { version: f.version }));
+      } else {
+        await admin.resourceCreate(payload);
+      }
+      this.setData({ venSaving: false });
+      wx.showToast({ title: i18n.pick('已儲存'), icon: 'success' });
+      this.venResetForm();
+      this.loadVenues();
+    } catch (err) {
+      this.setData({ venSaving: false });
+      wx.showToast({ title: err.message || i18n.pick('儲存失敗'), icon: 'none' });
+    }
+  },
+
+  venArchive(e) {
+    const id = e.currentTarget.dataset.id;
+    const name = e.currentTarget.dataset.name || '';
+    wx.showModal({
+      title: i18n.pick('確定下架這個場地？'),
+      content: name,
+      confirmText: i18n.pick('下架'),
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .resourceArchive(id)
+          .then(() => {
+            wx.showToast({ title: i18n.pick('已下架'), icon: 'success' });
+            this.loadVenues();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // ───────── 功課後台（W-77）─────────
+  /**
+   * 跨班一覽：老師只出自己班的功課（`/homework`），這一頁是校務處／資訊管理員視角 ——
+   * 哪一班派了幾項、哪一項全班沒人交、派錯的當場收回。
+   *
+   * 完成率在這裡是「這一班交了幾個 / 全班幾個」，點一項才去查未交名單：
+   * 一頁幾十項功課都帶全班姓名，手機端會卡在 setData。
+   */
+  async loadHomework() {
+    const L = this.data.L;
+    try {
+      const res = await admin.homeworkAll({ className: this.data.hwClass, scope: this.data.hwScope });
+      const counts = res.counts || { classes: 0, items: 0, overdue: 0 };
+      const classes = (res.classes || []).map((c) =>
+        Object.assign({}, c, {
+          metaText:
+            c.items +
+            ' ' +
+            L.k369 +
+            ' · ' +
+            c.students +
+            ' ' +
+            L.k373 +
+            ' · ' +
+            (c.rate === null ? L.k366 : L.k367 + ' ' + c.rate + '%'),
+        }),
+      );
+      const items = (res.items || []).map((i) =>
+        Object.assign({}, i, {
+          dueText: dateTimeText(i.dueAt),
+          progressText: i.total > 0 ? i.done + '/' + i.total + ' · ' + (i.rate === null ? L.k366 : i.rate + '%') : L.k366,
+        }),
+      );
+      // 趨勢：rate 換成柱高（0–120rpx）。沒有資料的那天給 4rpx 的底線，不要留一個洞
+      const trend = res.trend || { days: 7, items: [], average: null, local: { from: '', to: '' } };
+      const trendBars = (trend.items || []).map((d) =>
+        Object.assign({}, d, {
+          barH: d.rate === null ? 4 : Math.max(8, Math.round((d.rate / 100) * 120)),
+          rateText: d.rate === null ? '' : d.rate + '%',
+          itemsText: d.items > 0 ? d.items + ' ' + L.k369 : '',
+        }),
+      );
+      this.setData({
+        hwClasses: classes,
+        hwItems: items,
+        hwClassNames: res.classNames || [],
+        hwCounts: counts,
+        hwTrend: trendBars,
+        hwTrendAvg: trend.average === null || trend.average === undefined ? null : trend.average,
+        hwTrendText:
+          trend.average === null || trend.average === undefined
+            ? L.k396
+            : L.k397 + ' ' + trend.average + '%',
+        hwTrendFrom: trend.local && trend.local.from && trend.local.to ? trend.local.from + ' – ' + trend.local.to : '',
+        hwSummary: counts.items
+          ? counts.classes + ' ' + L.k368 + ' · ' + counts.items + ' ' + L.k369 + ' · ' + counts.overdue + ' ' + L.k376
+          : '',
+        hwOpenId: '',
+        hwPending: [],
+        hwPendingCount: 0,
+        hwPendingTotal: 0,
+        hwPendingNames: '',
+        hwPendingHint: '',
+      });
+    } catch (e) {
+      this.setData({ hint: L.k362 + (e.message || e.code) });
+    }
+  },
+
+  switchHwScope(e) {
+    this.setData({ hwScope: e.currentTarget.dataset.key }, () => this.loadHomework());
+  },
+
+  switchHwClass(e) {
+    this.setData({ hwClass: e.currentTarget.dataset.key || '' }, () => this.loadHomework());
+  },
+
+  /** 點一項功課：展開「誰還沒交」，再點一次收起（不另開頁，免得老師看完名單還要按返回） */
+  hwToggle(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    if (this.data.hwOpenId === id) {
+      this.setData({ hwOpenId: '', hwPending: [], hwPendingCount: 0, hwPendingTotal: 0, hwPendingNames: '', hwPendingHint: '' });
+      return;
+    }
+    this.setData({ hwOpenId: id, hwPendingCount: 0, hwPendingTotal: 0, hwPendingNames: '', hwPendingHint: this.data.L.k370 });
+    admin
+      .homeworkPending(id)
+      .then((res) => {
+        // 使用者可能在等待時點了別項，回來就不要蓋掉新的那一項
+        if (this.data.hwOpenId !== id) return;
+        const pending = res.pending || [];
+        this.setData({
+          hwPendingCount: pending.length,
+          hwPendingTotal: res.total || 0,
+          hwPendingNames: pending
+            .slice(0, 40)
+            .map((p) => p.nickname)
+            .join('、'),
+          hwPendingHint: '',
+        });
+      })
+      .catch((err) => {
+        if (this.data.hwOpenId !== id) return;
+        this.setData({ hwPendingHint: (err.message || err.code || '') + '' });
+      });
+  },
+
+  hwDelete(e) {
+    const id = e.currentTarget.dataset.id;
+    const title = e.currentTarget.dataset.title || '';
+    wx.showModal({
+      title: this.data.L.k359,
+      content: title + (title ? '　' : '') + this.data.L.k360,
+      confirmText: this.data.L.k358,
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .deleteHomework(id)
+          .then(() => {
+            wx.showToast({ title: this.data.L.k361, icon: 'success' });
+            this.loadHomework();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // ── W-88 校園提案（校內職員以上）：待處理清單、狀態統計、回覆 ──
+  /**
+   * 清單與統計都由後端算（`GET /admin/proposals` 回 counts／categories／stats）。
+   * 前端只把數字排版 —— 兩邊各算一次，早晚會出現「列表 4 筆、統計寫 5 筆」。
+   */
+  async loadProposals() {
+    const L = this.data.L;
+    try {
+      const res = await admin.proposalsAll({ status: this.data.ppFilter, limit: 50 });
+      const items = (res.items || []).map((p) => {
+        const author = p.author || {};
+        return Object.assign({}, p, {
+          authorText: [author.nickname || '', author.className || ''].filter(Boolean).join(' · '),
+          countText: p.supportCount + ' / ' + p.goal,
+          timeText: p.createdAt ? dateTimeText(p.createdAt) : '',
+          statusText: L['ppStatus' + p.status] || p.status,
+          categoryText: L['ppCat' + p.category] || p.category,
+          replyText: p.reply && p.reply.at ? dateTimeText(p.reply.at) : '',
+          replyBody: p.reply ? p.reply.body : '',
+          replyBy: p.reply ? p.reply.byName : '',
+          reachedText: p.reached ? L.k421 : '',
+        });
+      });
+      const cats = res.categories || {};
+      const catList = ['FACILITY', 'STUDY', 'ACTIVITY', 'CANTEEN', 'OTHER']
+        .map((key) => ({ key: key, label: L['ppCat' + key] || key, count: cats[key] || 0 }))
+        .filter((c) => c.count > 0);
+      const st = res.stats || { proposals: 0, supports: 0, reached: 0 };
+      this.setData({
+        ppItems: items,
+        ppCounts: res.counts || this.data.ppCounts,
+        ppCategories: catList,
+        ppStatsText: st.proposals + ' ' + L.k422 + ' · ' + st.supports + ' ' + L.k423 + ' · ' + st.reached + ' ' + L.k424,
+        ppStatusOptions: this.ppStatusOptions(),
+        ppReplyId: '',
+        ppReplyText: '',
+      });
+    } catch (e) {
+      this.setData({ hint: L.k425 + (e.message || e.code || '') });
+    }
+  },
+
+  ppStatusOptions() {
+    const L = this.data.L;
+    return [
+      { key: 'REVIEWING', label: L.ppStatusREVIEWING },
+      { key: 'PLANNED', label: L.ppStatusPLANNED },
+      { key: 'DONE', label: L.ppStatusDONE },
+      { key: 'DECLINED', label: L.ppStatusDECLINED },
+    ];
+  },
+
+  switchPpFilter(e) {
+    this.setData({ ppFilter: e.currentTarget.dataset.key || 'ALL' }, () => this.loadProposals());
+  },
+
+  /** 點一項展開回覆表單，再點一次收起（不另開頁：看完清單要直接回覆） */
+  ppToggle(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    if (this.data.ppReplyId === id) {
+      this.setData({ ppReplyId: '', ppReplyText: '' });
+      return;
+    }
+    const row = this.data.ppItems.filter((p) => p.id === id)[0];
+    this.setData({
+      ppReplyId: id,
+      ppReplyText: row && row.replyBody ? row.replyBody : '',
+      ppReplyStatus: row && row.status !== 'OPEN' ? row.status : 'REVIEWING',
+    });
+  },
+
+  ppReplyInput(e) {
+    this.setData({ ppReplyText: e.detail.value });
+  },
+
+  ppPickStatus(e) {
+    this.setData({ ppReplyStatus: e.currentTarget.dataset.key || 'REVIEWING' });
+  },
+
+  async ppSubmitReply() {
+    const id = this.data.ppReplyId;
+    if (!id || this.data.ppSaving) return;
+    const text = String(this.data.ppReplyText || '').trim();
+    if (text.length < 2) {
+      wx.showToast({ title: this.data.L.k426, icon: 'none' });
+      return;
+    }
+    this.setData({ ppSaving: true });
+    try {
+      const res = await admin.replyProposal(id, { reply: text, status: this.data.ppReplyStatus });
+      wx.showToast({ title: this.data.L.k427, icon: 'success' });
+      // 回覆會通知提案人與連署人，人數由後端回（不要前端自己數）
+      if (res && res.notified) {
+        wx.showToast({ title: this.data.L.k428 + res.notified + this.data.L.k429, icon: 'none' });
+      }
+      this.loadProposals();
+    } catch (err) {
+      wx.showModal({ title: this.data.L.k430, content: err.message || err.code || '', showCancel: false });
+    } finally {
+      this.setData({ ppSaving: false });
+    }
+  },
+
+  ppRemove(e) {
+    const id = e.currentTarget.dataset.id;
+    const title = e.currentTarget.dataset.title || '';
+    if (!id) return;
+    wx.showModal({
+      title: this.data.L.k431,
+      content: title + '　' + this.data.L.k432,
+      confirmText: this.data.L.k431,
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        admin
+          .removeProposal(id)
+          .then(() => {
+            wx.showToast({ title: this.data.L.k433, icon: 'success' });
+            this.loadProposals();
+          })
+          .catch((err) => wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' }));
+      },
+    });
+  },
+
+  // ── W-81 示範資料（最高權限）：按一下寫進資料庫、再按一下只清掉這一批 ──
+  /**
+   * 按鈕旁的摘要：場地／館藏／課表各有幾筆示範資料。
+   * 數字一定要來自後端（`GET /admin/demo-data`），不要在前端用「我剛按了幾次」推 ——
+   * 換一台手機登入就會對不上。
+   */
+  async loadDemo() {
+    try {
+      const res = await admin.demoSummary();
+      const counts = res.counts || {};
+      this.setData({
+        demoCounts: {
+          venues: counts.venues || 0,
+          books: counts.books || 0,
+          timetableSlots: counts.timetableSlots || 0,
+        },
+        demoClasses: res.classes || [],
+        // WXML 不能呼叫方法（demoClasses.join），班級文字在這裡算好
+        demoClassText: (res.classes || []).join('、'),
+        demoHint: '',
+      });
+    } catch (err) {
+      this.setData({ hint: i18n.pick('讀不到示範資料數量：') + (err.message || err.code) });
+    }
+  },
+
+  onDemoClass(e) {
+    this.setData({ demoClass: e.detail.value });
+  },
+
+  demoSeed() {
+    if (this.data.demoBusy) return;
+    this.runDemo('all', 'SEED');
+  },
+
+  demoClear() {
+    if (this.data.demoBusy) return;
+    // 確認一律用原生 wx.showModal（自製兩段式在 Skyline 下第二次點擊會落空）
+    wx.showModal({
+      title: this.data.L.k388,
+      content: this.data.L.k389,
+      confirmText: this.data.L.k388,
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        this.runDemo('all', 'CLEAR');
+      },
+    });
+  },
+
+  /** W-87：某一類的類名（確認框標題與結果文字共用，不要各寫一份） */
+  demoKindName(kind) {
+    if (kind === 'venues') return this.data.L.k383;
+    if (kind === 'library') return this.data.L.k384;
+    return this.data.L.k385;
+  },
+
+  /** W-87：只匯入某一類（data-kind = venues|library|timetable） */
+  demoKindSeed(e) {
+    if (this.data.demoBusy) return;
+    this.runDemo(e.currentTarget.dataset.kind, 'SEED');
+  },
+
+  /** W-87：只清除某一類。確認框要寫出「只清這一類」，否則沒人敢按 */
+  demoKindClear(e) {
+    if (this.data.demoBusy) return;
+    const kind = e.currentTarget.dataset.kind;
+    wx.showModal({
+      title: this.data.L.k417 + this.demoKindName(kind) + this.data.L.k380,
+      content: this.data.L.k418,
+      confirmText: this.data.L.k417,
+      cancelText: i18n.pick('取消'),
+      success: (r) => {
+        if (!r.confirm) return;
+        this.runDemo(kind, 'CLEAR');
+      },
+    });
+  },
+
+  async runDemo(kind, action) {
+    const k = kind || 'all';
+    this.setData({ demoBusy: true, demoHint: '' });
+    try {
+      const res = await admin.demoData(k, action, this.data.demoClass || '');
+      const n = action === 'SEED' ? res.seeded || {} : res.cleared || {};
+      // 只列這次真的動到的類別（分類匯入時不要把另外兩類的 0 也唸一遍）
+      const parts = [];
+      if (k === 'all' || k === 'venues') parts.push(this.data.L.k383 + ' ' + (n.venues || 0));
+      if (k === 'all' || k === 'library') parts.push(this.data.L.k384 + ' ' + (n.books || 0));
+      if (k === 'all' || k === 'timetable') {
+        parts.push(this.data.L.k385 + ' ' + (n.timetableSlots || 0) + ' ' + this.data.L.k392);
+      }
+      const skipped = res.skipped || {};
+      const skippedTotal = (k === 'all' || k === 'venues' ? skipped.venues || 0 : 0)
+        + (k === 'all' || k === 'library' ? skipped.books || 0 : 0)
+        + (k === 'all' || k === 'timetable' ? skipped.timetableSlots || 0 : 0);
+      const head = action === 'SEED' ? this.data.L.k390 : this.data.L.k391;
+      this.setData({
+        demoBusy: false,
+        demoHint: head + '：' + parts.join(' · ') + (skippedTotal ? '（' + skippedTotal + this.data.L.k395 + this.data.L.k394 + '）' : ''),
+      });
+      wx.showToast({ title: head, icon: 'success' });
+      this.loadDemo();
+    } catch (err) {
+      this.setData({ demoBusy: false });
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
     }
   },
 });

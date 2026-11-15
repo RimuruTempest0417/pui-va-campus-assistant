@@ -4,20 +4,21 @@ const config = require('../config/config');
 
 const KEY = config.STORAGE_KEYS.demo;
 
-const SEED_VERSION = 9;
+const SEED_VERSION = 20;
 
 const weekUtil = require('../utils/week');
+const venue = require('../utils/venue');
 
 const DISH_LIBRARY = [
-  { id: 'd1', name: '葡式焗雞飯', price: null, tags: ['招牌'], desc: '薯仔鋪底，雞肉焗到金黃。', base: { sum: 148, count: 32, likes: 18 } },
-  { id: 'd2', name: '豉汁排骨飯', price: null, tags: ['經典'], desc: '排骨先炸後蒸，豉汁偏鹹香。', base: { sum: 105, count: 25, likes: 11 } },
-  { id: 'd3', name: '咖喱牛腩飯', price: null, tags: ['辣', '人氣'], desc: '咖喱不辣到嗆，牛腩燉得軟。', base: { sum: 197, count: 41, likes: 30 } },
-  { id: 'd4', name: '番茄蛋炒飯', price: null, tags: ['素'], desc: '偏清淡，適合不想吃太油的日子。', base: { sum: 47, count: 12, likes: 5 } },
-  { id: 'd5', name: '海南雞飯', price: null, tags: ['人氣'], desc: '附薑蓉與辣椒醬。', base: { sum: 94, count: 20, likes: 15 } },
-  { id: 'd6', name: '菠蘿包', price: 8, tags: ['小賣部'], desc: '出爐時間 10:30 與 15:00。', base: { sum: 62, count: 14, likes: 9 } },
-  { id: 'd7', name: '魚蛋（串）', price: 10, tags: ['小賣部'], desc: '咖喱汁另加。', base: { sum: 55, count: 12, likes: 7 } },
-  { id: 'd8', name: '奶茶', price: 12, tags: ['小賣部'], desc: '凍飲 +2。', base: { sum: 88, count: 19, likes: 14 } },
-  { id: 'd9', name: '蛋撻', price: 9, tags: ['小賣部'], desc: '每日限量 60 個。', base: { sum: 70, count: 15, likes: 11 } },
+  { id: 'd1', name: '葡式焗雞飯', price: null, tags: ['招牌'], desc: '薯仔鋪底，雞肉焗到金黃。', base: { dist: [0, 1, 0, 9, 22], likes: 18 } },
+  { id: 'd2', name: '豉汁排骨飯', price: null, tags: ['經典'], desc: '排骨先炸後蒸，豉汁偏鹹香。', base: { dist: [0, 1, 0, 17, 7], likes: 11 } },
+  { id: 'd3', name: '咖喱牛腩飯', price: null, tags: ['辣', '人氣'], desc: '咖喱不辣到嗆，牛腩燉得軟。', base: { dist: [0, 1, 0, 5, 35], likes: 30 } },
+  { id: 'd4', name: '番茄蛋炒飯', price: null, tags: ['素'], desc: '偏清淡，適合不想吃太油的日子。', base: { dist: [0, 2, 0, 7, 3], likes: 5 } },
+  { id: 'd5', name: '海南雞飯', price: null, tags: ['人氣'], desc: '附薑蓉與辣椒醬。', base: { dist: [0, 1, 0, 3, 16], likes: 15 } },
+  { id: 'd6', name: '菠蘿包', price: 8, tags: ['小賣部'], desc: '出爐時間 10:30 與 15:00。', base: { dist: [0, 1, 0, 5, 8], likes: 9 } },
+  { id: 'd7', name: '魚蛋（串）', price: 10, tags: ['小賣部'], desc: '咖喱汁另加。', base: { dist: [0, 1, 0, 2, 9], likes: 7 } },
+  { id: 'd8', name: '奶茶', price: 12, tags: ['小賣部'], desc: '凍飲 +2。', base: { dist: [0, 1, 0, 4, 14], likes: 14 } },
+  { id: 'd9', name: '蛋撻', price: 9, tags: ['小賣部'], desc: '每日限量 60 個。', base: { dist: [0, 1, 0, 2, 12], likes: 11 } },
 ];
 
 /** 依週次生成菜單：每天 1–2 道午餐 + 1 道小賣部 */
@@ -45,10 +46,30 @@ function dishById(id) {
   return { id: d.id, name: d.name, price: d.price, tags: d.tags, description: d.desc };
 }
 
+/**
+ * 評分聚合（sum／count／likes）由分佈算出，不再手寫 —— 否則「平均分」與「1–5 分分佈」
+ * 會是兩份各自維護的真相，後台統計一出現在畫面上就會對不上。
+ */
 function seedScores() {
   const out = {};
   DISH_LIBRARY.forEach((d) => {
-    out[d.id] = Object.assign({}, d.base);
+    const dist = d.base.dist;
+    let sum = 0;
+    let count = 0;
+    dist.forEach((n, i) => {
+      sum += (i + 1) * n;
+      count += n;
+    });
+    out[d.id] = { sum: sum, count: count, likes: d.base.likes };
+  });
+  return out;
+}
+
+/** 1–5 分分佈的種子（後台評分統計用；與 seedScores 同一份來源） */
+function seedDist() {
+  const out = {};
+  DISH_LIBRARY.forEach((d) => {
+    out[d.id] = d.base.dist.slice();
   });
   return out;
 }
@@ -59,6 +80,7 @@ function seed() {
   return {
     seedVersion: SEED_VERSION,
     dishScores: seedScores(),
+    dishDist: seedDist(),
     myRatings: {},
     user: { id: 'demo-user', nickname: '示範學生', role: 'STUDENT', grade: '高二', className: '仁' },
     categories: [
@@ -168,6 +190,261 @@ function seed() {
         content: '此公告已於十日前過期，列表不應再顯示。' },
     ],
     noticeReads: [], // 已讀的公告 id
+    // ── 圖書館（W-66）：示範層也要借得動，交付現場斷網時這個功能不能是死的 ──
+    books: [
+      { id: 'b1', isbn: '9789993700011', title: '澳門街巷誌', author: '陳志明', publisher: '澳門文化局', category: '歷史', callNumber: 'R 673.9/7523', totalCopies: 3, availableCopies: 1, loanDays: 14, status: 'ACTIVE', summary: '由半島到路環的街名掌故，附老照片。' },
+      { id: 'b2', isbn: '9789993700028', title: '中葡對照詞典', author: '培華語文組', publisher: '校內出版', category: '參考書', callNumber: 'R 801/8442', totalCopies: 5, availableCopies: 5, loanDays: 21, status: 'ACTIVE', summary: '日常會話與公文常用詞，適合葡語組同學。' },
+      { id: 'b3', isbn: '9787115428028', title: '演算法圖解', author: 'Aditya Bhargava', publisher: '人民郵電', category: '電腦', callNumber: 'T 312.9/4472', totalCopies: 2, availableCopies: 0, loanDays: 14, status: 'ACTIVE', summary: '用圖講二分搜尋、遞迴與動態規劃。' },
+      { id: 'b4', isbn: '9789573334091', title: '解憂雜貨店', author: '東野圭吾', publisher: '皇冠', category: '文學', callNumber: '857.7/5064', totalCopies: 4, availableCopies: 2, loanDays: 14, status: 'ACTIVE', summary: '寫給煩惱的人的五個故事。' },
+      { id: 'b5', isbn: '9789863209610', title: '物理之美', author: '徐立之', publisher: '天下文化', category: '科學', callNumber: 'T 330/2803', totalCopies: 2, availableCopies: 2, loanDays: 14, status: 'ACTIVE', summary: '從生活現象講力學與電學。' },
+      { id: 'b6', isbn: '9780194420990', title: 'Oxford Advanced Learner\'s Dictionary', author: 'Oxford', publisher: 'OUP', category: '參考書', callNumber: 'R 805.1/2233', totalCopies: 6, availableCopies: 6, loanDays: 21, status: 'ACTIVE', summary: '英文作文常用的搭配詞都查得到。' },
+      { id: 'b7', isbn: '9789888526907', title: '澳門土生葡人飲食誌', author: '黎若嵐', publisher: '澳門基金會', category: '歷史', callNumber: 'R 673.9/2742', totalCopies: 1, availableCopies: 0, loanDays: 14, status: 'ACTIVE', summary: '葡國雞、免治與豬扒包的由來。' },
+      { id: 'b8', isbn: '9787536692930', title: '三體', author: '劉慈欣', publisher: '重慶出版社', category: '文學', callNumber: '857.7/7238', totalCopies: 3, availableCopies: 3, loanDays: 14, status: 'ACTIVE', summary: '科幻長篇，第一冊。' },
+      { id: 'b9', isbn: '9789864796331', title: '氣候緊急時代來了', author: 'David Wallace-Wells', publisher: '天下', category: '科學', callNumber: 'T 328.8/4424', totalCopies: 1, availableCopies: 1, loanDays: 14, status: 'ARCHIVED', summary: '已下架（示範「下架後前台看不到」）。' },
+    ],
+    // 我的借閱：一本正常、一本已逾期，讓「我的借閱」一打開就看得到兩種狀態
+    loans: [
+      { id: 'l1', bookId: 'b1', userId: 'demo-user', borrowedAt: now - 3 * 24 * h, dueAt: now + 11 * 24 * h, returnedAt: null, renewals: 0 },
+      { id: 'l2', bookId: 'b7', userId: 'demo-user', borrowedAt: now - 20 * 24 * h, dueAt: now - 6 * 24 * h, returnedAt: null, renewals: 1 },
+      { id: 'l3', bookId: 'b3', userId: 'demo-other', borrowedAt: now - 5 * 24 * h, dueAt: now + 9 * 24 * h, returnedAt: null, renewals: 0 },
+      { id: 'l4', bookId: 'b4', userId: 'demo-other', borrowedAt: now - 40 * 24 * h, dueAt: now - 26 * 24 * h, returnedAt: now - 25 * 24 * h, renewals: 0 },
+    ],
+    // 候補：b3 有人在排，用來驗「還書 → 最早候補被叫到」的示範
+    reservations: [
+      { id: 'rv1', bookId: 'b3', userId: 'demo-other', status: 'WAITING', position: 1, createdAt: now - 2 * 24 * h, readyAt: null },
+    ],
+    // ── 場地／器材（W-67）：示範層也要借得動、批得了，交付現場斷網時不能是死的 ──
+    resources: [
+      { id: 'r1', kind: 'VENUE', name: '物理實驗室', location: '三樓', description: '48 個座位，有投影機與實驗台。做完實驗請把器材歸位。', openFrom: '08:00', openTo: '18:00', maxHours: 4, needsApproval: true, status: 'ACTIVE', version: 0 },
+      { id: 'r2', kind: 'VENUE', name: '籃球場', location: '地下操場', description: '全場；借半場請在用途註明。雨天不開放。', openFrom: '07:30', openTo: '19:00', maxHours: 3, needsApproval: true, status: 'ACTIVE', version: 0 },
+      { id: 'r3', kind: 'VENUE', name: '多媒體室', location: '圖書館二樓', description: '24 部電腦，可借來做分組報告。', openFrom: '09:00', openTo: '17:00', maxHours: 2, needsApproval: true, status: 'ACTIVE', version: 0 },
+      { id: 'r4', kind: 'EQUIPMENT', name: '投影機', location: '器材室 A', description: '含 HDMI 線與遙控器；用完請歸還器材室。', openFrom: '08:00', openTo: '17:30', maxHours: 8, needsApproval: false, status: 'ACTIVE', version: 0 },
+      { id: 'r5', kind: 'EQUIPMENT', name: '流動音響', location: '器材室 B', description: '附無線麥克風兩支，需老師批准。', openFrom: '08:00', openTo: '18:00', maxHours: 6, needsApproval: true, status: 'ACTIVE', version: 0 },
+      { id: 'r6', kind: 'EQUIPMENT', name: '舊投影機（已下架）', location: '器材室 A', description: '燈泡壞了，等報廢。', openFrom: '08:00', openTo: '17:00', maxHours: 4, needsApproval: false, status: 'ARCHIVED', version: 0 },
+    ],
+    resourceBookings: [
+      { id: 'rb1', resourceId: 'r1', userId: 'demo-other', startAt: venue.slotIso(venue.dateOptions(3)[1].value, '10:00'), endAt: venue.slotIso(venue.dateOptions(3)[1].value, '12:00'), purpose: '化學科分組實驗', status: 'APPROVED', createdAt: now - 6 * h, reviewedAt: now - 4 * h, rejectReason: null },
+      { id: 'rb2', resourceId: 'r1', userId: 'demo-other', startAt: venue.slotIso(venue.dateOptions(3)[1].value, '14:00'), endAt: venue.slotIso(venue.dateOptions(3)[1].value, '16:00'), purpose: '物理科補課', status: 'PENDING', createdAt: now - 2 * h, rejectReason: null },
+      { id: 'rb3', resourceId: 'r2', userId: 'demo-user', startAt: venue.slotIso(venue.dateOptions(3)[2].value, '15:00'), endAt: venue.slotIso(venue.dateOptions(3)[2].value, '16:30'), purpose: '班際籃球練習', status: 'PENDING', createdAt: now - 3 * h, rejectReason: null },
+    ],
+    // ── 二手書／校服轉贈（W-68）──
+    // 示範資料刻意安排成：一筆是自己送的（不能申請自己的）、一筆有人向我申請（可練「給誰」）、
+    // 一筆我已申請（可練取消）、一筆已贈出（驗「前台看不到、參與者看得到」）。
+    giveaways: [
+      { id: 'gv1', kind: 'BOOK', title: '高二化學課本（第八版）', body: '書角有一點摺，內頁沒有筆記。', condition: 'GOOD', detail: '高二', pickupPlace: '圖書館門口', ownerId: 'demo-other', ownerNickname: '陳同學', ownerClass: '高二 仁', contactName: '陳同學', contactValue: 'p3201301037', status: 'AVAILABLE', version: 0, createdAt: now - 3 * h, imageUrl: null },
+      { id: 'gv2', kind: 'UNIFORM', title: '冬季校服外套', body: '只穿過一個冬天，拉鍊正常。', condition: 'LIKE_NEW', detail: 'M', pickupPlace: '校務處', ownerId: 'demo-user', ownerNickname: '示範學生', ownerClass: '高二 仁', contactName: '示範學生', contactValue: '3201201002', status: 'AVAILABLE', version: 0, createdAt: now - 8 * h, imageUrl: null },
+      { id: 'gv3', kind: 'BOOK', title: '初二數學練習冊（未寫過）', body: '買錯版本，完全空白。', condition: 'LIKE_NEW', detail: '初二', pickupPlace: '教務處', ownerId: 'demo-other', ownerNickname: '李同學', ownerClass: '初二 孝', contactName: '李同學', contactValue: 'p3201402008', status: 'AVAILABLE', version: 0, createdAt: now - 26 * h, imageUrl: null },
+      { id: 'gv4', kind: 'OTHER', title: '木結他（3/4 尺寸）', body: '琴頸沒有彎，附琴袋。家裡放不下才送出。', condition: 'FAIR', detail: '3/4', pickupPlace: '音樂室', ownerId: 'demo-other', ownerNickname: '黃同學', ownerClass: '高一 忠', contactName: '黃同學', contactValue: 'p3201103021', status: 'AVAILABLE', version: 0, createdAt: now - 50 * h, imageUrl: null },
+      { id: 'gv5', kind: 'UNIFORM', title: '體育服（短袖）', body: '已送給學弟。', condition: 'GOOD', detail: 'S', pickupPlace: '操場', ownerId: 'demo-other', ownerNickname: '周同學', ownerClass: '高二 信', contactName: '周同學', contactValue: 'p3201301055', status: 'GIVEN', givenToId: 'demo-user', givenAt: now - 12 * h, version: 1, createdAt: now - 5 * 24 * h, imageUrl: null },
+    ],
+    giveawayRequests: [
+      { id: 'gr1', itemId: 'gv2', userId: 'demo-other', message: '我今年要換 M 碼，可以留給我嗎？', status: 'PENDING', createdAt: now - 4 * h, decidedAt: null },
+      { id: 'gr2', itemId: 'gv3', userId: 'demo-user', message: '我弟弟明年用得到，謝謝。', status: 'PENDING', createdAt: now - 20 * h, decidedAt: null },
+      { id: 'gr3', itemId: 'gv5', userId: 'demo-user', message: '想要體育服', status: 'ACCEPTED', createdAt: now - 14 * h, decidedAt: now - 12 * h },
+    ],
+    // ── 請假申請（W-72）──
+    // 一筆待審批（可練取消）、一筆已批准（看得到日期與天數）、一筆已駁回（看得到原因）
+    leaves: [
+      { id: 'lv1', studentId: 'demo-user', createdById: 'demo-user', kind: 'SICK', from: leaveDate(2), to: leaveDate(2), reason: '發燒，醫生建議在家休息一天。', status: 'PENDING', rejectReason: null, reviewedAt: null, createdAt: now - 3 * h },
+      { id: 'lv2', studentId: 'demo-user', createdById: 'demo-user', kind: 'PERSONAL', from: leaveDate(-14), to: leaveDate(-13), reason: '家中事務，已先向班主任口頭報告。', status: 'APPROVED', rejectReason: null, reviewedAt: now - 300 * h, createdAt: now - 320 * h },
+      { id: 'lv3', studentId: 'demo-user', createdById: 'demo-user', kind: 'OFFICIAL', from: leaveDate(-30), to: leaveDate(-30), reason: '代表學校參加校際辯論比賽。', status: 'REJECTED', rejectReason: '請附帶比賽通知截圖', reviewedAt: now - 700 * h, createdAt: now - 720 * h },
+      // W-99：家長代送的兩張（示範資料）。只會在示範家長帳號的「我的假單」與老師待審清單出現，
+      // 學生帳號看不到（studentId 是子女、createdById 是家長），剛好用來驗「代送」標記與權限分流。
+      { id: 'lv4', studentId: 'demo-child-1', studentName: '培華同學甲', createdById: 'demo-parent', kind: 'SICK', from: leaveDate(5), to: leaveDate(6), reason: '孩子發燒，家長代為請假。', status: 'PENDING', rejectReason: null, reviewedAt: null, createdAt: now - 1 * h },
+      { id: 'lv5', studentId: 'demo-child-1', studentName: '培華同學甲', createdById: 'demo-parent', kind: 'PERSONAL', from: leaveDate(-9), to: leaveDate(-9), reason: '家中有事，家長已先致電班主任。', status: 'APPROVED', rejectReason: null, reviewedAt: now - 190 * h, createdAt: now - 200 * h },
+    ],
+    // ── 班級課表（W-73）──
+    // 示範班級「高二 仁」：一週五天、每天幾節，讓首頁「下一節」與課表頁在離線演示時都有東西看
+    timetableSlots: buildDemoTimetable(),
+    // ── 功課（W-76）：兩筆未交（一筆今天、一筆已逾期）、一筆已交，示範「打勾」與「逾期」兩種樣子
+    homework: [
+      { id: 'hw1', className: DEMO_CLASS, subject: '數學', title: '習作 4.2 第 1–10 題', detail: '課本 p.88 例題也要看', dueAt: now + 6 * h, createdById: 'demo-teacher', links: [{ name: '習作 PDF', url: 'https://example.com/hw/math-4-2.pdf' }] },
+      { id: 'hw2', className: DEMO_CLASS, subject: '中文', title: '默書：課文三、四', detail: '', dueAt: now - 20 * h, createdById: 'demo-teacher' },
+      { id: 'hw3', className: DEMO_CLASS, subject: '英文', title: '作文 200 字（My School）', detail: '用本週學的連接詞', dueAt: now + 42 * h, createdById: 'demo-teacher' },
+      // 家長端示範用：初二忠（示範家長的其中一位子女）也有一筆，登入家長帳號才看得到
+      { id: 'hw4', className: '初二忠', subject: '數學', title: '工作紙 3（小數四則）', detail: '', dueAt: now + 30 * h, createdById: 'demo-teacher' },
+    ],
+    homeworkDone: [{ id: 'hd1', homeworkId: 'hw3', userId: 'demo-user', doneAt: now - 2 * h }],
+    // ── 校園提案（W-88）──
+    // 四種狀態各一筆，讓「連署／校方回覆／已完成／撤回」在離線演示時都走得到。
+    // 票數不另存，一律由 supporters 陣列長度算出來 —— 示範層若同時存 supportCount 與名單，
+    // 兩者一定會有一天對不上（後端也是以唯一鍵的列數為準）。
+    proposals: [
+      {
+        id: 'pp1',
+        title: '圖書館段考前兩週延長開放至晚上七點',
+        body: '段考前一週圖書館五點就關，住得遠的同學只能回家讀。建議段考前兩週開到晚上七點，並開放二樓自習室。',
+        category: 'FACILITY',
+        status: 'REVIEWING',
+        authorId: 'demo-teacher',
+        authorNickname: '陳老師',
+        authorClass: '',
+        goal: 8,
+        reachedAt: null,
+        reply: { body: '已排入本學期圖書館開放時間檢討，會先試辦兩週再評估人力。', byName: '校務處', at: now - 20 * h },
+        version: 1,
+        createdAt: now - 3 * 24 * h,
+        supporters: [
+          { userId: 'demo-mate-1', nickname: '李同學', role: 'STUDENT', className: '高二 仁', createdAt: now - 71 * h },
+          { userId: 'demo-mate-2', nickname: '黃同學', role: 'STUDENT', className: '高二 仁', createdAt: now - 70 * h },
+          { userId: 'demo-mate-3', nickname: '周同學', role: 'STUDENT', className: '高二 忠', createdAt: now - 69 * h },
+          { userId: 'demo-mate-4', nickname: '吳同學', role: 'STUDENT', className: '高一 孝', createdAt: now - 66 * h },
+          { userId: 'demo-mate-5', nickname: '何同學', role: 'STUDENT', className: '高二 仁', createdAt: now - 64 * h },
+          { userId: 'demo-mate-6', nickname: '林同學', role: 'STUDENT', className: '高二 信', createdAt: now - 62 * h },
+          { userId: 'demo-mate-7', nickname: '鄭同學', role: 'STUDENT', className: '高一 仁', createdAt: now - 60 * h },
+          { userId: 'demo-mate-8', nickname: '梁同學', role: 'STUDENT', className: '高二 忠', createdAt: now - 58 * h },
+          { userId: 'demo-mate-9', nickname: '張同學', role: 'STUDENT', className: '高三 仁', createdAt: now - 54 * h },
+          { userId: 'demo-mate-10', nickname: '譚同學', role: 'STUDENT', className: '高二 仁', createdAt: now - 52 * h },
+          { userId: 'demo-mate-11', nickname: '蘇同學', role: 'STUDENT', className: '初三 仁', createdAt: now - 50 * h },
+          { userId: 'demo-mate-12', nickname: '陳同學', role: 'STUDENT', className: '高一 忠', createdAt: now - 48 * h },
+          { userId: 'demo-mate-13', nickname: '劉同學', role: 'STUDENT', className: '高二 仁', createdAt: now - 46 * h },
+          { userId: 'demo-mate-14', nickname: '羅同學', role: 'STUDENT', className: '高二 信', createdAt: now - 44 * h },
+          { userId: 'demo-mate-15', nickname: '馬同學', role: 'STUDENT', className: '高一 仁', createdAt: now - 42 * h },
+          { userId: 'demo-mate-16', nickname: '盧老師', role: 'TEACHER', className: '', createdAt: now - 40 * h },
+          { userId: 'demo-mate-17', nickname: '岑同學', role: 'STUDENT', className: '高二 忠', createdAt: now - 38 * h },
+          { userId: 'demo-user', nickname: '示範學生', role: 'STUDENT', className: '高二 仁', createdAt: now - 30 * h },
+        ],
+      },
+      {
+        id: 'pp2',
+        title: '小賣部增加熱食選擇',
+        body: '冬天小賣部只有三文治，建議增加熱狗、燒賣這類可以即食的熱食，價格控制在十元以內。',
+        category: 'CANTEEN',
+        status: 'OPEN',
+        authorId: 'demo-user',
+        authorNickname: '示範學生',
+        authorClass: '高二 仁',
+        goal: 8,
+        reachedAt: null,
+        reply: null,
+        version: 0,
+        createdAt: now - 9 * h,
+        supporters: [{ userId: 'demo-user', nickname: '示範學生', createdAt: now - 9 * h }],
+      },
+      {
+        id: 'pp3',
+        title: '段考前一週增設晚自習班',
+        body: '希望段考前一週每天放學後留一間課室做晚自習，由老師輪值看堂。',
+        category: 'STUDY',
+        status: 'DONE',
+        authorId: 'demo-mate-2',
+        authorNickname: '黃同學',
+        authorClass: '高二 信',
+        goal: 10,
+        reachedAt: now - 12 * 24 * h,
+        reply: { body: '本學年第一次段考前一週已開設，共 46 人次使用，下學期會繼續。', byName: '資訊管理員', at: now - 6 * 24 * h },
+        version: 2,
+        createdAt: now - 26 * 24 * h,
+        supporters: [
+          { userId: 'demo-mate-2', nickname: '黃同學', createdAt: now - 26 * 24 * h },
+          { userId: 'demo-mate-1', nickname: '李同學', createdAt: now - 25 * 24 * h },
+          { userId: 'demo-mate-3', nickname: '周同學', createdAt: now - 25 * 24 * h },
+          { userId: 'demo-mate-4', nickname: '吳同學', createdAt: now - 24 * 24 * h },
+          { userId: 'demo-mate-5', nickname: '何同學', createdAt: now - 24 * 24 * h },
+          { userId: 'demo-mate-6', nickname: '鄭同學', createdAt: now - 23 * 24 * h },
+          { userId: 'demo-mate-7', nickname: '林同學', createdAt: now - 22 * 24 * h },
+          { userId: 'demo-mate-8', nickname: '梁同學', createdAt: now - 22 * 24 * h },
+          { userId: 'demo-user', nickname: '示範學生', createdAt: now - 21 * 24 * h },
+          { userId: 'demo-mate-9', nickname: '羅同學', createdAt: now - 20 * 24 * h },
+          { userId: 'demo-mate-10', nickname: '蘇同學', createdAt: now - 19 * 24 * h },
+        ],
+      },
+      {
+        id: 'pp4',
+        title: '每間課室加裝掛鐘',
+        body: '考試時看不到時間，只能一直問監考老師。建議每間課室前方加裝一個掛鐘，並統一校時。',
+        category: 'FACILITY',
+        status: 'OPEN',
+        authorId: 'demo-mate-3',
+        authorNickname: '周同學',
+        authorClass: '高一 忠',
+        goal: 8,
+        reachedAt: null,
+        reply: null,
+        version: 0,
+        createdAt: now - 40 * h,
+        supporters: [
+          { userId: 'demo-mate-3', nickname: '周同學', createdAt: now - 40 * h },
+          { userId: 'demo-mate-4', nickname: '吳同學', createdAt: now - 36 * h },
+        ],
+      },
+    ],
+    // ── 課室設備報修（W-89）──
+    // 四種狀態各一筆：待接單（可練取消）／處理中／已完成（看得到處理時數）／別人的單（後台看得到）
+    repairs: [
+      {
+        id: 'rp1',
+        location: '304 室',
+        equipment: '冷氣',
+        description: '出風口滴水，滴到第二排的桌上，同學要一直抹。',
+        urgency: 'HIGH',
+        status: 'PENDING',
+        photoUrl: null,
+        reporterId: 'demo-user',
+        reporterNickname: '示範學生',
+        reporterClass: '高二 仁',
+        handlerId: null,
+        handlerNickname: '',
+        acceptedAt: null,
+        completedAt: null,
+        note: null,
+        createdAt: now - 2 * h,
+      },
+      {
+        id: 'rp2',
+        location: '圖書館三樓',
+        equipment: '燈',
+        description: '靠近窗邊那一排有一支燈管在閃，看書很刺眼。',
+        urgency: 'NORMAL',
+        status: 'IN_PROGRESS',
+        photoUrl: null,
+        reporterId: 'demo-user',
+        reporterNickname: '示範學生',
+        reporterClass: '高二 仁',
+        handlerId: 'demo-staff',
+        handlerNickname: '總務處',
+        acceptedAt: now - 20 * h,
+        completedAt: null,
+        note: null,
+        createdAt: now - 26 * h,
+      },
+      {
+        id: 'rp3',
+        location: '禮堂',
+        equipment: '麥克風',
+        description: '主席台左邊那支沒有聲音，換了電池也一樣。',
+        urgency: 'HIGH',
+        status: 'DONE',
+        photoUrl: null,
+        reporterId: 'demo-user',
+        reporterNickname: '示範學生',
+        reporterClass: '高二 仁',
+        handlerId: 'demo-staff',
+        handlerNickname: '總務處',
+        acceptedAt: now - 54 * h,
+        completedAt: now - 45 * h,
+        note: '換了電池座，並把線材重新壓接。',
+        createdAt: now - 60 * h,
+      },
+      {
+        id: 'rp4',
+        location: '203 室',
+        equipment: '門鎖',
+        description: '門鎖卡住，要用力推才關得上，放學後常常沒鎖好。',
+        urgency: 'HIGH',
+        status: 'PENDING',
+        photoUrl: null,
+        reporterId: 'demo-other',
+        reporterNickname: '黃同學',
+        reporterClass: '高一 忠',
+        handlerId: null,
+        handlerNickname: '',
+        acceptedAt: null,
+        completedAt: null,
+        note: null,
+        createdAt: now - 5 * h,
+      },
+    ],
   };
 }
 
@@ -183,6 +460,97 @@ function db() {
 function save(data) {
   wx.setStorageSync(KEY, data);
   return data;
+}
+
+// ── W-109 個人校曆訂閱（示範模式）──
+// 刻意放在示範資料本體之外：權杖不屬於 seed，加進 seed 就要升 SEED_VERSION，
+// 而升版會把使用者所有示範操作清掉 —— 為了一支權杖不值得。
+const DEMO_CAL_TOKEN_KEY = 'pv_demo_calendar_token';
+
+function demoCalendarToken() {
+  try {
+    return String(wx.getStorageSync(DEMO_CAL_TOKEN_KEY) || '');
+  } catch (e) {
+    return '';
+  }
+}
+
+/** 與後端 `/me/calendar/token` 同一個形狀（前端只認這個） */
+function calendarTokenShape(token, days) {
+  const span = Number(days) === 30 || Number(days) === 180 ? Number(days) : 90;
+  const suffix = span === 90 ? '' : '&days=' + span;
+  if (!token) return { enabled: false, token: null, path: null, createdAt: null, days: span };
+  return {
+    enabled: true,
+    token: token,
+    path: '/calendar/me.ics?token=' + token + suffix,
+    createdAt: null,
+    days: span,
+  };
+}
+
+// ── W-96 示範通知：分組／分組未讀數／分組全部已讀 ──
+// 這份對照必須與後端 src/lib/notify-groups.ts 一致，否則同一則通知在示範模式與真 API
+// 會落在不同口袋（使用者切了來源就找不到東西，而且沒有任何錯誤訊息）。
+const NOTIF_GROUP_KINDS = {
+  HOMEWORK: ['HOMEWORK'],
+  LIBRARY: ['LIBRARY'],
+  APPROVAL: ['LEAVE', 'BOOKING'],
+  REPAIR: ['REPAIR'],
+  OTHER: ['EVENT', 'CLAIM', 'ITEM', 'NOTICE', 'PROPOSAL', 'SYSTEM'],
+};
+
+function notifGroupOf(kind) {
+  const keys = Object.keys(NOTIF_GROUP_KINDS);
+  for (let i = 0; i < keys.length; i += 1) {
+    if (NOTIF_GROUP_KINDS[keys[i]].indexOf(kind) !== -1) return keys[i];
+  }
+  return 'OTHER';
+}
+
+function notificationSeeds() {
+  // W-57：貼上失物／拾獲時的主動配對通知（真 API 模式由後端產生；示範模式沒有其他真實使用者，留一則讓你看到長相）
+  return [
+    { id: 'n10', kind: 'REPAIR', title: '報修已接單：203 室 門鎖', body: '校務處已接單，處理好會再通知你。', link: '/pages/repair/index/index', readAt: null, createdAt: '2026-11-07T02:05:00.000Z' },
+    { id: 'n9', kind: 'LIBRARY', title: '即將到期：澳門街巷誌', body: '請於 11/09 前歸還，需要可以續借一次。', link: '/pages/library/detail/index?id=b1', readAt: null, createdAt: '2026-11-07T01:20:00.000Z' },
+    { id: 'n8', kind: 'LEAVE', title: '假單已批准', body: '陳大文 11/05（病假）已批准，記得補回缺課的筆記。', link: '/pages/leaves/mine/index', readAt: null, createdAt: '2026-11-06T10:05:00.000Z' },
+    { id: 'n7', kind: 'BOOKING', title: '借用申請已批准', body: '禮堂（11/12 15:00）已批准，請準時使用。', link: '/pages/venues/mine/index', readAt: null, createdAt: '2026-11-06T08:40:00.000Z' },
+    { id: 'n6', kind: 'HOMEWORK', title: '功課快到截止：數學', body: '習作 4.2 第 1–10 題，明天 08:00 前交。', link: '/pages/homework/index', readAt: null, createdAt: '2026-11-05T12:00:00.000Z' },
+    { id: 'n4', kind: 'ITEM', title: '有人撿到像你的「黑色雨傘」', body: '疑似與你張貼的「黑色雨傘」相符（同分類、地點相近），地點：圖書館一樓', link: '/pages/items/detail/index?id=i2', readAt: null, createdAt: '2026-10-25T02:10:00.000Z' },
+    { id: 'n1', kind: 'EVENT', title: '活動改期：班際籃球賽', body: '原定 11/10 09:00 → 11/17 09:00', link: '/pages/events/detail/index?id=e7', readAt: null, createdAt: '2026-10-24T09:12:00.000Z' },
+    { id: 'n2', kind: 'CLAIM', title: '認領已通過', body: '你申請的「黑色雨傘」已審批通過，請到失物招領領取。', link: '/pages/items/detail/index?id=i1', readAt: null, createdAt: '2026-10-23T15:40:00.000Z' },
+    { id: 'n3', kind: 'NOTICE', title: '新公告：期中考試安排', body: '教務處已發布期中考試時間表。', link: '/pages/notices/detail/index?id=nt1', readAt: '2026-10-22T08:00:00.000Z', createdAt: '2026-10-22T07:30:00.000Z' },
+  ];
+}
+
+/** 示範通知清單：opts 可為 { group, unreadOnly }，也接受舊版的 boolean（true＝只看未讀） */
+function demoNotifications(opts) {
+  const o = opts && typeof opts === 'object' ? opts : { unreadOnly: !!opts };
+  const reads = db().notificationReads || [];
+  const all = notificationSeeds().map((row) => ({
+    ...row,
+    group: notifGroupOf(row.kind),
+    readAt: row.readAt || (reads.indexOf(row.id) !== -1 ? '2026-11-07T00:00:00.000Z' : null),
+  }));
+  const group = o.group && o.group !== 'ALL' ? o.group : 'ALL';
+  const inGroup = group === 'ALL' ? all : all.filter((row) => row.group === group);
+  const items = o.unreadOnly ? inGroup.filter((row) => !row.readAt) : inGroup;
+  const groups = [{ key: 'ALL', total: all.length, unread: all.filter((row) => !row.readAt).length }];
+  Object.keys(NOTIF_GROUP_KINDS).forEach((key) => {
+    const rows = all.filter((row) => row.group === key);
+    groups.push({ key, total: rows.length, unread: rows.filter((row) => !row.readAt).length });
+  });
+  return { items, unread: all.filter((row) => !row.readAt).length, group, groups };
+}
+
+
+let idSeq = 0;
+
+/** 示範層的 id 產生器：同一個毫秒內連續建立兩筆時，只用 Date.now() 會撞號
+ *  （症狀：批了第一筆之後，第二筆顯示「已經處理過了」） */
+function nextId(prefix) {
+  idSeq += 1;
+  return prefix + Date.now() + '-' + idSeq;
 }
 
 /** 雙字母組相似度（0–1），與後端 pg_trgm 的概念一致但更輕量 */
@@ -331,12 +699,529 @@ function cancelCore(id, userId) {
 
 let schoolLinked = false;
 
+/** 示範資料用的「N 天後」日期字串（YYYY-MM-DD，本地時區；每次載入都以今天為基準，不會過期） */
+function demoDay(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + (offset || 0));
+  const pad = (n) => (n < 10 ? '0' + n : String(n));
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+
+/**
+ * 家校通示範資料（模組層函式，不是 `this.xxx`）。
+ * data.js 是把 mock 的方法拆出來呼叫的（`mock[name](...)`），`this` 會是 null ——
+ * 所以「子女的成績」不能寫 `this.schoolGrades()`，只能共用同一支純函式。
+ */
+function demoSchoolGrades() {
+  return {
+    years: ['2026/2027', '2025/2026'],
+    items: [
+      { id: 'g1', yearTerm: '2026/2027', term: '第一段', courseName: '化學', content: '原子結構及元素周期表', testType: '大測一', testDate: '2026-10-09', score: 100.5 },
+      { id: 'g2', yearTerm: '2026/2027', term: '第一段', courseName: '數學', content: '函數與圖像', testType: '大測一', testDate: '2026-10-10', score: 86 },
+      { id: 'g3', yearTerm: '2026/2027', term: '第一段', courseName: '中文', content: '閱讀理解', testType: '小測', testDate: '2026-10-12', score: 78 },
+      // 第二段與上一個學年：成績單要能切學年、也要看得出「一段一段」的差別（W-95）
+      { id: 'g4', yearTerm: '2026/2027', term: '第二段', courseName: '英文', content: 'Listening and Writing', testType: '大測一', testDate: '2026-11-18', score: 88 },
+      { id: 'g5', yearTerm: '2026/2027', term: '第二段', courseName: '物理', content: '力與運動', testType: '大測一', testDate: '2026-11-20', score: 79.5 },
+      { id: 'g6', yearTerm: '2026/2027', term: '第二段', courseName: '中文', content: '作文', testType: '小測', testDate: '2026-11-24', score: null },
+      { id: 'g7', yearTerm: '2025/2026', term: '第三段', courseName: '歷史', content: '近代史', testType: '大測', testDate: '2026-06-02', score: 70 },
+      { id: 'g8', yearTerm: '2025/2026', term: '第三段', courseName: '地理', content: '氣候與地形', testType: '大測', testDate: '2026-06-05', score: 74.5 },
+    ],
+  };
+}
+
+function demoSchoolAttendance() {
+  const items = [
+    { id: 'a1', yearTerm: '2026/2027', date: '2026-10-23', amIn: '08:16:06', pmOut: '16:32:32', isAmLate: false, isPmLate: false, amStatus: 'normal', pmStatus: 'normal', remark: null },
+    { id: 'a2', yearTerm: '2026/2027', date: '2026-10-22', amIn: '08:32:10', pmOut: '16:30:02', isAmLate: true, isPmLate: false, amStatus: 'late', pmStatus: 'normal', remark: '交通延誤' },
+    { id: 'a3', yearTerm: '2026/2027', date: '2026-10-21', amIn: '', pmOut: '', isAmLate: false, isPmLate: false, amStatus: 'leave', pmStatus: 'leave', remark: '病假' },
+    { id: 'a4', yearTerm: '2026/2027', date: '2026-10-20', amIn: '08:05:00', pmOut: '16:28:11', isAmLate: false, isPmLate: false, amStatus: 'normal', pmStatus: 'normal', remark: null },
+    { id: 'a5', yearTerm: '2026/2027', date: '2026-10-17', amIn: '08:06:41', pmOut: '16:31:04', isAmLate: false, isPmLate: false, amStatus: 'normal', pmStatus: 'normal', remark: null },
+    { id: 'a6', yearTerm: '2026/2027', date: '2026-10-16', amIn: '08:04:12', pmOut: '16:29:50', isAmLate: false, isPmLate: false, amStatus: 'normal', pmStatus: 'normal', remark: null },
+    { id: 'a7', yearTerm: '2026/2027', date: '2026-10-15', amIn: '', pmOut: '', isAmLate: false, isPmLate: false, amStatus: 'absent', pmStatus: 'absent', remark: '曠課' },
+    { id: 'a8', yearTerm: '2026/2027', date: '2026-10-14', amIn: '08:03:30', pmOut: '16:27:45', isAmLate: false, isPmLate: true, amStatus: 'normal', pmStatus: 'late', remark: null },
+    { id: 'a9', yearTerm: '2025/2026', date: '2026-06-03', amIn: '08:08:00', pmOut: '16:30:00', isAmLate: false, isPmLate: false, amStatus: 'normal', pmStatus: 'normal', remark: null },
+  ];
+  const late = items.filter((r) => r.isAmLate || r.isPmLate).length;
+  const absent = items.filter((r) => r.amStatus !== 'normal' || r.pmStatus !== 'normal').length;
+  return { items, summary: { total: items.length, late, absent } };
+}
+
+/** 示範層的「只看某學年」：與真 API 的 `?yearTerm=` 同語意（沒有 yearTerm 就全回） */
+function filterByYear(list, query) {
+  const y = query && query.yearTerm;
+  if (!y) return list;
+  return list.filter((row) => String(row.yearTerm || '') === String(y));
+}
+
+/** 示範層的轉贈物顯示欄位（與後端 shapeItem 同名同義；頁面兩種模式共用一份程式） */
+function shapeGiveaway(data, item, extra) {
+  const e = extra || {};
+  const me = data.user || {};
+  const rows = (data.giveawayRequests || []).filter((r) => r.itemId === item.id);
+  const mine = rows.filter((r) => r.userId === me.id)[0] || null;
+  const isOwner = item.ownerId === me.id;
+  const manager = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+  const showContact = !!e.showContact || isOwner || manager || (mine && mine.status === 'ACCEPTED');
+  return {
+    id: item.id,
+    kind: item.kind,
+    kindLabel: { BOOK: '書籍', UNIFORM: '校服', OTHER: '其他' }[item.kind] || '其他',
+    title: item.title,
+    body: item.body || null,
+    condition: item.condition || 'GOOD',
+    conditionLabel: { LIKE_NEW: '幾乎全新', GOOD: '良好', FAIR: '可用' }[item.condition] || '良好',
+    detail: item.detail || null,
+    pickupPlace: item.pickupPlace || null,
+    imageUrl: item.imageUrl || null,
+    status: item.status || 'AVAILABLE',
+    statusLabel: { AVAILABLE: '可申請', GIVEN: '已贈出', CLOSED: '已下架' }[item.status] || item.status,
+    version: item.version || 0,
+    ownerId: item.ownerId,
+    ownerNickname: item.ownerNickname || '同學',
+    ownerClass: item.ownerClass || null,
+    contactName: showContact ? item.contactName || null : null,
+    contactValue: showContact ? item.contactValue || null : null,
+    requestCount: rows.length,
+    pendingCount: rows.filter((r) => r.status === 'PENDING').length,
+    myRequest: mine ? { id: mine.id, status: mine.status, createdAt: new Date(mine.createdAt).toISOString() } : null,
+    givenAt: item.givenAt ? new Date(item.givenAt).toISOString() : null,
+    closedAt: item.closedAt ? new Date(item.closedAt).toISOString() : null,
+    createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : null,
+  };
+}
+
+/** 示範層的請假日期：相對今天 ±N 天，寫成 `YYYY-MM-DD`（與後端 @db.Date 同一個字串形狀） */
+function leaveDate(offsetDays) {
+  const d = new Date(Date.now() + (offsetDays || 0) * 86400000);
+  return d.toISOString().slice(0, 10);
+}
+
+function pad2(n) {
+  return (n < 10 ? '0' : '') + n;
+}
+
+/** 示範層的「這個月」`YYYY-MM`：用本地時間取，不要用 toISOString（月初 8 點前會少一個月） */
+function demoMonth(now) {
+  const d = now || new Date();
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1);
+}
+
+/**
+ * 示範層的穩定雜湊（0–1）：出席率月報的缺席／請假／遲到要「每次打開都一樣」。
+ * 用 Math.random 的話，同一天重新整理數字就會變 —— 示範時看起來像資料在亂跳。
+ */
+function demoRatio(seed) {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i += 1) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 4294967296;
+}
+
+const LEAVE_KIND_LABEL = { SICK: '病假', PERSONAL: '事假', OFFICIAL: '公假' };
+const LEAVE_STATUS_LABEL = { PENDING: '待審批', APPROVED: '已批准', REJECTED: '已駁回', CANCELLED: '已取消' };
+
+/** 假單的對外形狀與後端 lib/leaves.ts 的 shapeLeave 一致（前端兩條路徑不必分開寫） */
+function shapeLeave(row, me) {
+  const from = String(row.from || '');
+  const to = String(row.to || '');
+  const head = from.replace(/-/g, '/');
+  const tail = to.replace(/-/g, '/');
+  const dateText = head === tail ? head : from.slice(0, 4) === to.slice(0, 4) ? head + '–' + tail.slice(5) : head + '–' + tail;
+  const days = Math.round((new Date(to + 'T00:00:00Z').getTime() - new Date(from + 'T00:00:00Z').getTime()) / 86400000) + 1;
+  const isMine = me && me.id === row.studentId;
+  return {
+    id: row.id,
+    studentId: row.studentId,
+    student: isMine
+      ? { id: me.id, nickname: me.nickname || '同學', grade: me.grade || null, className: me.className || null }
+      : { id: row.studentId, nickname: row.studentName || '陳同學', grade: '高二', className: '仁' },
+    createdById: row.createdById,
+    createdBy: { id: row.createdById, nickname: isMine ? (me && me.nickname) || '同學' : '家長', role: null },
+    // W-99：誰送出的。與後端同一條規則（createdById 是否等於學生本人），不另存欄位
+    source: row.createdById === row.studentId ? 'STUDENT' : 'PARENT',
+    sourceText: row.createdById === row.studentId ? '學生本人' : '家長代送',
+    kind: row.kind,
+    kindText: LEAVE_KIND_LABEL[row.kind] || row.kind,
+    from: from,
+    to: to,
+    dateText: dateText,
+    days: Number.isNaN(days) ? 1 : days,
+    reason: row.reason || '',
+    attachmentUrl: row.attachmentUrl || null,
+    status: row.status,
+    statusText: LEAVE_STATUS_LABEL[row.status] || row.status,
+    rejectReason: row.rejectReason || null,
+    reviewedAt: row.reviewedAt ? new Date(row.reviewedAt).toISOString() : null,
+    reviewedBy: row.reviewedBy || null,
+    createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
+    canCancel: row.status === 'PENDING',
+  };
+}
+
+/** 示範層的節次（與後端 DEFAULT_PERIODS 同一個時間表） */
+const DEMO_PERIODS = [
+  { period: 1, startTime: '08:10', endTime: '08:50' },
+  { period: 2, startTime: '08:55', endTime: '09:35' },
+  { period: 3, startTime: '09:45', endTime: '10:25' },
+  { period: 4, startTime: '10:30', endTime: '11:10' },
+  { period: 5, startTime: '11:20', endTime: '12:00' },
+  { period: 6, startTime: '14:00', endTime: '14:40' },
+  { period: 7, startTime: '14:45', endTime: '15:25' },
+  { period: 8, startTime: '15:35', endTime: '16:15' },
+];
+const DEMO_CLASS = '高二仁';
+const WEEKDAY_LABEL = { 1: '星期一', 2: '星期二', 3: '星期三', 4: '星期四', 5: '星期五' };
+
+/** 示範課表：五天都有課，星期一到五第 1–6 節 */
+function buildDemoTimetable() {
+  const grid = [
+    ['數學', '英文', '化學', '物理', '中文', '體育'],
+    ['中文', '數學', '英文', '歷史', '化學', '地理'],
+    ['英文', '物理', '數學', '中文', '生物', '音樂'],
+    ['化學', '中文', '地理', '數學', '英文', '視藝'],
+    ['物理', '英文', '中文', '生物', '數學', '資訊'],
+  ];
+  // 課室與老師「按科目」給，不是按節次：以前六節共用一個 room，
+  // 印出來的課表會出現「音樂在操場上課」這種一眼假的資料。
+  const BY_SUBJECT = {
+    數學: { room: '302', teacher: '陳老師' },
+    中文: { room: '302', teacher: '李老師' },
+    英文: { room: '302', teacher: '黃老師' },
+    歷史: { room: '302', teacher: '鄭老師' },
+    地理: { room: '302', teacher: '鄭老師' },
+    化學: { room: '實驗室 B', teacher: '吳老師' },
+    物理: { room: '實驗室 A', teacher: '吳老師' },
+    生物: { room: '實驗室 B', teacher: '何老師' },
+    體育: { room: '操場', teacher: '馬老師' },
+    音樂: { room: '音樂室', teacher: '林老師' },
+    視藝: { room: '美術室', teacher: '蘇老師' },
+    資訊: { room: '電腦室', teacher: '羅老師' },
+  };
+  const out = [];
+  grid.forEach((row, dayIdx) => {
+    row.forEach((subject, i) => {
+      const where = BY_SUBJECT[subject] || {};
+      out.push({
+        id: 'ts' + (dayIdx + 1) + '-' + (i + 1),
+        className: DEMO_CLASS,
+        weekday: dayIdx + 1,
+        period: i + 1,
+        subject: subject,
+        teacherName: where.teacher || '',
+        room: where.room || '',
+      });
+    });
+  });
+  return out;
+}
+
+function hhmm(v) {
+  const [h, m] = String(v).split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+function shapeSlot(slot) {
+  const p = DEMO_PERIODS.filter((row) => row.period === slot.period)[0];
+  return Object.assign({}, slot, {
+    teacherName: slot.teacherName || null,
+    room: slot.room || null,
+    timeText: p ? p.startTime + '–' + p.endTime : '',
+  });
+}
+
+/** 上課時段（第一節開始 → 最後一節結束）與停課門檻，跟後端 src/lib/timetable.ts 同一組數字 */
+const SCHOOL_WINDOW = { start: '08:10', end: '16:15' };
+const DAY_OFF_MIN_OVERLAP_MINUTES = 180;
+
+/**
+ * 功課附件（W-84）：只收 http(s)、上限 5 條、同一條只留一次。
+ * 規則與後端 `src/routes/homework.ts` 的 normalizeLinks 一致 ——
+ * 示範模式若放行 ftp://，使用者切回真 API 時才會被 422 擋下，落差就變成了 bug。
+ */
+const MAX_HOMEWORK_LINKS = 5;
+
+/** 回 `{ links }` 或 `{ error }`：示範層的呼叫端一律先看 error 再寫入（不要拋，會穿透到畫面） */
+function normalizeHomeworkLinks(input) {
+  if (input === null || input === undefined) return { links: null };
+  if (!Array.isArray(input)) return { error: { code: 'VALIDATION_FAILED', message: '附件格式不正確' } };
+  const out = [];
+  const seen = {};
+  for (const raw of input) {
+    const isObj = raw && typeof raw === 'object';
+    const url = String(isObj ? raw.url || '' : raw || '').trim();
+    const name = String(isObj ? raw.name || '' : '').trim().slice(0, 60);
+    if (!url) continue;
+    if (!/^https?:\/\/[^\s<>"']+$/i.test(url)) {
+      return { error: { code: 'VALIDATION_FAILED', message: '附件連結只接受 http:// 或 https:// 開頭' } };
+    }
+    if (url.length > 300) {
+      return { error: { code: 'VALIDATION_FAILED', message: '附件連結太長了（最多 300 個字元）' } };
+    }
+    if (seen[url]) continue;
+    seen[url] = true;
+    out.push({ name: name, url: url });
+  }
+  if (out.length > MAX_HOMEWORK_LINKS) {
+    return { error: { code: 'VALIDATION_FAILED', message: '最多只能加 ' + MAX_HOMEWORK_LINKS + ' 條附件連結' } };
+  }
+  return { links: out };
+}
+
+/** 讀回時只留形狀正確的，舊資料不要讓畫面炸掉 */
+function readHomeworkLinks(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((raw) => {
+      const isObj = raw && typeof raw === 'object';
+      return { name: String(isObj ? raw.name || '' : '').trim(), url: String(isObj ? raw.url || '' : raw || '').trim() };
+    })
+    .filter((l) => /^https?:\/\//i.test(l.url));
+}
+
+function dateKeyOf(value) {
+  const d = value instanceof Date ? value : new Date(value);
+  if (isNaN(d.getTime())) return '';
+  const p2 = (n) => (n < 10 ? '0' + n : '' + n);
+  return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+}
+
+/**
+ * 示範層的「這一天放假了嗎」（W-82）。
+ * 規則與後端一致：①當天發布的 CALENDAR 公告 ②當天壓到上課時段 ≥3 小時的全校活動（沒有社團）。
+ * 寫成真規則而不是寫死 null，示範模式才驗得到這個功能。
+ */
+function demoDayOff(data, dayKey, now) {
+  const notice = (data.notices || []).filter(
+    (n) => n.kind === 'CALENDAR' && !n.deletedAt && dateKeyOf(n.publishedAt) === dayKey,
+  )[0];
+  if (notice) return { source: 'notice', id: notice.id, title: notice.title, reason: notice.title + '（校曆公告）' };
+
+  const winFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() + hhmm(SCHOOL_WINDOW.start) * 60000;
+  const winTo = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() + hhmm(SCHOOL_WINDOW.end) * 60000;
+  const allDay = (data.events || []).filter((e) => {
+    if (e.deletedAt || e.club) return false;
+    if (e.status === 'DRAFT' || e.status === 'CANCELLED') return false;
+    if (dateKeyOf(e.startAt) !== dayKey) return false;
+    const s = new Date(e.startAt).getTime();
+    const t = e.endAt ? new Date(e.endAt).getTime() : s + 60 * 60000;
+    return Math.min(t, winTo) - Math.max(s, winFrom) >= DAY_OFF_MIN_OVERLAP_MINUTES * 60000;
+  })[0];
+  if (allDay) return { source: 'event', id: allDay.id, title: allDay.title, reason: allDay.title + '（全校活動）' };
+  return null;
+}
+
+// ── W-88 校園提案：表單顯示欄位（與後端 shape() 同名同義）──
+const PROPOSAL_CATEGORY_LABEL = { FACILITY: '校園設施', STUDY: '課堂學習', ACTIVITY: '活動建議', CANTEEN: '餐飲', OTHER: '其他' };
+const PROPOSAL_STATUS_LABEL = { OPEN: '收集中', REVIEWING: '校方處理中', PLANNED: '已列入計劃', DONE: '已完成', DECLINED: '暫不採納' };
+
+function proposalRole(data) {
+  return (data.user && data.user.role) || 'STUDENT';
+}
+
+function shapeProposal(data, row, opts) {
+  const o = opts || {};
+  const me = (data.user && data.user.id) || '';
+  const supporters = row.supporters || [];
+  const count = supporters.length;
+  const goal = row.goal || 20;
+  const mine = supporters.filter((s) => s.userId === me)[0];
+  const role = proposalRole(data);
+  const out = {
+    id: row.id,
+    title: row.title,
+    category: row.category || 'OTHER',
+    categoryLabel: PROPOSAL_CATEGORY_LABEL[row.category] || '其他',
+    status: row.status || 'OPEN',
+    statusLabel: PROPOSAL_STATUS_LABEL[row.status] || '收集中',
+    supportCount: count,
+    goal: goal,
+    reached: count >= goal,
+    reachedAt: row.reachedAt ? new Date(row.reachedAt).toISOString() : null,
+    repliedAt: row.reply ? new Date(row.reply.at).toISOString() : null,
+    createdAt: new Date(row.createdAt).toISOString(),
+    author: { id: row.authorId, nickname: row.authorNickname || '同學', grade: '', className: row.authorClass || '' },
+    isMine: row.authorId === me,
+    mySupported: !!mine,
+    version: row.version || 0,
+  };
+  if (o.detail) {
+    out.body = row.body || '';
+    out.reply = row.reply
+      ? { body: row.reply.body, byName: row.reply.byName || '', at: new Date(row.reply.at).toISOString() }
+      : null;
+    out.supporters = supporters
+      .map((s) => ({ id: s.userId, nickname: s.nickname, role: s.role || 'STUDENT', className: s.className || '' }))
+      // 與後端一致：詳情只帶前 12 位，其餘用「看全部」翻頁
+      .slice(0, 12);
+    out.supportersTotal = count;
+    out.canEdit = row.authorId === me && row.status === 'OPEN';
+    out.canReply = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1;
+    out.canModerate = out.canReply;
+  }
+  return out;
+}
+
+/** 示範層的提案清單（票數＝supporters 長度，與後端「以唯一鍵列數為準」一致） */
+function proposalList(data, opts) {
+  const o = opts || {};
+  const me = (data.user && data.user.id) || '';
+  const status = o.status || 'ALL';
+  const category = o.category || '';
+  const scope = o.scope || 'all';
+  const q = (o.q || '').trim();
+  const sort = o.sort || 'new';
+  const page = o.page || 1;
+  const limit = o.limit || 20;
+
+  const all = (data.proposals || []).filter((p) => !p.deletedAt);
+  const counts = { OPEN: 0, REVIEWING: 0, PLANNED: 0, DONE: 0, DECLINED: 0, ALL: all.length };
+  all.forEach((p) => {
+    counts[p.status] = (counts[p.status] || 0) + 1;
+  });
+
+  let rows = all.slice();
+  if (status !== 'ALL') rows = rows.filter((p) => p.status === status);
+  if (category) rows = rows.filter((p) => p.category === category);
+  if (scope === 'mine') rows = rows.filter((p) => p.authorId === me);
+  if (scope === 'supported') rows = rows.filter((p) => (p.supporters || []).some((s) => s.userId === me));
+  if (q) rows = rows.filter((p) => (p.title + ' ' + (p.body || '')).indexOf(q) !== -1);
+
+  rows.sort((a, b) => {
+    if (sort === 'support') {
+      const d = (b.supporters || []).length - (a.supporters || []).length;
+      if (d !== 0) return d;
+    }
+    return b.createdAt - a.createdAt;
+  });
+
+  const total = rows.length;
+  const slice = rows.slice((page - 1) * limit, (page - 1) * limit + limit);
+  return { items: slice.map((p) => shapeProposal(data, p)), total: total, page: page, counts: counts, goal: 20 };
+}
+
+// ── W-89 課室設備報修：對外形狀與後端 routes/repairs.ts 的 shape() 一致 ──
+const REPAIR_STATUS_LABEL = { PENDING: '待接單', IN_PROGRESS: '處理中', DONE: '已完成', CANCELLED: '已取消' };
+const REPAIR_URGENCY_LABEL = { LOW: '可以等', NORMAL: '一般', HIGH: '急' };
+const REPAIR_HANDLER_ROLES = ['STAFF', 'ADMIN', 'SUPER_ADMIN'];
+
+function repairRole(data) {
+  return (data.user && data.user.role) || 'STUDENT';
+}
+
+function shapeRepair(row) {
+  const hours =
+    row.completedAt != null
+      ? Math.round(((row.completedAt - row.createdAt) / 3600000) * 10) / 10
+      : null;
+  return {
+    id: row.id,
+    location: row.location,
+    equipment: row.equipment,
+    description: row.description,
+    urgency: row.urgency || 'NORMAL',
+    urgencyText: REPAIR_URGENCY_LABEL[row.urgency || 'NORMAL'] || '一般',
+    status: row.status,
+    statusText: REPAIR_STATUS_LABEL[row.status] || row.status,
+    photoUrl: row.photoUrl || null,
+    note: row.note || null,
+    reporter: { id: row.reporterId, nickname: row.reporterNickname || '同學', grade: null, className: row.reporterClass || null },
+    handler: row.handlerId ? { id: row.handlerId, nickname: row.handlerNickname || '總務處' } : null,
+    createdAt: new Date(row.createdAt).toISOString(),
+    acceptedAt: row.acceptedAt ? new Date(row.acceptedAt).toISOString() : null,
+    completedAt: row.completedAt ? new Date(row.completedAt).toISOString() : null,
+    hours: hours,
+  };
+}
+
+/**
+ * W-113 審批時效（示範層）
+ *
+ * 與後端 `/admin/approvals/stats` 同一組口徑：窗口看「送出時間」、樣本只算已批准
+ * （報修只算已接單）、沒有樣本回 null 不是 0、百分位用 nearest-rank。
+ * 示範層自己算一套（例如拿平均數代替中位數）的話，斷網演示與線上會出現兩組數字，
+ * 而 Gary 的驗收方式正好是把兩邊對照著看。
+ */
+function demoHours(rows, fromMs, toMs, pickFrom, pickTo, allow) {
+  return rows
+    .filter((row) => row.createdAt != null && row.createdAt >= fromMs && row.createdAt <= toMs && allow(row))
+    .map((row) => (pickTo(row) - pickFrom(row)) / 3600000)
+    .filter((value) => typeof value === 'number' && isFinite(value) && value >= 0);
+}
+
+function demoPercentile(values, p) {
+  const list = values.slice().sort((a, b) => a - b);
+  if (!list.length) return null;
+  const rank = Math.ceil((p / 100) * list.length);
+  const value = list[Math.min(list.length, Math.max(1, rank)) - 1];
+  return typeof value === 'number' ? Math.round(value * 10) / 10 : null;
+}
+
+function demoBucket(values) {
+  const avg = values.length
+    ? Math.round((values.reduce((sum, v) => sum + v, 0) / values.length) * 10) / 10
+    : null;
+  return { samples: values.length, p50: demoPercentile(values, 50), p90: demoPercentile(values, 90), avg: avg };
+}
+
+function demoApprovalStats(data, days) {
+  const to = Date.now();
+  const from = to - days * 86400000;
+  const leaves = data.leaves || [];
+  const bookings = data.resourceBookings || [];
+  const repairs = data.repairs || [];
+
+  const inWindow = (row) => row.createdAt != null && row.createdAt >= from && row.createdAt <= to;
+  const countBy = (rows, pick) => {
+    const out = {};
+    rows.forEach((row) => {
+      const key = pick(row);
+      out[key] = (out[key] || 0) + 1;
+    });
+    return out;
+  };
+  const lc = countBy(leaves.filter(inWindow), (row) => row.status);
+  const bc = countBy(bookings.filter(inWindow), (row) => row.status);
+  const rc = countBy(repairs.filter(inWindow), (row) => row.status);
+  // 件數一律用「視窗內有幾列」算，不要拿各狀態相加 —— 少了某個狀態時 undefined 會變成 NaN
+  const totalOf = (rows) => rows.filter(inWindow).length;
+
+  const leaveHours = demoHours(leaves, from, to, (r) => r.createdAt, (r) => r.reviewedAt, (r) => r.status === 'APPROVED' && r.reviewedAt != null);
+  const bookingHours = demoHours(bookings, from, to, (r) => r.createdAt, (r) => r.reviewedAt, (r) => r.status === 'APPROVED' && r.reviewedAt != null);
+  const acceptHours = demoHours(repairs, from, to, (r) => r.createdAt, (r) => r.acceptedAt, (r) => r.status !== 'CANCELLED' && r.acceptedAt != null);
+  const doneHours = demoHours(repairs, from, to, (r) => r.createdAt, (r) => r.completedAt, (r) => r.status === 'DONE' && r.completedAt != null);
+
+  return {
+    days: days,
+    from: new Date(from).toISOString(),
+    to: new Date(to).toISOString(),
+    groups: [
+      {
+        key: 'leave',
+        counts: { total: totalOf(leaves), pending: lc.PENDING || 0, approved: lc.APPROVED || 0, rejected: lc.REJECTED || 0, cancelled: lc.CANCELLED || 0 },
+        hours: demoBucket(leaveHours),
+      },
+      {
+        key: 'booking',
+        counts: { total: totalOf(bookings), pending: bc.PENDING || 0, approved: bc.APPROVED || 0, rejected: bc.REJECTED || 0, cancelled: bc.CANCELLED || 0 },
+        hours: demoBucket(bookingHours),
+      },
+      {
+        key: 'repair',
+        counts: { total: totalOf(repairs), pending: rc.PENDING || 0, inProgress: rc.IN_PROGRESS || 0, done: rc.DONE || 0, cancelled: rc.CANCELLED || 0 },
+        hours: demoBucket(acceptHours),
+        doneHours: demoBucket(doneHours),
+      },
+    ],
+  };
+}
+
 module.exports = {
   reset() {
     const fresh = seed();
     return save(fresh);
   },
-
   // ── 認證 ──
   login() {
     const data = db();
@@ -594,6 +1479,45 @@ module.exports = {
     return cancelCore(eventId, studentId);
   },
 
+  /** 子女的成績（示範層）：與後端同形狀；未綁定一樣 403，不讓示範模式比真 API 寬鬆 */
+  parentChildGrades(studentId, query) {
+    const data = db();
+    if (!childOf(data, studentId)) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
+    }
+    const g = demoSchoolGrades();
+    return Promise.resolve({ years: g.years, items: filterByYear(g.items, query) });
+  },
+
+  /** 子女的出缺席（示範層） */
+  parentChildAttendance(studentId, query) {
+    const data = db();
+    if (!childOf(data, studentId)) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
+    }
+    const a = demoSchoolAttendance();
+    const items = filterByYear(a.items, query);
+    return Promise.resolve({
+      items,
+      summary: {
+        total: items.length,
+        late: items.filter((r) => r.isAmLate || r.isPmLate).length,
+        absent: items.filter((r) => r.amStatus !== 'normal' || r.pmStatus !== 'normal').length,
+      },
+    });
+  },
+
+  /** 家長同步子女（示範層）：真 API 會打家校通，這裡只回筆數；規則一樣要已綁定 */
+  parentChildSync(studentId) {
+    const data = db();
+    if (!childOf(data, studentId)) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
+    }
+    const g = demoSchoolGrades();
+    const a = demoSchoolAttendance();
+    return Promise.resolve({ ok: true, demo: true, grades: g.items.length, attendance: a.items.length, yearTerms: g.years.slice(0, 1) });
+  },
+
   /**
    * 示範層的簽到：與後端同一組規則（碼要有效、只有正取、重複掃不重複計）。
    * 示範模式沒有老師端，所以碼寫在種子資料裡（e1 = 246810）。
@@ -643,9 +1567,11 @@ module.exports = {
   },
 
   // 示範模式專用：切換身分（用來驗證「第二個人報名 → 候補」）
-  switchDemoUser(nickname, id) {
+  switchDemoUser(nickname, id, role) {
     const data = db();
     data.user = Object.assign({}, data.user, { nickname: nickname, id: id || 'demo-' + nickname });
+    // 第三個參數才改角色：示範模式要能演「老師審批場地」，不傳就維持原角色
+    if (role) data.user.role = role;
     save(data);
     return Promise.resolve(data.user);
   },
@@ -680,22 +1606,28 @@ module.exports = {
       return Promise.reject({ code: 'VALIDATION_FAILED', message: '評分必須是 1–5 星' });
     }
     data.dishScores = data.dishScores || seedScores();
+    data.dishDist = data.dishDist || seedDist();
     data.myRatings = data.myRatings || {};
 
     const agg = data.dishScores[id] || { sum: 0, count: 0, likes: 0 };
+    const dist = data.dishDist[id] || [0, 0, 0, 0, 0];
     const prev = data.myRatings[id];
 
     if (prev) {
       // 一人一評：改分時先把舊分扣掉，不會重複計算
       agg.sum = agg.sum - prev.score + score;
+      dist[prev.score - 1] = Math.max(0, dist[prev.score - 1] - 1);
+      dist[score - 1] += 1;
       if (prev.liked && !p.liked) agg.likes = Math.max(0, agg.likes - 1);
       if (!prev.liked && p.liked) agg.likes += 1;
     } else {
       agg.sum += score;
       agg.count += 1;
+      dist[score - 1] += 1;
       if (p.liked) agg.likes += 1;
     }
     data.dishScores[id] = agg;
+    data.dishDist[id] = dist;
     data.myRatings[id] = { score: score, liked: !!p.liked };
     save(data);
 
@@ -712,6 +1644,73 @@ module.exports = {
       .sort((a, b) => b.avgScore - a.avgScore || b.ratingCount - a.ratingCount)
       .slice(0, limit);
     return Promise.resolve({ items: rows });
+  },
+
+  /**
+   * 後台菜單評分統計（W-101）：與後端 /admin/menu/stats 同一組規則 ——
+   * 平均分／人數／1–2 分比例、樣本 < 3 不算排名。示範資料沒有評分時間戳，
+   * 一律視為在視窗內（真 API 才是真的按天過濾）。
+   */
+  menuStats(query) {
+    const q = query || {};
+    const days = Number(q.days) || 30;
+    const sampleMin = 3;
+    const data = db();
+    data.dishScores = data.dishScores || seedScores();
+    data.dishDist = data.dishDist || seedDist();
+
+    const round1 = (v) => Math.round(v * 10) / 10;
+    const items = DISH_LIBRARY.map((d) => {
+      const agg = data.dishScores[d.id] || { sum: 0, count: 0, likes: 0 };
+      const dist = data.dishDist[d.id] || [0, 0, 0, 0, 0];
+      const low = dist[0] + dist[1];
+      return {
+        dishId: d.id,
+        name: d.name,
+        mealType: d.tags.indexOf('小賣部') !== -1 ? 'SNACK' : 'LUNCH',
+        avgScore: agg.count ? round1(agg.sum / agg.count) : 0,
+        count: agg.count,
+        likedCount: agg.likes,
+        likedRate: agg.count ? round1((agg.likes / agg.count) * 100) : 0,
+        lowCount: low,
+        lowRate: agg.count ? round1((low / agg.count) * 100) : 0,
+        dist: { 1: dist[0], 2: dist[1], 3: dist[2], 4: dist[3], 5: dist[4] },
+        enough: agg.count >= sampleMin,
+      };
+    })
+      .filter((row) => row.count > 0)
+      .sort((a, b) => b.avgScore - a.avgScore || b.count - a.count);
+
+    const ranked = items.filter((x) => x.enough);
+    const brief = (x) => ({
+      dishId: x.dishId,
+      name: x.name,
+      avgScore: x.avgScore,
+      count: x.count,
+      lowCount: x.lowCount,
+      lowRate: x.lowRate,
+    });
+    const total = items.reduce((s, x) => s + x.count, 0);
+    const lowTotal = items.reduce((s, x) => s + x.lowCount, 0);
+    return Promise.resolve({
+      days: days,
+      sampleMin: sampleMin,
+      summary: {
+        ratings: total,
+        dishes: items.length,
+        avgScore: total ? round1(items.reduce((s, x) => s + x.avgScore * x.count, 0) / total) : null,
+        lowCount: lowTotal,
+        lowRate: total ? round1((lowTotal / total) * 100) : null,
+        insufficient: items.length - ranked.length,
+      },
+      items: items,
+      best: ranked.slice(0, 5).map(brief),
+      worst: ranked
+        .slice()
+        .sort((a, b) => b.lowRate - a.lowRate || b.lowCount - a.lowCount || a.avgScore - b.avgScore)
+        .slice(0, 5)
+        .map(brief),
+    });
   },
 
   // ── 失物智能匹配（與後端 /items/:id/matches 同一套權重，示範模式才看得出效果）──
@@ -810,7 +1809,7 @@ module.exports = {
     const low = q.toLowerCase();
     const data = db();
     const now = Date.now();
-    const wanted = (opts.types || 'notice,event,item').split(',').map((s) => s.trim());
+    const wanted = (opts.types || 'notice,event,item,giveaway,menu,homework,proposal,book,resource,leave,repair,loan,booking').split(',').map((s) => s.trim());
     const groups = [];
 
     const hitScore = (title) => (String(title || '').toLowerCase().indexOf(low) !== -1 ? 2 : 1);
@@ -870,13 +1869,213 @@ module.exports = {
       groups.push({ type: 'item', count: items.length, items: items });
     }
 
+    if (wanted.indexOf('giveaway') !== -1) {
+      // W-71：只搜還拿得到的（AVAILABLE）；已贈出／已下架對搜尋的人是「按進去才發現沒有了」的假結果
+      const items = (data.giveaways || [])
+        .filter((g) => g.status === 'AVAILABLE')
+        .filter((g) => [g.title, g.body, g.detail, g.pickupPlace].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((g) => ({
+          id: g.id, type: 'giveaway', title: g.title, snippet: bestSnippet([g.body, g.detail, g.pickupPlace]),
+          badge: g.kind, date: new Date(g.createdAt).toISOString(), score: hitScore(g.title),
+        }))
+        .sort(byScore)
+        .slice(0, limit);
+      groups.push({ type: 'giveaway', count: items.length, items: items });
+    }
+
+    // W-74：菜單只搜「今天以後」—— 搜菜的用途是安排這一週吃什麼，翻上個月的菜色沒有意義
+    if (wanted.indexOf('menu') !== -1) {
+      const d0 = new Date();
+      const p2 = (n) => (n < 10 ? '0' + n : '' + n);
+      const todayKey = d0.getFullYear() + '-' + p2(d0.getMonth() + 1) + '-' + p2(d0.getDate());
+      const items = [];
+      (data.menu || [])
+        .filter((m) => String(m.date || '') >= todayKey)
+        .forEach((m) => {
+          (m.lunch || []).forEach((d) => {
+            if (![d.name, d.description].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1)) return;
+            items.push({
+              id: d.id, type: 'menu', title: d.name, snippet: bestSnippet([d.description]),
+              badge: 'LUNCH', date: new Date(m.date).toISOString(), score: hitScore(d.name),
+            });
+          });
+          (m.snack || []).forEach((d) => {
+            if (![d.name, d.description].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1)) return;
+            items.push({
+              id: d.id, type: 'menu', title: d.name, snippet: bestSnippet([d.description]),
+              badge: 'SNACK', date: new Date(m.date).toISOString(), score: hitScore(d.name),
+            });
+          });
+        });
+      const sorted = items
+        .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)))
+        .slice(0, limit);
+      groups.push({ type: 'menu', count: sorted.length, items: sorted });
+    }
+
+    // W-91：功課只搜自己班（與後端同一條規則）。示範層的班級是「年級＋班」組出來的，
+    // 家長與訪客沒有 homework:read，這一組不會出現。
+    if (wanted.indexOf('homework') !== -1) {
+      const me = data.user || {};
+      const canReadHomework = ['STUDENT', 'TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+      const myClass = [me.grade, me.className].filter(Boolean).join('');
+      const items = !canReadHomework || !myClass
+        ? []
+        : (data.homework || [])
+            .filter((h) => !h.deletedAt && h.className === myClass)
+            .filter((h) => [h.subject, h.title, h.detail].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+            .map((h) => ({
+              id: h.id, type: 'homework', title: h.title, snippet: bestSnippet([h.detail]),
+              badge: h.subject, date: new Date(h.dueAt).toISOString(), score: hitScore(h.title), className: h.className,
+            }))
+            .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)))
+            .slice(0, limit);
+      groups.push({ type: 'homework', count: items.length, items: items });
+    }
+
+    // W-91：提案與 `proposalList` 同一條可見規則 —— 只排除軟刪除（撤回／下架），
+    // 「暫不採納」照樣留著；票數一律由 supporters 陣列長度算（不讀 supportCount，避免兩份數字）
+    if (wanted.indexOf('proposal') !== -1) {
+      const items = (data.proposals || [])
+        .filter((p) => !p.deletedAt)
+        .filter((p) => [p.title, p.body].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((p) => ({
+          id: p.id, type: 'proposal', title: p.title, snippet: bestSnippet([p.body]),
+          badge: p.category + ':' + p.status, date: new Date(p.createdAt).toISOString(), score: hitScore(p.title),
+          supportCount: (p.supporters || []).length, goal: p.goal || 0,
+        }))
+        .sort(byScore)
+        .slice(0, limit);
+      groups.push({ type: 'proposal', count: items.length, items: items });
+    }
+
+    // W-92：館藏與後端同一條規則 —— 只算 ACTIVE 且未刪；借完了照樣搜得到（徽章 OUT）。
+    // 不搜 summary 以外的內文（後端也只比對書名／作者／索書號），兩邊要一致。
+    if (wanted.indexOf('book') !== -1) {
+      const items = (data.books || [])
+        .filter((b) => b.status === 'ACTIVE' && !b.deletedAt)
+        .filter((b) => [b.title, b.author, b.callNumber].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((b) => ({
+          id: b.id, type: 'book', title: b.title, snippet: bestSnippet([b.author, b.callNumber, b.summary]),
+          badge: (b.availableCopies || 0) > 0 ? 'AVAILABLE' : 'OUT',
+          date: new Date(b.createdAt || now).toISOString(), score: hitScore(b.title),
+          available: b.availableCopies || 0, total: b.totalCopies || 0,
+        }))
+        .sort((a, b) => b.score - a.score || String(a.title).localeCompare(String(b.title)))
+        .slice(0, limit);
+      groups.push({ type: 'book', count: items.length, items: items });
+    }
+
+    // W-92：場地器材 —— 比對名稱與位置，已下架／已刪的不出現（與後端同一條規則）
+    if (wanted.indexOf('resource') !== -1) {
+      const items = (data.resources || [])
+        .filter((r) => r.status !== 'ARCHIVED' && !r.deletedAt)
+        .filter((r) => [r.name, r.location].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((r) => ({
+          id: r.id, type: 'resource', title: r.name, snippet: bestSnippet([r.description]),
+          badge: r.kind + ':ACTIVE', date: new Date(r.createdAt || now).toISOString(), score: hitScore(r.name),
+          location: r.location || '',
+        }))
+        .sort((a, b) => b.score - a.score || String(a.title).localeCompare(String(b.title)))
+        .slice(0, limit);
+      groups.push({ type: 'resource', count: items.length, items: items });
+    }
+
+    // W-105：我的假單／我的報修 —— 只搜自己送出的（與後端同一條規則：id 只認登入者，不吃參數）。
+    // 家長沒有 leave:create／repair:create，所以這兩組對家長與訪客都不出現。
+    const meSelf = data.user || {};
+    const canMine = ['STUDENT', 'TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(meSelf.role) !== -1;
+
+    if (wanted.indexOf('leave') !== -1 && canMine) {
+      const items = (data.leaves || [])
+        .filter((row) => row.studentId === meSelf.id)
+        .filter((row) => [row.reason, row.rejectReason].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((row) => {
+          const head = String(row.from || '').replace(/-/g, '/');
+          const tail = String(row.to || '').replace(/-/g, '/');
+          const title = (LEAVE_KIND_LABEL[row.kind] || row.kind) + ' ' + (head === tail ? head : head + '–' + tail);
+          return {
+            id: row.id, type: 'leave', title: title, snippet: bestSnippet([row.reason, row.rejectReason]),
+            badge: row.kind + ':' + row.status, date: new Date(row.from).toISOString(), score: hitScore(title),
+          };
+        })
+        .sort(byScore)
+        .slice(0, limit);
+      groups.push({ type: 'leave', count: items.length, items: items });
+    }
+
+    if (wanted.indexOf('repair') !== -1 && canMine) {
+      const items = (data.repairs || [])
+        .filter((row) => row.reporterId === meSelf.id)
+        .filter((row) => [row.location, row.equipment, row.description, row.note].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((row) => {
+          const title = (String(row.location || '') + ' ' + String(row.equipment || '')).trim();
+          return {
+            id: row.id, type: 'repair', title: title, snippet: bestSnippet([row.description, row.note]),
+            badge: row.status, date: new Date(row.createdAt).toISOString(), score: hitScore(title),
+            location: row.location || '',
+          };
+        })
+        .sort((a, b) => b.score - a.score || String(b.date).localeCompare(String(a.date)))
+        .slice(0, limit);
+      groups.push({ type: 'repair', count: items.length, items: items });
+    }
+
+    // W-111：我的借閱／我的場地借用 —— 與後端同一條規則：
+    // 只認登入者（不吃參數）、借閱只回未歸還、借用只回待審批與已批准，家長與訪客兩組都不出現。
+    if (wanted.indexOf('loan') !== -1 && canMine) {
+      const books = data.books || [];
+      const items = (data.loans || [])
+        .filter((row) => row.userId === meSelf.id && !row.returnedAt)
+        .map((row) => ({ row: row, book: books.filter((b) => b.id === row.bookId)[0] }))
+        .filter((x) => x.book)
+        .filter((x) => [x.book.title, x.book.author, x.book.callNumber].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((x) => ({
+          id: x.book.id, type: 'loan', title: x.book.title, snippet: bestSnippet([x.book.author, x.book.callNumber]),
+          badge: new Date(x.row.dueAt).getTime() < now ? 'OVERDUE' : 'ACTIVE',
+          date: new Date(x.row.dueAt).toISOString(), score: hitScore(x.book.title),
+        }))
+        // 到期日由近到遠：與後端同一個排序（搜自己借的書，最想知道哪本最快到期）
+        .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)))
+        .slice(0, limit);
+      groups.push({ type: 'loan', count: items.length, items: items });
+    }
+
+    if (wanted.indexOf('booking') !== -1 && canMine) {
+      const resources = data.resources || [];
+      const items = (data.resourceBookings || [])
+        .filter((row) => row.userId === meSelf.id)
+        .filter((row) => row.status === 'PENDING' || row.status === 'APPROVED')
+        .map((row) => ({ row: row, res: resources.filter((r) => r.id === row.resourceId)[0] }))
+        .filter((x) => x.res)
+        .filter((x) => [x.res.name, x.res.location, x.row.purpose].some((v) => String(v || '').toLowerCase().indexOf(low) !== -1))
+        .map((x) => ({
+          id: x.res.id, type: 'booking', title: x.res.name, snippet: bestSnippet([x.row.purpose]),
+          badge: x.row.status, date: new Date(x.row.startAt).toISOString(), score: hitScore(x.res.name),
+          location: x.res.location || '',
+        }))
+        .sort((a, b) => b.score - a.score || String(b.date).localeCompare(String(a.date)))
+        .slice(0, limit);
+      groups.push({ type: 'booking', count: items.length, items: items });
+    }
+
     const kept = groups.filter((g) => g.count > 0);
     return Promise.resolve({ q: q, total: kept.reduce((s, g) => s + g.count, 0), groups: kept });
   },
 
-  /** 外部校曆：示範模式沒有外部連結，回空集合（畫面只顯示站內公告與活動） */
+  /** 外部校曆（示範模式）：給兩場測驗，讓「測驗倒數」在離線演示時也有資料 */
   externalCalendar() {
-    return Promise.resolve({ configured: false, source: 'ics', updatedAt: null, items: [] });
+    // 示範層也要有測驗場次，否則「測驗倒數」在斷網演示時只會是空狀態
+    // （真 API 模式下這份資料來自學校發布的 ICS；沒設定就是空的，頁面會說明）
+    return Promise.resolve({
+      configured: true,
+      source: 'ics',
+      updatedAt: new Date().toISOString(),
+      items: [
+        { id: 'ics-exam-1', title: '化學測驗（第二次）', date: demoDay(4), startTime: '09:00', location: '高二丙課室' },
+        { id: 'ics-exam-2', title: '數學統測', date: demoDay(11), startTime: '09:00', location: '禮堂' },
+      ],
+    });
   },
 
   createReport(targetType, targetId, reason) {
@@ -923,21 +2122,36 @@ module.exports = {
   },
 
   // ── W-34 示範站內通知 ──
-  notifications(unreadOnly) {
-    const all = [
-      // W-57：貼上失物／拾獲時的主動配對通知（真 API 模式由後端產生；示範模式沒有其他真實使用者，留一則讓你看到長相）
-      { id: 'n4', kind: 'ITEM', title: '有人撿到像你的「黑色雨傘」', body: '疑似與你張貼的「黑色雨傘」相符（同分類、地點相近），地點：圖書館一樓', link: '/pages/items/detail/index?id=i2', readAt: null, createdAt: '2026-10-25T02:10:00.000Z' },
-      { id: 'n1', kind: 'EVENT', title: '活動改期：班際籃球賽', body: '原定 11/10 09:00 → 11/17 09:00', link: '/pages/events/detail/index?id=e7', readAt: null, createdAt: '2026-10-24T09:12:00.000Z' },
-      { id: 'n2', kind: 'CLAIM', title: '認領已通過', body: '你申請的「黑色雨傘」已審批通過，請到失物招領領取。', link: '/pages/items/detail/index?id=i1', readAt: null, createdAt: '2026-10-23T15:40:00.000Z' },
-      { id: 'n3', kind: 'NOTICE', title: '新公告：期中考試安排', body: '教務處已發布期中考試時間表。', link: '/pages/notices/detail/index?id=nt1', readAt: '2026-10-22T08:00:00.000Z', createdAt: '2026-10-22T07:30:00.000Z' },
-    ];
-    return Promise.resolve({ items: unreadOnly ? all.filter((x) => !x.readAt) : all, unread: all.filter((x) => !x.readAt).length });
+  notifications(opts) {
+    return Promise.resolve(demoNotifications(opts));
   },
-  notificationsUnread() {
-    return this.notifications(true).then((r) => ({ unread: r.unread }));
+  notificationsUnread(group) {
+    // 模組層函式而不是 this.notifications：data.js 是 mock[name].apply(null, …) 呼叫，
+    // this 會是 null（曾因此讓示範模式的未讀數永遠是 0，而且沒有任何錯誤訊息）
+    const res = demoNotifications({ group });
+    const key = group && group !== 'ALL' ? group : 'ALL';
+    const row = (res.groups || []).filter((g) => g.key === key)[0];
+    return Promise.resolve({ unread: row ? row.unread : res.unread });
   },
-  readNotifications() {
-    return Promise.resolve({ ok: true, unread: 0 });
+  readNotifications(id) {
+    const data = db();
+    data.notificationReads = data.notificationReads || [];
+    const ids = id ? [id] : demoNotifications({}).items.map((x) => x.id);
+    ids.forEach((key) => {
+      if (data.notificationReads.indexOf(key) === -1) data.notificationReads.push(key);
+    });
+    save(data);
+    return Promise.resolve({ ok: true, unread: demoNotifications({}).unread });
+  },
+  readAllNotifications(group) {
+    const data = db();
+    data.notificationReads = data.notificationReads || [];
+    const rows = demoNotifications({ group }).items;
+    rows.forEach((x) => {
+      if (data.notificationReads.indexOf(x.id) === -1) data.notificationReads.push(x.id);
+    });
+    save(data);
+    return Promise.resolve({ ok: true, cleared: rows.filter((x) => !x.readAt).length, unread: demoNotifications({}).unread, group: group || 'ALL' });
   },
 
   // ── W-31 示範回饋 ──
@@ -984,33 +2198,2082 @@ module.exports = {
   // 注意：不能用 this.xxx 存狀態 —— data.js 是把方法拆出來呼叫的，this 會是 null
   // （2026-10-25 走查抓到：Cannot read properties of null (reading '__schoolLinked')）
   schoolStatus() {
-    return Promise.resolve({ linked: schoolLinked, studentNo: schoolLinked ? '3201301037' : null, className: '高二丙', lastSyncAt: schoolLinked ? new Date().toISOString() : null, lastError: null, cryptoReady: true });
+    return Promise.resolve({ linked: schoolLinked, childrenCount: 0, studentNo: schoolLinked ? '3201301037' : null, className: '高二丙', lastSyncAt: schoolLinked ? new Date().toISOString() : null, lastError: null, cryptoReady: true });
   },
   schoolLink(account) {
     schoolLinked = true;
-    return Promise.resolve({ linked: true, studentNo: account });
+    // 學號只留數字（與後端 accountToStudentNo 一致），示範模式才不會顯示成 pv3201301037
+    return Promise.resolve({ linked: true, studentNo: String(account || '').replace(/^pv|^s/i, '') });
   },
   schoolUnlink() { schoolLinked = false; return Promise.resolve({ linked: false }); },
   schoolSync() { return Promise.resolve({ ok: true, grades: 6, attendance: 35 }); },
-  schoolGrades() {
-    return Promise.resolve({
-      years: ['2026/2027', '2025/2026'],
-      items: [
-        { id: 'g1', yearTerm: '2026/2027', term: '第一段', courseName: '化學', content: '原子結構及元素周期表', testType: '大測一', testDate: '2026-10-09', score: 100.5 },
-        { id: 'g2', yearTerm: '2026/2027', term: '第一段', courseName: '數學', content: '函數與圖像', testType: '大測一', testDate: '2026-10-10', score: 86 },
-        { id: 'g3', yearTerm: '2026/2027', term: '第一段', courseName: '中文', content: '閱讀理解', testType: '小測', testDate: '2026-10-12', score: 78 },
-      ],
-    });
+  schoolGrades(query) {
+    const g = demoSchoolGrades();
+    return Promise.resolve({ years: g.years, items: filterByYear(g.items, query) });
   },
-  schoolAttendance() {
-    const items = [
-      { id: 'a1', date: '2026-10-23', amIn: '08:16:06', pmOut: '16:32:32', isAmLate: false, isPmLate: false, amStatus: 'normal', pmStatus: 'normal', remark: null },
-      { id: 'a2', date: '2026-10-22', amIn: '08:32:10', pmOut: '16:30:02', isAmLate: true, isPmLate: false, amStatus: 'late', pmStatus: 'normal', remark: '交通延誤' },
-      { id: 'a3', date: '2026-10-21', amIn: '', pmOut: '', isAmLate: false, isPmLate: false, amStatus: 'leave', pmStatus: 'leave', remark: '病假' },
-    ];
-    return Promise.resolve({ items, summary: { total: items.length, late: 1, absent: 1 } });
+  schoolAttendance(query) {
+    const a = demoSchoolAttendance();
+    const items = filterByYear(a.items, query);
+    return Promise.resolve({
+      items,
+      summary: {
+        total: items.length,
+        late: items.filter((r) => r.isAmLate || r.isPmLate).length,
+        absent: items.filter((r) => r.amStatus !== 'normal' || r.pmStatus !== 'normal').length,
+      },
+    });
   },
 
   schoolManualGrade(body) { return Promise.resolve({ ...body, id: 'gm', source: 'MANUAL' }); },
   schoolManualAttendance(body) { return Promise.resolve({ ...body, id: 'am', source: 'MANUAL' }); },
+
+  // ── W-66 圖書館（示範模式）──
+  // 與後端同一套規則：可借量扣減、借不到排候補、還書叫最早候補、續借上限 1 次。
+  // 狀態一律寫回 storage（data.books / data.loans / data.reservations），重新整理還在。
+  listBooks(query) {
+    const q = query || {};
+    const data = db();
+    const iso = (t) => (t ? new Date(t).toISOString() : null);
+    const loansOf = (id) => data.loans.filter((l) => l.bookId === id).length;
+    const holdsOf = (id) =>
+      data.reservations.filter((r) => r.bookId === id && (r.status === 'WAITING' || r.status === 'READY')).length;
+
+    let books = data.books.filter((b) => b.status !== 'ARCHIVED');
+    if (q.category) books = books.filter((b) => b.category === q.category);
+    if (q.available === '1') books = books.filter((b) => b.availableCopies > 0);
+    if (q.q) {
+      const kw = String(q.q);
+      books = books.filter((b) => (b.title + (b.author || '') + (b.isbn || '') + (b.callNumber || '')).indexOf(kw) !== -1);
+    }
+
+    let out = books.map((b) =>
+      Object.assign({}, b, {
+        createdAt: iso(b.createdAt || Date.now()),
+        updatedAt: iso(b.updatedAt || b.createdAt || Date.now()),
+        waiting: holdsOf(b.id),
+        borrowable: b.availableCopies > 0,
+      }),
+    );
+    if (q.sort === 'title') out.sort((a, b) => String(a.title).localeCompare(String(b.title)));
+    else if (q.sort === 'hot') out.sort((a, b) => loansOf(b.id) - loansOf(a.id) || String(a.title).localeCompare(String(b.title)));
+    else out.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+
+    const page = Number(q.page) || 1;
+    const limit = Number(q.limit) || Number(q.pageSize) || 20;
+    const start = (page - 1) * limit;
+    const slice = out.slice(start, start + limit);
+    return Promise.resolve({ items: slice, total: out.length, page: page, limit: limit, hasMore: start + slice.length < out.length });
+  },
+
+  getBook(id) {
+    const data = db();
+    const b = data.books.filter((x) => x.id === id && x.status !== 'ARCHIVED')[0];
+    if (!b) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這本書' });
+    const iso = (t) => (t ? new Date(t).toISOString() : null);
+    const mine = data.loans.filter((l) => l.bookId === id && l.userId === 'demo-user' && !l.returnedAt)[0] || null;
+    const rv = data.reservations.filter((r) => r.bookId === id && r.userId === 'demo-user' && (r.status === 'WAITING' || r.status === 'READY'))[0] || null;
+    const waiting = data.reservations.filter((r) => r.bookId === id && r.status === 'WAITING').length;
+    const ready = data.reservations.filter((r) => r.bookId === id && r.status === 'READY').length;
+    const now = Date.now();
+    return Promise.resolve({
+      book: Object.assign({}, b, {
+        createdAt: iso(b.createdAt || now),
+        updatedAt: iso(b.updatedAt || now),
+        waiting: waiting,
+        loans90d: data.loans.filter((l) => l.bookId === id).length,
+        borrowable: b.availableCopies > ready,
+      }),
+      myLoan: mine
+        ? {
+            id: mine.id,
+            bookId: mine.bookId,
+            borrowedAt: iso(mine.borrowedAt),
+            dueAt: iso(mine.dueAt),
+            returnedAt: null,
+            renewals: mine.renewals || 0,
+            overdueDays: Math.max(0, Math.floor((now - new Date(mine.dueAt).getTime()) / 86400000)),
+          }
+        : null,
+      myReservation: rv
+        ? { id: rv.id, status: rv.status, position: rv.position, readyAt: iso(rv.readyAt), holdHours: 48 }
+        : null,
+      totalLoans: data.loans.filter((l) => l.bookId === id).length,
+    });
+  },
+
+  lookupIsbn(raw) {
+    const isbn = String(raw || '').replace(/[^0-9Xx]/g, '').toUpperCase();
+    if (isbn.length < 10) return Promise.reject({ code: 'VALIDATION_FAILED', message: '書號格式不正確' });
+    const b = db().books.filter((x) => x.isbn === isbn && x.status !== 'ARCHIVED')[0];
+    if (!b) return Promise.resolve({ found: false, isbn: isbn, book: null });
+    return Promise.resolve({ found: true, isbn: isbn, book: Object.assign({}, b, { borrowable: b.availableCopies > 0 }) });
+  },
+
+  hotBooks() {
+    const data = db();
+    const counts = {};
+    data.loans.forEach((l) => {
+      counts[l.bookId] = (counts[l.bookId] || 0) + 1;
+    });
+    const items = Object.keys(counts)
+      .map((id) => {
+        const b = data.books.filter((x) => x.id === id && x.status !== 'ARCHIVED')[0];
+        return b ? { id: b.id, title: b.title, author: b.author, category: b.category, isbn: b.isbn, loans: counts[id] } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.loans - a.loans)
+      .slice(0, 5);
+    return Promise.resolve({ items: items });
+  },
+
+  borrowBook(payload) {
+    const p = payload || {};
+    const data = db();
+    const iso = (t) => (t ? new Date(t).toISOString() : null);
+    const book = p.bookId
+      ? data.books.filter((b) => b.id === p.bookId)[0]
+      : data.books.filter((b) => b.isbn === String(p.isbn || '').replace(/[^0-9Xx]/g, '').toUpperCase())[0];
+    if (!book || book.status === 'ARCHIVED') return Promise.reject({ code: 'NOT_FOUND', message: '找不到這本書' });
+
+    if (data.loans.filter((l) => l.bookId === book.id && l.userId === 'demo-user' && !l.returnedAt).length) {
+      return Promise.reject({ code: 'ALREADY_BORROWED', message: '你已經借了這本書，還沒歸還' });
+    }
+
+    const ready = data.reservations.filter((r) => r.bookId === book.id && r.status === 'READY');
+    const mineR = data.reservations.filter((r) => r.bookId === book.id && r.userId === 'demo-user')[0] || null;
+    const holdsReady = mineR && mineR.status === 'READY';
+    const availableForMe = holdsReady || book.availableCopies > ready.length;
+
+    if (!availableForMe) {
+      if (mineR && mineR.status === 'WAITING') {
+        return Promise.reject({ code: 'ALREADY_RESERVED', message: '你已经在候補名單（第 ' + mineR.position + ' 位）', details: { position: mineR.position } });
+      }
+      const pos = data.reservations.filter((r) => r.bookId === book.id && r.status === 'WAITING').length + 1;
+      let saved;
+      if (mineR) {
+        mineR.status = 'WAITING';
+        mineR.position = pos;
+        mineR.readyAt = null;
+        saved = mineR;
+      } else {
+        saved = { id: 'rv' + (data.reservations.length + 1), bookId: book.id, userId: 'demo-user', status: 'WAITING', position: pos, createdAt: Date.now(), readyAt: null };
+        data.reservations.push(saved);
+      }
+      save(data);
+      return Promise.resolve({
+        ok: true,
+        kind: 'reservation',
+        message: '目前沒有可借的，已幫你排候補第 ' + pos + ' 位',
+        reservation: { id: saved.id, bookId: book.id, status: 'WAITING', position: pos, readyAt: null },
+        availableCopies: book.availableCopies,
+        waiting: data.reservations.filter((r) => r.bookId === book.id && r.status === 'WAITING').length,
+      });
+    }
+
+    const now = Date.now();
+    book.availableCopies -= 1;
+    const loan = { id: 'l' + (data.loans.length + 1), bookId: book.id, userId: 'demo-user', borrowedAt: now, dueAt: now + (book.loanDays || 14) * 86400000, returnedAt: null, renewals: 0 };
+    data.loans.push(loan);
+    if (mineR && mineR.status === 'READY') {
+      mineR.status = 'FULFILLED';
+      mineR.position = 0;
+    }
+    save(data);
+    return Promise.resolve({
+      ok: true,
+      kind: 'loan',
+      message: '借書成功',
+      loan: { id: loan.id, bookId: book.id, borrowedAt: iso(loan.borrowedAt), dueAt: iso(loan.dueAt), renewals: 0 },
+      availableCopies: book.availableCopies,
+      waiting: data.reservations.filter((r) => r.bookId === book.id && r.status === 'WAITING').length,
+    });
+  },
+
+  myLoans() {
+    const data = db();
+    const iso = (t) => (t ? new Date(t).toISOString() : null);
+    const now = Date.now();
+    const bookOf = (id) => data.books.filter((b) => b.id === id)[0] || null;
+    const shape = (l) => {
+      const b = bookOf(l.bookId);
+      const overdueDays = l.returnedAt ? 0 : Math.max(0, Math.floor((now - new Date(l.dueAt).getTime()) / 86400000));
+      return {
+        id: l.id,
+        bookId: l.bookId,
+        book: b ? { id: b.id, title: b.title, author: b.author, isbn: b.isbn } : null,
+        borrowedAt: iso(l.borrowedAt),
+        dueAt: iso(l.dueAt),
+        returnedAt: iso(l.returnedAt),
+        renewals: l.renewals || 0,
+        overdueDays: overdueDays,
+        dueSoon: !l.returnedAt && overdueDays === 0 && new Date(l.dueAt).getTime() - now <= 3 * 86400000,
+      };
+    };
+    const loans = data.loans.filter((l) => l.userId === 'demo-user').map(shape);
+    const active = loans.filter((l) => !l.returnedAt);
+    const reservations = data.reservations
+      .filter((r) => r.userId === 'demo-user' && (r.status === 'WAITING' || r.status === 'READY'))
+      .map((r) => {
+        const b = bookOf(r.bookId);
+        return {
+          id: r.id,
+          bookId: r.bookId,
+          book: b ? { id: b.id, title: b.title, author: b.author, isbn: b.isbn } : null,
+          status: r.status,
+          position: r.position,
+          readyAt: iso(r.readyAt),
+          holdHours: 48,
+        };
+      });
+    return Promise.resolve({
+      activeCount: active.length,
+      overdueCount: active.filter((l) => l.overdueDays > 0).length,
+      loans: loans,
+      reservations: reservations,
+    });
+  },
+
+  returnLoan(id) {
+    const data = db();
+    const loan = data.loans.filter((l) => l.id === id)[0];
+    if (!loan) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆借閱紀錄' });
+    if (loan.returnedAt) return Promise.reject({ code: 'ALREADY_RETURNED', message: '這本書已經歸還了' });
+    const now = Date.now();
+    loan.returnedAt = now;
+    const book = data.books.filter((b) => b.id === loan.bookId)[0];
+    if (book) book.availableCopies += 1;
+
+    // 還書 → 最早候補被叫到（與後端同一條規則）
+    const next = data.reservations
+      .filter((r) => r.bookId === loan.bookId && r.status === 'WAITING')
+      .sort((a, b) => a.position - b.position)[0];
+    if (next) {
+      next.status = 'READY';
+      next.position = 0;
+      next.readyAt = now;
+    }
+    data.reservations
+      .filter((r) => r.bookId === loan.bookId && r.status === 'WAITING')
+      .sort((a, b) => a.position - b.position)
+      .forEach((r, i) => {
+        r.position = i + 1;
+      });
+    save(data);
+    return Promise.resolve({
+      ok: true,
+      returned: true,
+      bookId: loan.bookId,
+      overdueDays: Math.max(0, Math.floor((now - new Date(loan.dueAt).getTime()) / 86400000)),
+      promotedUserId: next ? next.userId : null,
+      availableCopies: book ? book.availableCopies : 0,
+      waiting: data.reservations.filter((r) => r.bookId === loan.bookId && r.status === 'WAITING').length,
+    });
+  },
+
+  renewLoan(id) {
+    const data = db();
+    const loan = data.loans.filter((l) => l.id === id)[0];
+    if (!loan) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆借閱紀錄' });
+    if (loan.returnedAt) return Promise.reject({ code: 'VALIDATION_FAILED', message: '這本書已經歸還，不需要續借' });
+    if ((loan.renewals || 0) >= 1) return Promise.reject({ code: 'RENEW_LIMIT', message: '每本書只能續借一次' });
+    if (Date.now() > new Date(loan.dueAt).getTime()) return Promise.reject({ code: 'LOAN_OVERDUE', message: '已經逾期，請先還書' });
+    if (data.reservations.filter((r) => r.bookId === loan.bookId && (r.status === 'WAITING' || r.status === 'READY')).length) {
+      return Promise.reject({ code: 'LOAN_QUEUED', message: '有人在等這本書，請讓給下一位' });
+    }
+    const book = data.books.filter((b) => b.id === loan.bookId)[0];
+    loan.dueAt = new Date(loan.dueAt).getTime() + ((book && book.loanDays) || 14) * 86400000;
+    loan.renewals = 1;
+    save(data);
+    return Promise.resolve({ ok: true, dueAt: new Date(loan.dueAt).toISOString(), renewals: 1, loanDays: (book && book.loanDays) || 14 });
+  },
+
+  cancelReservation(id) {
+    const data = db();
+    const rv = data.reservations.filter((r) => r.id === id)[0];
+    if (!rv) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆預約' });
+    if (rv.status !== 'WAITING' && rv.status !== 'READY') return Promise.reject({ code: 'VALIDATION_FAILED', message: '這筆預約已經結束了' });
+    const wasReady = rv.status === 'READY';
+    rv.status = 'CANCELLED';
+    rv.position = 0;
+    let promoted = null;
+    if (wasReady) {
+      promoted = data.reservations
+        .filter((r) => r.bookId === rv.bookId && r.status === 'WAITING')
+        .sort((a, b) => a.position - b.position)[0];
+      if (promoted) {
+        promoted.status = 'READY';
+        promoted.position = 0;
+        promoted.readyAt = Date.now();
+      }
+    }
+    data.reservations
+      .filter((r) => r.bookId === rv.bookId && r.status === 'WAITING')
+      .sort((a, b) => a.position - b.position)
+      .forEach((r, i) => {
+        r.position = i + 1;
+      });
+    save(data);
+    return Promise.resolve({ ok: true, cancelled: true, bookId: rv.bookId, promotedUserId: promoted ? promoted.userId : null });
+  },
+
+  // ── W-67 場地／器材借用 ──
+  // 狀態一律寫回 storage，重新整理還在；方法內不用 this（data.js 是拆出來呼叫的）。
+  listResources(query) {
+    const q = query || {};
+    const data = db();
+    let list = data.resources.filter((r) => r.status !== 'ARCHIVED');
+    if (q.kind) list = list.filter((r) => r.kind === q.kind);
+    if (q.q) {
+      const kw = String(q.q).toLowerCase();
+      list = list.filter((r) => (r.name + (r.location || '') + (r.description || '')).toLowerCase().indexOf(kw) !== -1);
+    }
+    const now = Date.now();
+    const items = list.map((r) =>
+      venue.shapeResource(
+        Object.assign({}, r, {
+          upcoming: data.resourceBookings.filter(
+            (b) => b.resourceId === r.id && (b.status === 'PENDING' || b.status === 'APPROVED') && new Date(b.endAt).getTime() >= now,
+          ).length,
+        }),
+        now,
+      ),
+    );
+    return Promise.resolve({ items: items, total: items.length, page: 1 });
+  },
+
+  getResource(id) {
+    const data = db();
+    const r = data.resources.filter((x) => x.id === id && x.status !== 'ARCHIVED')[0];
+    if (!r) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個場地或器材' });
+    const now = Date.now();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    const mineId = (data.user && data.user.id) || 'demo-user';
+    const live = data.resourceBookings.filter(
+      (b) => b.resourceId === id && (b.status === 'PENDING' || b.status === 'APPROVED') && new Date(b.endAt).getTime() >= now,
+    );
+    const withUser = live.map((b) =>
+      Object.assign({}, b, { user: { id: b.userId, nickname: b.userId === mineId ? (data.user.nickname || '我') : '其他同學' } }),
+    );
+    return Promise.resolve({
+      resource: venue.shapeResource(r, now),
+      bookings: withUser.sort((a, b) => new Date(a.startAt) - new Date(b.startAt)).map((b) => venue.shapeBooking(b, now)),
+      mine: withUser.filter((b) => b.userId === mineId).map((b) => venue.shapeBooking(b, now)),
+      canBook: role !== 'GUEST',
+      canApprove: ['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1,
+      canManage: ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) !== -1,
+    });
+  },
+
+  createResourceBooking(id, payload) {
+    const body = payload || {};
+    const data = db();
+    const r = data.resources.filter((x) => x.id === id && x.status !== 'ARCHIVED')[0];
+    if (!r) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個場地或器材' });
+
+    const startMs = new Date(body.startAt).getTime();
+    const endMs = new Date(body.endAt).getTime();
+    if (!isFinite(startMs) || !isFinite(endMs) || endMs <= startMs) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '結束時間要晚於開始時間' });
+    }
+    const minutes = (endMs - startMs) / 60000;
+    if (minutes < 30) return Promise.reject({ code: 'VALIDATION_FAILED', message: '一次最少借 30 分鐘' });
+    if (minutes > (r.maxHours || 4) * 60) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '這個場地一次最多借 ' + (r.maxHours || 4) + ' 小時' });
+    }
+    if (startMs < Date.now() - 5 * 60000) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '不能預約已經過去的時段' });
+    }
+    const s = venue.macauClock(startMs);
+    const e = venue.macauClock(endMs);
+    if (s.ymd !== e.ymd) return Promise.reject({ code: 'VALIDATION_FAILED', message: '借用不可以跨日，請分兩筆申請' });
+    const toMin = (t) => {
+      const p = String(t).split(':').map(Number);
+      return p[0] * 60 + p[1];
+    };
+    if (s.minutes < toMin(r.openFrom) || e.minutes > toMin(r.openTo)) {
+      return Promise.reject({
+        code: 'VALIDATION_FAILED',
+        message: '這個場地只在 ' + r.openFrom + '–' + r.openTo + ' 開放',
+      });
+    }
+    const conflict = data.resourceBookings.filter(
+      (b) =>
+        b.resourceId === id &&
+        (b.status === 'PENDING' || b.status === 'APPROVED') &&
+        venue.overlaps(b.startAt, b.endAt, body.startAt, body.endAt),
+    )[0];
+    if (conflict) {
+      const c = venue.macauClock(conflict.startAt);
+      return Promise.reject({
+        code: 'CONFLICT',
+        message: '這個時段已被預約（' + venue.hhmm(c.minutes) + ' 起）',
+      });
+    }
+
+    const needsApproval = r.needsApproval !== false;
+    const booking = {
+      id: nextId('rb'),
+      resourceId: id,
+      userId: (data.user && data.user.id) || 'demo-user',
+      startAt: new Date(startMs).toISOString(),
+      endAt: new Date(endMs).toISOString(),
+      purpose: String(body.purpose || '').slice(0, 200),
+      status: needsApproval ? 'PENDING' : 'APPROVED',
+      createdAt: Date.now(),
+      rejectReason: null,
+    };
+    data.resourceBookings.unshift(booking);
+    save(data);
+    return Promise.resolve({
+      booking: venue.shapeBooking(Object.assign({}, booking, { resource: { id: r.id, name: r.name, kind: r.kind } }), Date.now()),
+      pending: needsApproval,
+    });
+  },
+
+  cancelResourceBooking(id) {
+    const data = db();
+    const mineId = (data.user && data.user.id) || 'demo-user';
+    const booking = data.resourceBookings.filter((b) => b.id === id)[0];
+    if (!booking || booking.userId !== mineId) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆申請' });
+    if (booking.status !== 'PENDING' && booking.status !== 'APPROVED') {
+      return Promise.reject({ code: 'CONFLICT', message: '這筆申請已經結束，不能取消' });
+    }
+    booking.status = 'CANCELLED';
+    save(data);
+    return Promise.resolve({ ok: true, status: 'CANCELLED' });
+  },
+
+  myResourceBookings() {
+    const data = db();
+    const mineId = (data.user && data.user.id) || 'demo-user';
+    const now = Date.now();
+    const rows = data.resourceBookings
+      .filter((b) => b.userId === mineId)
+      .sort((a, b) => new Date(b.startAt) - new Date(a.startAt));
+    const items = rows.map((b) => {
+      const r = data.resources.filter((x) => x.id === b.resourceId)[0];
+      return venue.shapeBooking(
+        Object.assign({}, b, { resource: r ? { id: r.id, name: r.name, kind: r.kind, location: r.location } : null }),
+        now,
+      );
+    });
+    return Promise.resolve({
+      items: items,
+      pending: rows.filter((b) => b.status === 'PENDING' && new Date(b.endAt).getTime() >= now).length,
+      upcoming: rows.filter((b) => b.status === 'APPROVED' && new Date(b.endAt).getTime() >= now).length,
+    });
+  },
+
+  pendingResourceBookings() {
+    const data = db();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    if (['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const now = Date.now();
+    const shape = (b) => {
+      const r = data.resources.filter((x) => x.id === b.resourceId)[0];
+      const nickname = b.userId === ((data.user && data.user.id) || 'demo-user') ? (data.user.nickname || '我') : '其他同學';
+      return venue.shapeBooking(
+        Object.assign({}, b, {
+          resource: r ? { id: r.id, name: r.name, kind: r.kind, location: r.location } : null,
+          user: { id: b.userId, nickname: nickname },
+        }),
+        now,
+      );
+    };
+    return Promise.resolve({
+      pending: data.resourceBookings
+        .filter((b) => b.status === 'PENDING')
+        .sort((a, b) => new Date(a.startAt) - new Date(b.startAt))
+        .map(shape),
+      handled: data.resourceBookings
+        .filter((b) => b.status !== 'PENDING')
+        .sort((a, b) => new Date(b.startAt) - new Date(a.startAt))
+        .slice(0, 20)
+        .map(shape),
+    });
+  },
+
+  reviewResourceBooking(id, body) {
+    const data = db();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    if (['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const booking = data.resourceBookings.filter((b) => b.id === id)[0];
+    if (!booking) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆申請' });
+    if (booking.status !== 'PENDING') return Promise.reject({ code: 'CONFLICT', message: '這筆申請已經處理過了' });
+    const action = (body && body.action) || 'APPROVE';
+    if (action === 'APPROVE') {
+      const clash = data.resourceBookings.filter(
+        (b) =>
+          b.id !== booking.id &&
+          b.resourceId === booking.resourceId &&
+          (b.status === 'PENDING' || b.status === 'APPROVED') &&
+          venue.overlaps(b.startAt, b.endAt, booking.startAt, booking.endAt),
+      )[0];
+      if (clash) return Promise.reject({ code: 'CONFLICT', message: '這個時段還有另一筆申請，請先處理那一筆' });
+    }
+    booking.status = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+    booking.rejectReason = action === 'REJECT' ? String((body && body.reason) || '').slice(0, 200) : null;
+    booking.reviewedAt = Date.now();
+    save(data);
+    return Promise.resolve({
+      booking: { id: booking.id, status: booking.status, userId: booking.userId, rejectReason: booking.rejectReason },
+    });
+  },
+
+  allResources() {
+    const data = db();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    if (['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const now = Date.now();
+    return Promise.resolve({
+      items: data.resources.map((r) =>
+        Object.assign(venue.shapeResource(r, now), {
+          bookings: data.resourceBookings.filter((b) => b.resourceId === r.id).length,
+        }),
+      ),
+    });
+  },
+
+  createResource(body) {
+    const data = db();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    if (['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const input = body || {};
+    if (!input.name) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請輸入名稱' });
+    if ((input.openFrom || '08:00') >= (input.openTo || '18:00')) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '關閉時間要晚於開放時間' });
+    }
+    const resource = {
+      id: nextId('r'),
+      kind: input.kind || 'VENUE',
+      name: String(input.name).slice(0, 80),
+      location: input.location || '',
+      description: input.description || '',
+      openFrom: input.openFrom || '08:00',
+      openTo: input.openTo || '18:00',
+      maxHours: Number(input.maxHours) || 4,
+      needsApproval: input.needsApproval !== false,
+      status: 'ACTIVE',
+      version: 0,
+    };
+    data.resources.push(resource);
+    save(data);
+    return Promise.resolve({ resource: venue.shapeResource(resource, Date.now()) });
+  },
+
+  updateResource(id, body) {
+    const data = db();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    if (['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const resource = data.resources.filter((r) => r.id === id && r.status !== 'ARCHIVED')[0];
+    if (!resource) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個場地或器材' });
+    const input = body || {};
+    if (input.version !== undefined && input.version !== resource.version) {
+      return Promise.reject({ code: 'CONFLICT', message: '這筆資料剛被別人改過，請重新載入後再儲存' });
+    }
+    ['kind', 'name', 'location', 'description', 'openFrom', 'openTo', 'maxHours', 'needsApproval'].forEach((k) => {
+      if (input[k] !== undefined) resource[k] = input[k];
+    });
+    if (resource.openFrom >= resource.openTo) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '關閉時間要晚於開放時間' });
+    }
+    resource.version = (resource.version || 0) + 1;
+    save(data);
+    return Promise.resolve({ resource: venue.shapeResource(resource, Date.now()) });
+  },
+
+  archiveResource(id) {
+    const data = db();
+    const role = (data.user && data.user.role) || 'STUDENT';
+    if (['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const resource = data.resources.filter((r) => r.id === id && r.status !== 'ARCHIVED')[0];
+    if (!resource) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個場地或器材' });
+    const live = data.resourceBookings.filter(
+      (b) => b.resourceId === id && (b.status === 'PENDING' || b.status === 'APPROVED') && new Date(b.endAt).getTime() >= Date.now(),
+    ).length;
+    if (live) return Promise.reject({ code: 'CONFLICT', message: '還有 ' + live + ' 筆未結束的預約，請先處理或取消後再下架' });
+    resource.status = 'ARCHIVED';
+    resource.version = (resource.version || 0) + 1;
+    save(data);
+    return Promise.resolve({ ok: true });
+  },
+
+  // ── W-68 二手書／校服轉贈（示範層也寫得進，交付現場斷網時這個模組不能是死的）──
+  listGiveaways(query) {
+    const data = db();
+    const q = query || {};
+    const kw = String(q.q || '').trim();
+    let list = (data.giveaways || []).filter((g) => g.status === 'AVAILABLE');
+    if (q.kind) list = list.filter((g) => g.kind === q.kind);
+    if (kw) {
+      list = list.filter(
+        (g) =>
+          String(g.title || '').indexOf(kw) !== -1 ||
+          String(g.body || '').indexOf(kw) !== -1 ||
+          String(g.detail || '').indexOf(kw) !== -1 ||
+          String(g.pickupPlace || '').indexOf(kw) !== -1,
+      );
+    }
+    list = list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return Promise.resolve({ items: list.map((g) => shapeGiveaway(data, g)), total: list.length, page: 1 });
+  },
+
+  getGiveaway(id) {
+    const data = db();
+    const item = (data.giveaways || []).filter((g) => g.id === id)[0];
+    if (!item) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這件轉贈物品' });
+    const me = data.user || {};
+    const isOwner = item.ownerId === me.id;
+    const manager = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    const mine = (data.giveawayRequests || []).filter((r) => r.itemId === id && r.userId === me.id)[0] || null;
+    if (item.status !== 'AVAILABLE' && !isOwner && !manager && !mine) {
+      return Promise.reject({ code: 'NOT_FOUND', message: '找不到這件轉贈物品' });
+    }
+    const rows = isOwner || manager
+      ? (data.giveawayRequests || []).filter((r) => r.itemId === id)
+      : [];
+    return Promise.resolve({
+      item: shapeGiveaway(data, item),
+      requests: rows.map((r) => ({
+        id: r.id,
+        userId: r.userId,
+        nickname: r.userId === me.id ? me.nickname : '陳同學',
+        className: r.userId === me.id ? '高二 仁' : '高二 仁',
+        message: r.message || null,
+        status: r.status,
+        createdAt: new Date(r.createdAt).toISOString(),
+        decidedAt: r.decidedAt ? new Date(r.decidedAt).toISOString() : null,
+      })),
+      isOwner: isOwner,
+      canRequest: !isOwner && item.status === 'AVAILABLE' && !mine,
+      canManage: manager,
+    });
+  },
+
+  myGiveaways() {
+    const data = db();
+    const me = data.user || {};
+    const posted = (data.giveaways || [])
+      .filter((g) => g.ownerId === me.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map((g) => shapeGiveaway(data, g, { showContact: true }));
+    const requests = (data.giveawayRequests || [])
+      .filter((r) => r.userId === me.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map((r) => {
+        const item = (data.giveaways || []).filter((g) => g.id === r.itemId)[0] || {};
+        return {
+          id: r.id,
+          status: r.status,
+          message: r.message || null,
+          createdAt: new Date(r.createdAt).toISOString(),
+          decidedAt: r.decidedAt ? new Date(r.decidedAt).toISOString() : null,
+          item: {
+            id: item.id,
+            kind: item.kind,
+            kindLabel: { BOOK: '書籍', UNIFORM: '校服', OTHER: '其他' }[item.kind] || '其他',
+            title: item.title || '',
+            detail: item.detail || null,
+            status: item.status || 'AVAILABLE',
+            ownerNickname: item.ownerNickname || '同學',
+          },
+        };
+      });
+    return Promise.resolve({ posted: posted, requests: requests });
+  },
+
+  createGiveaway(input) {
+    const data = db();
+    const body = input || {};
+    if (!body.title || String(body.title).trim().length < 2) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '標題至少 2 個字' });
+    }
+    if (body.imageUrl && !/^https?:\/\//i.test(String(body.imageUrl))) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '圖片要填 http(s) 開頭的網址' });
+    }
+    const me = data.user || {};
+    const item = {
+      id: nextId('gv'),
+      kind: body.kind || 'OTHER',
+      title: String(body.title).trim(),
+      body: body.body || '',
+      condition: body.condition || 'GOOD',
+      detail: body.detail || '',
+      pickupPlace: body.pickupPlace || '',
+      imageUrl: body.imageUrl || null,
+      contactName: body.contactName || me.nickname || '',
+      contactValue: body.contactValue || '',
+      status: 'AVAILABLE',
+      version: 0,
+      ownerId: me.id,
+      ownerNickname: me.nickname || '我',
+      ownerClass: [me.grade, me.className].filter(Boolean).join(' '),
+      createdAt: Date.now(),
+    };
+    data.giveaways = data.giveaways || [];
+    data.giveaways.unshift(item);
+    save(data);
+    return Promise.resolve({ item: shapeGiveaway(data, item, { showContact: true }) });
+  },
+
+  updateGiveaway(id, input) {
+    const data = db();
+    const item = (data.giveaways || []).filter((g) => g.id === id)[0];
+    if (!item) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這件轉贈物品' });
+    const me = data.user || {};
+    const manager = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (item.ownerId !== me.id && !manager) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只有物主可以修改這件轉贈' });
+    }
+    const patch = input || {};
+    if (patch.version !== undefined && patch.version !== (item.version || 0)) {
+      return Promise.reject({ code: 'CONFLICT', message: '這筆資料剛被別人改過，請重新載入後再儲存' });
+    }
+    ['kind', 'title', 'body', 'condition', 'detail', 'pickupPlace', 'imageUrl', 'contactName', 'contactValue'].forEach((k) => {
+      if (patch[k] !== undefined) item[k] = patch[k];
+    });
+    item.version = (item.version || 0) + 1;
+    save(data);
+    return Promise.resolve({ item: shapeGiveaway(data, item, { showContact: true }) });
+  },
+
+  setGiveawayStatus(id, status) {
+    const data = db();
+    const item = (data.giveaways || []).filter((g) => g.id === id)[0];
+    if (!item) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這件轉贈物品' });
+    const me = data.user || {};
+    const manager = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (item.ownerId !== me.id && !manager) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只有物主可以下架這件轉贈' });
+    }
+    if (item.status === 'GIVEN') {
+      return Promise.reject({ code: 'CONFLICT', message: '已贈出的物品不能再改狀態' });
+    }
+    item.status = status === 'CLOSED' ? 'CLOSED' : 'AVAILABLE';
+    item.closedAt = item.status === 'CLOSED' ? Date.now() : null;
+    item.version = (item.version || 0) + 1;
+    save(data);
+    return Promise.resolve({ ok: true, status: item.status });
+  },
+
+  requestGiveaway(id, message) {
+    const data = db();
+    const item = (data.giveaways || []).filter((g) => g.id === id)[0];
+    if (!item) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這件轉贈物品' });
+    const me = data.user || {};
+    if (item.ownerId === me.id) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '這是你自己送出的物品' });
+    }
+    if (item.status !== 'AVAILABLE') {
+      return Promise.reject({ code: 'CONFLICT', message: '這件物品已經有人領取或已下架' });
+    }
+    data.giveawayRequests = data.giveawayRequests || [];
+    const existing = data.giveawayRequests.filter((r) => r.itemId === id && r.userId === me.id)[0];
+    if (existing) {
+      if (existing.status === 'PENDING') {
+        return Promise.reject({ code: 'CONFLICT', message: '你已經申請過了，等物主回覆' });
+      }
+      if (existing.status === 'ACCEPTED') {
+        return Promise.reject({ code: 'CONFLICT', message: '物主已經把這件物品留給你' });
+      }
+      existing.status = 'PENDING';
+      existing.message = message || null;
+      existing.decidedAt = null;
+      existing.createdAt = Date.now();
+      save(data);
+      return Promise.resolve({ ok: true, requestId: existing.id });
+    }
+    const row = { id: nextId('gr'), itemId: id, userId: me.id, message: message || null, status: 'PENDING', createdAt: Date.now(), decidedAt: null };
+    data.giveawayRequests.push(row);
+    save(data);
+    return Promise.resolve({ ok: true, requestId: row.id });
+  },
+
+  cancelGiveawayRequest(id) {
+    const data = db();
+    const row = (data.giveawayRequests || []).filter((r) => r.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆申請' });
+    const me = data.user || {};
+    if (row.userId !== me.id) return Promise.reject({ code: 'FORBIDDEN', message: '只能取消自己的申請' });
+    if (row.status !== 'PENDING') return Promise.reject({ code: 'CONFLICT', message: '這筆申請已經處理過了' });
+    row.status = 'CANCELLED';
+    row.decidedAt = Date.now();
+    save(data);
+    return Promise.resolve({ ok: true });
+  },
+
+  decideGiveawayRequest(id, action) {
+    const data = db();
+    const row = (data.giveawayRequests || []).filter((r) => r.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這筆申請' });
+    const item = (data.giveaways || []).filter((g) => g.id === row.itemId)[0];
+    if (!item) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這件轉贈物品' });
+    const me = data.user || {};
+    const manager = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (item.ownerId !== me.id && !manager) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只有物主可以決定要給誰' });
+    }
+    if (row.status !== 'PENDING') return Promise.reject({ code: 'CONFLICT', message: '這筆申請已經處理過了' });
+    if (item.status !== 'AVAILABLE') return Promise.reject({ code: 'CONFLICT', message: '這件物品已經不是可申請的狀態' });
+    const now = Date.now();
+    if (action === 'REJECT') {
+      row.status = 'REJECTED';
+      row.decidedAt = now;
+      save(data);
+      return Promise.resolve({ ok: true, action: 'REJECT' });
+    }
+    row.status = 'ACCEPTED';
+    row.decidedAt = now;
+    (data.giveawayRequests || []).forEach((r) => {
+      if (r.itemId === item.id && r.id !== id && r.status === 'PENDING') {
+        r.status = 'REJECTED';
+        r.decidedAt = now;
+      }
+    });
+    item.status = 'GIVEN';
+    item.givenToId = row.userId;
+    item.givenAt = now;
+    item.version = (item.version || 0) + 1;
+    save(data);
+    return Promise.resolve({ ok: true, action: 'ACCEPT' });
+  },
+
+  // ── W-72 請假申請（示範層也寫得進，斷網演示時這個模組不能是死的）──
+  myLeaves() {
+    const data = db();
+    const me = data.user || {};
+    // 家長看到的是「子女的」假單：後端用 parent_links 反查，示範層用同一份 data.parent.children
+    const childIds =
+      me.role === 'PARENT' ? ((data.parent && data.parent.children) || []).map((c) => c.studentId) : [];
+    const rows = (data.leaves || []).filter(
+      (row) =>
+        row.studentId === me.id || row.createdById === me.id || childIds.indexOf(row.studentId) !== -1,
+    );
+    const items = rows
+      .slice()
+      .sort((a, b) => String(b.from).localeCompare(String(a.from)))
+      .map((row) => shapeLeave(row, me));
+    return Promise.resolve({
+      items: items,
+      pending: items.filter((row) => row.status === 'PENDING').length,
+      approved: items.filter((row) => row.status === 'APPROVED').length,
+      studentName: me.nickname || null,
+    });
+  },
+
+  createLeave(input) {
+    const data = db();
+    const me = data.user || {};
+    const body = input || {};
+    const from = body.fromDate || '';
+    const to = body.toDate || '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '日期格式要是 2026-11-12' });
+    }
+    if (from > to) return Promise.reject({ code: 'VALIDATION_FAILED', message: '結束日期不能早於開始日期' });
+    if (!String(body.reason || '').trim()) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '請簡單寫一下原因' });
+    }
+
+    /**
+     * W-99 家長代子女請假：只能替「自己綁定的那一位」送。
+     * 閘門與後端同一條（parent_links 反查），示範層用 data.parent.children；
+     * 學生帶別人的 studentId 一律 403 —— 不能靠改 body 就替別人請假。
+     */
+    let studentId = me.id;
+    let studentName = '';
+    if (me.role === 'PARENT') {
+      const wanted = body.studentId || '';
+      if (!wanted) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請指定要請假的子女' });
+      const link = ((data.parent && data.parent.children) || []).filter((c) => c.studentId === wanted)[0];
+      if (!link) return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
+      studentId = wanted;
+      studentName = link.nickname || '';
+    } else if (body.studentId && body.studentId !== me.id) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只能替自己請假' });
+    }
+
+    const clash = (data.leaves || []).filter(
+      (row) =>
+        row.studentId === studentId &&
+        (row.status === 'PENDING' || row.status === 'APPROVED') &&
+        row.from <= to &&
+        row.to >= from,
+    )[0];
+    if (clash) {
+      return Promise.reject({ code: 'CONFLICT', message: '這段日期已經有一張假單了' });
+    }
+    const row = {
+      id: 'lv' + Date.now(),
+      studentId: studentId,
+      studentName: studentName,
+      createdById: me.id,
+      kind: body.kind || 'SICK',
+      from: from,
+      to: to,
+      reason: String(body.reason).trim(),
+      attachmentUrl: body.attachmentUrl || null,
+      status: 'PENDING',
+      rejectReason: null,
+      reviewedAt: null,
+      createdAt: Date.now(),
+    };
+    data.leaves = (data.leaves || []).concat([row]);
+    save(data);
+    return Promise.resolve({ leave: shapeLeave(row, me) });
+  },
+
+  cancelLeave(id) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.leaves || []).filter((x) => x.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這張假單' });
+    if (row.studentId !== me.id && row.createdById !== me.id) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只能取消自己的假單' });
+    }
+    if (row.status !== 'PENDING') return Promise.reject({ code: 'CONFLICT', message: '這張假單已經處理過了' });
+    row.status = 'CANCELLED';
+    save(data);
+    return Promise.resolve({ ok: true, status: 'CANCELLED' });
+  },
+
+  adminLeaves(query) {
+    const data = db();
+    const me = data.user || {};
+    const manager = ['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (!manager) return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    const q = query || {};
+    const status = q.status || 'PENDING';
+    const rows = (data.leaves || []).filter((row) => (status === 'ALL' ? true : row.status === status));
+    const counts = { PENDING: 0, APPROVED: 0, REJECTED: 0, CANCELLED: 0 };
+    (data.leaves || []).forEach((row) => {
+      counts[row.status] = (counts[row.status] || 0) + 1;
+    });
+    const items = rows
+      .slice()
+      .sort((a, b) =>
+        status === 'PENDING'
+          ? String(a.from).localeCompare(String(b.from))
+          : Number(b.reviewedAt || b.createdAt) - Number(a.reviewedAt || a.createdAt),
+      )
+      .map((row) => shapeLeave(row, me));
+    return Promise.resolve({ items: items, total: items.length, page: 1, counts: counts });
+  },
+
+  reviewLeave(id, body) {
+    const data = db();
+    const me = data.user || {};
+    const manager = ['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (!manager) return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    const row = (data.leaves || []).filter((x) => x.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這張假單' });
+    if (row.status !== 'PENDING') return Promise.reject({ code: 'CONFLICT', message: '這張假單已經處理過了' });
+    const action = (body && body.action) || 'APPROVE';
+    const reason = String((body && body.reason) || '').trim();
+    if (action === 'REJECT' && !reason) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '駁回要寫原因，家長才知道怎麼補' });
+    }
+    row.status = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+    row.rejectReason = action === 'REJECT' ? reason : null;
+    row.reviewedAt = Date.now();
+    row.reviewedBy = { id: me.id, nickname: me.nickname || '老師' };
+    save(data);
+    return Promise.resolve({ leave: shapeLeave(row, me) });
+  },
+
+  // ── W-73 班級課表（示範層也有資料，首頁「下一節」斷網時不會空白）──
+  timetable(query) {
+    const data = db();
+    const q = query || {};
+    const className = q.className || DEMO_CLASS;
+    const slots = (data.timetableSlots || [])
+      .filter((s) => s.className === className)
+      .sort((a, b) => a.weekday - b.weekday || a.period - b.period)
+      .map(shapeSlot);
+    const classes = [];
+    (data.timetableSlots || []).forEach((s) => {
+      if (classes.indexOf(s.className) === -1) classes.push(s.className);
+    });
+    return Promise.resolve({
+      className: className,
+      classes: classes.sort(),
+      periods: DEMO_PERIODS,
+      weekdays: Object.keys(WEEKDAY_LABEL).map((k) => ({ weekday: Number(k), label: WEEKDAY_LABEL[k] })),
+      slots: slots,
+    });
+  },
+
+  timetableToday(query) {
+    const data = db();
+    const q = query || {};
+    const className = q.className || DEMO_CLASS;
+    const now = new Date();
+    const weekday = now.getDay() === 0 ? 7 : now.getDay(); // 0=日 → 7
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    const dayKey = (function () {
+      const p2 = (n) => (n < 10 ? '0' + n : '' + n);
+      return now.getFullYear() + '-' + p2(now.getMonth() + 1) + '-' + p2(now.getDate());
+    })();
+    // W-82：示範層用同一套規則算放假（當天 CALENDAR 公告 → 當天壓到上課時段 ≥3 小時的全校活動），
+    // 不是寫死 null —— 否則示範模式永遠看不到「今天不用上課：<原因>」。
+    const dayOff = weekday >= 1 && weekday <= 5 ? demoDayOff(data, dayKey, now) : null;
+    const schoolDay = weekday >= 1 && weekday <= 5 && !dayOff;
+    const slots = schoolDay
+      ? (data.timetableSlots || [])
+          .filter((s) => s.className === className && s.weekday === weekday)
+          .sort((a, b) => a.period - b.period)
+          .map(shapeSlot)
+      : [];
+    const cur = DEMO_PERIODS.filter((p) => minutes >= hhmm(p.startTime) && minutes < hhmm(p.endTime))[0] || null;
+    const nxt = DEMO_PERIODS.filter((p) => hhmm(p.startTime) > minutes)[0] || null;
+    const current = cur ? slots.filter((s) => s.period === cur.period)[0] || null : null;
+    const next = nxt ? slots.filter((s) => s.period === nxt.period)[0] || null : null;
+    return Promise.resolve({
+      className: className,
+      schoolDay: schoolDay,
+      dayOff: dayOff,
+      dayOffReason: dayOff ? dayOff.reason : '',
+      date: dayKey,
+      weekday: weekday,
+      weekdayLabel: WEEKDAY_LABEL[weekday] || '',
+      periods: DEMO_PERIODS,
+      slots: slots,
+      current: current,
+      next: next,
+      nextText: next && nxt ? next.subject + (next.room ? ' · ' + next.room : '') + '（' + nxt.startTime + '）' : '',
+    });
+  },
+
+  adminTimetable() {
+    const data = db();
+    const items = (data.timetableSlots || []).slice().sort((a, b) => String(a.className).localeCompare(String(b.className)) || a.weekday - b.weekday || a.period - b.period).map(shapeSlot);
+    const map = {};
+    items.forEach((s) => {
+      map[s.className] = (map[s.className] || 0) + 1;
+    });
+    return Promise.resolve({
+      classes: Object.keys(map).sort().map((name) => ({ name: name, slots: map[name] })),
+      items: items,
+      periods: DEMO_PERIODS,
+    });
+  },
+
+  saveTimetableSlot(body) {
+    const data = db();
+    const input = body || {};
+    if (!input.className || !input.subject) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '請填班級與科目' });
+    }
+    data.timetableSlots = data.timetableSlots || [];
+    const hit = data.timetableSlots.filter(
+      (s) => s.className === input.className && s.weekday === Number(input.weekday) && s.period === Number(input.period),
+    )[0];
+    if (hit) {
+      hit.subject = input.subject;
+      hit.teacherName = input.teacherName || '';
+      hit.room = input.room || '';
+      save(data);
+      return Promise.resolve({ slot: shapeSlot(hit) });
+    }
+    const row = {
+      id: 'ts' + Date.now(),
+      className: input.className,
+      weekday: Number(input.weekday),
+      period: Number(input.period),
+      subject: input.subject,
+      teacherName: input.teacherName || '',
+      room: input.room || '',
+    };
+    data.timetableSlots.push(row);
+    save(data);
+    return Promise.resolve({ slot: shapeSlot(row) });
+  },
+
+  deleteTimetableSlot(id) {
+    const data = db();
+    const before = (data.timetableSlots || []).length;
+    data.timetableSlots = (data.timetableSlots || []).filter((s) => s.id !== id);
+    if (data.timetableSlots.length === before) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這一格課表' });
+    save(data);
+    return Promise.resolve({ ok: true });
+  },
+
+  /** CSV：班級,星期,節次,科目,老師,課室 —— 示範層同一套「先檢查再匯入」 */
+  importTimetable(body) {
+    const data = db();
+    const input = body || {};
+    const CN = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5 };
+    const rows = [];
+    const errors = [];
+    String(input.csv || '')
+      .split(/\r?\n/)
+      .forEach((raw, i) => {
+        const line = i + 1;
+        const v = raw.trim();
+        if (!v) return;
+        if (line === 1 && /班級|科目/.test(v)) return;
+        const cells = v.split(',').map((c) => c.trim());
+        if (cells.length < 4) {
+          errors.push({ line: line, message: '至少要四欄：班級,星期,節次,科目' });
+          return;
+        }
+        const weekday = CN[cells[1]] || Number(cells[1]);
+        const period = Number(cells[2]);
+        if (!cells[0] || !(weekday >= 1 && weekday <= 5) || !(period >= 1 && period <= 8) || !cells[3]) {
+          errors.push({ line: line, message: '班級／星期 1–5／節次 1–8／科目 有誤' });
+          return;
+        }
+        const exists = (data.timetableSlots || []).filter(
+          (s) => s.className === cells[0] && s.weekday === weekday && s.period === period,
+        ).length;
+        rows.push({
+          line: line,
+          className: cells[0],
+          weekday: weekday,
+          period: period,
+          subject: cells[3],
+          teacherName: cells[4] || '',
+          room: cells[5] || '',
+          status: exists ? 'EXISTS' : 'OK',
+          message: exists ? '這一格已經有課，不覆蓋' : '',
+        });
+      });
+    const ok = rows.filter((r) => r.status === 'OK');
+    let created = 0;
+    if (!input.dryRun && ok.length) {
+      ok.forEach((r) => {
+        data.timetableSlots.push({
+          id: 'ts' + Date.now() + Math.round(Math.random() * 1000),
+          className: r.className,
+          weekday: r.weekday,
+          period: r.period,
+          subject: r.subject,
+          teacherName: r.teacherName,
+          room: r.room,
+        });
+      });
+      created = ok.length;
+      save(data);
+    }
+    return Promise.resolve({ dryRun: input.dryRun !== false, total: rows.length, ok: ok.length, created: created, errors: errors, rows: rows });
+  },
+
+  // ── W-76 功課清單（示範層同一套規則：按班級、每人一列打勾、老師可出功課與收回）──
+  listHomework(query) {
+    const data = db();
+    const me = data.user;
+    const q = query || {};
+    const myClass = [me.grade, me.className].filter(Boolean).join('') || DEMO_CLASS;
+    const isTeacher = me.role === 'TEACHER' || me.role === 'ADMIN' || me.role === 'SUPER_ADMIN';
+    const className = (isTeacher && q.className) || myClass;
+    const scope = q.scope || 'all';
+    const nowMs = Date.now();
+    const doneRows = data.homeworkDone || [];
+    const items = (data.homework || [])
+      .filter((h) => h.className === className && !h.deletedAt)
+      .sort((a, b) => a.dueAt - b.dueAt)
+      .map((h) => {
+        const done = doneRows.filter((d) => d.homeworkId === h.id && d.userId === me.id)[0];
+        return {
+          id: h.id,
+          className: h.className,
+          subject: h.subject,
+          title: h.title,
+          detail: h.detail || '',
+          links: readHomeworkLinks(h.links),
+          dueAt: new Date(h.dueAt).toISOString(),
+          dueMs: h.dueAt,
+          done: !!done,
+          doneAt: done ? new Date(done.doneAt).toISOString() : '',
+          overdue: !done && h.dueAt < nowMs,
+          mine: h.createdById === me.id,
+          version: h.version || 0,
+        };
+      });
+    const filtered = scope === 'todo' ? items.filter((i) => !i.done) : scope === 'done' ? items.filter((i) => i.done) : items;
+    return Promise.resolve({
+      className: className,
+      needsClass: !myClass,
+      canCreate: me.role === 'TEACHER' || me.role === 'ADMIN' || me.role === 'SUPER_ADMIN',
+      items: filtered,
+      stats: {
+        total: items.length,
+        done: items.filter((i) => i.done).length,
+        todo: items.filter((i) => !i.done).length,
+        overdue: items.filter((i) => i.overdue).length,
+      },
+    });
+  },
+
+  createHomework(body) {
+    const data = db();
+    const me = data.user;
+    const input = body || {};
+    if (me.role !== 'TEACHER' && me.role !== 'ADMIN' && me.role !== 'SUPER_ADMIN') {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只有老師可以出功課' });
+    }
+    const className = input.className || [me.grade, me.className].filter(Boolean).join('') || DEMO_CLASS;
+    if (!className) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請填班級' });
+    const title = String(input.title || '').trim();
+    if (title.length < 2) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請寫清楚要做什麼' });
+    const dueMs = new Date(String(input.dueAt || '')).getTime();
+    if (Number.isNaN(dueMs)) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請選截止時間' });
+    const dup = (data.homework || []).filter(
+      (h) => h.className === className && h.subject === input.subject && h.title === title && !h.deletedAt
+        && new Date(h.dueAt).toDateString() === new Date(dueMs).toDateString(),
+    ).length;
+    if (dup) return Promise.reject({ code: 'CONFLICT', message: '這一班今天已經有同一科的同一項功課了' });
+    const norm = normalizeHomeworkLinks(input.links);
+    if (norm.error) return Promise.reject(norm.error);
+    const row = {
+      id: 'hw' + Date.now(),
+      className: className,
+      subject: String(input.subject || '').trim(),
+      title: title,
+      detail: String(input.detail || '').trim(),
+      links: norm.links || [],
+      dueAt: dueMs,
+      createdById: me.id,
+      version: 0,
+    };
+    data.homework = data.homework || [];
+    data.homework.push(row);
+    save(data);
+    return Promise.resolve({
+      id: row.id,
+      className: row.className,
+      dueAt: new Date(row.dueAt).toISOString(),
+      links: readHomeworkLinks(row.links),
+      version: 0,
+    });
+  },
+
+  removeHomework(id) {
+    const data = db();
+    const row = (data.homework || []).filter((h) => h.id === id && !h.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這項功課' });
+    row.deletedAt = Date.now();
+    save(data);
+    return Promise.resolve({ ok: true });
+  },
+
+  updateHomework(id, body) {
+    const data = db();
+    const row = (data.homework || []).filter((h) => h.id === id && !h.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這項功課' });
+    const input = body || {};
+    if (input.version !== undefined && Number(input.version) !== (row.version || 0)) {
+      return Promise.reject({ code: 'CONFLICT', message: '這項功課剛被其他人改過了，請重新整理' });
+    }
+    if (input.subject !== undefined) row.subject = String(input.subject).trim();
+    if (input.title !== undefined) row.title = String(input.title).trim();
+    if (input.detail !== undefined) row.detail = String(input.detail || '').trim();
+    if (input.links !== undefined) {
+      const norm = normalizeHomeworkLinks(input.links);
+      if (norm.error) return Promise.reject(norm.error);
+      row.links = norm.links || [];
+    }
+    if (input.dueAt !== undefined) {
+      const ms = new Date(String(input.dueAt)).getTime();
+      if (Number.isNaN(ms)) return Promise.reject({ code: 'VALIDATION_FAILED', message: '截止時間格式不正確' });
+      row.dueAt = ms;
+    }
+    row.version = (row.version || 0) + 1;
+    save(data);
+    return Promise.resolve({ ok: true, version: row.version });
+  },
+
+  markHomework(id) {
+    const data = db();
+    const me = data.user;
+    const row = (data.homework || []).filter((h) => h.id === id && !h.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這項功課' });
+    data.homeworkDone = data.homeworkDone || [];
+    if (!data.homeworkDone.filter((d) => d.homeworkId === id && d.userId === me.id).length) {
+      data.homeworkDone.push({ id: 'hd' + Date.now(), homeworkId: id, userId: me.id, doneAt: Date.now() });
+      save(data);
+    }
+    return Promise.resolve({ ok: true, done: true });
+  },
+
+  unmarkHomework(id) {
+    const data = db();
+    const me = data.user;
+    data.homeworkDone = (data.homeworkDone || []).filter((d) => !(d.homeworkId === id && d.userId === me.id));
+    save(data);
+    return Promise.resolve({ ok: true, done: false });
+  },
+
+  // 家長端：只看自己小孩那一班（示範層用 parentChildren 反查班級，跟後端同一條規則）
+  parentChildHomework(childId) {
+    const data = db();
+    const link = ((data.parent && data.parent.children) || []).filter((l) => l.studentId === childId)[0];
+    if (!link) return Promise.reject({ code: 'FORBIDDEN', message: '沒有綁定這位學生' });
+    const className = [link.grade, link.className].filter(Boolean).join('');
+    const nowMs = Date.now();
+    const doneRows = data.homeworkDone || [];
+    const items = (data.homework || [])
+      .filter((h) => h.className === className && !h.deletedAt)
+      .sort((a, b) => a.dueAt - b.dueAt)
+      .map((h) => {
+        const done = doneRows.filter((d) => d.homeworkId === h.id && d.userId === childId)[0];
+        return {
+          id: h.id,
+          subject: h.subject,
+          title: h.title,
+          detail: h.detail || '',
+          links: readHomeworkLinks(h.links),
+          dueAt: new Date(h.dueAt).toISOString(),
+          dueMs: h.dueAt,
+          done: !!done,
+          doneAt: done ? new Date(done.doneAt).toISOString() : '',
+          overdue: !done && h.dueAt < nowMs,
+        };
+      });
+    return Promise.resolve({
+      className: className,
+      studentName: link.nickname || '',
+      needsClass: !className,
+      items: items,
+      stats: {
+        total: items.length,
+        done: items.filter((i) => i.done).length,
+        todo: items.filter((i) => !i.done).length,
+        overdue: items.filter((i) => i.overdue).length,
+      },
+    });
+  },
+
+  // 老師：一次看這一班每項功課「幾個人交了」（示範層沒有真實名單，用示範班級人數示意）
+  homeworkStats(query) {
+    const data = db();
+    const me = data.user;
+    const q = query || {};
+    const className = q.className || [me.grade, me.className].filter(Boolean).join('') || DEMO_CLASS;
+    const total = 24; // 示範班級人數
+    const items = (data.homework || [])
+      .filter((h) => h.className === className && !h.deletedAt)
+      .map((h) => ({ id: h.id, done: (data.homeworkDone || []).filter((d) => d.homeworkId === h.id).length }));
+    return Promise.resolve({ className: className, total: total, items: items });
+  },
+
+  /**
+   * W-94 教師端班級總覽（示範層）
+   *
+   * 形狀與後端 `/teacher/class` 一致，數字由同一組示範資料算出來（不是另外寫死的常數），
+   * 這樣「同一筆功課在功課頁打勾後，總覽的未交人次也會跟著變」在示範模式也成立。
+   * 權限規則也照抄後端：非教職員 403、老師帶別班 403、沒班級 422。
+   */
+  classOverview(query) {
+    const data = db();
+    const me = data.user || {};
+    const manager = ['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (!manager) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '班上總覽是老師與校方在看的，學生請用「功課」頁' });
+    }
+    const q = query || {};
+    const myClass = [me.grade, me.className].filter(Boolean).join('') || DEMO_CLASS;
+    const isAdmin = me.role === 'ADMIN' || me.role === 'SUPER_ADMIN';
+    if (q.className && q.className !== myClass && !isAdmin) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只能看自己那一班' });
+    }
+    const className = (isAdmin && q.className) || myClass;
+    if (!className) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '你的帳號還沒有班級資料，請找校務處在後台設定班級' });
+    }
+
+    const classSize = 24; // 示範班級人數，與 homeworkStats 同一個數字
+    const nowMs = Date.now();
+    const rows = (data.homework || []).filter((h) => h.className === className && !h.deletedAt).sort((a, b) => a.dueAt - b.dueAt);
+    const doneOf = (hid) => (data.homeworkDone || []).filter((d) => d.homeworkId === hid).length;
+
+    const subjects = [];
+    let pendingTotal = 0;
+    let overdueItems = 0;
+    rows.forEach((h) => {
+      const pending = Math.max(0, classSize - doneOf(h.id));
+      const overdue = h.dueAt < nowMs;
+      if (overdue) overdueItems += 1;
+      pendingTotal += pending;
+      const hit = subjects.filter((s) => s.subject === h.subject)[0];
+      if (hit) {
+        hit.items += 1;
+        hit.pending += pending;
+        if (overdue) hit.overdue += 1;
+      } else {
+        subjects.push({ subject: h.subject, items: 1, pending: pending, overdue: overdue ? 1 : 0 });
+      }
+    });
+    subjects.sort((a, b) => b.pending - a.pending || String(a.subject).localeCompare(String(b.subject)));
+
+    const upcoming = rows
+      .filter((h) => h.dueAt >= nowMs)
+      .slice(0, 3)
+      .map((h) => ({ id: h.id, subject: h.subject, title: h.title, dueAt: new Date(h.dueAt).toISOString(), done: doneOf(h.id), total: classSize }));
+
+    const pendingLeaves = (data.leaves || []).filter((row) => row.status === 'PENDING');
+    const repairRows = (data.repairs || []).filter((row) => row.status === 'PENDING' || row.status === 'IN_PROGRESS');
+
+    return Promise.resolve({
+      className: className,
+      grade: me.grade || '',
+      role: me.role,
+      classSize: classSize,
+      homework: { items: rows.length, overdueItems: overdueItems, pendingTotal: pendingTotal, subjects: subjects, upcoming: upcoming },
+      leaves: {
+        pending: pendingLeaves.length,
+        approvedToday: (data.leaves || []).filter((row) => row.status === 'APPROVED' && row.from <= leaveDate(0) && row.to >= leaveDate(0)).length,
+        latest: pendingLeaves
+          .slice()
+          .sort((a, b) => String(a.from).localeCompare(String(b.from)))
+          .slice(0, 3)
+          .map((row) => ({
+            id: row.id,
+            studentId: row.studentId,
+            nickname: row.studentName || me.nickname || '同學',
+            kind: row.kind,
+            kindText: LEAVE_KIND_LABEL[row.kind] || row.kind,
+            fromDate: row.from,
+            toDate: row.to,
+          })),
+      },
+      repairs: {
+        pending: repairRows.filter((row) => row.status === 'PENDING').length,
+        inProgress: repairRows.filter((row) => row.status === 'IN_PROGRESS').length,
+        latest: repairRows
+          .slice()
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .slice(0, 3)
+          .map((row) => ({ id: row.id, location: row.location, equipment: row.equipment, status: row.status, urgency: row.urgency, createdAt: new Date(row.createdAt).toISOString() })),
+      },
+      generatedAt: new Date().toISOString(),
+    });
+  },
+
+  /**
+   * W-106 本班出席率月報（示範層）
+   *
+   * 形狀與後端 `/teacher/class/attendance` 一致，規則也照抄：
+   * 非教職員 403、老師帶別班 403、沒班級 422、沒有紀錄時出席率是 `null`。
+   *
+   * 示範資料是**用日期與座號算出來的穩定值**（`demoRatio`），不是 `Math.random`：
+   * 同一個月重新整理幾次，缺席人數都要一樣 —— 示範時數字亂跳比沒有資料更難看。
+   * 只算週一到週五，而且不含未來日期（老師看的是「這個月到目前為止」）。
+   */
+  classAttendance(query) {
+    const data = db();
+    const me = data.user || {};
+    const manager = ['TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(me.role) !== -1;
+    if (!manager) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '本班出席率是老師與校方在看的' });
+    }
+    const q = query || {};
+    const myClass = [me.grade, me.className].filter(Boolean).join('') || DEMO_CLASS;
+    const isAdmin = me.role === 'ADMIN' || me.role === 'SUPER_ADMIN';
+    if (q.className && q.className !== myClass && !isAdmin) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只能看自己那一班' });
+    }
+    const className = (isAdmin && q.className) || myClass;
+    if (!className) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '你的帳號還沒有班級資料，請找校務處在後台設定班級' });
+    }
+
+    const month = /^\d{4}-\d{2}$/.test(q.month || '') ? q.month : demoMonth();
+    const year = Number(month.slice(0, 4));
+    const mon = Number(month.slice(5, 7));
+    const classSize = 24; // 與 classOverview／homeworkStats 同一個示範班級人數
+    const todayKey = leaveDate(0);
+
+    const byDay = [];
+    const summary = { records: 0, present: 0, late: 0, absent: 0, leave: 0, rate: null };
+    const daysInMonth = new Date(year, mon, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = year + '-' + pad2(mon) + '-' + pad2(day);
+      if (date > todayKey) break; // 未來不造假資料
+      const weekday = new Date(year, mon - 1, day).getDay();
+      if (weekday === 0 || weekday === 6) continue; // 週末不記出缺席
+      let absent = 0;
+      let leave = 0;
+      let late = 0;
+      for (let i = 0; i < classSize; i += 1) {
+        const r = demoRatio(month + '|' + date + '|' + i);
+        if (r < 0.03) absent += 1;
+        else if (r < 0.06) leave += 1;
+        else if (r < 0.14) late += 1;
+      }
+      const records = classSize;
+      const present = records - absent - leave - late;
+      const rate = Math.round(((records - absent) / records) * 1000) / 10;
+      byDay.push({ date: date, day: day, records: records, late: late, absent: absent, rate: rate });
+      summary.records += records;
+      summary.present += present;
+      summary.late += late;
+      summary.absent += absent;
+      summary.leave += leave;
+    }
+    summary.rate = summary.records ? Math.round(((summary.records - summary.absent) / summary.records) * 1000) / 10 : null;
+
+    const worstDays = byDay
+      .filter((row) => row.absent > 0)
+      .sort((a, b) => b.absent - a.absent || String(a.date).localeCompare(String(b.date)))
+      .slice(0, 3)
+      .map((row) => ({ date: row.date, day: row.day, absent: row.absent, records: row.records, rate: row.rate }));
+
+    return Promise.resolve({
+      className: className,
+      grade: me.grade || '',
+      role: me.role,
+      month: month,
+      yearTerm: q.yearTerm || null,
+      range: { from: year + '-' + pad2(mon) + '-01', to: year + '-' + pad2(mon) + '-' + pad2(daysInMonth) },
+      days: daysInMonth,
+      activeDays: byDay.length,
+      students: byDay.length ? classSize : 0,
+      summary: summary,
+      byDay: byDay,
+      worstDays: worstDays,
+      truncated: false,
+    });
+  },
+
+  // 老師：某一項功課的未交名單（示範層給兩個假名字，演示「點數字看名單」）
+  homeworkPending(id) {
+    const data = db();
+    const row = (data.homework || []).filter((h) => h.id === id && !h.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這項功課' });
+    const doneIds = (data.homeworkDone || []).filter((d) => d.homeworkId === id).map((d) => d.userId);
+    const all = [
+      { id: 'demo-user', nickname: '示範學生' },
+      { id: 'demo-mate-1', nickname: '培華同學甲' },
+      { id: 'demo-mate-2', nickname: '培華同學乙' },
+    ];
+    const pending = all.filter((m) => doneIds.indexOf(m.id) === -1);
+    return Promise.resolve({ id: id, className: row.className, total: all.length, done: all.length - pending.length, pending: pending });
+  },
+
+  // ── W-88 校園提案（示範層同一套規則：一人一票、結案不能連署、作者不能取消自己的連署）──
+  listProposals(query) {
+    const data = db();
+    return Promise.resolve(proposalList(data, query || {}));
+  },
+
+  getProposal(id) {
+    const data = db();
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    return Promise.resolve(shapeProposal(data, row, { detail: true }));
+  },
+
+  // 連署名單（與後端同一形狀：先連署的在前，詳情只帶前 12 位，其餘分頁翻）
+  proposalSupports(id, query) {
+    const data = db();
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    const q = query || {};
+    const page = Math.max(1, Number(q.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(q.limit) || 20));
+    const all = (row.supporters || [])
+      .slice()
+      .sort((a, b) => a.createdAt - b.createdAt || String(a.userId).localeCompare(String(b.userId)));
+    const slice = all.slice((page - 1) * limit, (page - 1) * limit + limit);
+    return Promise.resolve({
+      proposalId: id,
+      items: slice.map((s) => ({
+        id: s.userId,
+        nickname: s.nickname,
+        role: s.role || 'STUDENT',
+        grade: '',
+        className: s.className || '',
+        at: new Date(s.createdAt).toISOString(),
+      })),
+      total: all.length,
+      page: page,
+      limit: limit,
+      hasMore: page * limit < all.length,
+      supportCount: all.length,
+      goal: row.goal || 20,
+    });
+  },
+
+  createProposal(body) {
+    const data = db();
+    const me = data.user || {};
+    const b = body || {};
+    const title = String(b.title || '').trim();
+    const text = String(b.body || '').trim();
+    if (title.length < 4) return Promise.reject({ code: 'VALIDATION_FAILED', message: '標題至少 4 個字' });
+    if (text.length < 10) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請把建議寫清楚（至少 10 個字）' });
+    const row = {
+      id: nextId('pp-'),
+      title: title,
+      body: text,
+      category: b.category || 'OTHER',
+      status: 'OPEN',
+      authorId: me.id,
+      authorNickname: me.nickname,
+      authorClass: [me.grade, me.className].filter(Boolean).join(' '),
+      goal: 8,
+      reachedAt: null,
+      reply: null,
+      version: 0,
+      createdAt: Date.now(),
+      supporters: [{ userId: me.id, nickname: me.nickname, createdAt: Date.now() }],
+    };
+    data.proposals = data.proposals || [];
+    data.proposals.unshift(row);
+    save(data);
+    return Promise.resolve(shapeProposal(data, row, { detail: true }));
+  },
+
+  updateProposal(id, body) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    if (row.authorId !== me.id) return Promise.reject({ code: 'FORBIDDEN', message: '只有提案人可以改內容' });
+    if (row.status !== 'OPEN') return Promise.reject({ code: 'CONFLICT', message: '校方已經開始處理，不能再改內容' });
+    const b = body || {};
+    if (b.version !== undefined && b.version !== row.version) {
+      return Promise.reject({ code: 'CONFLICT', message: '這個提案已經被改過，請重新載入再改' });
+    }
+    if (b.title !== undefined) row.title = String(b.title).trim();
+    if (b.body !== undefined) row.body = String(b.body).trim();
+    if (b.category !== undefined) row.category = b.category;
+    row.version += 1;
+    save(data);
+    return Promise.resolve(shapeProposal(data, row, { detail: true }));
+  },
+
+  supportProposal(id) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    if (row.status === 'DONE' || row.status === 'DECLINED') {
+      return Promise.reject({ code: 'CONFLICT', message: '這個提案已經結案，不能再連署' });
+    }
+    row.supporters = row.supporters || [];
+    const already = row.supporters.some((s) => s.userId === me.id);
+    if (!already) {
+      row.supporters.push({ userId: me.id, nickname: me.nickname, role: me.role || 'STUDENT', className: me.className || '', createdAt: Date.now() });
+      if (row.supporters.length >= (row.goal || 20) && !row.reachedAt) row.reachedAt = Date.now();
+      save(data);
+    }
+    return Promise.resolve({
+      ok: true,
+      already: already,
+      supportCount: row.supporters.length,
+      goal: row.goal || 20,
+      reached: row.supporters.length >= (row.goal || 20),
+    });
+  },
+
+  unsupportProposal(id) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    if (row.authorId === me.id) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '提案人不能取消自己的連署，要收回提案請用「撤回」' });
+    }
+    row.supporters = (row.supporters || []).filter((s) => s.userId !== me.id);
+    save(data);
+    return Promise.resolve({
+      ok: true,
+      supportCount: row.supporters.length,
+      goal: row.goal || 20,
+      reached: row.supporters.length >= (row.goal || 20),
+    });
+  },
+
+  removeProposal(id) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    const manager = ['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(proposalRole(data)) !== -1;
+    if (row.authorId !== me.id && !manager) return Promise.reject({ code: 'FORBIDDEN', message: '只有提案人或校方可以下架' });
+    row.deletedAt = Date.now();
+    save(data);
+    return Promise.resolve({ ok: true, deleted: true, id: id });
+  },
+
+  adminProposals(query) {
+    const data = db();
+    const role = proposalRole(data);
+    if (['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const list = proposalList(data, query || {});
+    const all = (data.proposals || []).filter((p) => !p.deletedAt);
+    const categories = { FACILITY: 0, STUDY: 0, ACTIVITY: 0, CANTEEN: 0, OTHER: 0 };
+    let supports = 0;
+    let reached = 0;
+    all.forEach((p) => {
+      categories[p.category || 'OTHER'] = (categories[p.category || 'OTHER'] || 0) + 1;
+      supports += (p.supporters || []).length;
+      if (p.reachedAt) reached += 1;
+    });
+    return Promise.resolve({
+      items: list.items.map((p) => shapeProposal(data, (data.proposals || []).filter((x) => x.id === p.id)[0], { detail: true })),
+      counts: list.counts,
+      categories: categories,
+      stats: { proposals: all.length, supports: supports, reached: reached },
+    });
+  },
+
+  replyProposal(id, body) {
+    const data = db();
+    const role = proposalRole(data);
+    if (['STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const row = (data.proposals || []).filter((p) => p.id === id && !p.deletedAt)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個提案' });
+    const b = body || {};
+    const reply = String(b.reply || '').trim();
+    if (reply.length < 2) return Promise.reject({ code: 'VALIDATION_FAILED', message: '回覆至少 2 個字' });
+    row.reply = { body: reply, byName: (data.user && data.user.nickname) || '校方', at: Date.now() };
+    row.status = b.status || (row.status === 'OPEN' ? 'REVIEWING' : row.status);
+    row.version = (row.version || 0) + 1;
+    save(data);
+    const shaped = shapeProposal(data, row, { detail: true });
+    shaped.notified = (row.supporters || []).length;
+    return Promise.resolve(shaped);
+  },
+
+  // ── W-89 課室設備報修 ──
+
+  myRepairs() {
+    const data = db();
+    const me = data.user || {};
+    const mine = (data.repairs || []).filter((row) => row.reporterId === me.id);
+    const items = mine
+      .slice()
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map(shapeRepair);
+    return Promise.resolve({
+      items: items,
+      active: items.filter((row) => row.status === 'PENDING' || row.status === 'IN_PROGRESS').length,
+      done: items.filter((row) => row.status === 'DONE').length,
+    });
+  },
+
+  getRepair(id) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.repairs || []).filter((r) => r.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這張報修單' });
+    if (row.reporterId !== me.id && REPAIR_HANDLER_ROLES.indexOf(repairRole(data)) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '看不到這張報修單' });
+    }
+    return Promise.resolve({ repair: shapeRepair(row) });
+  },
+
+  createRepair(input) {
+    const data = db();
+    const me = data.user || {};
+    const body = input || {};
+    const role = repairRole(data);
+    if (['STUDENT', 'TEACHER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'].indexOf(role) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '只有校內成員可以報修' });
+    }
+    if (!String(body.location || '').trim()) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請填課室或地點' });
+    if (!String(body.equipment || '').trim()) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請填設備類型' });
+    if (String(body.description || '').trim().length < 4) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '請簡單描述壞在哪裡（至少 4 個字）' });
+    }
+    if (body.photoUrl && !/^https?:\/\//i.test(String(body.photoUrl))) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '照片只收 http(s) 連結' });
+    }
+    const row = {
+      id: 'rp' + Date.now() + Math.random().toString(16).slice(2, 6),
+      location: String(body.location).trim(),
+      equipment: String(body.equipment).trim(),
+      description: String(body.description).trim(),
+      urgency: body.urgency || 'NORMAL',
+      status: 'PENDING',
+      photoUrl: body.photoUrl || null,
+      reporterId: me.id || 'demo-user',
+      reporterNickname: me.nickname || '示範學生',
+      reporterClass: me.className || '',
+      handlerId: null,
+      handlerNickname: '',
+      acceptedAt: null,
+      completedAt: null,
+      note: null,
+      createdAt: Date.now(),
+    };
+    data.repairs = (data.repairs || []).concat([row]);
+    save(data);
+    return Promise.resolve({ repair: shapeRepair(row) });
+  },
+
+  cancelRepair(id) {
+    const data = db();
+    const me = data.user || {};
+    const row = (data.repairs || []).filter((r) => r.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這張報修單' });
+    if (row.reporterId !== me.id) return Promise.reject({ code: 'FORBIDDEN', message: '只能取消自己送的報修' });
+    if (row.status !== 'PENDING') return Promise.reject({ code: 'CONFLICT', message: '這張報修已經有人處理了，不能取消' });
+    row.status = 'CANCELLED';
+    save(data);
+    return Promise.resolve({ ok: true, status: 'CANCELLED' });
+  },
+
+  adminRepairs(query) {
+    const data = db();
+    if (REPAIR_HANDLER_ROLES.indexOf(repairRole(data)) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const q = query || {};
+    const status = q.status || 'PENDING';
+    const counts = { PENDING: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 };
+    (data.repairs || []).forEach((row) => {
+      counts[row.status] = (counts[row.status] || 0) + 1;
+    });
+    let rows = (data.repairs || []).slice();
+    if (status !== 'ALL') rows = rows.filter((row) => row.status === status);
+    if (q.location) {
+      const needle = String(q.location).toLowerCase();
+      rows = rows.filter((row) => String(row.location).toLowerCase().indexOf(needle) !== -1);
+    }
+    if (q.q) {
+      const needle = String(q.q).toLowerCase();
+      rows = rows.filter(
+        (row) =>
+          String(row.description).toLowerCase().indexOf(needle) !== -1 ||
+          String(row.equipment).toLowerCase().indexOf(needle) !== -1 ||
+          String(row.reporterNickname || '').toLowerCase().indexOf(needle) !== -1,
+      );
+    }
+    // 與後端同一套排序：待接單先看急的、再看舊的；其他看最新的
+    rows.sort((a, b) => {
+      if (status === 'PENDING') {
+        const wa = { LOW: 0, NORMAL: 1, HIGH: 2 }[a.urgency] || 1;
+        const wb = { LOW: 0, NORMAL: 1, HIGH: 2 }[b.urgency] || 1;
+        if (wa !== wb) return wb - wa;
+        return a.createdAt - b.createdAt;
+      }
+      return b.createdAt - a.createdAt;
+    });
+    return Promise.resolve({ items: rows.map(shapeRepair), total: rows.length, page: 1, counts: counts });
+  },
+
+  acceptRepair(id) {
+    const data = db();
+    if (REPAIR_HANDLER_ROLES.indexOf(repairRole(data)) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const me = data.user || {};
+    const row = (data.repairs || []).filter((r) => r.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這張報修單' });
+    if (row.status !== 'PENDING') {
+      return Promise.reject({
+        code: 'CONFLICT',
+        message: row.status === 'CANCELLED' ? '這張報修已被送出者取消' : '這張報修已經有人接了',
+      });
+    }
+    row.status = 'IN_PROGRESS';
+    row.handlerId = me.id || 'demo-staff';
+    row.handlerNickname = me.nickname || '總務處';
+    row.acceptedAt = Date.now();
+    save(data);
+    return Promise.resolve({ repair: shapeRepair(row) });
+  },
+
+  finishRepair(id, input) {
+    const data = db();
+    if (REPAIR_HANDLER_ROLES.indexOf(repairRole(data)) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const body = input || {};
+    const row = (data.repairs || []).filter((r) => r.id === id)[0];
+    if (!row) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這張報修單' });
+    if (row.status !== 'IN_PROGRESS') {
+      return Promise.reject({
+        code: 'CONFLICT',
+        message: row.status === 'DONE' ? '這張報修已經完成' : '這張報修還沒有人接單',
+      });
+    }
+    row.status = 'DONE';
+    row.completedAt = Date.now();
+    row.note = body.note ? String(body.note).slice(0, 300) : null;
+    save(data);
+    return Promise.resolve({ repair: shapeRepair(row) });
+  },
+
+  repairStats() {
+    const data = db();
+    if (REPAIR_HANDLER_ROLES.indexOf(repairRole(data)) === -1) {
+      return Promise.reject({ code: 'FORBIDDEN', message: '權限不足' });
+    }
+    const rows = data.repairs || [];
+    const counts = { PENDING: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 };
+    rows.forEach((row) => {
+      counts[row.status] = (counts[row.status] || 0) + 1;
+    });
+    const done = rows.filter((row) => row.status === 'DONE' && row.completedAt);
+    const avgHours = done.length
+      ? Math.round((done.reduce((sum, row) => sum + (row.completedAt - row.createdAt) / 3600000, 0) / done.length) * 10) / 10
+      : null;
+    const byLoc = {};
+    rows.forEach((row) => {
+      byLoc[row.location] = (byLoc[row.location] || 0) + 1;
+    });
+    const byLocation = Object.keys(byLoc)
+      .map((location) => ({ location: location, count: byLoc[location] }))
+      .sort((a, b) => b.count - a.count || a.location.localeCompare(b.location))
+      .slice(0, 10);
+
+    // 近 7 天（含今天），用本地日期字串分組
+    const dayKey = (ms) => {
+      const d = new Date(ms);
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return d.getFullYear() + '-' + mm + '-' + dd;
+    };
+    const timeline = [];
+    for (let i = 6; i >= 0; i -= 1) {
+      const key = dayKey(Date.now() - i * 86400000);
+      timeline.push({ date: key, label: key.slice(5), count: 0 });
+    }
+    rows.forEach((row) => {
+      const hit = timeline.filter((d) => d.date === dayKey(row.createdAt))[0];
+      if (hit) hit.count += 1;
+    });
+
+    return Promise.resolve({
+      total: rows.length,
+      counts: counts,
+      avgHours: avgHours,
+      doneCount: done.length,
+      byLocation: byLocation,
+      timeline: timeline,
+    });
+  },
+
+  /**
+   * W-102 匯出自己的資料（示範模式）
+   *
+   * 與後端 `/me/export` 同一組欄位順序，差別只在資料來源是示範層 ——
+   * 演示現場（斷網、只跑示範）按下去也要拿得到有意義的內容，不能回空字串。
+   * 這裡一樣不能用 `this.xxx`（data.js 會把方法拆出來呼叫）。
+   */
+  myExport(type, studentId) {
+    const data = db();
+    const me = data.user || {};
+    // 家長在示範模式也一樣：不帶 studentId 時用唯一的子女（與後端 resolveTarget 同規則）
+    const childIds = ((data.parent && data.parent.children) || []).map((c) => c.studentId);
+    const target = studentId || (me.role === 'PARENT' && childIds.length === 1 ? childIds[0] : me.id || 'demo-user');
+    const cell = (v) => '"' + String(v === null || v === undefined ? '' : v).replace(/"/g, '""') + '"';
+    const doc = (header, rows) => '\uFEFF' + [header].concat(rows).map((row) => row.map(cell).join(',')).join('\r\n');
+
+    if (type === 'grades') {
+      const items = demoSchoolGrades()
+        .items.slice()
+        .sort((a, b) => String(b.yearTerm).localeCompare(String(a.yearTerm)) || String(a.term).localeCompare(String(b.term)) || String(a.courseName).localeCompare(String(b.courseName)));
+      return Promise.resolve(
+        doc(
+          ['學年', '學段', '科目', '測驗', '日期', '分數', '備註', '來源'],
+          items.map((r) => [r.yearTerm, r.term, r.courseName, r.testType, r.testDate, r.score === null ? '' : r.score, r.content || '', '家校通']),
+        ),
+      );
+    }
+
+    if (type === 'attendance') {
+      const label = { normal: '正常', late: '遲到', absent: '缺席', leave: '請假' };
+      const items = demoSchoolAttendance().items.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      return Promise.resolve(
+        doc(
+          ['日期', '學年', '學段', '上午', '下午', '上午到校', '下午到校', '備註', '來源'],
+          items.map((r) => [r.date, r.yearTerm, r.term || '', label[r.amStatus] || r.amStatus, label[r.pmStatus] || r.pmStatus, r.amIn || '', r.pmIn || '', r.remark || '', '家校通']),
+        ),
+      );
+    }
+
+    if (type === 'library') {
+      const now = Date.now();
+      const bookOf = (id) => (data.books || []).filter((b) => b.id === id)[0] || {};
+      const rows = (data.loans || [])
+        .filter((l) => (target === 'demo-user' ? l.userId === 'demo-user' : l.userId === target))
+        .sort((a, b) => new Date(b.borrowedAt).getTime() - new Date(a.borrowedAt).getTime())
+        .map((l) => {
+          const b = bookOf(l.bookId);
+          const until = l.returnedAt ? new Date(l.returnedAt).getTime() : now;
+          const late = Math.max(0, Math.floor((until - new Date(l.dueAt).getTime()) / 86400000));
+          const stamp = (t) => (t ? String(new Date(t).toISOString()).slice(0, 16).replace('T', ' ') : '');
+          return [b.title || '', b.callNumber || '', b.isbn || '', stamp(l.borrowedAt), stamp(l.dueAt), stamp(l.returnedAt), late, l.renewals || 0];
+        });
+      return Promise.resolve(doc(['書名', '索書號', 'ISBN', '借出日期', '應還日期', '歸還日期', '逾期天數', '續借次數'], rows));
+    }
+
+    if (type === 'leaves') {
+      const rows = (data.leaves || [])
+        .filter((row) => row.studentId === target)
+        .sort((a, b) => String(b.from).localeCompare(String(a.from)))
+        .map((row) => {
+          const shaped = shapeLeave(row, me);
+          return [
+            shaped.kindText,
+            shaped.from,
+            shaped.to,
+            shaped.days,
+            shaped.statusText,
+            String(shaped.reason || '').replace(/[\r\n]+/g, ' '),
+            shaped.reviewedBy && shaped.reviewedBy.nickname ? shaped.reviewedBy.nickname : '',
+            '',
+            String(row.rejectReason || '').replace(/[\r\n]+/g, ' '),
+          ];
+        });
+      return Promise.resolve(doc(['假別', '開始日期', '結束日期', '天數', '狀態', '原因', '審批人', '審批時間', '駁回原因'], rows));
+    }
+
+    return Promise.reject({ code: 'VALIDATION_FAILED', message: '不支援的匯出類型' });
+  },
+
+  /**
+   * W-113 審批時效（示範層）：假單／場地器材／報修三組用同一把尺。
+   * 沒有樣本時 p50／p90／avg 回 null —— 畫面要顯示「—」，不是 0 小時。
+   */
+  approvalStats(query) {
+    // 與 services/api.js 同一個簽名：可以傳數字（90）或 { days: 90 }
+    const q = typeof query === 'number' ? { days: query } : query || {};
+    const raw = Number(q.days);
+    const days = raw >= 7 && raw <= 365 ? Math.round(raw) : 30;
+    return Promise.resolve(demoApprovalStats(db(), days));
+  },
+
+  /**
+   * W-109 個人校曆訂閱（示範模式）
+   *
+   * 示範模式沒有真的 `.ics` 端點可以分享，所以只模擬「權杖的存在與撤銷」這件事：
+   * 產生後存進 storage、重新整理還在、按撤銷就消失。刻意**不假裝生出一份日曆**，
+   * 因為那會讓使用者以為訂閱成功了（靜默降級是最容易露餡的地方）。
+   */
+  calendarToken(days) {
+    const token = demoCalendarToken();
+    return Promise.resolve(calendarTokenShape(token, days));
+  },
+  rotateCalendarToken(days) {
+    const token = 'demo' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    wx.setStorageSync(DEMO_CAL_TOKEN_KEY, token);
+    return Promise.resolve(calendarTokenShape(token, days));
+  },
+  revokeCalendarToken() {
+    wx.removeStorageSync(DEMO_CAL_TOKEN_KEY);
+    return Promise.resolve(calendarTokenShape(''));
+  },
 };

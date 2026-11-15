@@ -52,6 +52,33 @@
 .urgent__title { color: var(--pv-on-tint); font-size: var(--pv-fs-subhead); font-weight: 600; flex: 1; }
 .urgent__arrow { color: var(--pv-on-tint-2); font-size: var(--pv-fs-title-3); margin-left: var(--pv-sp-1); }
 
+/* 圖書館入口（W-66）：一條列而不是第五個宮格 —— 四宮格是 2×2，多一格會變成一隻孤兒 */
+.lib {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: var(--pv-surface);
+  border-radius: var(--pv-r-lg);
+  padding: var(--pv-sp-2) var(--pv-sp-3);
+  margin-bottom: var(--pv-sp-2);
+  min-height: 88rpx;
+  box-sizing: border-box;
+}
+.lib--pressed { transform: scale(0.985); transition-duration: var(--pv-dur-press); }
+.lib__icon {
+  width: 64rpx;
+  height: 64rpx;
+  flex-shrink: 0;
+  border-radius: var(--pv-r-sm);
+  background: var(--pv-fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lib__main { flex: 1; min-width: 0; margin-left: var(--pv-sp-2); display: flex; flex-direction: column; }
+.lib__title { font-size: var(--pv-fs-callout); font-weight: 600; }
+.lib__sub { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); margin-top: 2rpx; }
+
 /* 四宮格 */
 .grid {
   display: flex;
@@ -116,6 +143,8 @@
 .home__avatar { padding: 6rpx; border-radius: 50%; }
 .home__avatar--pressed { opacity: 0.55; }
 
+.home__hint { margin-top: var(--pv-sp-2); font-size: var(--pv-fs-caption-1); line-height: 1.5; color: var(--pv-label-2); text-align: center; }
+
 .home__retry--plain { background: var(--pv-fill); color: var(--pv-label-2); margin-top: var(--pv-sp-1); }
 
 .home__entry {
@@ -163,6 +192,8 @@
 .kids__sum-main { display: flex; flex-direction: column; }
 .kids__sum-line { font-size: var(--pv-fs-callout); font-weight: 600; }
 .kids__sum-meta { font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); margin-top: 4rpx; }
+.kids__sum-hw { font-size: var(--pv-fs-caption-1); color: var(--pv-label-2); margin-top: 4rpx; }
+.kids__sum-hw.is-warn { color: var(--pv-warning); }
 .kids__go { font-size: var(--pv-fs-subhead); color: var(--pv-tint); }
 
 /* W-34 通知鈴鐺（未讀紅點） */
@@ -174,3 +205,27 @@
 
 /* 卡片內的分段小標題（取代「一張卡一個標題」的堆疊感） */
 .dish-section { margin-top: var(--pv-sp-2); padding-top: var(--pv-sp-3); border-top: 1rpx solid var(--pv-sep); font-size: var(--pv-fs-footnote); color: var(--pv-label-3); }
+
+/* 今日待辦（W-93）：一張卡三行（inset grouped ＋ 髮絲線），不是每一項一張卡 */
+.todo-list { margin-bottom: var(--pv-sp-3); }
+.todo-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 88rpx;
+  padding: var(--pv-sp-2) var(--pv-sp-3);
+  box-sizing: border-box;
+  border-bottom: 1rpx solid var(--pv-sep);
+  transition: transform var(--pv-dur-release) var(--pv-ease), opacity var(--pv-dur-release) var(--pv-ease);
+}
+.todo-row--last { border-bottom: 0; }
+.todo-row--pressed { transform: scale(0.99); opacity: 0.88; transition-duration: var(--pv-dur-press); }
+.todo-row__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.todo-row__label { font-size: var(--pv-fs-callout); font-weight: 600; letter-spacing: var(--pv-ls-body); }
+.todo-row__detail { margin-top: 2rpx; font-size: var(--pv-fs-caption-1); color: var(--pv-label-2); }
+.todo-row__right { display: flex; flex-direction: row; align-items: center; flex-shrink: 0; }
+.todo-row__value { margin-right: var(--pv-sp-1); font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+.todo-row__value--warn { color: var(--pv-warning); font-weight: 600; }
+.todo-row__value--ok { color: var(--pv-success); }
+.todo-row__value--muted { color: var(--pv-label-3); }

@@ -1,6 +1,9 @@
 @import "../../../styles/tokens.wxss";
 @import "../../../styles/ui.wxss";
 
+.mine-link { display: flex; flex-direction: row; align-items: center; justify-content: flex-end; padding: var(--pv-sp-2) var(--pv-sp-3) 0; }
+.mine-link__text { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); margin-right: 4rpx; }
+
 .filter { padding-top: var(--pv-sp-2); }
 .chips { display: flex; flex-direction: row; flex-wrap: wrap; margin-top: var(--pv-sp-2); }
 .chip {

@@ -1,0 +1,118 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="mine-inner">
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="2" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="2" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{needLogin}}" title="{{L.k11}}" desc="{{L.k06}}">
+        <pv-button type="tinted" size="sm" bind:tap="goList">{{L.k12}}</pv-button>
+      </pv-empty>
+
+      <pv-empty wx:elif="{{failed}}" title="{{L.k09}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k10}}</pv-button>
+      </pv-empty>
+
+      <block wx:else>
+        <view class="stats">
+          <view class="stat">
+            <text class="stat__num ui-num">{{activeCount}}</text>
+            <text class="stat__label">{{L.k02}}</text>
+          </view>
+          <view class="stat">
+            <text class="stat__num ui-num {{overdueCount ? 'stat__num--warn' : ''}}">{{overdueCount}}</text>
+            <text class="stat__label">{{L.k03}}</text>
+          </view>
+        </view>
+
+        <text class="ui-section ui-mt-3">{{L.k21}}</text>
+        <pv-empty wx:if="{{!active.length}}" title="{{L.k05}}" desc="{{L.k06}}" />
+        <view wx:else class="ui-list ui-list--grouped">
+          <view
+            wx:for="{{active}}"
+            wx:key="id"
+            class="ui-card ui-card--row {{index === active.length - 1 ? 'ui-card--last' : ''}}"
+          >
+            <view class="loan-row" data-id="{{item.bookId}}" bindtap="goDetail">
+              <view class="loan-main">
+                <view class="ui-row-between">
+                  <text class="ui-title loan-title">{{item.book.title}}</text>
+                  <pv-tag text="{{item.statusLabel}}" type="{{item.statusTag}}" />
+                </view>
+                <text class="ui-meta loan-meta">{{item.borrowedText}}</text>
+                <text class="ui-meta">{{item.dueText}}</text>
+              </view>
+            </view>
+            <view class="loan-actions">
+              <pv-button
+                wx:if="{{item.canRenew}}"
+                type="plain"
+                size="sm"
+                loading="{{busyId === item.id}}"
+                data-id="{{item.id}}"
+                bind:tap="doRenew"
+              >{{L.k13}}</pv-button>
+              <pv-button
+                type="tinted"
+                size="sm"
+                loading="{{busyId === item.id}}"
+                data-id="{{item.id}}"
+                bind:tap="doReturn"
+              >{{L.k14}}</pv-button>
+            </view>
+          </view>
+        </view>
+
+        <text class="ui-section ui-mt-3">{{L.k04}}</text>
+        <pv-empty wx:if="{{!reservations.length}}" title="{{L.k07}}" desc="{{L.k08}}" />
+        <view wx:else class="ui-list ui-list--grouped">
+          <view
+            wx:for="{{reservations}}"
+            wx:key="id"
+            class="ui-card ui-card--row {{index === reservations.length - 1 ? 'ui-card--last' : ''}}"
+          >
+            <view class="loan-row" data-id="{{item.bookId}}" bindtap="goDetail">
+              <view class="loan-main">
+                <view class="ui-row-between">
+                  <text class="ui-title loan-title">{{item.book.title}}</text>
+                  <pv-tag text="{{item.statusLabel}}" type="{{item.statusTag}}" />
+                </view>
+                <text class="ui-meta loan-meta">{{item.hint}}</text>
+              </view>
+            </view>
+            <view class="loan-actions">
+              <pv-button
+                type="plain"
+                size="sm"
+                loading="{{busyId === item.id}}"
+                data-id="{{item.id}}"
+                data-title="{{item.book.title}}"
+                bind:tap="doCancel"
+              >{{L.k15}}</pv-button>
+            </view>
+          </view>
+        </view>
+
+        <block wx:if="{{history.length}}">
+          <text class="ui-section ui-mt-3">{{L.k22}}</text>
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{history}}"
+              wx:key="id"
+              class="ui-card ui-card--row {{index === history.length - 1 ? 'ui-card--last' : ''}}"
+            >
+              <view class="ui-row-between">
+                <text class="ui-sub">{{item.book.title}}</text>
+                <text class="ui-meta">{{item.statusLabel}}</text>
+              </view>
+            </view>
+          </view>
+        </block>
+      </block>
+    </view>
+  </scroll-view>
+</view>

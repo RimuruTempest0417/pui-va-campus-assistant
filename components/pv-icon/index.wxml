@@ -46,9 +46,45 @@
     <view class="i-tray-line" />
   </block>
 
+  <!-- 圖書館（W-66）：打開的書（左右兩頁＋書脊） -->
+  <block wx:elif="{{name === 'book'}}">
+    <view class="i-book" />
+    <view class="i-book-spine" />
+  </block>
+
   <!-- 右箭頭 -->
   <block wx:elif="{{name === 'chevron'}}">
     <view class="i-chev" />
+  </block>
+
+  <!-- 轉贈（W-68）：禮物盒（盒身＋上蓋＋緞帶） -->
+  <block wx:elif="{{name === 'gift'}}">
+    <view class="i-gift-body" />
+    <view class="i-gift-lid" />
+    <view class="i-gift-ribbon" />
+  </block>
+
+  <!-- 請假（W-72）：假單（紙＋兩行＋右下角核准章） -->
+  <block wx:elif="{{name === 'leave'}}">
+    <view class="i-form" />
+    <view class="i-form-line i-form-line--1" />
+    <view class="i-form-line i-form-line--2" />
+    <view class="i-form-stamp" />
+  </block>
+
+  <!-- 校園提案（W-88）：燈泡（圓＋底座兩條＋上方兩道射線） -->
+  <block wx:elif="{{name === 'idea'}}">
+    <view class="i-bulb" />
+    <view class="i-bulb-base i-bulb-base--1" />
+    <view class="i-bulb-base i-bulb-base--2" />
+    <view class="i-bulb-ray i-bulb-ray--l" />
+    <view class="i-bulb-ray i-bulb-ray--r" />
+  </block>
+
+  <!-- 課室報修（W-89）：扳手（斜柄＋頭部開口） -->
+  <block wx:elif="{{name === 'repair'}}">
+    <view class="i-wrench" />
+    <view class="i-wrench-jaw" />
   </block>
 
 </view>

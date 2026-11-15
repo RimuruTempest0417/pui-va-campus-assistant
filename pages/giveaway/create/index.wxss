@@ -1,0 +1,17 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.form-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+
+.field-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44rpx;
+}
+.field-label { font-size: var(--pv-fs-body); color: var(--pv-label-2); }
+.field-value { flex: 1; min-width: 0; text-align: right; font-size: var(--pv-fs-body); color: var(--pv-label); }
+.field-arrow { color: var(--pv-label-3); margin-left: var(--pv-sp-1); font-size: var(--pv-fs-title-3); }
+
+.submit-row { margin-top: var(--pv-sp-4); }

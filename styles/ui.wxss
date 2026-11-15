@@ -2,6 +2,18 @@
 .ui-page { min-height: 100vh; background: var(--pv-bg); padding: 0 var(--pv-sp-3); box-sizing: border-box; }
 .ui-page--withbar { padding-bottom: 260rpx; }
 
+/* 離線資料橫幅（W-98）：畫面用的是上次成功的資料時一定要出現，
+   寫明「上次更新於 X」；不顯示它就等於靜默降級。 */
+.ui-offline {
+  margin: 0 0 var(--pv-sp-2);
+  padding: 12rpx var(--pv-sp-2);
+  background: var(--pv-warning-soft);
+  color: var(--pv-warning);
+  border-radius: var(--pv-r-sm);
+  font-size: var(--pv-fs-caption-1);
+  letter-spacing: var(--pv-ls-caption);
+}
+
 .ui-list { margin-top: var(--pv-sp-2); }
 
 /* inset grouped 清單（v0.57.0 起的標準做法）：整份是「一張卡」，列與列之間用 1rpx 髮絲線分隔，
@@ -26,6 +38,18 @@
   flex-wrap: wrap;
 }
 .ui-row-between { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+
+/* 資訊列（設定頁、家長頁共用）：標題＋說明在左、箭頭在右。
+   原本只寫在 pages/settings/index.wxss，家長頁也用了同一組 class 卻沒有樣式
+   （箭頭掉到標題下面、整列看不出可以點）—— 這一組是共用的，只能有一份來源。 */
+.set-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: var(--pv-sp-2) 0; }
+.set-row__main { flex: 1; min-width: 0; }
+.set-row__title { display: block; font-size: var(--pv-fs-callout); color: var(--pv-label); }
+.set-row__sub { display: block; margin-top: 4rpx; font-size: var(--pv-fs-caption-1); color: var(--pv-label-3); }
+.set-row__value { font-size: var(--pv-fs-callout); color: var(--pv-label-2); }
+.set-row__chev { font-size: var(--pv-fs-title-3); color: var(--pv-label-4); flex-shrink: 0; }
+/* 同一張卡裡的多列：用髮絲線分隔，不要每列一張卡 */
+.set-row--sep { border-top: 1rpx solid var(--pv-sep); }
 .ui-gap-1 { margin-right: var(--pv-sp-1); }
 .ui-gap-2 { margin-right: var(--pv-sp-2); }
 .ui-mt-2 { margin-top: var(--pv-sp-2); }

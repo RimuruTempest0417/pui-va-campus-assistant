@@ -1,0 +1,10 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "pv-navbar": "/components/pv-navbar/index",
+    "pv-button": "/components/pv-button/index",
+    "pv-empty": "/components/pv-empty/index",
+    "pv-skeleton": "/components/pv-skeleton/index"
+  },
+  "navigationBarTitleText": "列印 · 學生成績單"
+}

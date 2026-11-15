@@ -1,0 +1,102 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="form-inner">
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="3" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="3" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{guest}}" title="{{L.k16}}" desc="{{L.k17}}">
+        <pv-button type="tinted" size="sm" bind:tap="goLogin">{{L.k18}}</pv-button>
+      </pv-empty>
+
+      <block wx:else>
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row">
+            <text class="ui-field__label">{{L.k02}}</text>
+            <input
+              class="ui-input"
+              placeholder="{{L.k03}}"
+              placeholder-class="ui-placeholder"
+              value="{{location}}"
+              maxlength="60"
+              bindinput="onLocation"
+            />
+            <view class="chip-row">
+              <view
+                wx:for="{{rooms}}"
+                wx:key="*this"
+                class="chip {{location === item ? 'is-active' : ''}}"
+                data-value="{{item}}"
+                bindtap="pickRoom"
+              >{{item}}</view>
+            </view>
+          </view>
+
+          <view class="ui-card ui-card--row">
+            <text class="ui-field__label">{{L.k04}}</text>
+            <view class="chip-row">
+              <view
+                wx:for="{{equipments}}"
+                wx:key="*this"
+                class="chip {{equipment === item ? 'is-active' : ''}}"
+                data-value="{{item}}"
+                bindtap="pickEquipment"
+              >{{item}}</view>
+            </view>
+          </view>
+
+          <view class="ui-card ui-card--row ui-card--last">
+            <text class="ui-field__label">{{L.k07}}</text>
+            <view class="chip-row">
+              <view
+                wx:for="{{urgencies}}"
+                wx:key="key"
+                class="chip {{urgency === item.key ? 'is-active' : ''}}"
+                data-key="{{item.key}}"
+                bindtap="pickUrgency"
+              >{{item.label}}</view>
+            </view>
+          </view>
+        </view>
+
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row ui-card--last">
+            <text class="ui-field__label">{{L.k05}}</text>
+            <textarea
+              class="ui-textarea"
+              placeholder="{{L.k06}}"
+              placeholder-class="ui-placeholder"
+              value="{{description}}"
+              maxlength="500"
+              bindinput="onDescription"
+            />
+          </view>
+        </view>
+
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row ui-card--last">
+            <text class="ui-field__label">{{L.k11}}</text>
+            <input
+              class="ui-input"
+              placeholder="{{L.k12}}"
+              placeholder-class="ui-placeholder"
+              value="{{photoUrl}}"
+              maxlength="512"
+              bindinput="onPhoto"
+            />
+          </view>
+        </view>
+
+        <text class="form-hint">{{L.k15}}</text>
+
+        <view class="submit-row">
+          <pv-button type="filled" block loading="{{submitting}}" bind:tap="submit">{{submitting ? L.k14 : L.k13}}</pv-button>
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+</view>

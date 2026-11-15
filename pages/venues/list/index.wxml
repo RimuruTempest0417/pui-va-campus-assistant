@@ -1,0 +1,88 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view
+    class="page-scroll"
+    scroll-y
+    bounces
+    show-scrollbar="{{false}}"
+    enhanced="{{true}}"
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+  >
+    <view class="list-inner">
+      <view class="toolbar">
+        <view class="search">
+          <input
+            class="search__input"
+            placeholder="{{L.k03}}"
+            placeholder-class="ui-placeholder"
+            value="{{keyword}}"
+            bindinput="onKeywordInput"
+            confirm-type="search"
+            bindconfirm="onSearch"
+          />
+          <text wx:if="{{keyword}}" class="search__clear" bindtap="onClearKeyword">✕</text>
+        </view>
+        <view class="toolbar__link" bindtap="goMine">
+          <text class="toolbar__link-text">{{L.k02}}</text>
+        </view>
+      </view>
+
+      <view class="chips">
+        <view
+          wx:for="{{tabs}}"
+          wx:key="key"
+          class="chip {{kind === item.key ? 'is-active' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onTabChange"
+        >{{item.label}}</view>
+      </view>
+
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="2" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="2" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{failed}}" title="{{L.k04}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k05}}</pv-button>
+      </pv-empty>
+
+      <pv-empty wx:elif="{{!items.length}}" title="{{keyword ? L.k15 : L.k06}}" desc="{{keyword ? L.k16 : L.k07}}" />
+
+      <view wx:else class="ui-list ui-list--grouped">
+        <view
+          wx:for="{{items}}"
+          wx:key="id"
+          class="ui-card ui-card--row {{index === items.length - 1 ? 'ui-card--last' : ''}} {{pressedId === item.id ? 'ui-card--pressed' : ''}}"
+          data-id="{{item.id}}"
+          bindtouchstart="onItemTouchStart"
+          bindtouchend="onItemTouchEnd"
+          bindtouchcancel="onItemTouchEnd"
+          bindtap="goDetail"
+        >
+          <view class="venue-row">
+            <view class="venue-mark"><text class="venue-mark__text">{{item.mark}}</text></view>
+            <view class="venue-main">
+              <view class="ui-row-between">
+                <text class="ui-title venue-title">{{item.name}}</text>
+                <pv-tag text="{{item.stateLabel}}" type="{{item.stateType}}" />
+              </view>
+              <text class="ui-meta venue-meta">{{item.metaText}}</text>
+              <view class="venue-foot">
+                <text class="ui-meta">{{item.subText}}</text>
+                <text wx:if="{{item.bookingText}}" class="ui-meta venue-count">{{item.bookingText}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="list-foot">
+        <text wx:if="{{loading}}">{{L.k17}}</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

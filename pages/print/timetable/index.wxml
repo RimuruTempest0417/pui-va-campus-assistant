@@ -1,0 +1,95 @@
+<view class="print-page page-root theme-light">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="print-inner">
+
+      <view wx:if="{{!preview}}" class="toolbar">
+        <view class="toolbar__row toolbar__row--tight">
+          <text class="toolbar__meta">{{L.k20}} {{filled}}{{L.k21}}</text>
+          <view class="toolbar__btns">
+            <pv-button size="sm" type="plain" bind:tap="togglePreview">{{L.k06}}</pv-button>
+            <pv-button size="sm" type="filled" disabled="{{busy}}" bind:tap="saveImage">{{L.k08}}</pv-button>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{preview}}" class="preview-bar" bindtap="togglePreview">
+        <text class="preview-bar__text">{{L.k07}}</text>
+      </view>
+
+      <block wx:if="{{loading}}">
+        <view class="sheet">
+          <pv-skeleton rows="6" />
+        </view>
+      </block>
+
+      <block wx:elif="{{failed}}">
+        <pv-empty tone="warning" title="{{L.k13}}" desc="{{errorText}}">
+          <pv-button size="sm" type="tinted" bind:tap="retry">{{L.k14}}</pv-button>
+        </pv-empty>
+      </block>
+
+      <block wx:elif="{{empty}}">
+        <pv-empty title="{{L.k15}}" desc="{{L.k16}}" />
+      </block>
+
+      <block wx:else>
+        <view class="sheet">
+          <view class="sheet__head">
+            <text class="sheet__title">{{sheetTitle}}</text>
+            <text class="sheet__sub">{{weekText}}　{{L.k05}} {{dateText}}</text>
+          </view>
+
+          <view class="grid">
+            <view class="grow grow--head">
+              <view class="gc gc--no">
+                <text class="gc__label">{{L.k03}}</text>
+              </view>
+              <view
+                wx:for="{{weekdays}}"
+                wx:key="weekday"
+                wx:for-index="ci"
+                class="gc gc--day {{ci === weekdays.length - 1 ? 'gc--end' : ''}}"
+              >
+                <text class="gc__label">{{item.label}}</text>
+              </view>
+            </view>
+
+            <view
+              wx:for="{{rows}}"
+              wx:key="period"
+              wx:for-item="row"
+              wx:for-index="ri"
+              class="grow {{ri === rows.length - 1 ? 'grow--last' : ''}}"
+            >
+              <view class="gc gc--no">
+                <text class="gc__period">{{row.period}}</text>
+                <text class="gc__time">{{row.timeText}}</text>
+              </view>
+              <view
+                wx:for="{{row.cells}}"
+                wx:key="weekday"
+                wx:for-item="cell"
+                wx:for-index="ci"
+                class="gc gc--day {{ci === row.cells.length - 1 ? 'gc--end' : ''}}"
+              >
+                <block wx:if="{{!cell.empty}}">
+                  <text class="gc__subject">{{cell.subject}}</text>
+                  <text wx:if="{{cell.room}}" class="gc__meta">{{cell.room}}</text>
+                  <text wx:if="{{cell.teacher}}" class="gc__meta">{{cell.teacher}}</text>
+                </block>
+              </view>
+            </view>
+          </view>
+
+          <view class="sheet__foot">
+            <text class="sheet__foot-text">{{L.k19}}</text>
+            <text class="sheet__foot-text">{{dateText}}</text>
+          </view>
+        </view>
+      </block>
+
+    </view>
+  </scroll-view>
+</view>

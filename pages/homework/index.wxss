@@ -1,0 +1,193 @@
+@import "../../styles/tokens.wxss";
+@import "../../styles/ui.wxss";
+
+.hw-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+
+.hw-head {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: var(--pv-sp-2);
+  margin-bottom: var(--pv-sp-2);
+}
+.hw-head__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4rpx; }
+.hw-head__class { font-size: var(--pv-fs-title-2); color: var(--pv-label); }
+.hw-head__stats { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+
+/* 分段控制：三段等寬、最小可點高度 88rpx */
+.hw-seg {
+  display: flex;
+  flex-direction: row;
+  gap: 4rpx;
+  padding: 4rpx;
+  margin-bottom: var(--pv-sp-2);
+  border-radius: var(--pv-r-pill);
+  background: var(--pv-fill);
+}
+.hw-seg__item {
+  flex: 1;
+  min-height: 68rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--pv-r-pill);
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-label-2);
+}
+.hw-seg__item.is-on { background: var(--pv-surface); color: var(--pv-label); }
+
+/* W-94 班級總覽：一張卡、2×2 數字、下面兩段用髮絲線分開（不做成一格一張卡） */
+.hw-ov { padding: var(--pv-sp-3); }
+.hw-ov__grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-top: var(--pv-sp-2);
+  border-top: 1rpx solid var(--pv-sep);
+}
+.hw-ov__cell {
+  width: 50%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+  padding: var(--pv-sp-2) 0;
+}
+.hw-ov__num { font-size: var(--pv-fs-title-3); color: var(--pv-label); }
+.hw-ov__label { font-size: var(--pv-fs-caption-1); color: var(--pv-label-2); }
+.hw-ov__block { margin-top: var(--pv-sp-2); border-top: 1rpx solid var(--pv-sep); padding-top: var(--pv-sp-2); }
+.hw-ov__caption {
+  display: block;
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-label-2);
+  letter-spacing: var(--pv-ls-section);
+  margin-bottom: 6rpx;
+}
+.hw-ov__line { display: flex; flex-direction: row; align-items: center; padding: 4rpx 0; }
+.hw-ov__line-text { flex: 1; min-width: 0; font-size: var(--pv-fs-footnote); color: var(--pv-label); }
+
+/* W-106：本班出席率（一列可點，原地展開每日明細；按壓回饋自己設 state，不用 hover-class） */
+.hw-att__head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--pv-sp-2);
+  min-height: 88rpx;
+  transition: transform 180ms cubic-bezier(.32, .72, 0, 1), opacity 180ms cubic-bezier(.32, .72, 0, 1);
+}
+.hw-att__head.is-pressed { transform: scale(0.96); opacity: 0.88; transition-duration: 60ms; }
+.hw-att__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2rpx; }
+.hw-att__title { font-size: var(--pv-fs-subhead); color: var(--pv-label); }
+.hw-att__sub { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+.hw-att__rate { flex-shrink: 0; font-size: var(--pv-fs-title-3); color: var(--pv-label); }
+.hw-att__detail { margin-top: 4rpx; }
+.hw-att__date { width: 96rpx; flex-shrink: 0; font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+.hw-att__worst { margin-top: var(--pv-sp-2); }
+.hw-att__hint { display: block; padding: 4rpx 0; font-size: var(--pv-fs-caption-1); color: var(--pv-tint); }
+
+/* 一列＝一項功課：整個 row 都是可點區域（打勾），不做成一項一張卡 */
+.hw-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--pv-sp-2);
+  min-height: 88rpx;
+  padding: var(--pv-sp-2) 0;
+  opacity: 1;
+  transition: opacity 60ms var(--pv-ease);
+}
+.hw-row.is-pressed { opacity: 0.6; }
+
+/* 打勾圓環：CSS 畫的，不用 emoji、也不用圖片 */
+.hw-tick {
+  flex-shrink: 0;
+  width: 48rpx;
+  height: 48rpx;
+  margin-top: 4rpx;
+  border-radius: 50%;
+  border: 2rpx solid var(--pv-label-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hw-tick.is-done { background: var(--pv-tint); border-color: var(--pv-tint); }
+.hw-tick__mark { font-size: 28rpx; color: var(--pv-on-tint); }
+
+.hw-row__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4rpx; }
+.hw-row__title { word-break: break-all; }
+.hw-row__title.is-done { color: var(--pv-label-3); text-decoration: line-through; }
+.hw-row__foot { display: flex; flex-direction: row; align-items: center; gap: var(--pv-sp-2); flex-wrap: wrap; }
+.hw-row__due { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+.hw-row__due.is-overdue { color: var(--pv-brand); }
+
+.hw-del {
+  margin-left: auto;
+  flex-shrink: 0;
+  min-height: 56rpx;
+  padding: 0 var(--pv-sp-2);
+  display: flex;
+  align-items: center;
+}
+.hw-del__text { font-size: var(--pv-fs-footnote); color: var(--pv-label-3); }
+.hw-row__count { font-size: var(--pv-fs-footnote); color: var(--pv-tint); }
+.hw-row__pending { margin-top: 4rpx; font-size: var(--pv-fs-footnote); color: var(--pv-label-2); word-break: break-all; }
+
+/* W-84 附件連結：一行一條、可點（tap＝複製），用淡底 chip 不用卡片 */
+.hw-links { display: flex; flex-direction: column; gap: 6rpx; margin-top: 2rpx; }
+.hw-link {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-height: 56rpx;
+  padding: 0 var(--pv-sp-2);
+  border-radius: var(--pv-r-sm);
+  background: var(--pv-fill);
+}
+.hw-link__text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--pv-fs-footnote);
+  color: var(--pv-tint);
+  word-break: break-all;
+}
+
+.hw-foot { margin-top: var(--pv-sp-4); display: flex; flex-direction: row; gap: var(--pv-sp-2); }
+
+/* 出功課彈層：底部對齊、帶抓手 */
+.hw-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--pv-scrim);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.hw-sheet__panel {
+  background: var(--pv-surface);
+  border-radius: var(--pv-r-lg) var(--pv-r-lg) 0 0;
+  padding: var(--pv-sp-3) var(--pv-sp-3) var(--pv-sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pv-sp-2);
+}
+.hw-sheet__head { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.hw-sheet__title { font-size: var(--pv-fs-title-3); color: var(--pv-label); }
+.hw-sheet__cancel { font-size: var(--pv-fs-body); color: var(--pv-tint); padding: var(--pv-sp-1); }
+
+.hw-field { display: flex; flex-direction: column; gap: 6rpx; }
+.hw-field__label { font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+.hw-input {
+  min-height: 88rpx;
+  padding: 0 var(--pv-sp-2);
+  border-radius: var(--pv-r-sm);
+  background: var(--pv-fill);
+  font-size: var(--pv-fs-body);
+  color: var(--pv-label);
+}
+.hw-input--picker { display: flex; align-items: center; }
+.hw-input--area { width: 100%; box-sizing: border-box; min-height: 120rpx; padding: var(--pv-sp-2); line-height: 1.4; }
+
+.hw-sheet__actions { margin-top: var(--pv-sp-2); display: flex; flex-direction: row; gap: var(--pv-sp-2); }

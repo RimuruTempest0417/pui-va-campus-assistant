@@ -6,6 +6,14 @@ module.exports = {
     // 學生／家長也用這支（/auth/login）；教職員登入後照樣進後台，由 role 分流
     return http.post('/auth/password', { account: account, password: password, code: code || undefined }, { auth: false });
   },
+  /**
+   * 家校通帳密直接登入：不需要微信授權，也不需要管理員先開帳號。
+   * 後端會先向家校通驗證，通過才建立／對應本系統使用者（openid = sc:<帳號>）。
+   * 密碼只在這次請求裡用掉，不會存到後端資料庫。
+   */
+  schoolLogin(account, password) {
+    return http.post('/auth/school', { account: account, password: password }, { auth: false });
+  },
   stats() {
     return http.get('/admin/stats');
   },
@@ -80,6 +88,10 @@ module.exports = {
   menuWeek(weekStart) {
     return http.get('/admin/menu', weekStart ? { weekStart: weekStart } : {});
   },
+  /** W-101 菜單評分統計：平均分／人數／1–2 分比例（後端算好，前端只顯示） */
+  menuStats(days) {
+    return http.get('/admin/menu/stats', days ? { days: days } : {});
+  },
   deleteMenuEntry(id) {
     return http.del('/admin/menu/' + id);
   },
@@ -91,6 +103,20 @@ module.exports = {
   },
   users(query) {
     return http.get('/admin/users', query || {});
+  },
+  /**
+   * W-86 班級名單：班級不是一張表，而是 `User.className` 的集合視圖。
+   * 回 `{ items: [{ className, students, hasTimetable, hasHomework }], unassigned, total }`。
+   */
+  classes() {
+    return http.get('/admin/classes');
+  },
+  /** 批次指派／移出（action: 'ADD' | 'REMOVE'） */
+  assignClass(className, userIds, action) {
+    return http.post('/admin/classes/' + encodeURIComponent(className) + '/members', {
+      userIds: userIds,
+      action: action || 'ADD',
+    });
   },
   setRole(id, role) {
     return http.patch('/admin/users/' + id + '/role', { role: role });
@@ -197,8 +223,11 @@ module.exports = {
   schoolStudents(q) {
     return http.get('/admin/school/students', q ? { q: q } : {});
   },
-  schoolGrades(studentId) {
-    return http.get('/admin/school/grades', { studentId: studentId });
+  schoolGrades(studentId, q) {
+    const query = { studentId: studentId };
+    if (q && q.yearTerm) query.yearTerm = q.yearTerm;
+    if (q && q.term) query.term = q.term;
+    return http.get('/admin/school/grades', query);
   },
   schoolGradeCreate(body) {
     return http.post('/admin/school/grades', body);
@@ -213,8 +242,17 @@ module.exports = {
   schoolGradeDelete(id) {
     return http.del('/admin/school/grades/' + id);
   },
-  schoolAttendance(studentId) {
-    return http.get('/admin/school/attendance', { studentId: studentId });
+  schoolAttendance(studentId, q) {
+    const query = { studentId: studentId };
+    if (q && q.yearTerm) query.yearTerm = q.yearTerm;
+    return http.get('/admin/school/attendance', query);
+  },
+  /** 出席率月報（W-95）：後端聚合，回全校＋按班級＋按日；`month` 是 2026-11 這種格式 */
+  schoolAttendanceMonthly(month, yearTerm) {
+    const query = {};
+    if (month) query.month = month;
+    if (yearTerm) query.yearTerm = yearTerm;
+    return http.get('/admin/school/attendance/monthly', query);
   },
   schoolAttendCreate(body) {
     return http.post('/admin/school/attendance', body);
@@ -235,5 +273,155 @@ module.exports = {
   },
   twoFactorDisable(password) {
     return http.post('/admin/2fa/disable', { password: password });
+  },
+
+  // ── W-66 圖書館（館藏與借閱紀錄）──
+  libraryBooks(query) {
+    return http.get('/admin/library/books', query || {});
+  },
+  libraryBookCreate(payload) {
+    return http.post('/admin/library/books', payload);
+  },
+  libraryBookUpdate(id, payload) {
+    return http.patch('/admin/library/books/' + id, payload);
+  },
+  libraryBookArchive(id, archived) {
+    return http.post('/admin/library/books/' + id + '/archive', { archived: archived });
+  },
+  libraryBookDelete(id) {
+    return http.del('/admin/library/books/' + id);
+  },
+  libraryLoans(query) {
+    return http.get('/admin/library/loans', query || {});
+  },
+  libraryReturn(loanId) {
+    return http.post('/admin/library/loans/' + loanId + '/return', {});
+  },
+  libraryRemind() {
+    return http.post('/admin/library/remind', {});
+  },
+
+  // ── W-67 場地／器材（與前台共用同一組端點；後端能力守衛自己會擋）──
+  resourcePending() {
+    return http.get('/resources/pending');
+  },
+  resourceReview(id, body) {
+    return http.patch('/resources/bookings/' + id, body);
+  },
+  resourcesAll() {
+    return http.get('/resources/all');
+  },
+  resourceCreate(body) {
+    return http.post('/resources', body);
+  },
+  resourceUpdate(id, body) {
+    return http.patch('/resources/' + id, body);
+  },
+  resourceArchive(id) {
+    return http.del('/resources/' + id);
+  },
+  // W-68 二手書／校服轉贈：後台只有「下架」與「重新上架」兩種操作
+  giveaways(status) {
+    return http.get('/admin/giveaways', status && status !== 'all' ? { status: status } : {});
+  },
+  setGiveawayStatus(id, status) {
+    return http.post('/giveaways/' + id + '/status', { status: status });
+  },
+
+  // ── W-72 請假申請：待審清單與審批（能力 leave:review：老師／校務處）──
+  leaves(status) {
+    return http.get('/admin/leaves', status ? { status: status } : {});
+  },
+  reviewLeave(id, body) {
+    return http.patch('/admin/leaves/' + id, body);
+  },
+
+  // ── W-73 班級課表（校內職員）──
+  timetableAll() {
+    return http.get('/admin/timetable');
+  },
+  saveTimetableSlot(body) {
+    return http.post('/admin/timetable', body);
+  },
+  deleteTimetableSlot(id) {
+    return http.del('/admin/timetable/' + id);
+  },
+  importTimetable(body) {
+    return http.post('/admin/timetable/import', body);
+  },
+
+  // ── W-77 功課後台：跨班一覽、未交名單、收回（能力 homework:manage：資訊管理員以上）──
+  homeworkAll(params) {
+    const q = params || {};
+    const query = {};
+    if (q.className) query.className = q.className;
+    if (q.scope && q.scope !== 'all') query.scope = q.scope;
+    // W-84：完成率趨勢要看幾天（後端預設 7、上限 30）
+    if (q.days) query.days = q.days;
+    return http.get('/admin/homework', query);
+  },
+  homeworkPending(id) {
+    return http.get('/homework/' + id + '/pending');
+  },
+  /** 收回＝軟刪除（回收桶看得到、審計有紀錄）；不是真的刪掉 */
+  deleteHomework(id) {
+    return http.del('/homework/' + id);
+  },
+
+  // ── W-81 示範資料一鍵匯入／清除（能力 system:config：只有最高權限）──
+  /** 目前有多少示範資料（按鈕旁顯示「場地 5 · 館藏 6 · 課表 35 格」） */
+  demoSummary() {
+    return http.get('/admin/demo-data');
+  },
+  /** kind = venues|library|timetable|all；action = SEED|CLEAR */
+  demoData(kind, action, className) {
+    const body = { kind: kind, action: action };
+    if (className) body.className = className;
+    return http.post('/admin/demo-data', body);
+  },
+
+  // ── W-88 校園提案後台（能力 proposal:reply：校內職員以上）──
+  proposalsAll(params) {
+    const q = params || {};
+    const query = {};
+    if (q.status && q.status !== 'ALL') query.status = q.status;
+    if (q.category) query.category = q.category;
+    if (q.q) query.q = q.q;
+    return http.get('/admin/proposals', query);
+  },
+  /** 回覆會同時改狀態，並通知提案人與所有連署人（後端一次做完） */
+  replyProposal(id, body) {
+    return http.post('/admin/proposals/' + id + '/reply', body);
+  },
+  /** 下架＝軟刪除，回收桶救得回來 */
+  removeProposal(id) {
+    return http.del('/proposals/' + id);
+  },
+
+  // ── W-89 課室設備報修後台（能力 repair:handle：總務／校務處）──
+  repairs(params) {
+    const q = params || {};
+    const query = {};
+    query.status = q.status || 'PENDING';
+    if (q.location) query.location = q.location;
+    if (q.q) query.q = q.q;
+    return http.get('/admin/repairs', query);
+  },
+  /** 接單：後端條件式更新，被別人接走時回 409（前端只提示，不重試） */
+  acceptRepair(id) {
+    return http.post('/admin/repairs/' + id + '/accept', {});
+  },
+  finishRepair(id, body) {
+    return http.post('/admin/repairs/' + id + '/done', body || {});
+  },
+  repairStats() {
+    return http.get('/admin/repairs/stats');
+  },
+  /**
+   * W-113 審批時效：假單／場地器材／報修三組同一把尺。
+   * 回的是「近 N 天送出的單，我們多快處理完」，沒有樣本時各時數是 null（不是 0）。
+   */
+  approvalStats(days) {
+    return http.get('/admin/approvals/stats', days ? { days: days } : {});
   },
 };

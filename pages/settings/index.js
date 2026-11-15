@@ -7,6 +7,14 @@ const roleLabel = require('../../utils/role').label;
 const adminApi = require('../../services/admin');
 const reporter = require('../../utils/reporter');
 
+/**
+ * W-110 訂閱校曆的天數（30／90／180）。存 storage：重新編譯、換頁再回來都還在。
+ * 刻意只給三個選項而不是自由輸入：日曆看多遠是「習慣」不是「參數」，
+ * 三個夠用，也不會有人填 100000 天讓後端每次抓整個學年。
+ */
+const CAL_DAYS_KEY = 'pv_cal_days';
+const CAL_DAYS = [30, 90, 180];
+
 Page({
   labels() {
     return {
@@ -55,6 +63,42 @@ Page({
       k50: i18n.pick("依身分看操作步驟（學生／家長／老師／管理員）"),
       k53: i18n.pick("回報問題"),
       k54: i18n.pick("按鈕沒反應、畫面怪，寫一句話告訴管理員"),
+      // ── W-102 我的資料（個資自主：自己的紀錄自己帶走）──
+      k55: i18n.pick("我的資料"),
+      k56: i18n.pick("成績"),
+      k57: i18n.pick("出缺席"),
+      k58: i18n.pick("借閱"),
+      k59: i18n.pick("請假"),
+      k60: i18n.pick("複製成 CSV 文字，貼到記事本或表格軟體就能存檔；只包含你自己的紀錄。"),
+      k61: i18n.pick("已複製"),
+      k62: i18n.pick("複製"),
+      k63: i18n.pick("匯出中…"),
+      k64: i18n.pick("匯出失敗"),
+      k65: i18n.pick("列"),
+      k66: i18n.pick("還沒有資料"),
+      // ── W-109 訂閱校曆（把校曆放進手機內建日曆）──
+      k67: i18n.pick("訂閱校曆"),
+      k68: i18n.pick("校曆訂閱"),
+      k69: i18n.pick("未開啟。產生一組網址，貼進手機日曆的「訂閱行事曆」就好。"),
+      k70: i18n.pick("已開啟。日曆 App 每隔幾小時會自己回來更新，不必再打開小程序。"),
+      k71: i18n.pick("產生網址"),
+      k72: i18n.pick("已開啟"),
+      k73: i18n.pick("複製訂閱網址"),
+      k74: i18n.pick("複製"),
+      k75: i18n.pick("重新產生"),
+      k76: i18n.pick("舊網址會立刻失效"),
+      k77: i18n.pick("停止訂閱"),
+      k78: i18n.pick("撤銷"),
+      k79: i18n.pick("這條網址等於一把鑰匙：只給自己的裝置用，不要貼到群組。重新產生或停止訂閱之後，舊網址立刻失效。"),
+      k80: i18n.pick("示範模式沒有真的日曆網址，關掉示範資料後再產生。"),
+      k81: i18n.pick("產生中…"),
+      k82: i18n.pick("已複製訂閱網址"),
+      // ── W-110 訂閱範圍（天數）＋借閱／借用也在日曆裡 ──
+      k83: i18n.pick("訂閱範圍"),
+      k84: i18n.pick("日曆上要看多遠。改完不必重新產生網址，日曆 App 下次抓取就換成新的範圍。"),
+      k85: i18n.pick("30 天"),
+      k86: i18n.pick("90 天"),
+      k87: i18n.pick("180 天"),
 
     };
   },
@@ -83,6 +127,15 @@ Page({
     tfaPassword: '',
     tfaBusy: false,
     tfa2faUrl: 'https://pui-va-campus-server.vercel.app/admin/2fa-ui',
+    // W-102：正在匯出的那一類（四個按鈕共用一個鎖，避免連點疊出四份檔案）
+    exporting: '',
+    // W-109 訂閱校曆：權杖狀態與忙碌鎖（產生／重新產生／撤銷共用）
+    calToken: { enabled: false, path: null },
+    calUrl: '',
+    calBusy: false,
+    // W-110 訂閱範圍（天數）：30／90／180 三選一，預設 90
+    calDays: 90,
+    calDayOptions: [],
   },
 
   onLoad() {
@@ -108,13 +161,49 @@ Page({
         { key: 'zh-Hant', label: i18n.pick('繁體') },
         { key: 'zh-Hans', label: i18n.pick('簡體') },
       ],
+      calDayOptions: [
+        { key: 30, label: i18n.pick('30 天') },
+        { key: 90, label: i18n.pick('90 天') },
+        { key: 180, label: i18n.pick('180 天') },
+      ],
     };
   },
 
   onShow() {
-    this.setData(Object.assign({ L: this.labels() }, this.labelOptions()));
+    this.setData(Object.assign({ L: this.labels(), calDays: this.calDaysPref() }, this.labelOptions()));
     this.refresh();
     this.loadTwoFactor();
+    // 已登入才問訂閱狀態：訪客沒有權杖，問了只會多一條 401
+    if (this.data.loggedIn) this.loadCalendarToken();
+    else this.setData({ calToken: { enabled: false, path: null }, calUrl: '' });
+  },
+
+  /** W-110 訂閱範圍：讀 storage，只認 30／90／180，其餘一律回 90 */
+  calDaysPref() {
+    try {
+      const v = Number(wx.getStorageSync(CAL_DAYS_KEY));
+      if (CAL_DAYS.indexOf(v) !== -1) return v;
+    } catch (e) {
+      // 讀不到用預設
+    }
+    return 90;
+  },
+
+  /** 換天數：權杖不變，只是換一條帶 `days=` 的網址 */
+  async pickCalDays(e) {
+    const key = Number((e && e.currentTarget && e.currentTarget.dataset.key) || 0);
+    if (CAL_DAYS.indexOf(key) === -1 || key === this.data.calDays || this.data.calBusy) return;
+    this.setData({ calDays: key, calBusy: true });
+    try {
+      wx.setStorageSync(CAL_DAYS_KEY, key);
+      this.applyCalendarToken(await data.calendarToken(key));
+    } catch (err) {
+      // 讀不到就留在原本的範圍：這一列只是顯示設定，不該為它彈錯
+      reporter.reportError('[settings.pickCalDays] ' + (data.messageOf ? data.messageOf(err) : ''));
+      this.setData({ calDays: this.calDaysPref() });
+    } finally {
+      this.setData({ calBusy: false });
+    }
   },
 
   refresh() {
@@ -204,6 +293,147 @@ Page({
     } finally {
       this.setData({ tfaBusy: false });
     }
+  },
+
+  /**
+   * W-102 個資自主：匯出自己的成績／出缺席／借閱／請假
+   *
+   * 小程序不能下載 CSV（`wx.openDocument` 不支援），所以走「複製內容」：
+   * 使用者貼到記事本或表格軟體就能存檔，也不需要任何檔案權限。
+   * 家長匯出的是綁定的那位子女 —— 後端用 parent_links 反查，前端不傳任何 id。
+   */
+  async exportMy(e) {
+    const type = (e && e.currentTarget && e.currentTarget.dataset.type) || '';
+    const L = this.data.L || {};
+    if (!type || this.data.exporting) return;
+    const nameOf = { grades: L.k56, attendance: L.k57, library: L.k58, leaves: L.k59 };
+    this.setData({ exporting: type });
+    try {
+      const text = String((await data.myExport(type)) || '');
+      const lines = text.replace(/^\uFEFF/, '').split('\r\n').filter((line) => line !== '');
+      const count = Math.max(0, lines.length - 1);
+      if (!count) {
+        wx.showToast({ title: L.k66 || L.k64 || '', icon: 'none' });
+        return;
+      }
+      await new Promise((resolve, reject) => {
+        wx.setClipboardData({ data: text, success: resolve, fail: reject });
+      });
+      wx.showToast({ title: (L.k61 || '') + (nameOf[type] || '') + ' ' + count + (L.k65 || ''), icon: 'none' });
+    } catch (err) {
+      const msg = data.messageOf ? data.messageOf(err) : '';
+      reporter.reportError('[settings.exportMy] ' + (msg || ''));
+      wx.showToast({ title: L.k64 || '', icon: 'none' });
+    } finally {
+      this.setData({ exporting: '' });
+    }
+  },
+
+  /**
+   * W-109 訂閱校曆：把「全校公告與活動 ＋ 我的報名／假單／功課截止」放進手機內建日曆。
+   *
+   * 為什麼是網址而不是檔案：日曆 App 訂閱一份網址之後會自己回來更新（每幾小時），
+   * 而 `.ics` 下載一次就永遠停在那一刻。代價是網址裡帶著權杖，所以它必須能一鍵撤銷 ——
+   * 這也是「重新產生」要讓舊網址立刻失效的原因。
+   */
+  async loadCalendarToken() {
+    try {
+      const r = await data.calendarToken(this.data.calDays || 90);
+      this.applyCalendarToken(r);
+    } catch (e) {
+      // 讀不到就維持「未開啟」：這一列只是設定頁的一個選項，不該為它彈錯
+      this.setData({ calToken: { enabled: false, path: null }, calUrl: '' });
+    }
+  },
+
+  applyCalendarToken(r) {
+    const info = r || {};
+    const path = info.path ? String(info.path) : '';
+    const base = String(request.apiBase() || '').replace(/\/+$/, '');
+    const days = CAL_DAYS.indexOf(Number(info.days)) !== -1 ? Number(info.days) : this.data.calDays || 90;
+    if (days !== this.data.calDays) {
+      try {
+        wx.setStorageSync(CAL_DAYS_KEY, days);
+      } catch (e) {
+        // storage 不可用只影響下次開啟時的預設值
+      }
+    }
+    this.setData({
+      calToken: { enabled: !!info.enabled, path: path },
+      calDays: days,
+      // 示範模式產生的網址指不到任何東西，不要讓它看起來像真的可以訂閱
+      calUrl: info.enabled && path && !this.data.isDemo ? base + path : '',
+    });
+  },
+
+  /** 第一次產生（已開啟時不做事：重新產生是另一顆按鈕，要按的人明確知道舊網址會失效） */
+  async ensureCalendarToken() {
+    if (this.data.calBusy) return;
+    if (this.data.calToken && this.data.calToken.enabled) return;
+    this.setData({ calBusy: true });
+    try {
+      this.applyCalendarToken(await data.rotateCalendarToken(this.data.calDays || 90));
+    } catch (e) {
+      reporter.reportError('[settings.calendarToken] ' + (data.messageOf ? data.messageOf(e) : ''));
+      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+    } finally {
+      this.setData({ calBusy: false });
+    }
+  },
+
+  async rotateCalendarToken() {
+    if (this.data.calBusy) return;
+    const L = this.data.L || {};
+    const ok = await this.confirmCalendar(L.k75 || '', L.k76 || '');
+    if (!ok) return;
+    this.setData({ calBusy: true });
+    try {
+      this.applyCalendarToken(await data.rotateCalendarToken(this.data.calDays || 90));
+    } catch (e) {
+      reporter.reportError('[settings.calendarRotate] ' + (data.messageOf ? data.messageOf(e) : ''));
+      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+    } finally {
+      this.setData({ calBusy: false });
+    }
+  },
+
+  async revokeCalendarToken() {
+    if (this.data.calBusy) return;
+    const L = this.data.L || {};
+    const ok = await this.confirmCalendar(L.k77 || '', L.k76 || '');
+    if (!ok) return;
+    this.setData({ calBusy: true });
+    try {
+      await data.revokeCalendarToken();
+      this.setData({ calToken: { enabled: false, path: null }, calUrl: '' });
+    } catch (e) {
+      reporter.reportError('[settings.calendarRevoke] ' + (data.messageOf ? data.messageOf(e) : ''));
+      wx.showToast({ title: data.messageOf(e), icon: 'none' });
+    } finally {
+      this.setData({ calBusy: false });
+    }
+  },
+
+  copyCalendarUrl() {
+    const url = String(this.data.calUrl || '');
+    if (!url) return;
+    const L = this.data.L || {};
+    wx.setClipboardData({
+      data: url,
+      success: () => wx.showToast({ title: L.k82 || '', icon: 'none' }),
+    });
+  },
+
+  /** 一律用原生 showModal：自製的「再按一次」在 Skyline 下第二次點擊落不到同一顆按鈕 */
+  confirmCalendar(title, content) {
+    return new Promise((resolve) => {
+      wx.showModal({
+        title: String(title || ''),
+        content: String(content || ''),
+        success: (res) => resolve(!!(res && res.confirm)),
+        fail: () => resolve(false),
+      });
+    });
   },
 
   goNotifications() {

@@ -429,14 +429,28 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
   const { readFileSync } = await import('node:fs');
   const tokenText = readFileSync(join(root, 'styles/tokens.wxss'), 'utf8');
   const themeText = readFileSync(join(root, 'utils/theme.js'), 'utf8');
-  const pairs = [['tint', '--pv-tint'], ['brand', '--pv-brand'], ['danger', '--pv-danger'], ['onTint', '--pv-on-tint']];
+  // hex（tint／brand／danger／onTint／surface／ink）與 rgba（inkSoft／rule）都收：
+  // canvas 只能吃字面色值，少比對一個就等於容許它跟 tokens 漂移。
+  const pairs = [
+    ['tint', '--pv-tint'],
+    ['brand', '--pv-brand'],
+    ['danger', '--pv-danger'],
+    ['onTint', '--pv-on-tint'],
+    ['surface', '--pv-surface'],
+    ['ink', '--pv-label'],
+    ['inkSoft', '--pv-label-2'],
+    ['rule', '--pv-sep'],
+  ];
+  const norm = (s) => String(s).toLowerCase().replace(/\s+/g, '');
   for (const [key, varName] of pairs) {
-    const tm = tokenText.match(new RegExp(varName + '\\s*:\\s*(#[0-9a-fA-F]{3,8})'));
-    const jm = themeText.match(new RegExp('\\b' + key + "\\s*:\\s*'(#[0-9a-fA-F]{3,8})'"));
+    const tm = tokenText.match(new RegExp(varName + '\\s*:\\s*([^;]+);'));
+    const jm = themeText.match(new RegExp('\\b' + key + "\\s*:\\s*'([^']+)'"));
     if (!tm) { errors.push('tokens.wxss 找不到 ' + varName); continue; }
-    if (!jm) { errors.push('utils/theme.js 沒有 ' + key + '（應為 ' + tm[1] + '）'); continue; }
-    if (tm[1].toLowerCase() !== jm[1].toLowerCase()) {
-      errors.push('utils/theme.js 的 ' + key + '=' + jm[1] + ' 與 tokens.wxss 的 ' + varName + '=' + tm[1] + ' 不一致');
+    if (!jm) { errors.push('utils/theme.js 沒有 ' + key + '（應為 ' + tm[1].trim() + '）'); continue; }
+    // tokens 那一行常帶註解，只比對值本身
+    const tv = tm[1].replace(/\/\*[\s\S]*?\*\//g, '').trim();
+    if (norm(tv) !== norm(jm[1])) {
+      errors.push('utils/theme.js 的 ' + key + '=' + jm[1] + ' 與 tokens.wxss 的 ' + varName + '=' + tv + ' 不一致');
     }
   }
 }
@@ -817,6 +831,36 @@ if (!ignored.some((i) => i.value === 'README.md')) warnings.push('project.config
         } else if (!allowed.includes(verb)) {
           errors.push(`${rel} 呼叫 ${alias}.${verb}(…) 但 utils/request.js 沒有匯出 ${verb}（可用：${allowed.join('／')}）`);
         }
+      }
+    }
+  }
+}
+
+// 23) 後台分頁三向一致：TABS ↔ WXML 區塊 ↔ ROLE_TABS（W-77）
+//     實測過的錯法：加了 TABS 但忘了寫 <block wx:elif="{{tab === 'x'}}">，那一頁點下去是一片空白，
+//     編譯、console、其他守門全部綠；反過來（有區塊沒入口）就是永遠看不到的死代碼。
+{
+  const adminJs = join(root, 'pages/admin/index/index.js');
+  const adminWxml = join(root, 'pages/admin/index/index.wxml');
+  if (existsSync(adminJs) && existsSync(adminWxml)) {
+    const js = readFileSync(adminJs, 'utf8');
+    const wxml = readFileSync(adminWxml, 'utf8');
+    const tabsM = js.match(/const TABS = \[([\s\S]*?)\n\];/);
+    const keys = tabsM ? [...tabsM[1].matchAll(/key:\s*'([a-zA-Z]+)'/g)].map((m) => m[1]) : [];
+    const roleM = js.match(/const ROLE_TABS = \{([\s\S]*?)\n\};/);
+    const roleText = roleM ? roleM[1] : '';
+    const blocks = new Set([...wxml.matchAll(/tab === '([a-zA-Z]+)'/g)].map((m) => m[1]));
+    for (const k of keys) {
+      if (!blocks.has(k)) {
+        errors.push(`後台分頁「${k}」在 TABS 有、WXML 沒有對應區塊（tab === '${k}'）→ 點下去整頁空白`);
+      }
+      if (!roleText.includes(`'${k}'`)) {
+        errors.push(`後台分頁「${k}」沒有任何角色看得到（ROLE_TABS）→ 永遠進不去的死代碼`);
+      }
+    }
+    for (const b of blocks) {
+      if (!keys.includes(b)) {
+        errors.push(`後台 WXML 有分頁區塊「${b}」但 TABS 沒有登記 → 永遠顯示不到`);
       }
     }
   }

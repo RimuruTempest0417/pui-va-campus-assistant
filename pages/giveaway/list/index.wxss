@@ -1,0 +1,88 @@
+@import "../../../styles/tokens.wxss";
+@import "../../../styles/ui.wxss";
+
+.list-inner { padding: var(--pv-sp-2) var(--pv-sp-3) var(--pv-sp-6); }
+
+.toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--pv-sp-2);
+}
+.search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: var(--pv-surface);
+  border-radius: var(--pv-r);
+  padding: 0 var(--pv-sp-2);
+  height: 76rpx;
+}
+.search__input { flex: 1; min-width: 0; font-size: var(--pv-fs-subhead); }
+.search__clear { color: var(--pv-label-3); padding: 0 6rpx; font-size: 24rpx; }
+
+.toolbar__link {
+  flex-shrink: 0;
+  height: 76rpx;
+  padding: 0 var(--pv-sp-3);
+  border-radius: var(--pv-r);
+  background: var(--pv-fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.toolbar__link-text { font-size: var(--pv-fs-subhead); font-weight: 600; color: var(--pv-tint); }
+
+.chips { display: flex; flex-direction: row; flex-wrap: wrap; gap: var(--pv-sp-2); margin-top: var(--pv-sp-2); }
+.chip {
+  flex-shrink: 0;
+  font-size: var(--pv-fs-subhead);
+  color: var(--pv-label-2);
+  background: var(--pv-surface);
+  border-radius: var(--pv-r-pill);
+  padding: 8rpx var(--pv-sp-3);
+}
+.chip.is-active { background: var(--pv-tint); color: var(--pv-on-tint); font-weight: 600; }
+
+.gv-row { display: flex; flex-direction: row; align-items: flex-start; }
+.gv-main { flex: 1; min-width: 0; margin-left: var(--pv-sp-2); display: flex; flex-direction: column; }
+.gv-title { flex: 1; min-width: 0; margin-right: var(--pv-sp-2); }
+.gv-meta { margin-top: 6rpx; }
+.gv-owner { margin-top: 2rpx; }
+.gv-foot { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-top: 4rpx; }
+.gv-count { flex-shrink: 0; margin-left: var(--pv-sp-2); }
+
+/* 書／服／物單字徽章：一眼分得出種類，又不用 emoji */
+.gv-mark {
+  width: 72rpx;
+  height: 72rpx;
+  flex-shrink: 0;
+  border-radius: var(--pv-r-sm);
+  background: var(--pv-fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gv-mark__text { font-size: var(--pv-fs-title-3); font-weight: 600; color: var(--pv-tint); }
+
+.list-foot { text-align: center; color: var(--pv-label-3); font-size: var(--pv-fs-caption-1); padding: var(--pv-sp-2) 0 var(--pv-sp-6); }
+.empty-action { color: var(--pv-tint); font-weight: 600; }
+
+.fab {
+  position: fixed;
+  right: var(--pv-sp-3);
+  bottom: calc(var(--pv-sp-5) + env(safe-area-inset-bottom));
+  background: var(--pv-tint);
+  color: var(--pv-on-tint);
+  border-radius: var(--pv-r-pill);
+  padding: 0 var(--pv-sp-4);
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--pv-fs-headline);
+  font-weight: 600;
+  box-shadow: 0 8rpx 24rpx var(--pv-shadow-tint);
+}

@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "提出建議",
+  "usingComponents": {
+    "pv-navbar": "/components/pv-navbar/index",
+    "pv-button": "/components/pv-button/index"
+  },
+  "navigationStyle": "custom"
+}

@@ -55,6 +55,9 @@
   background: var(--pv-surface);
   border-radius: var(--pv-r-pill);
 }
+/* 類型篩選（W-75）：選中的那顆用淡紫底＋tint 字，與設定頁的分段控制同一個語彙 */
+.chip--on { background: var(--pv-tint-soft); color: var(--pv-tint); }
+.filters { margin: var(--pv-sp-2) 0 0; }
 
 .retry { margin-top: var(--pv-sp-2); }
 

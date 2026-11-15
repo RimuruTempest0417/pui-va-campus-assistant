@@ -1,0 +1,100 @@
+<view class="{{themeClass}} ui-page page-root">
+  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="tt-inner">
+      <!-- W-98：離線資料橫幅 -->
+      <view wx:if="{{offlineText}}" class="ui-offline">{{offlineText}}</view>
+      <view class="tt-head">
+        <view class="tt-head__main">
+          <text class="tt-head__class">{{className}}</text>
+          <text class="tt-head__date">{{weekdayLabel}} {{dateText}}</text>
+        </view>
+        <view class="tt-seg">
+          <view class="tt-seg__item {{mode === 'today' ? 'is-on' : ''}}" data-key="today" bindtap="switchMode">{{L.k02}}</view>
+          <view class="tt-seg__item {{mode === 'week' ? 'is-on' : ''}}" data-key="week" bindtap="switchMode">{{L.k03}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{className}}" class="tt-actions">
+        <pv-button size="sm" type="plain" bind:tap="openPrint">{{L.k17}}</pv-button>
+      </view>
+
+      <block wx:if="{{loading}}">
+        <view class="ui-list ui-list--grouped">
+          <view class="ui-card ui-card--row"><pv-skeleton rows="4" /></view>
+          <view class="ui-card ui-card--row"><pv-skeleton rows="4" /></view>
+          <view class="ui-card ui-card--row ui-card--last"><pv-skeleton rows="4" /></view>
+        </view>
+      </block>
+
+      <pv-empty wx:elif="{{failed}}" tone="warning" title="{{L.k11}}" desc="{{errorText}}">
+        <pv-button type="tinted" size="sm" bind:tap="retry">{{L.k12}}</pv-button>
+      </pv-empty>
+
+      <block wx:elif="{{mode === 'today'}}">
+        <pv-empty wx:if="{{!schoolDay}}" title="{{L.k06}}" desc="{{dayOffDesc}}" />
+
+        <block wx:elif="{{!todaySlots.length}}">
+          <pv-empty title="{{L.k08}}" desc="{{L.k10}}" />
+        </block>
+
+        <block wx:else>
+          <view wx:if="{{nextText}}" class="tt-next">
+            <text class="tt-next__label">{{L.k05}}</text>
+            <text class="tt-next__value">{{nextText}}</text>
+          </view>
+          <view wx:else class="tt-next">
+            <text class="tt-next__label">{{L.k05}}</text>
+            <text class="tt-next__value">{{L.k16}}</text>
+          </view>
+
+          <view class="ui-list ui-list--grouped">
+            <view
+              wx:for="{{todaySlots}}"
+              wx:key="id"
+              class="ui-card ui-card--row {{index === todaySlots.length - 1 ? 'ui-card--last' : ''}} {{item.period === currentPeriod ? 'is-current' : ''}}"
+            >
+              <view class="tt-row">
+                <view class="tt-row__no">
+                  <text class="tt-row__no-text">{{item.period}}</text>
+                </view>
+                <view class="tt-row__main">
+                  <view class="ui-row-between">
+                    <text class="ui-title tt-row__subject">{{item.subject}}</text>
+                    <pv-tag wx:if="{{item.period === currentPeriod}}" text="{{L.k04}}" type="tint" />
+                  </view>
+                  <text class="ui-meta">{{item.timeText}}{{item.room ? ' · ' + item.room : ''}}{{item.teacherName ? ' · ' + item.teacherName : ''}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </block>
+      </block>
+
+      <block wx:else>
+        <block wx:if="{{groups.length}}">
+          <view wx:for="{{groups}}" wx:for-item="group" wx:key="weekday" class="tt-day">
+            <view class="pv-group-title">{{group.label}}</view>
+            <view wx:if="{{group.slots.length}}" class="ui-list ui-list--grouped">
+              <view
+                wx:for="{{group.slots}}"
+                wx:key="id"
+                class="ui-card ui-card--row {{index === group.slots.length - 1 ? 'ui-card--last' : ''}}"
+              >
+                <view class="tt-row">
+                  <view class="tt-row__no"><text class="tt-row__no-text">{{item.period}}</text></view>
+                  <view class="tt-row__main">
+                    <text class="ui-title tt-row__subject">{{item.subject}}</text>
+                    <text class="ui-meta">{{item.timeText}}{{item.room ? ' · ' + item.room : ''}}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+            <pv-empty wx:else title="{{L.k08}}" desc="" />
+          </view>
+        </block>
+        <pv-empty wx:else title="{{L.k09}}" desc="{{L.k10}}" />
+      </block>
+    </view>
+  </scroll-view>
+</view>

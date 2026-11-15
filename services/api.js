@@ -61,6 +61,17 @@ module.exports = {
   parentChild(studentId) {
     return http.get('/parents/me/children/' + studentId);
   },
+  /** 子女的成績／出缺席（家長端專用；閘門在後端 parent-scope，未綁定 403） */
+  parentChildGrades(studentId, q) {
+    return http.get('/parents/me/children/' + studentId + '/grades', q || {});
+  },
+  parentChildAttendance(studentId, q) {
+    return http.get('/parents/me/children/' + studentId + '/attendance', q || {});
+  },
+  /** 用家長自己的家校通連結同步子女的成績（寫在子女身上；未連結後端回 422） */
+  parentChildSync(studentId) {
+    return http.post('/parents/me/children/' + studentId + '/sync', {});
+  },
   parentSignupEvent(studentId, eventId) {
     return http.post('/parents/me/children/' + studentId + '/events/' + eventId + '/signup', {});
   },
@@ -93,8 +104,10 @@ module.exports = {
     return http.get('/notices', query);
   },
   /** W-59 全校搜尋：公告／活動／失物一次搜（可見性規則在後端，前端不重算） */
-  search(q) {
-    return http.get('/search', { q: q });
+  search(q, opts) {
+    // W-75：頁面可以傳物件 { q, types }（類型篩選）；字串是老呼叫端
+    if (q && typeof q === 'object') return http.get('/search', q);
+    return http.get('/search', Object.assign({ q: q }, opts || {}));
   },
   getNotice(id) {
     return http.get('/notices/' + id);
@@ -120,15 +133,23 @@ module.exports = {
     });
   },
 
-  // ── W-34 站內通知 ──
-  notifications(unreadOnly) {
-    return http.get('/notifications', unreadOnly ? { unreadOnly: '1' } : {});
+  // ── W-34 站內通知（W-96 加分組） ──
+  notifications(opts) {
+    // 舊呼叫端傳的是 boolean（true＝只看未讀），新呼叫端傳物件；兩種都要吃
+    const o = opts && typeof opts === 'object' ? opts : { unreadOnly: !!opts };
+    const query = {};
+    if (o.unreadOnly) query.unreadOnly = '1';
+    if (o.group && o.group !== 'ALL') query.group = o.group;
+    return http.get('/notifications', query);
   },
-  notificationsUnread() {
-    return http.get('/notifications/unread-count');
+  notificationsUnread(group) {
+    return http.get('/notifications/unread-count', group && group !== 'ALL' ? { group } : {});
   },
   readNotifications(id) {
     return http.patch('/notifications/read', id ? { id } : {});
+  },
+  readAllNotifications(group) {
+    return http.patch('/notifications/read-all', group && group !== 'ALL' ? { group } : {});
   },
 
   // ── W-31 活動回饋 ──
@@ -174,4 +195,120 @@ module.exports = {
   schoolAttendance(q) { return http.get('/school/attendance', q || {}); },
   schoolManualGrade(body) { return http.post('/school/manual/grades', body); },
   schoolManualAttendance(body) { return http.post('/school/manual/attendance', body); },
+
+  // ── W-66 圖書館 ──
+  listBooks(query) { return http.get('/library/books', query); },
+  getBook(id) { return http.get('/library/books/' + id); },
+  /** 掃碼查書：查不到回 200 found:false（不是 404），前端顯示「登記新書」 */
+  lookupIsbn(isbn) { return http.get('/library/isbn/' + encodeURIComponent(isbn)); },
+  hotBooks() { return http.get('/library/hot'); },
+  borrowBook(payload) { return http.post('/library/loans', payload); },
+  myLoans() { return http.get('/library/loans/mine'); },
+  returnLoan(id) { return http.post('/library/loans/' + id + '/return', {}); },
+  renewLoan(id) { return http.post('/library/loans/' + id + '/renew', {}); },
+  cancelReservation(id) { return http.del('/library/reservations/' + id); },
+
+  // ── W-67 場地／器材借用 ──
+  listResources(query) { return http.get('/resources', query); },
+  getResource(id) { return http.get('/resources/' + id); },
+  myResourceBookings() { return http.get('/resources/bookings/mine'); },
+  createResourceBooking(id, payload) { return http.post('/resources/' + id + '/bookings', payload); },
+  cancelResourceBooking(id) { return http.del('/resources/bookings/' + id); },
+  // 審批（老師以上）
+  pendingResourceBookings() { return http.get('/resources/pending'); },
+  reviewResourceBooking(id, body) { return http.patch('/resources/bookings/' + id, body); },
+  // 資源管理（校內職員）
+  allResources() { return http.get('/resources/all'); },
+  createResource(body) { return http.post('/resources', body); },
+  updateResource(id, body) { return http.patch('/resources/' + id, body); },
+  archiveResource(id) { return http.del('/resources/' + id); },
+
+  // ── W-68 二手書／校服轉贈 ──
+  listGiveaways(query) { return http.get('/giveaways', query); },
+  getGiveaway(id) { return http.get('/giveaways/' + id); },
+  myGiveaways() { return http.get('/giveaways/mine'); },
+  createGiveaway(body) { return http.post('/giveaways', body); },
+  updateGiveaway(id, body) { return http.patch('/giveaways/' + id, body); },
+  /** 下架／重新上架（轉贈的「刪除」就是下架，不做硬刪） */
+  setGiveawayStatus(id, status) { return http.post('/giveaways/' + id + '/status', { status: status }); },
+  requestGiveaway(id, message) { return http.post('/giveaways/' + id + '/requests', { message: message }); },
+  cancelGiveawayRequest(id) { return http.del('/giveaways/requests/' + id); },
+  decideGiveawayRequest(id, action) { return http.patch('/giveaways/requests/' + id, { action: action }); },
+
+  // ── W-72 請假申請 ──
+  myLeaves() { return http.get('/leaves/mine'); },
+  createLeave(body) { return http.post('/leaves', body); },
+  cancelLeave(id) { return http.del('/leaves/' + id); },
+  // 批假單（老師／校務處）：待審清單與審批
+  adminLeaves(query) { return http.get('/admin/leaves', query); },
+  reviewLeave(id, body) { return http.patch('/admin/leaves/' + id, body); },
+
+  // ── W-73 班級課表 ──
+  timetable(query) { return http.get('/timetable', query || {}); },
+  timetableToday(query) { return http.get('/timetable/today', query || {}); },
+  // 管理（校內職員）：全部班級、單格 upsert／刪除、CSV 先檢查再匯入
+  adminTimetable() { return http.get('/admin/timetable'); },
+  saveTimetableSlot(body) { return http.post('/admin/timetable', body); },
+  deleteTimetableSlot(id) { return http.del('/admin/timetable/' + id); },
+  importTimetable(body) { return http.post('/admin/timetable/import', body); },
+
+  // ── W-76 功課清單（登入後才有班級；打勾是每人一列）──
+  listHomework(query) { return http.get('/homework', query || {}); },
+  createHomework(body) { return http.post('/homework', body); },
+  updateHomework(id, body) { return http.patch('/homework/' + id, body); },
+  removeHomework(id) { return http.del('/homework/' + id); },
+  markHomework(id) { return http.post('/homework/' + id + '/done', {}); },
+  unmarkHomework(id) { return http.del('/homework/' + id + '/done'); },
+  parentChildHomework(childId) { return http.get('/parents/me/children/' + childId + '/homework'); },
+  homeworkStats(query) { return http.get('/homework/stats', query || {}); },
+  homeworkPending(id) { return http.get('/homework/' + id + '/pending'); },
+  /** W-94：教師端班級總覽（班級由後端從帳號決定，前端不傳） */
+  classOverview(query) { return http.get('/teacher/class', query || {}); },
+  /** W-106：本班出席率月報（與後台月報同一份聚合，班級由後端從帳號決定） */
+  classAttendance(query) { return http.get('/teacher/class/attendance', query || {}); },
+
+  // ── W-88 校園提案（查詢訪客可看；提案／連署要登入；回覆是校內職員）──
+  listProposals(query) { return http.get('/proposals', query || {}); },
+  getProposal(id) { return http.get('/proposals/' + id); },
+  proposalSupports(id, query) { return http.get('/proposals/' + id + '/supports', query || {}); },
+  createProposal(body) { return http.post('/proposals', body); },
+  updateProposal(id, body) { return http.patch('/proposals/' + id, body); },
+  supportProposal(id) { return http.post('/proposals/' + id + '/support', {}); },
+  unsupportProposal(id) { return http.del('/proposals/' + id + '/support'); },
+  /** 撤回／下架＝軟刪除，回收桶救得回來 */
+  removeProposal(id) { return http.del('/proposals/' + id); },
+  adminProposals(query) { return http.get('/admin/proposals', query || {}); },
+  replyProposal(id, body) { return http.post('/admin/proposals/' + id + '/reply', body); },
+
+  // ── W-89 課室設備報修（學生／老師送出；總務與校務處接單）──
+  myRepairs() { return http.get('/repairs/mine'); },
+  getRepair(id) { return http.get('/repairs/' + id); },
+  createRepair(body) { return http.post('/repairs', body); },
+  cancelRepair(id) { return http.del('/repairs/' + id); },
+  adminRepairs(query) { return http.get('/admin/repairs', query || {}); },
+  acceptRepair(id) { return http.post('/admin/repairs/' + id + '/accept', {}); },
+  finishRepair(id, body) { return http.post('/admin/repairs/' + id + '/done', body || {}); },
+  repairStats() { return http.get('/admin/repairs/stats'); },
+  // W-113 審批時效：假單／場地器材／報修三組用同一把尺（days 7–365，預設 30）
+  approvalStats(days) { return http.get('/admin/approvals/stats', days ? { days: days } : {}); },
+
+  // ── W-102 個資自主：匯出自己的成績／出缺席／借閱／請假（後端回 CSV 純文字）──
+  // `text: true` 讓請求層不要嘗試 JSON 解析；家長帶 studentId 取子女，其餘一律只拿自己。
+  myExport(type, studentId) {
+    return http.get('/me/export', { type: type, studentId: studentId }, { text: true });
+  },
+
+  // ── W-109 個人校曆訂閱 ──
+  // 日曆 App 訂閱時不會帶 Authorization，所以取 `.ics` 的那一端用網址上的權杖；
+  // 這三支只負責「看狀態／產生／撤銷」，本身仍要登入。
+  calendarToken(days) {
+    return http.get('/me/calendar/token', { days: days });
+  },
+  rotateCalendarToken(days) {
+    // days 走 query（POST 的 data 是 body，帶不上查詢參數）
+    return http.post('/me/calendar/token' + (days ? '?days=' + days : ''), {});
+  },
+  revokeCalendarToken() {
+    return http.del('/me/calendar/token');
+  },
 };

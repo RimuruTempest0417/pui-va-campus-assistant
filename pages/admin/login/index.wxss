@@ -13,6 +13,24 @@
 }
 .login-actions { margin-top: var(--pv-sp-3); }
 .login-error { display: block; margin-top: var(--pv-sp-2); color: var(--pv-danger); font-size: var(--pv-fs-subhead); }
+.login-hint { display: block; margin-top: var(--pv-sp-2); font-size: var(--pv-fs-footnote); color: var(--pv-label-2); }
+.login-hint--muted { margin-top: 6rpx; color: var(--pv-label-3); }
+
+/* 登入方式切換：兩顆等寬 chip（不用 hover-class，按壓自己給回饋） */
+.mode { display: flex; flex-direction: row; gap: 8rpx; margin-bottom: var(--pv-sp-3); }
+.mode__item {
+  flex: 1;
+  height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
+  border-radius: var(--pv-r-sm);
+  background: var(--pv-fill);
+  color: var(--pv-label-2);
+  font-size: var(--pv-fs-subhead);
+  transition: transform 180ms cubic-bezier(.32,.72,0,1), opacity 180ms cubic-bezier(.32,.72,0,1);
+}
+.mode__item--on { background: var(--pv-tint); color: var(--pv-on-tint); font-weight: 600; }
+.mode__item--pressed { transform: scale(0.96); opacity: 0.88; transition-duration: 60ms; }
 .login-current {
   display: flex; flex-direction: row; align-items: center; justify-content: space-between;
   margin-top: var(--pv-sp-3); padding: 0 var(--pv-sp-2);

@@ -3,9 +3,22 @@
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="notif-inner">
-      <view wx:if="{{unread > 0}}" class="notif-head">
-        <text class="notif-head__count">{{unread}} 則未讀</text>
-        <text class="notif-head__all" bindtap="readAll">{{L.readAll}}</text>
+      <view wx:if="{{tabs.length}}" class="notif-groups">
+        <view
+          wx:for="{{tabs}}"
+          wx:key="key"
+          class="notif-chip {{group === item.key ? 'notif-chip--on' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onGroup"
+        >
+          <text>{{item.label}}</text>
+          <view wx:if="{{item.badge}}" class="notif-chip__badge">{{item.badge}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{groupUnread > 0}}" class="notif-head">
+        <text class="notif-head__count">{{groupUnread}} {{L.unreadUnit}}</text>
+        <text class="notif-head__all" bindtap="readAll">{{group === 'ALL' ? L.readAll : L.readAllGroup}}</text>
       </view>
 
       <pv-skeleton wx:if="{{loading}}" rows="{{4}}" />
@@ -28,6 +41,7 @@
         </view>
       </block>
 
+      <pv-empty wx:elif="{{group !== 'ALL'}}" title="{{L.emptyGroup}}" desc="{{L.emptyGroupSub}}" />
       <pv-empty wx:else title="{{L.empty}}" desc="{{L.emptySub}}" />
     </view>
   </scroll-view>

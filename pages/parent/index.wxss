@@ -21,6 +21,10 @@
 .row-actions { display: flex; flex-direction: row; justify-content: flex-end; margin-top: var(--pv-sp-2); }
 .row-btn { margin-left: var(--pv-sp-2); }
 
+/* 分組標題＋右側「全部」連結（W-99）：標題自己有上下 padding，這裡只對齊基線 */
+.sec-head { align-items: center; }
+.sec-head__more { flex-shrink: 0; padding: var(--pv-sp-3) var(--pv-sp-2) var(--pv-sp-1) 0; }
+
 .state-actions { display: flex; flex-direction: row; align-items: center; justify-content: center;
   gap: var(--pv-sp-2);
   flex-wrap: wrap;

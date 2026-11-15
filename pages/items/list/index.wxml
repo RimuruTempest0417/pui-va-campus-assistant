@@ -2,6 +2,10 @@
   <pv-navbar title="{{L.k01}}" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}" refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
     <view class="list-inner">
+  <view class="mine-link" bindtap="goMine">
+    <text class="mine-link__text">{{L.kMine}}</text>
+    <pv-icon name="chevron" size="20" tone="muted" />
+  </view>
   <view class="filter">
     <pv-tabs tabs="{{typeTabs}}" current="{{type}}" bind:change="onTypeChange" />
     <view class="chips">

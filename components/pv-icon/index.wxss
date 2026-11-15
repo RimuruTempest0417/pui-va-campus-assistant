@@ -56,5 +56,48 @@
 .i-tray { position: absolute; top: 28%; left: 12%; width: 76%; height: 46%; border: 2rpx solid var(--ico); border-radius: 4rpx; }
 .i-tray-line { position: absolute; top: 50%; left: 12%; width: 76%; height: 2rpx; background: var(--ico); }
 
+/* 圖書館：打開的書（外框＋中央書脊） */
+.i-book { position: absolute; top: 16%; left: 8%; width: 84%; height: 68%; border: 2rpx solid var(--ico); border-radius: 4rpx; }
+.i-book-spine { position: absolute; top: 16%; left: 50%; width: 2rpx; height: 68%; background: var(--ico); }
+
 /* 右箭頭：旋轉的兩條邊（只畫 border-top + border-right） */
 .i-chev { position: absolute; top: 34%; left: 36%; width: 26%; height: 26%; border-top: 2rpx solid var(--ico); border-right: 2rpx solid var(--ico); transform: rotate(45deg); }
+
+/* 轉贈（W-68）：禮物盒（上蓋略寬、盒身在下、中間一條緞帶） */
+.i-gift-lid { position: absolute; top: 30%; left: 10%; width: 80%; height: 18%; border: 2rpx solid var(--ico); border-radius: 3rpx; }
+.i-gift-body { position: absolute; top: 50%; left: 18%; width: 64%; height: 34%; border: 2rpx solid var(--ico); border-top-width: 0; border-radius: 0 0 3rpx 3rpx; }
+.i-gift-ribbon { position: absolute; top: 30%; left: 48%; width: 4%; height: 54%; background: var(--ico); }
+
+/* 請假（W-72）：假單（紙＋兩行＋右下角圓形核准章） */
+.i-form { position: absolute; top: 12%; left: 16%; width: 68%; height: 74%; border: 2rpx solid var(--ico); border-radius: 4rpx; }
+.i-form-line { position: absolute; left: 26%; height: 2rpx; background: var(--ico); border-radius: 2rpx; }
+.i-form-line--1 { top: 32%; width: 44%; }
+.i-form-line--2 { top: 44%; width: 28%; }
+.i-form-stamp { position: absolute; right: 10%; bottom: 8%; width: 24%; height: 24%; border: 2rpx solid var(--ico); border-radius: 50%; background: var(--pv-surface); }
+
+/* 校園提案（W-88）：燈泡（圓形燈身＋底座兩條＋左右各一道射線）
+   射線用兩條短線旋轉 ±35°，比畫一個完整星芒乾淨，縮到 24rpx 也還看得出來是「想法」。 */
+.i-bulb { position: absolute; top: 8%; left: 26%; width: 48%; height: 48%; border: 2rpx solid var(--ico); border-radius: 50%; }
+.i-bulb-base { position: absolute; height: 2rpx; background: var(--ico); border-radius: 2rpx; }
+.i-bulb-base--1 { top: 62%; left: 34%; width: 32%; }
+.i-bulb-base--2 { top: 76%; left: 42%; width: 16%; }
+.i-bulb-ray { position: absolute; top: 6%; width: 2rpx; height: 12%; background: var(--ico); border-radius: 2rpx; }
+.i-bulb-ray--l { left: 12%; transform: rotate(-32deg); }
+.i-bulb-ray--r { right: 12%; transform: rotate(32deg); }
+
+/* 課室報修（W-89）：扳手＝一條 45° 的柄 ＋ 右上角開口的圓頭
+   為什麼不用「螺絲批」：螺絲批只有一條線，縮到 24rpx 會和放大鏡、日曆的柄混淆；
+   圓頭開口是扳手的辨識特徵，也和本專案其他圖標一樣只靠 border 畫。 */
+.i-wrench { position: absolute; top: 50%; left: 14%; width: 60%; height: 2rpx; background: var(--ico); border-radius: 2rpx; transform: rotate(-45deg); }
+.i-wrench-jaw {
+  position: absolute;
+  top: 12%;
+  right: 12%;
+  width: 30%;
+  height: 30%;
+  border: 2rpx solid var(--ico);
+  border-radius: 50%;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+  transform: rotate(-45deg);
+}

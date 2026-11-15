@@ -21,9 +21,17 @@
       </pv-card>
 
       <pv-card wx:else>
+        <!-- 兩種登入方式：校內帳號（openid／後台設定的密碼）／家校通帳密（不用微信授權、不用等管理員開帳號） -->
+        <view class="mode">
+          <view class="mode__item {{loginMode === 'account' ? 'mode__item--on' : ''}} {{pressedKey === 'account' ? 'mode__item--pressed' : ''}}"
+                data-mode="account" bindtap="setMode" bindtouchstart="pressIn" bindtouchend="pressOut">{{L.k14}}</view>
+          <view class="mode__item {{loginMode === 'school' ? 'mode__item--on' : ''}} {{pressedKey === 'school' ? 'mode__item--pressed' : ''}}"
+                data-mode="school" bindtap="setMode" bindtouchstart="pressIn" bindtouchend="pressOut">{{L.k15}}</view>
+        </view>
+
         <!-- 用原生 form + 原生 button：不再經過自訂組件的 tap，也不用靠 bindinput 把值搬進 data
              （Skyline 下自訂組件偶發收不到 tap／受控 input 值不同步，兩者都會讓「登入」看起來沒反應） -->
-        <form bindsubmit="onSubmit">
+        <form wx:if="{{loginMode === 'account'}}" bindsubmit="onSubmit">
           <view class="field">
             <text class="ui-field__label">{{L.k05}}</text>
             <input class="field__input" name="account" value="{{account}}" placeholder="{{L.k06}}" bindinput="onAccount" />
@@ -45,6 +53,28 @@
               {{submitting ? L.k10 : L.k11}}
             </button>
           </view>
+        </form>
+
+        <form wx:else bindsubmit="onSubmitSchool">
+          <view class="field">
+            <text class="ui-field__label">{{L.k16}}</text>
+            <input class="field__input" name="account" value="{{schoolAccount}}" placeholder="{{L.k06}}" bindinput="onSchoolAccount" />
+          </view>
+          <view class="field">
+            <text class="ui-field__label">{{L.k07}}</text>
+            <input class="field__input" name="password" value="{{schoolPassword}}" password placeholder="{{L.k17}}"
+                   bindinput="onSchoolPassword" bindconfirm="schoolSubmit" confirm-type="done" />
+          </view>
+
+          <view class="login-actions">
+            <button class="login-btn" form-type="submit" loading="{{submitting}}" disabled="{{submitting}}">
+              {{submitting ? L.k10 : L.k18}}
+            </button>
+          </view>
+
+          <text class="login-hint">{{L.k19}}</text>
+          <text class="login-hint">{{L.k22}}</text>
+          <text class="login-hint login-hint--muted">{{L.k20}}</text>
         </form>
 
         <text wx:if="{{error}}" class="login-error">{{error}}</text>
