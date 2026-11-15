@@ -6,8 +6,13 @@ const i18n = require('../../../utils/i18n');
 const appearance = require('../../../utils/appearance');
 
 Page({
+  goMine() {
+    wx.navigateTo({ url: '/pages/items/mine/index' });
+  },
+
   labels() {
     return {
+      kMine: i18n.pick("我的"),
       k09: i18n.pick("沒有符合的結果"),
       k10: i18n.pick("這裡還空著"),
       k11: i18n.pick("換個關鍵字，或清除篩選條件"),
