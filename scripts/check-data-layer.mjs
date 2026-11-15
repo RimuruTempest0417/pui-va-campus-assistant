@@ -506,7 +506,11 @@ check(
   if (!c) {
     check('校曆工具可載入', false, 'utils/calendar.js 載入失敗');
   } else {
-    const cells = c.monthGrid(2026, 10);
+    // 用「當月」而不是寫死 2026-10：寫死月份會在跨月那天整組紅掉（2026-11-08 就中過一次）
+    const nowDate = new Date();
+    const nowYear = nowDate.getFullYear();
+    const nowMonth = nowDate.getMonth();
+    const cells = c.monthGrid(nowYear, nowMonth + 1); // monthGrid 吃 1-based 月份
     const todayKey = c.dateKey(new Date());
     const grouped = c.groupByDate(
       [{ id: 'n1', title: '颱風停課', kind: 'URGENT', publishedAt: Date.now() }],
@@ -514,15 +518,17 @@ check(
     );
     const summary = c.monthSummary(cells, grouped);
     const dayKey = c.dateKey(new Date());
+    const firstOfMonth = c.dateKey(new Date(nowYear, nowMonth, 1));
+    const inMonthDay = `${nowYear}-${String(nowMonth + 1).padStart(2, '0')}-20`;
     check('校曆：月視圖固定 42 格', cells.length === 42, `實際 ${cells.length}`);
-    check('校曆：本月 1 號在格子裡', cells.some((x) => x.key === c.dateKey(new Date(2026, 9, 1)) && x.inMonth), '找不到 2026-10-01');
+    check('校曆：本月 1 號在格子裡', cells.some((x) => x.key === firstOfMonth && x.inMonth), `找不到 ${firstOfMonth}`);
     check('校曆：今天被標記', summary.some((x) => x.key === todayKey && x.isToday), '今天不在格子裡');
     check('校曆：同日公告與活動被收在一起', (grouped[dayKey] || []).length >= 0 && summary.some((x) => x.key === dayKey && x.count >= 1), '當天沒有項目');
     const merged = c.mergeExternal(c.groupByDate([], []), [
-      { id: 'x1', title: '校慶文藝匯演', date: '2026-11-20', startTime: '19:00', location: '禮堂' },
+      { id: 'x1', title: '校慶文藝匯演', date: inMonthDay, startTime: '19:00', location: '禮堂' },
     ]);
-    check('校曆：合併外部校曆場次', (merged['2026-11-20'] || []).some((i) => i.type === 'school'), JSON.stringify(merged['2026-11-20'] || []));
-    const summary2 = c.monthSummary(c.monthGrid(2026, 11), merged);
+    check('校曆：合併外部校曆場次', (merged[inMonthDay] || []).some((i) => i.type === 'school'), JSON.stringify(merged[inMonthDay] || []));
+    const summary2 = c.monthSummary(cells, merged);
     check('校曆：外部場次會畫圓點', summary2.some((x) => x.hasSchool), '沒有 hasSchool 的格子');
     check('校曆：緊急公告優先', (grouped[dayKey] || [])[0]?.kind === 'URGENT' || (grouped[dayKey] || []).length === 0, JSON.stringify(grouped[dayKey] || []));
   }
