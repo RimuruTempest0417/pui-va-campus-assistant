@@ -143,6 +143,8 @@
 .home__avatar { padding: 6rpx; border-radius: 50%; }
 .home__avatar--pressed { opacity: 0.55; }
 
+.home__hint { margin-top: var(--pv-sp-2); font-size: var(--pv-fs-caption-1); line-height: 1.5; color: var(--pv-label-2); text-align: center; }
+
 .home__retry--plain { background: var(--pv-fill); color: var(--pv-label-2); margin-top: var(--pv-sp-1); }
 
 .home__entry {

@@ -128,6 +128,8 @@ Page({
       k15: i18n.pick("正在讀取…"),
       k01: i18n.pick("重新載入"),
       k02: i18n.pick("設定後端位址"),
+      k36: i18n.pick("用家校通登入"),
+      k37: i18n.pick("載入不到資料時，多半是還沒登入；用家校通帳號登入就能看到功課、通知與成績。"),
       k03: i18n.pick("今日午餐"),
       k04: i18n.pick("分"),
       k05: i18n.pick("今天沒有午餐資料"),
@@ -325,6 +327,10 @@ Page({
 
   goDev() {
     wx.navigateTo({ url: '/pages/dev/api-check/index' });
+  },
+
+  goLogin() {
+    wx.navigateTo({ url: '/pages/admin/login/index' });
   },
 
   setClockFields() {

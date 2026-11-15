@@ -42,7 +42,9 @@
   <pv-card wx:elif="{{failed}}">
     <pv-empty tone="warning" title="{{L.failed}}" desc="{{L.failedDesc}}：{{apiBaseText}}">
       <view class="home__retry" bindtap="onRetry">{{L.k01}}</view>
+      <view class="home__retry" bindtap="goLogin">{{L.k36}}</view>
       <view class="home__retry home__retry--plain" bindtap="goDev">{{L.k02}}</view>
+      <view class="home__hint">{{L.k37}}</view>
     </pv-empty>
   </pv-card>
 
