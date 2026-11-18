@@ -1,4 +1,5 @@
 const admin = require('../../../services/admin');
+const data = require('../../../services/data');
 const request = require('../../../utils/request');
 const config = require('../../../config/config');
 const roleLabel = require('../../../utils/role').label;
@@ -187,7 +188,15 @@ Page({
   afterLogin(res) {
     request.setToken(res.token);
     wx.setStorageSync(config.STORAGE_KEYS.user, { nickname: res.nickname, role: res.role });
+    // 登入後首頁要自己重抓：以前只有 navigateBack，首頁的 onShow 不會重跑 refresh，
+    // 使用者看到的是「登入成功但畫面還是訪客狀態」（實測回報）。
+    const app = getApp();
+    if (app && app.globalData) app.globalData.needRefresh = true;
     wx.showToast({ title: i18n.pick('已登入'), icon: 'success' });
+    // 家校通登入成功＝家校通當下是通的：順手抓一批最新資料（失敗不影響登入）
+    if (res && res.source === 'school') {
+      data.schoolRefresh(true).catch(() => {});
+    }
     this.refreshCurrent();
     // 登入只負責「登入」；後台入口由首頁那顆按鈕負責
     setTimeout(() => wx.navigateBack(), 400);

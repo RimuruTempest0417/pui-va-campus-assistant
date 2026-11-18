@@ -191,6 +191,8 @@ module.exports = {
   schoolLink(account, password) { return http.post('/school/link', { account, password }); },
   schoolUnlink() { return http.del('/school/link'); },
   schoolSync(yearTerms) { return http.post('/school/sync', yearTerms ? { yearTerms } : {}); },
+  /** 自動刷新：10 分鐘節流、8 秒預算，給「每次動作順手抓一下」用（成敗都不影響畫面） */
+  schoolRefresh(force) { return http.post('/school/refresh', { force: !!force }); },
   schoolGrades(q) { return http.get('/school/grades', q || {}); },
   schoolAttendance(q) { return http.get('/school/attendance', q || {}); },
   schoolManualGrade(body) { return http.post('/school/manual/grades', body); },

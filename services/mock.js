@@ -2197,6 +2197,11 @@ module.exports = {
   // ── 家校通（示範資料）──
   // 注意：不能用 this.xxx 存狀態 —— data.js 是把方法拆出來呼叫的，this 會是 null
   // （2026-10-25 走查抓到：Cannot read properties of null (reading '__schoolLinked')）
+  /** 示範模式沒有真的家校通，刷新一律回「未連結」而不是假裝成功 */
+  schoolRefresh() {
+    return Promise.resolve({ ok: false, skipped: true, reason: 'DEMO' });
+  },
+
   schoolStatus() {
     return Promise.resolve({ linked: schoolLinked, childrenCount: 0, studentNo: schoolLinked ? '3201301037' : null, className: '高二丙', lastSyncAt: schoolLinked ? new Date().toISOString() : null, lastError: null, cryptoReady: true });
   },

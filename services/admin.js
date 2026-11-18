@@ -220,6 +220,14 @@ module.exports = {
 
   // ── W-53 第二階段：老師／職員在小程序內補登成績與出缺席 ──
   // 能力是後端的 school:manage；前端只負責把參數送對，規則（同步資料不可覆蓋）在後端。
+  /** 後台手動刷新家校通資料（一次最多 2 位、每位 12 秒預算；回每一個人的結果） */
+  schoolRefresh(userId, force) {
+    const body = {};
+    if (userId) body.userId = userId;
+    if (force) body.force = true;
+    return http.post('/admin/school/refresh', body);
+  },
+
   schoolStudents(q) {
     return http.get('/admin/school/students', q ? { q: q } : {});
   },

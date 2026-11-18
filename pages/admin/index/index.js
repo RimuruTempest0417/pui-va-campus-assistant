@@ -104,6 +104,9 @@ function shortTime(value) {
 Page({
   labels() {
     return {
+      k520: i18n.pick("家校通資料"),
+      k521: i18n.pick("按一下抓最新一次（每次最多 2 位、約 25 秒）；選了某位學生就只刷新他。"),
+      k522: i18n.pick("刷新家校通資料"),
       k100: i18n.pick("（未設定）"),
       k101: i18n.pick("已簽到"),
       k102: i18n.pick("未簽到"),
@@ -813,6 +816,9 @@ Page({
     scAttend: [],
     scSummaryText: '',
     // W-95：出席率月報（後端聚合；小程序內就能看，不必回電腦）
+    // v1.0.1：手動刷新家校通（後台看得到結果，不必等自動排程）
+    scRefreshBusy: false,
+    scRefreshText: '',
     amMonth: '',
     amBusy: false,
     amLoaded: false,
@@ -1784,6 +1790,40 @@ Page({
 
   releaseHit() {
     this.setData({ scPressed: -1 });
+  },
+
+  /**
+   * 手動刷新家校通資料（v1.0.1）。
+   * 一次最多 2 位、每位 12 秒預算（Vercel 函式上限），所以按鈕結果要寫出「幾位、抓到幾筆」，
+   * 而不是只跳一個「已刷新」——後台需要知道這次到底動了誰。
+   */
+  async refreshSchoolData() {
+    if (this.data.scRefreshBusy) return;
+    this.setData({ scRefreshBusy: true, scRefreshText: '' });
+    try {
+      const picked = this.data.scPicked || null;
+      const res = await admin.schoolRefresh(picked ? picked.id : '', true);
+      const rows = (res && res.results) || [];
+      if (!rows.length) {
+        this.setData({ scRefreshText: i18n.pick('沒有可刷新的家校通連結') });
+        return;
+      }
+      const ok = rows.filter((r) => !r.error && !r.skipped);
+      const grades = ok.reduce((n, r) => n + (r.grades || 0), 0);
+      const attendance = ok.reduce((n, r) => n + (r.attendance || 0), 0);
+      const failed = rows.filter((r) => r.error).length;
+      const text = grades + attendance > 0
+        ? i18n.pick('已刷新 ') + ok.length + i18n.pick(' 位：成績 ') + grades + i18n.pick(' 筆、出缺席 ') + attendance + i18n.pick(' 筆')
+        : i18n.pick('已刷新 ') + ok.length + i18n.pick(' 位（沒有新資料）') + (failed ? i18n.pick('，另有 ') + failed + i18n.pick(' 位失敗') : '');
+      this.setData({ scRefreshText: text });
+      wx.showToast({ title: text, icon: 'none' });
+    } catch (e) {
+      const msg = (e && e.message) || i18n.pick('刷新失敗');
+      this.setData({ scRefreshText: msg });
+      wx.showToast({ title: msg, icon: 'none' });
+    } finally {
+      this.setData({ scRefreshBusy: false });
+    }
   },
 
   findSchoolStudents() {

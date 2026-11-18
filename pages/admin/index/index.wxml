@@ -482,6 +482,16 @@
 
       <!-- 補登成績與出缺席（W-53 第二階段：老師／職員在小程序內就能補，不必回電腦） -->
       <block wx:elif="{{tab === 'school'}}">
+        <!-- v1.0.1：手動刷新家校通（抓最久沒同步的 2 位；選了學生就只刷新那一位） -->
+        <pv-card>
+          <text class="ui-section">{{L.k520}}</text>
+          <text class="ui-meta">{{L.k521}}</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="tinted" loading="{{scRefreshBusy}}" disabled="{{scRefreshBusy}}" bind:tap="refreshSchoolData">{{L.k522}}</pv-button>
+          </view>
+          <text wx:if="{{scRefreshText}}" class="ui-meta">{{scRefreshText}}</text>
+        </pv-card>
+
         <!-- W-95：出席率月報（全校／按班級）—— 數字由後端聚合，前端只顯示 -->
         <pv-card>
           <view class="ui-row-between">

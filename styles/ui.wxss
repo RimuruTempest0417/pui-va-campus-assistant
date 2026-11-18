@@ -37,7 +37,16 @@
 .ui-row { display: flex; flex-direction: row; align-items: center;   gap: var(--pv-sp-2);
   flex-wrap: wrap;
 }
-.ui-row-between { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.ui-row-between { display: flex; flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; row-gap: 6rpx; }
+
+/* 長文字一定要能換行：後台的班級名、書名、錯誤訊息都很長，Skyline 下 flex 子元素
+   預設 min-width:auto 會把整列推出畫面（實測回報「多個文字沒有分行超出畫面」）。 */
+.ui-row-between > text,
+.ui-row-between > view,
+.ui-title,
+.ui-body,
+.ui-meta,
+.ui-section { min-width: 0; word-break: break-word; overflow-wrap: anywhere; }
 
 /* 資訊列（設定頁、家長頁共用）：標題＋說明在左、箭頭在右。
    原本只寫在 pages/settings/index.wxss，家長頁也用了同一組 class 卻沒有樣式

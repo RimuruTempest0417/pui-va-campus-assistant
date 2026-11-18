@@ -1311,6 +1311,53 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /admin/school/refresh:
+    post:
+      tags: [admin, school]
+      summary: "後台手動刷新家校通資料（一次最多 2 位，每位 12 秒預算）"
+      description: |
+        使用者只看到同步失敗時，管理員需要一個地方重試。
+        Vercel 函式上限 60 秒，所以一次最多處理 2 個連結
+        （不指定 userId 時取最久沒同步的 2 位），
+        回傳每一個人的結果，而不是一個籠統的成功。
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  maxLength: 40
+                  description: "只刷新這一位；不帶就取最久沒同步的 2 位"
+                force:
+                  type: boolean
+      responses:
+        '200':
+          description: "每個連結的刷新結果"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  refreshed: { type: integer }
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId: { type: string }
+                        account: { type: string, nullable: true }
+                        grades: { type: integer }
+                        attendance: { type: integer }
+                        remaining: { type: integer }
+                        skipped: { type: string, nullable: true }
+                        error: { type: string, nullable: true }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /admin/school/students:
     get:
       tags: [school]
@@ -3608,6 +3655,43 @@ paths:
                 properties:
                   linked: { type: boolean }
         '401': { description: 未登入 }
+
+  /school/refresh:
+    post:
+      tags: [school]
+      summary: 自動刷新（10 分鐘節流、8 秒預算；前端在讀家校通資料時順手踢一次）
+      description: |
+        使用者每次動作都可能要看到最新資料，但 `/school/sync` 是 25 秒的按鈕級操作。
+        這支是「背景補一下」用：預設 8 秒預算、只做一批，10 分鐘內已同步過就直接跳過。
+        成敗都不影響畫面，前端 fire-and-forget 呼叫。
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force: { type: boolean, description: 忽略 10 分鐘節流，立即抓一批 }
+      responses:
+        '200':
+          description: 結果（skipped=true 表示這次沒有抓）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  skipped: { type: boolean }
+                  reason:
+                    type: string
+                    enum: [NOT_LINKED, FRESH, NO_CHILD]
+                    description: 未連結／剛同步過／家長沒有對應子女
+                  lastSyncAt: { type: string, format: date-time, nullable: true }
+                  grades: { type: integer }
+                  attendance: { type: integer }
+                  remaining: { type: integer }
+                  done: { type: boolean }
 
   /school/sync:
     post:
