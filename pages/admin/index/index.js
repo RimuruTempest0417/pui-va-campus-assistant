@@ -104,6 +104,22 @@ function shortTime(value) {
 Page({
   labels() {
     return {
+      k520: i18n.pick("家校通資料"),
+      k521: i18n.pick("按一下抓最新一次（每次最多 2 位、約 25 秒）；選了某位學生就只刷新他。"),
+      k522: i18n.pick("刷新家校通資料"),
+      k523: i18n.pick("手機端調堂"),
+      k524: i18n.pick("調堂"),
+      k525: i18n.pick("完成"),
+      k526: i18n.pick("點一格開始"),
+      k527: i18n.pick("已選一格，再點另一格就互換"),
+      k528: i18n.pick("已選"),
+      k532: i18n.pick("未排"),
+      k540: i18n.pick("新增班級"),
+      k544: i18n.pick("刪除班級"),
+      k549: i18n.pick("點一格：改科目或清除"),
+      k550: i18n.pick("完整後台請用電腦"),
+      k551: i18n.pick("批次匯入（後備）"),
+      k542: i18n.pick("請先選班級"),
       k100: i18n.pick("（未設定）"),
       k101: i18n.pick("已簽到"),
       k102: i18n.pick("未簽到"),
@@ -690,6 +706,16 @@ Page({
     ttRows: [],
     ttErrors: [],
     ttSummary: '',
+    // ── v1.0.2 手機端調堂（電腦端功能較多，手機只留排課最常用的一件事）──
+    ttClass: '',
+    ttDay: 1,
+    ttDays: [],
+    ttLayout: [],
+    ttWeek: [],
+    ttDayRows: [],
+    ttSwapFrom: null,
+    ttSwapMode: false,
+    ttHintText: '',
     // ── 功課（W-77）：跨班一覽；點一項展開「誰還沒交」；收回＝軟刪除（回收桶看得到）──
     hwScope: 'all',
     hwScopes: [
@@ -813,6 +839,9 @@ Page({
     scAttend: [],
     scSummaryText: '',
     // W-95：出席率月報（後端聚合；小程序內就能看，不必回電腦）
+    // v1.0.1：手動刷新家校通（後台看得到結果，不必等自動排程）
+    scRefreshBusy: false,
+    scRefreshText: '',
     amMonth: '',
     amBusy: false,
     amLoaded: false,
@@ -913,9 +942,22 @@ Page({
       return;
     }
     this.setData({ role: role, 'menu.date': dateKey(), today: dateKey() });
+    // 手機端調堂的星期切換（一到五；排版用直向清單，橫向 5 欄在手機上一定要左右滑）
+    this.setData({
+      ttDays: [
+        { key: 1, label: i18n.pick('星期一') },
+        { key: 2, label: i18n.pick('星期二') },
+        { key: 3, label: i18n.pick('星期三') },
+        { key: 4, label: i18n.pick('星期四') },
+        { key: 5, label: i18n.pick('星期五') },
+      ],
+    });
 
     // 依能力決定看得到哪些分頁（真正的權限仍在後端）
-    const tabs = TABS.filter((t) => allowed.indexOf(t.key) !== -1);
+    // v1.0.2（Gary）：手機端保留較少分頁，主要工作在電腦後台做；
+    // 手機留「每天會用」的：概況、認領、失物、活動、公告、成績（家校通）、使用者、假單、課表、功課、報修。
+    const MOBILE_HIDDEN = ['trash', 'parents', 'reports', 'errors', 'push', 'audit', 'export', 'menu', 'library', 'venues', 'giveaways', 'proposals', 'demo'];
+    const tabs = TABS.filter((t) => allowed.indexOf(t.key) !== -1 && MOBILE_HIDDEN.indexOf(t.key) === -1);
     this.setData({ tabs: tabs, tab: tabs[0].key });
     this.loadTab();
   },
@@ -1784,6 +1826,40 @@ Page({
 
   releaseHit() {
     this.setData({ scPressed: -1 });
+  },
+
+  /**
+   * 手動刷新家校通資料（v1.0.1）。
+   * 一次最多 2 位、每位 12 秒預算（Vercel 函式上限），所以按鈕結果要寫出「幾位、抓到幾筆」，
+   * 而不是只跳一個「已刷新」——後台需要知道這次到底動了誰。
+   */
+  async refreshSchoolData() {
+    if (this.data.scRefreshBusy) return;
+    this.setData({ scRefreshBusy: true, scRefreshText: '' });
+    try {
+      const picked = this.data.scPicked || null;
+      const res = await admin.schoolRefresh(picked ? picked.id : '', true);
+      const rows = (res && res.results) || [];
+      if (!rows.length) {
+        this.setData({ scRefreshText: i18n.pick('沒有可刷新的家校通連結') });
+        return;
+      }
+      const ok = rows.filter((r) => !r.error && !r.skipped);
+      const grades = ok.reduce((n, r) => n + (r.grades || 0), 0);
+      const attendance = ok.reduce((n, r) => n + (r.attendance || 0), 0);
+      const failed = rows.filter((r) => r.error).length;
+      const text = grades + attendance > 0
+        ? i18n.pick('已刷新 ') + ok.length + i18n.pick(' 位：成績 ') + grades + i18n.pick(' 筆、出缺席 ') + attendance + i18n.pick(' 筆')
+        : i18n.pick('已刷新 ') + ok.length + i18n.pick(' 位（沒有新資料）') + (failed ? i18n.pick('，另有 ') + failed + i18n.pick(' 位失敗') : '');
+      this.setData({ scRefreshText: text });
+      wx.showToast({ title: text, icon: 'none' });
+    } catch (e) {
+      const msg = (e && e.message) || i18n.pick('刷新失敗');
+      this.setData({ scRefreshText: msg });
+      wx.showToast({ title: msg, icon: 'none' });
+    } finally {
+      this.setData({ scRefreshBusy: false });
+    }
   },
 
   findSchoolStudents() {
@@ -3325,10 +3401,221 @@ Page({
   async loadTimetable() {
     try {
       const res = await admin.timetableAll();
-      this.setData({ ttClasses: res.classes || [], ttRows: [], ttErrors: [], ttSummary: '' });
+      const list = (res.classes || []).slice();
+      // v1.0.2：班級表是單一來源 —— 建了班但還沒排課的也要能選（舊後端沒有這支就跳過）
+      try {
+        const cls = await admin.classes();
+        const byName = {};
+        (cls.items || []).forEach((c) => {
+          byName[c.className] = c;
+        });
+        list.forEach((c) => {
+          c.id = (byName[c.name] || {}).id || null;
+        });
+        (cls.items || []).forEach((c) => {
+          if (!list.some((x) => x.name === c.className)) list.push({ name: c.className, slots: 0, id: c.id });
+        });
+      } catch (e) {
+        // 只有舊後端才沒有 /admin/classes：照舊顯示「有課表的班」
+      }
+      const keep = this.data.ttClass && list.some((c) => c.name === this.data.ttClass) ? this.data.ttClass : (list[0] ? list[0].name : '');
+      this.setData({ ttClasses: list, ttClass: keep, ttRows: [], ttErrors: [], ttSummary: '' });
+      if (keep) await this.ttLoadWeek();
+      else this.setData({ ttDayRows: [], ttHintText: i18n.pick('請先選班級') });
     } catch (e) {
       this.setData({ hint: i18n.pick('讀不到課表：') + (e.message || e.code) });
     }
+  },
+
+  // ── v1.0.2 手機端調堂：選班 → 選星期 → 點一節 → 改內容或調到另一節 ──
+  async ttLoadWeek() {
+    const className = this.data.ttClass;
+    if (!className) {
+      this.setData({ ttWeek: [], ttDayRows: [], ttHintText: i18n.pick('請先選班級') });
+      return;
+    }
+    try {
+      const [layoutRes, weekRes] = await Promise.all([admin.timetableLayout(), admin.timetableAll()]);
+      const layout = (layoutRes.rows || []).filter((r) => r.kind === 'LESSON');
+      const slots = (weekRes.items || []).filter((s) => s.className === className);
+      this.setData({ ttLayout: layout, ttWeek: slots, ttHintText: '' });
+      this.ttBuildDay();
+    } catch (e) {
+      this.setData({ ttHintText: i18n.pick('讀不到課表：') + (e.message || e.code) });
+    }
+  },
+
+  ttBuildDay() {
+    const day = Number(this.data.ttDay) || 1;
+    const layout = this.data.ttLayout || [];
+    const slots = this.data.ttWeek || [];
+    const from = this.data.ttSwapFrom;
+    const rows = layout.map((row) => {
+      const hit = slots.filter((s) => Number(s.weekday) === day && Number(s.period) === Number(row.period))[0];
+      const picked = !!from && Number(from.weekday) === day && Number(from.period) === Number(row.period);
+      return {
+        period: row.period,
+        label: row.label || i18n.pick('第') + row.period + i18n.pick('節'),
+        timeText: row.startTime + '–' + row.endTime,
+        subject: hit ? hit.subject : '',
+        detail: hit ? [hit.room, hit.teacherName].filter(Boolean).join(' · ') : '',
+        empty: !hit,
+        picked: picked,
+      };
+    });
+    this.setData({ ttDayRows: rows });
+  },
+
+  ttPickClass(e) {
+    const name = e.currentTarget.dataset.name || '';
+    this.setData({ ttClass: name, ttSwapFrom: null, ttWeek: [], ttDayRows: [] });
+    this.ttLoadWeek();
+  },
+
+  ttPickDay(e) {
+    this.setData({ ttDay: Number(e.currentTarget.dataset.day) || 1, ttSwapFrom: null });
+    this.ttBuildDay();
+  },
+
+  toggleTtSwap() {
+    const on = !this.data.ttSwapMode;
+    this.setData({ ttSwapMode: on, ttSwapFrom: null });
+    this.ttBuildDay();
+  },
+
+  async ttTapCell(e) {
+    const period = Number(e.currentTarget.dataset.period);
+    const day = Number(this.data.ttDay);
+    // 調堂模式：點第一格 → 點第二格 → 互換（後端同一個交易，不會出現兩格都空）
+    if (this.data.ttSwapMode) {
+      if (!this.data.ttSwapFrom) {
+        this.setData({ ttSwapFrom: { weekday: day, period: period } });
+        this.ttBuildDay();
+        return;
+      }
+      const from = this.data.ttSwapFrom;
+      if (Number(from.period) === period) {
+        this.setData({ ttSwapFrom: null });
+        this.ttBuildDay();
+        return;
+      }
+      try {
+        wx.showLoading({ title: i18n.pick('調堂中') });
+        await admin.swapTimetable({ className: this.data.ttClass, from: from, to: { weekday: day, period: period } });
+        wx.hideLoading();
+        this.setData({ ttSwapFrom: null, ttSwapMode: false });
+        wx.showToast({ title: i18n.pick('已調堂'), icon: 'none' });
+        this.ttLoadWeek();
+      } catch (err) {
+        wx.hideLoading();
+        this.setData({ ttSwapFrom: null });
+        this.ttBuildDay();
+        wx.showToast({ title: err.message || i18n.pick('調堂失敗'), icon: 'none' });
+      }
+      return;
+    }
+    const row = (this.data.ttDayRows || []).filter((r) => Number(r.period) === period)[0];
+    if (!row) return;
+    const options = row.empty
+      ? [i18n.pick('輸入科目')]
+      : [i18n.pick('修改科目'), i18n.pick('清除這一格')];
+    wx.showActionSheet({
+      itemList: options,
+      success: (res) => {
+        if (row.empty) return this.ttEditCell(period, '');
+        if (res.tapIndex === 0) return this.ttEditCell(period, row.subject);
+        return this.ttClearCell(period);
+      },
+    });
+  },
+
+  ttEditCell(period, current) {
+    wx.showModal({
+      title: i18n.pick('第') + period + i18n.pick('節 科目'),
+      editable: true,
+      placeholderText: i18n.pick('例：數學'),
+      content: current || '',
+      success: async (res) => {
+        if (!res.confirm) return;
+        const subject = String(res.content || '').trim();
+        if (!subject) return;
+        try {
+          await admin.setTimetableCell({
+            className: this.data.ttClass,
+            weekday: Number(this.data.ttDay),
+            period: Number(period),
+            subject: subject,
+          });
+          wx.showToast({ title: i18n.pick('已儲存'), icon: 'none' });
+          this.ttLoadWeek();
+        } catch (err) {
+          wx.showToast({ title: err.message || i18n.pick('儲存失敗'), icon: 'none' });
+        }
+      },
+    });
+  },
+
+  async ttClearCell(period) {
+    try {
+      await admin.setTimetableCell({
+        className: this.data.ttClass,
+        weekday: Number(this.data.ttDay),
+        period: Number(period),
+        clear: true,
+      });
+      wx.showToast({ title: i18n.pick('已清除'), icon: 'none' });
+      this.ttLoadWeek();
+    } catch (err) {
+      wx.showToast({ title: err.message || i18n.pick('操作失敗'), icon: 'none' });
+    }
+  },
+
+  ttAddClass() {
+    wx.showModal({
+      title: i18n.pick('新增班級'),
+      editable: true,
+      placeholderText: i18n.pick('例：高二忠'),
+      success: async (res) => {
+        if (!res.confirm) return;
+        const name = String(res.content || '').trim();
+        if (!name) return;
+        try {
+          await admin.createClass({ name: name });
+          wx.showToast({ title: i18n.pick('已新增'), icon: 'none' });
+          this.loadTimetable();
+        } catch (err) {
+          wx.showToast({ title: err.message || i18n.pick('新增失敗'), icon: 'none' });
+        }
+      },
+    });
+  },
+
+  ttDelClass() {
+    const name = this.data.ttClass;
+    if (!name) {
+      wx.showToast({ title: i18n.pick('請先選班級'), icon: 'none' });
+      return;
+    }
+    wx.showModal({
+      title: i18n.pick('刪除班級'),
+      content: i18n.pick('確定刪除「') + name + i18n.pick('」？（班裡還有學生或課表會被擋下來）'),
+      success: async (res) => {
+        if (!res.confirm) return;
+        const hit = (this.data.ttClasses || []).filter((c) => c.name === name)[0];
+        if (!hit || !hit.id) {
+          wx.showToast({ title: i18n.pick('這一班還沒有建檔'), icon: 'none' });
+          return;
+        }
+        try {
+          await admin.deleteClass(hit.id);
+          wx.showToast({ title: i18n.pick('已刪除'), icon: 'none' });
+          this.setData({ ttClass: '', ttWeek: [], ttDayRows: [] });
+          this.loadTimetable();
+        } catch (err) {
+          wx.showToast({ title: err.message || i18n.pick('刪除失敗'), icon: 'none' });
+        }
+      },
+    });
   },
 
   onTtCsv(e) {

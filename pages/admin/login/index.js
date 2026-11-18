@@ -1,4 +1,5 @@
 const admin = require('../../../services/admin');
+const data = require('../../../services/data');
 const request = require('../../../utils/request');
 const config = require('../../../config/config');
 const roleLabel = require('../../../utils/role').label;
@@ -187,7 +188,21 @@ Page({
   afterLogin(res) {
     request.setToken(res.token);
     wx.setStorageSync(config.STORAGE_KEYS.user, { nickname: res.nickname, role: res.role });
+    // 登入後首頁要自己重抓：以前只有 navigateBack，首頁的 onShow 不會重跑 refresh，
+    // 使用者看到的是「登入成功但畫面還是訪客狀態」（實測回報）。
+    const app = getApp();
+    if (app && app.globalData) app.globalData.needRefresh = true;
     wx.showToast({ title: i18n.pick('已登入'), icon: 'success' });
+    // 家校通登入成功＝後端已經在伺服器那一邊同步完了（v1.0.2：登入即同步）。
+    // 只有後端回報「沒拿到／逾時」才由手機再補一次，否則會變成登入後多等 8 秒重複抓同一份。
+    if (res && res.source === 'school') {
+      const sync = res.autoSync || {};
+      if (!sync.ok) data.schoolRefresh(true).catch(() => {});
+      else if (typeof sync.grades === 'number' || typeof sync.attendance === 'number') {
+        const n = (sync.grades || 0) + (sync.attendance || 0);
+        if (n > 0) setTimeout(() => wx.showToast({ title: i18n.pick('已同步 ') + n + i18n.pick(' 筆'), icon: 'none' }), 900);
+      }
+    }
     this.refreshCurrent();
     // 登入只負責「登入」；後台入口由首頁那顆按鈕負責
     setTimeout(() => wx.navigateBack(), 400);

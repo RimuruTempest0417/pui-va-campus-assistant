@@ -482,6 +482,16 @@
 
       <!-- 補登成績與出缺席（W-53 第二階段：老師／職員在小程序內就能補，不必回電腦） -->
       <block wx:elif="{{tab === 'school'}}">
+        <!-- v1.0.1：手動刷新家校通（抓最久沒同步的 2 位；選了學生就只刷新那一位） -->
+        <pv-card>
+          <text class="ui-section">{{L.k520}}</text>
+          <text class="ui-meta">{{L.k521}}</text>
+          <view class="row-actions">
+            <pv-button size="sm" type="tinted" loading="{{scRefreshBusy}}" disabled="{{scRefreshBusy}}" bind:tap="refreshSchoolData">{{L.k522}}</pv-button>
+          </view>
+          <text wx:if="{{scRefreshText}}" class="ui-meta">{{scRefreshText}}</text>
+        </pv-card>
+
         <!-- W-95：出席率月報（全校／按班級）—— 數字由後端聚合，前端只顯示 -->
         <pv-card>
           <view class="ui-row-between">
@@ -1049,6 +1059,65 @@
 
       <!-- W-73 課表：貼 CSV → 先檢查 → 確認匯入；下面列出每個班幾格 -->
       <block wx:elif="{{tab === 'timetable'}}">
+        <!-- v1.0.2：手機端調堂（電腦端有完整格線與模板替換，手機只留排課最常用的一件事） -->
+        <view class="ui-card">
+          <view class="ui-row-between">
+            <text class="ui-title">{{L.k523}}</text>
+            <text class="ui-meta">{{L.k550}}</text>
+          </view>
+
+          <scroll-view class="tabs-scroll" scroll-x enable-flex show-scrollbar="{{false}}" enhanced="{{true}}">
+            <view class="tabs">
+              <view
+                wx:for="{{ttClasses}}"
+                wx:key="name"
+                class="tab {{ttClass === item.name ? 'tab--on' : ''}}"
+                data-name="{{item.name}}"
+                bindtap="ttPickClass"
+              >{{item.name}}</view>
+            </view>
+          </scroll-view>
+
+          <view class="row-actions" style="margin-top:8rpx">
+            <pv-button size="sm" type="plain" bind:tap="ttAddClass">{{L.k540}}</pv-button>
+            <pv-button size="sm" type="plain" bind:tap="ttDelClass">{{L.k544}}</pv-button>
+            <pv-button size="sm" type="{{ttSwapMode ? 'tinted' : 'plain'}}" bind:tap="toggleTtSwap">{{ttSwapMode ? L.k525 : L.k524}}</pv-button>
+          </view>
+
+          <view class="filter-row" style="margin-top:12rpx">
+            <view
+              wx:for="{{ttDays}}"
+              wx:key="key"
+              class="chip {{ttDay === item.key ? 'chip--on' : ''}}"
+              data-day="{{item.key}}"
+              bindtap="ttPickDay"
+            >{{item.label}}</view>
+          </view>
+
+          <text class="ui-meta" style="margin-top:8rpx">{{ttSwapFrom ? L.k527 : (ttSwapMode ? L.k526 : L.k549)}}</text>
+
+          <view wx:if="{{ttDayRows.length}}" class="ui-list ui-list--grouped" style="margin-top:12rpx">
+            <view
+              wx:for="{{ttDayRows}}"
+              wx:key="period"
+              class="signup-row {{index === ttDayRows.length - 1 ? 'signup-row--last' : ''}}"
+              data-period="{{item.period}}"
+              bindtap="ttTapCell"
+            >
+              <view class="lib-row">
+                <view class="col">
+                  <text class="signup-row__name {{item.picked ? 'tt-picked' : ''}}">{{item.label}}　{{item.subject || L.k532}}</text>
+                  <text class="ui-meta">{{item.timeText}}{{item.detail ? ' · ' + item.detail : ''}}</text>
+                </view>
+                <text wx:if="{{item.picked}}" class="ui-meta">{{L.k528}}</text>
+              </view>
+            </view>
+          </view>
+          <pv-empty wx:else title="{{L.k542}}" desc="{{ttHintText}}" />
+        </view>
+
+        <!-- 批次匯入保留作後備（大量匯入、或前端臨時出問題時用） -->
+        <text class="group-sub">{{L.k551}}</text>
         <view class="ui-list ui-list--grouped">
           <view class="ui-card ui-card--row ui-card--last">
             <text class="ui-field__label">{{L.k348}}</text>
@@ -1105,7 +1174,6 @@
             </view>
           </view>
         </block>
-        <pv-empty wx:else title="{{L.k353}}" desc="{{L.k354}}" />
       </block>
 
       <!-- W-77 功課：跨班一覽（校務處視角）。點一項展開未交名單，右邊可收回（軟刪除） -->

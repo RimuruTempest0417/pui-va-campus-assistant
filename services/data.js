@@ -21,6 +21,28 @@ const CACHEABLE = {
   parentChildAttendance: 1,
 };
 
+/**
+ * 「每次動作都抓一次家校通」的節流器。
+ *
+ * 為什麼放在資料層：要每個頁面自己記得呼叫 refresh 是不可能守住的（新增頁面一定漏）。
+ * 放在 call() 這裡，任何讀到家校通資料的動作都會順手踢一次背景刷新；10 分鐘一次、
+ * 8 秒預算、失敗完全靜音 —— 使用者不會因為自動刷新而多等一秒。
+ */
+const SCHOOL_TOUCH = { schoolGrades: 1, schoolAttendance: 1, schoolStatus: 1, parentChildGrades: 1, parentChildAttendance: 1, teacherClass: 1 };
+let lastSchoolKick = 0;
+const SCHOOL_KICK_GAP_MS = 10 * 60_000;
+
+function kickSchoolRefresh() {
+  if (isDemo()) return;
+  if (!request.getToken()) return;
+  const now = Date.now();
+  if (now - lastSchoolKick < SCHOOL_KICK_GAP_MS) return;
+  lastSchoolKick = now;
+  Promise.resolve()
+    .then(() => api.schoolRefresh(false))
+    .catch(() => {});
+}
+
 let demoActive = false;
 
 function forceDemoOn() {
@@ -95,6 +117,7 @@ async function call(name, args) {
   try {
     const res = await api[name].apply(null, a);
     if (cacheable) cache.write(name, a, token, res); // 成功才寫
+    if (SCHOOL_TOUCH[name]) kickSchoolRefresh(); // 順手刷新家校通（節流、靜音）
     return res;
   } catch (err) {
     if (config.DEMO_MODE === 'auto' && isNetworkish(err) && codeOf(err) !== 'UNAUTHORIZED') {
@@ -206,6 +229,7 @@ module.exports = {
   schoolLink: (...a) => call('schoolLink', a),
   schoolUnlink: (...a) => call('schoolUnlink', a),
   schoolSync: (...a) => call('schoolSync', a),
+  schoolRefresh: (...a) => call('schoolRefresh', a),
   schoolGrades: (...a) => call('schoolGrades', a),
   schoolAttendance: (...a) => call('schoolAttendance', a),
   // 家長讀子女的成績／出缺席（與上面同形狀；閘門在後端 parent-scope，未綁定 403）
@@ -265,6 +289,13 @@ module.exports = {
   saveTimetableSlot: (...a) => call('saveTimetableSlot', a),
   deleteTimetableSlot: (...a) => call('deleteTimetableSlot', a),
   importTimetable: (...a) => call('importTimetable', a),
+  // v1.0.2：班級與格線調堂（示範層同一套規則）
+  timetableLayout: (...a) => call('timetableLayout', a),
+  setTimetableCell: (...a) => call('setTimetableCell', a),
+  swapTimetable: (...a) => call('swapTimetable', a),
+  classes: (...a) => call('classes', a),
+  createClass: (...a) => call('createClass', a),
+  deleteClass: (...a) => call('deleteClass', a),
 
   // ── W-76 功課清單（依班級；打勾是每人一列）──
   listHomework: (...a) => call('listHomework', a),

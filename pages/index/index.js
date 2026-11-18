@@ -178,6 +178,14 @@ Page({
   },
 
   onShow() {
+    // 登入／登出後回首頁：一定要自己重抓，不能只靠 navigateBack
+    // （以前登入成功回到首頁仍是訪客畫面，實測回報「登入後沒有自動刷新」）
+    const app = getApp();
+    if (app && app.globalData && app.globalData.needRefresh) {
+      app.globalData.needRefresh = false;
+      this._lastRole = undefined; // 讓下面的角色判斷強制走一次 refresh
+      this.refresh();
+    }
     // 語言可能在自檢頁被改過：回來先更新介面文字
     this.setData({ greeting: i18n.greetingByHour(), L: this.labels(), themeClass: appearance.themeClass() });
     this.refreshUnread();

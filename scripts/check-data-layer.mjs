@@ -1301,6 +1301,8 @@ check('簽到：我的報名帶簽到時間',
   const demoDB = store.get(demoKey) || null;
   if (demoDB && today.weekday >= 1 && today.weekday <= 5) {
     // 造一則「今天」的 CALENDAR 公告 → 應該停課並寫出原因；移除後要恢復（兩件一起算一條）
+    // 基準要「現在」量：同一份腳本前面已經改過課表（新增／改某一格），用一開始的 today 比會飄。
+    const baseSlots = (await data.timetableToday()).slots.length;
     demoDB.notices = (demoDB.notices || []).concat([
       { id: 'w82-holiday', title: '重陽節假期', kind: 'CALENDAR', isPinned: false, publishedAt: new Date(today.date + 'T08:00:00'), expiresAt: null, content: '自我檢查用：放假一天。' },
     ]);
@@ -1312,7 +1314,7 @@ check('簽到：我的報名帶簽到時間',
     const back = await data.timetableToday();
     check(
       '課表：當天有校曆公告 → 停課並寫出原因，移除後恢復（示範層同一套規則）',
-      fired && back.schoolDay === true && back.slots.length === today.slots.length,
+      fired && back.schoolDay === true && back.slots.length === baseSlots,
       fired ? `${hol.dayOffReason}／移除後 ${back.slots.length} 節` : '（未生效）',
     );
   } else {

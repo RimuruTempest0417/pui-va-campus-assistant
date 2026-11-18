@@ -191,6 +191,8 @@ module.exports = {
   schoolLink(account, password) { return http.post('/school/link', { account, password }); },
   schoolUnlink() { return http.del('/school/link'); },
   schoolSync(yearTerms) { return http.post('/school/sync', yearTerms ? { yearTerms } : {}); },
+  /** 自動刷新：10 分鐘節流、8 秒預算，給「每次動作順手抓一下」用（成敗都不影響畫面） */
+  schoolRefresh(force) { return http.post('/school/refresh', { force: !!force }); },
   schoolGrades(q) { return http.get('/school/grades', q || {}); },
   schoolAttendance(q) { return http.get('/school/attendance', q || {}); },
   schoolManualGrade(body) { return http.post('/school/manual/grades', body); },
@@ -251,6 +253,13 @@ module.exports = {
   saveTimetableSlot(body) { return http.post('/admin/timetable', body); },
   deleteTimetableSlot(id) { return http.del('/admin/timetable/' + id); },
   importTimetable(body) { return http.post('/admin/timetable/import', body); },
+  // v1.0.2：班級與格線（手機端調堂、後台開班）
+  timetableLayout() { return http.get('/admin/timetable/layout'); },
+  setTimetableCell(body) { return http.patch('/admin/timetable/cell', body); },
+  swapTimetable(body) { return http.post('/admin/timetable/swap', body); },
+  classes() { return http.get('/admin/classes'); },
+  createClass(body) { return http.post('/admin/classes', body); },
+  deleteClass(id, query) { return http.del('/admin/classes/' + encodeURIComponent(id), query || {}); },
 
   // ── W-76 功課清單（登入後才有班級；打勾是每人一列）──
   listHomework(query) { return http.get('/homework', query || {}); },
