@@ -1,5 +1,7 @@
 const config = require('../config/config');
 const { codeOf } = require('./errors');
+// v1.0.3：所有請求都經過這裡，所以在這一層記「有東西在跑」，頁面才能畫刷新中的動畫
+const busy = require('./busy');
 
 /** 後端位址：預設吃 config.API_BASE_URL，可在自檢頁臨時覆蓋（pv_api_base） */
 function apiBase() {
@@ -151,7 +153,22 @@ function request(method, url, data, options) {
       throw err;
     });
 
-  return run(attempts);
+  // 包在最外層：重試與 401 清理都在裡面發生，這裡只管「開始／結束」各一次，
+  // 不論成功、失敗、逾時都會 end()，否則指示條會卡在畫面上永遠不消失。
+  busy.begin();
+  const finish = () => {
+    busy.end();
+  };
+  return run(attempts).then(
+    (res) => {
+      finish();
+      return res;
+    },
+    (err) => {
+      finish();
+      throw err;
+    },
+  );
 }
 
 module.exports = {

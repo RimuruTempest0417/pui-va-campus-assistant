@@ -1,0 +1,65 @@
+@import "../../styles/tokens.wxss";
+
+/*
+ * 刷新中指示條：一條會跑的細線 ＋ 一顆小藥丸寫「正在更新」。
+ * 只用 transform 與 opacity 做動畫（Skyline 對這兩類最穩），不做 layout 動畫，
+ * 所以低階機也不會因為畫這條線而掉幀。
+ */
+.pv-rf {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.pv-rf--inline { position: relative; top: auto; left: auto; right: auto; }
+
+.pv-rf__track {
+  width: 100%;
+  height: 6rpx;
+  background: var(--pv-fill-2);
+  overflow: hidden;
+}
+.pv-rf__fill {
+  width: 38%;
+  height: 100%;
+  border-radius: 6rpx;
+  background: var(--pv-brand);
+  animation: pv-rf-slide 1.15s var(--pv-ease) infinite;
+}
+
+.pv-rf__pill {
+  margin-top: 12rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  background: var(--pv-surface);
+  box-shadow: 0 6rpx 20rpx var(--pv-shadow);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.pv-rf__dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: var(--pv-brand);
+  margin-right: 10rpx;
+  animation: pv-rf-pulse 0.9s var(--pv-ease) infinite;
+}
+.pv-rf__text {
+  font-size: var(--pv-fs-caption-1);
+  color: var(--pv-label-2);
+}
+
+@keyframes pv-rf-slide {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(290%); }
+}
+@keyframes pv-rf-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.7); }
+}

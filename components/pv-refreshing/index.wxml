@@ -1,0 +1,7 @@
+<view wx:if="{{show}}" class="pv-rf {{inline ? 'pv-rf--inline' : ''}}">
+  <view class="pv-rf__track"><view class="pv-rf__fill" /></view>
+  <view class="pv-rf__pill">
+    <view class="pv-rf__dot" />
+    <text class="pv-rf__text">{{label}}</text>
+  </view>
+</view>

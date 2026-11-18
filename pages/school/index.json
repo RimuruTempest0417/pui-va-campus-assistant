@@ -6,7 +6,8 @@
     "pv-button": "/components/pv-button/index",
     "pv-empty": "/components/pv-empty/index",
     "pv-skeleton": "/components/pv-skeleton/index",
-    "pv-tag": "/components/pv-tag/index"
+    "pv-tag": "/components/pv-tag/index",
+    "pv-refreshing": "/components/pv-refreshing/index"
   },
   "navigationBarTitleText": "成績與出缺席"
 }
