@@ -1,4 +1,5 @@
 <view class="school page-root {{themeClass}}">
+  <pv-refreshing />
   <pv-navbar title="{{L.title}}" back="{{true}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">

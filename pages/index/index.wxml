@@ -1,4 +1,5 @@
 <view class="{{themeClass}} home page-root">
+  <pv-refreshing />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}" refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
     <view class="home-inner" style="padding-top: {{navTotal}}px">
   <!-- 狀態列 + 頂部列（自訂導航）-->

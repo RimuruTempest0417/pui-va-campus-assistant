@@ -4,7 +4,8 @@
     "pv-navbar": "/components/pv-navbar/index",
     "pv-button": "/components/pv-button/index",
     "pv-empty": "/components/pv-empty/index",
-    "pv-skeleton": "/components/pv-skeleton/index"
+    "pv-skeleton": "/components/pv-skeleton/index",
+    "pv-refreshing": "/components/pv-refreshing/index"
   },
   "navigationBarTitleText": "通知"
 }

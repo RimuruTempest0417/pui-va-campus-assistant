@@ -1,4 +1,5 @@
 <view class="{{themeClass}} ui-page page-root">
+  <pv-refreshing />
   <pv-navbar title="{{L.k01}}" back="{{true}}" />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="hw-inner">
