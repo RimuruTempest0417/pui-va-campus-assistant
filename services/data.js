@@ -178,6 +178,7 @@ module.exports = {
   getEvent: (...a) => call('getEvent', a),
   switchDemoUser: (...a) => call('switchDemoUser', a),
   weekMenu: (...a) => call('weekMenu', a),
+  mealSets: (...a) => call('mealSets', a),
   getDish: (...a) => call('getDish', a),
   rateDish: (...a) => call('rateDish', a),
   topDishes: (...a) => call('topDishes', a),

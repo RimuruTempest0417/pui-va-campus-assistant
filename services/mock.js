@@ -1613,6 +1613,22 @@ module.exports = {
     return Promise.resolve({ offset: offset, dates: dates, days: days });
   },
 
+  /**
+   * v1.0.9：示範層的 A／B／C 餐。
+   * 示範資料沒有套餐，所以固定回空的三格 —— 版面會顯示單點菜色那一段，
+   * 跟真實後端「這一週還沒排套餐」時的畫面一致（不要為了好看造假菜名）。
+   */
+  mealSets(query) {
+    const q = query || {};
+    const offset = Number(q.weekOffset) || 0;
+    const dates = weekUtil.weekDates(offset);
+    return Promise.resolve({
+      weekStart: dates[0],
+      days: dates.map((date) => ({ date: date, A: '', B: '', C: '' })),
+      demo: true,
+    });
+  },
+
   getDish(id) {
     const data = db();
     const dish = DISH_LIBRARY.filter((x) => x.id === id)[0];

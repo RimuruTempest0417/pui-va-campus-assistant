@@ -31,6 +31,32 @@
           </view>
 
           <pv-card>
+            <!-- v1.0.9：學校公布的 A／B／C 餐（套餐制）。有填就顯示，沒填不佔位 -->
+            <view wx:if="{{item.hasSet}}">
+              <view class="ui-section sec-title">{{L.k600}}</view>
+              <view wx:if="{{item.A}}" class="set-meal">
+                <text class="set-meal__tag">A</text>
+                <view class="set-meal__main">
+                  <text class="ui-meta">{{L.k601}}</text>
+                  <text class="ui-body set-meal__text">{{item.A}}</text>
+                </view>
+              </view>
+              <view wx:if="{{item.B}}" class="set-meal">
+                <text class="set-meal__tag">B</text>
+                <view class="set-meal__main">
+                  <text class="ui-meta">{{L.k602}}</text>
+                  <text class="ui-body set-meal__text">{{item.B}}</text>
+                </view>
+              </view>
+              <view wx:if="{{item.C}}" class="set-meal">
+                <text class="set-meal__tag">C</text>
+                <view class="set-meal__main">
+                  <text class="ui-meta">{{L.k603}}</text>
+                  <text class="ui-body set-meal__text">{{item.C}}</text>
+                </view>
+              </view>
+            </view>
+
             <view wx:if="{{item.lunch.length}}">
               <view class="ui-section sec-title">{{L.k05}}</view>
               <view wx:for="{{item.lunch}}" wx:for-item="dish" wx:key="id" class="dish-row"
@@ -61,7 +87,7 @@
               </view>
             </view>
 
-            <pv-empty wx:if="{{!item.lunch.length && !item.snack.length}}" title="{{L.k08}}" desc="{{L.k09}}" />
+            <pv-empty wx:if="{{!item.hasSet && !item.lunch.length && !item.snack.length}}" title="{{L.k08}}" desc="{{L.k09}}" />
           </pv-card>
         </view>
 
