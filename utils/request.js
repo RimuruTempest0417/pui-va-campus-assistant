@@ -91,7 +91,7 @@ function onceCloud(method, url, data, withAuth) {
   });
 }
 
-function once(method, url, data, withAuth, text) {
+function once(method, url, data, withAuth, text, timeoutMs) {
   return new Promise((resolve, reject) => {
     const header = { 'content-type': 'application/json' };
     if (withAuth) {
@@ -103,7 +103,8 @@ function once(method, url, data, withAuth, text) {
       method: method,
       data: data,
       header: header,
-      timeout: config.TIMEOUT,
+      // 單次覆寫：家校通登入本身要 8 秒上下，用預設 8 秒會「還沒回來就先判定連不到」
+      timeout: timeoutMs || config.TIMEOUT,
       // 匯出（CSV）要用 dataType:'text'：預設的 json 會嘗試 JSON.parse，
       // 雖然解析失敗會退回原文，但有些基礎庫會直接回空字串 —— 明講才不會拿到一份空檔。
       dataType: text ? 'text' : 'json',
@@ -137,10 +138,13 @@ function request(method, url, data, options) {
   const withAuth = opts.auth !== false;
   if (method === 'GET') data = cleanParams(data);
   const transport = opts.transport || config.TRANSPORT || 'https';
-  const attempts = 1 + Math.max(0, config.RETRY || 0);
+  // 登入這類「等上游」的請求不重試：重試只會讓使用者多等一個逾時，且第二次一定一樣慢
+  const attempts = opts.retry === false ? 1 : 1 + Math.max(0, config.RETRY || 0);
 
   const run = (left) =>
-    (transport === 'cloud' ? onceCloud(method, url, data, withAuth) : once(method, url, data, withAuth, opts.text === true)).catch((err) => {
+    (transport === 'cloud'
+        ? onceCloud(method, url, data, withAuth)
+        : once(method, url, data, withAuth, opts.text === true, opts.timeout)).catch((err) => {
       // 帶了 token 卻回 401 ＝ JWT 過期／被撤銷：清掉本機登入態，回一個使用者看得懂的
       // SESSION_EXPIRED（否則頁面只顯示「請先登入」，而他明明剛登入過）。
       // auth:false 的呼叫（登入本身）不會走進來，所以打錯密碼不會把人踢掉。

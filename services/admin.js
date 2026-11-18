@@ -12,7 +12,9 @@ module.exports = {
    * 密碼只在這次請求裡用掉，不會存到後端資料庫。
    */
   schoolLogin(account, password) {
-    return http.post('/auth/school', { account: account, password: password }, { auth: false });
+    // 家校通本身登入就要 8 秒上下（實測 8.4 秒），用預設 8 秒逾時會在使用者面前「連不到後端」。
+    // 這裡給 25 秒並且不重試：重試只會多等一個逾時，結果一樣。
+    return http.post('/auth/school', { account: account, password: password }, { auth: false, timeout: 25000, retry: false });
   },
   stats() {
     return http.get('/admin/stats');

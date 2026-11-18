@@ -192,7 +192,8 @@ module.exports = {
   schoolUnlink() { return http.del('/school/link'); },
   schoolSync(yearTerms) { return http.post('/school/sync', yearTerms ? { yearTerms } : {}); },
   /** 自動刷新：10 分鐘節流、8 秒預算，給「每次動作順手抓一下」用（成敗都不影響畫面） */
-  schoolRefresh(force) { return http.post('/school/refresh', { force: !!force }); },
+  // 這支要在後端重新登入家校通（約 8 秒）再抓一批，預設 8 秒一定不夠；失敗是靜音的，寧可等久一點
+  schoolRefresh(force) { return http.post('/school/refresh', { force: !!force }, { timeout: 30000 }); },
   schoolGrades(q) { return http.get('/school/grades', q || {}); },
   schoolAttendance(q) { return http.get('/school/attendance', q || {}); },
   schoolManualGrade(body) { return http.post('/school/manual/grades', body); },
