@@ -57,7 +57,9 @@
               </view>
             </view>
 
-            <view wx:if="{{item.lunch.length}}">
+            <!-- v1.0.10：有套餐就不再重複列「午餐」菜色 —— 後端存套餐時已自動寫進排菜單，
+                 兩邊都會出現同一道菜，列兩次只會讓學生以為有兩份午餐 -->
+            <view wx:if="{{item.lunch.length && !item.hasSet}}">
               <view class="ui-section sec-title">{{L.k05}}</view>
               <view wx:for="{{item.lunch}}" wx:for-item="dish" wx:key="id" class="dish-row"
                     data-id="{{dish.id}}" bindtap="goDish" hover-class="dish-row--pressed" hover-start-time="0">
