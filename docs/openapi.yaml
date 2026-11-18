@@ -1718,20 +1718,7 @@ paths:
                       absent: { type: integer }
                       leave: { type: integer }
                       rate: { type: number, nullable: true }
-                  byClass:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        grade: { type: string }
-                        className: { type: string }
-                        students: { type: integer }
-                        records: { type: integer }
-                        present: { type: integer }
-                        late: { type: integer }
-                        absent: { type: integer }
-                        leave: { type: integer }
-                        rate: { type: number, nullable: true }
+                  # v1.0.5 起不再回 byClass：月報只看全校與每日，不分班別也不分年級
                   byDay:
                     type: array
                     items:
@@ -1753,7 +1740,7 @@ paths:
       summary: "出席率月報 CSV 匯出（需 school:manage）"
       description: |
         W-104。與 `GET /admin/school/attendance/monthly` **共用同一份聚合**（`src/lib/attendance-monthly.ts`），
-        所以匯出筆數一定等於月報上的班級數（`groupBy=class`）或天數（`groupBy=day`）。
+        所以匯出的合計列一定等於月報的 summary。v1.0.5 起一律按日輸出（另加一列合計），`groupBy=class` 仍然接受但輸出一樣。
         回應是 UTF-8 BOM 的 `text/csv`，欄位全包雙引號；`x-row-count` 標頭回列數（不必下載檔案就能驗）。
         每次匯出寫一筆 `attendance.export` 審計。
       security: [{ bearerAuth: [] }]
@@ -1762,7 +1749,7 @@ paths:
         - { in: query, name: yearTerm, schema: { type: string, maxLength: 16 } }
         - { in: query, name: grade, schema: { type: string, maxLength: 16 } }
         - { in: query, name: className, schema: { type: string, maxLength: 32 } }
-        - { in: query, name: groupBy, schema: { type: string, enum: [class, day], default: class }, description: class＝每班一列（校務處月底要的數字）；day＝整月一天一列 }
+        - { in: query, name: groupBy, schema: { type: string, enum: [class, day], default: day }, description: "v1.0.5 起固定按日（每天一列 ＋ 一列合計）；class 仍然接受但輸出一樣" }
       responses:
         '200':
           description: CSV（`text/csv; charset=utf-8`，帶 BOM）
@@ -3169,6 +3156,65 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { description: 找不到這則公告或已經刪除 }
         '422': { description: 公告已過期，不需要再催讀 }
+
+  /admin/menu/sets:
+    get:
+      tags: [menu, admin]
+      summary: "本週 A／B／C 餐（v1.0.6）"
+      description: |
+        學校公布的菜單是「每天 A／B／C 三款套餐」。回這一週（星期一到五）三格，
+        沒填的格子回空字串（不是 undefined）。`weekStart` 不是星期一時會自動對到那一週的星期一。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: weekStart, schema: { type: string, pattern: '^\\d{4}-\\d{2}-\\d{2}$' }, description: 這一週的任何一天；留空＝本週 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  weekStart: { type: string, format: date }
+                  days:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        A: { type: string }
+                        B: { type: string }
+                        C: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [menu, admin]
+      summary: "整週覆蓋 A／B／C 餐（空字串＝清掉那一格）"
+      description: |
+        一週 15 格一次送出。後端在同一個交易內先刪整週再寫入，不會留下「半週新、半週舊」。
+        日期必須落在這一週（星期一到五），slot 只收 A／B／C，內容 ≤200 字。
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [weekStart, cells]
+              properties:
+                weekStart: { type: string, format: date }
+                cells:
+                  type: array
+                  maxItems: 15
+                  items:
+                    type: object
+                    required: [date, slot, content]
+                    properties:
+                      date: { type: string, format: date }
+                      slot: { type: string, enum: [A, B, C] }
+                      content: { type: string, maxLength: 200 }
+      responses:
+        '200': { description: "覆蓋後的這一週（與 GET 同形狀）" }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/menu/stats:
     get:
