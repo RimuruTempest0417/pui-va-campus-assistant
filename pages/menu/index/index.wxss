@@ -46,3 +46,28 @@
   display: flex; align-items: center; justify-content: center; margin-right: var(--pv-sp-2);
 }
 .top-name { flex: 1; }
+
+/* v1.0.9：A／B／C 餐（套餐）—— 左邊一個字母圓牌，右邊兩行（標籤＋內容） */
+.set-meal {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: var(--pv-sp-2) 0;
+  border-top: 1px solid var(--pv-sep);
+}
+.set-meal:first-of-type { border-top: none; }
+.set-meal__tag {
+  flex: 0 0 auto;
+  width: 56rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: var(--pv-brand-soft, var(--pv-fill-2));
+  color: var(--pv-brand);
+  font-weight: 600;
+  font-size: var(--pv-fs-subhead, 30rpx);
+  margin-right: var(--pv-sp-2);
+}
+.set-meal__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.set-meal__text { word-break: break-word; overflow-wrap: anywhere; }

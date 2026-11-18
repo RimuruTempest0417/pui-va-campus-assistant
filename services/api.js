@@ -81,6 +81,8 @@ module.exports = {
   switchDemoUser() {
     return Promise.reject({ code: 'FORBIDDEN', message: '示範模式專用' });
   },
+  /** v1.0.9：本週 A／B／C 餐（學校公布的套餐制；與 weekMenu 的「一道一道菜」是兩件事） */
+  mealSets(query) { return http.get('/menu/sets', query || {}); },
   weekMenu(query) {
     const q = query || {};
     return http.get('/menu/week', { weekOffset: q.offset || 0 });

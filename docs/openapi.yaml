@@ -694,6 +694,36 @@ paths:
           description: OK（CHECK_IN／CHECK_OUT 只動正取，候補不會被算成出席）
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /menu/sets:
+    get:
+      tags: [menu]
+      summary: "本週 A／B／C 餐（v1.0.9；訪客也讀得到）"
+      description: |
+        學校公布的「每天三款套餐」，與 `/menu/week`（一道一道菜）不同。
+        回這一週（星期一到五）三格；沒有填的格子回空字串。
+        內容與網頁後台 `/admin/menu/sets` 同一份（都走 `src/lib/meal-week.ts`）。
+      parameters:
+        - { in: query, name: weekStart, schema: { type: string, pattern: '^\\d{4}-\\d{2}-\\d{2}$' } }
+        - { in: query, name: weekOffset, schema: { type: integer, minimum: -8, maximum: 8, default: 0 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  weekStart: { type: string, format: date }
+                  days:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        A: { type: string }
+                        B: { type: string }
+                        C: { type: string }
+
   /menu/week:
     get:
       tags: [menu]
