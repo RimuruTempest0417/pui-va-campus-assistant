@@ -181,9 +181,9 @@ Page({
     this.setData(Object.assign({ L: this.labels(), calDays: this.calDaysPref() }, this.labelOptions()));
     this.refresh();
     this.loadTwoFactor();
-    // 已登入才問訂閱狀態：訪客沒有權杖，問了只會多一條 401
-    if (this.data.loggedIn) this.loadCalendarToken();
-    else this.setData({ calToken: { enabled: false, path: null }, calUrl: '' });
+    // v1.0.7：校曆只給學校那條公開網址，不再問個人權杖（後端端點與方法保留，但頁面不再用）。
+    // 會員若之前產生過權杖，舊網址仍然有效，只是這裡不再顯示。
+    this.setData({ calToken: { enabled: false, path: null }, calUrl: '', calAdvanced: false });
   },
 
   /**
