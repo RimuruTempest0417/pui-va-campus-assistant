@@ -8,7 +8,7 @@
 // 想臨時離線演示又不想改程式：到「開發自檢頁」把「離線示範模式」打開，
 // 這個開關存在 storage（pv_force_demo），關掉就回到真 API。
 module.exports = {
-  VERSION: '1.0.6', // 版本號唯一來源（設定頁「關於」顯示；發版時改這裡＋docs/releases）
+  VERSION: '1.0.7', // 版本號唯一來源（設定頁「關於」顯示；發版時改這裡＋docs/releases）
   API_BASE_URL: 'https://pui-va-campus-server.vercel.app/api/v1', // 雲端 API（Vercel + Neon）；本機開發改成 http://127.0.0.1:3100/api/v1
   DEMO_MODE: 'off',
 
@@ -28,6 +28,13 @@ module.exports = {
   // 介面語言：'zh-Hant'（繁體，預設）／'zh-Hans'（簡體）。只影響介面文案，不改資料內容。
   // 使用者可在開發自檢頁切換，存在 storage（pv_locale）。
   LOCALE: 'zh-Hant',
+  /**
+   * 學校日曆（v1.0.7）：使用者定案「小程序的日曆連結直接給這條，貼上就好，不用額外生成」。
+   * 這是學校已發布的 iCloud 公開日曆（webcal://），任何人都訂閱得到，
+   * 所以不必也不該在後端另外生成一條帶權杖的網址給全校用。
+   */
+  PUBLIC_CALENDAR_URL:
+    'webcal://p46-caldav.icloud.com/published/2/MTgwNDE5NTQ2NzcxODA0MQm39cxo8l-TlnddVrGQZwG70jJVYmeUonm1tqoQimLLWywxCTE-PbaiOBcaaB9UzPUd-oecvaGVb26jDlcDtu8',
   TIMEOUT: 8000,
   RETRY: 1,
   STORAGE_KEYS: {

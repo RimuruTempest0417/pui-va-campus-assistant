@@ -76,6 +76,11 @@ Page({
       k64: i18n.pick("匯出失敗"),
       k65: i18n.pick("列"),
       k66: i18n.pick("還沒有資料"),
+      // ── v1.0.7 校曆：直接給學校那條 webcal 網址（不用生成）；個人行程收在「進階」──
+      k600: i18n.pick("學校日曆訂閱網址"),
+      k601: i18n.pick("按一下複製，貼進手機日曆的「加入訂閱行事曆」就會自己更新（iPhone：行事曆 → 底部「行事曆」→「加入行事曆」→「加入訂閱行事曆」）。這條是學校公開的日曆，全校同一條，不含個人資料。"),
+      k602: i18n.pick("收起"),
+      k603: i18n.pick("只訂閱我的行程（進階）"),
       // ── W-109 訂閱校曆（把校曆放進手機內建日曆）──
       k67: i18n.pick("訂閱校曆"),
       k68: i18n.pick("校曆訂閱"),
@@ -136,6 +141,9 @@ Page({
     // W-110 訂閱範圍（天數）：30／90／180 三選一，預設 90
     calDays: 90,
     calDayOptions: [],
+    // v1.0.7：學校日曆就一條固定網址，貼上就用；個人行程訂閱收在「進階」裡
+    publicCal: config.PUBLIC_CALENDAR_URL || '',
+    calAdvanced: false,
   },
 
   onLoad() {
@@ -176,6 +184,33 @@ Page({
     // 已登入才問訂閱狀態：訪客沒有權杖，問了只會多一條 401
     if (this.data.loggedIn) this.loadCalendarToken();
     else this.setData({ calToken: { enabled: false, path: null }, calUrl: '' });
+  },
+
+  /**
+   * v1.0.7：複製學校日曆網址。
+   * 使用者定案「直接給這條，貼上就好，不用額外生成」——所以沒有「產生」按鈕，
+   * 也不需要後端權杖：這是學校已發布的 iCloud 公開日曆，全校共用同一條。
+   */
+  copyPublicCalendar() {
+    const url = this.data.publicCal;
+    if (!url) {
+      wx.showToast({ title: i18n.pick('沒有設定日曆網址'), icon: 'none' });
+      return;
+    }
+    wx.setClipboardData({
+      data: url,
+      success: () => wx.showToast({ title: i18n.pick('已複製，貼進日曆的「訂閱行事曆」'), icon: 'none' }),
+    });
+  },
+
+  /** 進階區（只訂閱自己的行程：報名／假單／功課截止／還書）預設收起，避免一般學生看到一堆名詞 */
+  toggleCalAdvanced() {
+    const next = !this.data.calAdvanced;
+    this.setData({ calAdvanced: next });
+    if (next && this.data.loggedIn && !this.data.calToken.enabled && !this.data.calBusy) {
+      // 展開時才去問狀態；沒開啟就維持「未開啟」，不要自動產生（使用者明確說不要額外生成）
+      this.loadCalendarToken();
+    }
   },
 
   /** W-110 訂閱範圍：讀 storage，只認 30／90／180，其餘一律回 90 */

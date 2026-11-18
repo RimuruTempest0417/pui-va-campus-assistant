@@ -32,3 +32,10 @@
 /* W-110 訂閱範圍：標題一行、分段控制佔滿整行（三個數字擠在右邊會被壓扁） */
 .set-cal { flex-direction: column; align-items: stretch; gap: var(--pv-sp-2); }
 .set-cal__seg { width: 100%; }
+
+/* v1.0.7：學校日曆網址很長（iCloud 發布連結），一定要能斷行，否則會撐破卡片 */
+.set-cal__url {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, Menlo, monospace;
+}
