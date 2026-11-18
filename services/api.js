@@ -253,6 +253,13 @@ module.exports = {
   saveTimetableSlot(body) { return http.post('/admin/timetable', body); },
   deleteTimetableSlot(id) { return http.del('/admin/timetable/' + id); },
   importTimetable(body) { return http.post('/admin/timetable/import', body); },
+  // v1.0.2：班級與格線（手機端調堂、後台開班）
+  timetableLayout() { return http.get('/admin/timetable/layout'); },
+  setTimetableCell(body) { return http.patch('/admin/timetable/cell', body); },
+  swapTimetable(body) { return http.post('/admin/timetable/swap', body); },
+  classes() { return http.get('/admin/classes'); },
+  createClass(body) { return http.post('/admin/classes', body); },
+  deleteClass(id, query) { return http.del('/admin/classes/' + encodeURIComponent(id), query || {}); },
 
   // ── W-76 功課清單（登入後才有班級；打勾是每人一列）──
   listHomework(query) { return http.get('/homework', query || {}); },

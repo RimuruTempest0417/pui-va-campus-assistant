@@ -193,9 +193,15 @@ Page({
     const app = getApp();
     if (app && app.globalData) app.globalData.needRefresh = true;
     wx.showToast({ title: i18n.pick('已登入'), icon: 'success' });
-    // 家校通登入成功＝家校通當下是通的：順手抓一批最新資料（失敗不影響登入）
+    // 家校通登入成功＝後端已經在伺服器那一邊同步完了（v1.0.2：登入即同步）。
+    // 只有後端回報「沒拿到／逾時」才由手機再補一次，否則會變成登入後多等 8 秒重複抓同一份。
     if (res && res.source === 'school') {
-      data.schoolRefresh(true).catch(() => {});
+      const sync = res.autoSync || {};
+      if (!sync.ok) data.schoolRefresh(true).catch(() => {});
+      else if (typeof sync.grades === 'number' || typeof sync.attendance === 'number') {
+        const n = (sync.grades || 0) + (sync.attendance || 0);
+        if (n > 0) setTimeout(() => wx.showToast({ title: i18n.pick('已同步 ') + n + i18n.pick(' 筆'), icon: 'none' }), 900);
+      }
     }
     this.refreshCurrent();
     // 登入只負責「登入」；後台入口由首頁那顆按鈕負責

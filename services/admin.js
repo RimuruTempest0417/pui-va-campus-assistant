@@ -357,6 +357,30 @@ module.exports = {
   importTimetable(body) {
     return http.post('/admin/timetable/import', body);
   },
+  /**
+   * v1.0.2：手機端調堂用。
+   * `layout` 是一整張紙（早讀／8 節／小息／午膳共 18 列），只拿 LESSON 那幾列畫格子；
+   * `cell` 是 upsert（改那一格，不會長第二格）；`swap` 由後端在同一個交易完成。
+   */
+  timetableLayout() {
+    return http.get('/admin/timetable/layout');
+  },
+  setTimetableCell(body) {
+    return http.patch('/admin/timetable/cell', body);
+  },
+  swapTimetable(body) {
+    return http.post('/admin/timetable/swap', body);
+  },
+  /** 班級：新增／刪除（v1.0.2 後台開放） */
+  createClass(body) {
+    return http.post('/admin/classes', body);
+  },
+  updateClass(id, body) {
+    return http.patch('/admin/classes/' + encodeURIComponent(id), body);
+  },
+  deleteClass(id) {
+    return http.del('/admin/classes/' + encodeURIComponent(id));
+  },
 
   // ── W-77 功課後台：跨班一覽、未交名單、收回（能力 homework:manage：資訊管理員以上）──
   homeworkAll(params) {

@@ -289,6 +289,13 @@ module.exports = {
   saveTimetableSlot: (...a) => call('saveTimetableSlot', a),
   deleteTimetableSlot: (...a) => call('deleteTimetableSlot', a),
   importTimetable: (...a) => call('importTimetable', a),
+  // v1.0.2：班級與格線調堂（示範層同一套規則）
+  timetableLayout: (...a) => call('timetableLayout', a),
+  setTimetableCell: (...a) => call('setTimetableCell', a),
+  swapTimetable: (...a) => call('swapTimetable', a),
+  classes: (...a) => call('classes', a),
+  createClass: (...a) => call('createClass', a),
+  deleteClass: (...a) => call('deleteClass', a),
 
   // ── W-76 功課清單（依班級；打勾是每人一列）──
   listHomework: (...a) => call('listHomework', a),

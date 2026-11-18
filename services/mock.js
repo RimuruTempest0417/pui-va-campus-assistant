@@ -862,14 +862,36 @@ function shapeLeave(row, me) {
 
 /** 示範層的節次（與後端 DEFAULT_PERIODS 同一個時間表） */
 const DEMO_PERIODS = [
-  { period: 1, startTime: '08:10', endTime: '08:50' },
-  { period: 2, startTime: '08:55', endTime: '09:35' },
-  { period: 3, startTime: '09:45', endTime: '10:25' },
-  { period: 4, startTime: '10:30', endTime: '11:10' },
-  { period: 5, startTime: '11:20', endTime: '12:00' },
-  { period: 6, startTime: '14:00', endTime: '14:40' },
-  { period: 7, startTime: '14:45', endTime: '15:25' },
-  { period: 8, startTime: '15:35', endTime: '16:15' },
+  { period: 1, label: '第一節', startTime: '08:45', endTime: '09:20' },
+  { period: 2, label: '第二節', startTime: '09:35', endTime: '10:15' },
+  { period: 3, label: '第三節', startTime: '10:20', endTime: '11:00' },
+  { period: 4, label: '第四節', startTime: '11:15', endTime: '11:55' },
+  { period: 5, label: '第五節', startTime: '12:00', endTime: '12:40' },
+  { period: 6, label: '第六節', startTime: '14:10', endTime: '14:50' },
+  { period: 7, label: '第七節', startTime: '15:00', endTime: '15:40' },
+  { period: 8, label: '第八節', startTime: '15:45', endTime: '16:25' },
+];
+
+/** 學校印在紙上的那一張（早讀＋作息），與後端 DEFAULT_LAYOUT 同一組數字 */
+const DEMO_LAYOUT = [
+  { period: 0, label: '早讀', kind: 'READ', startTime: '08:25', endTime: '08:40', sortIndex: 1 },
+  { period: 1, label: '第一節', kind: 'LESSON', startTime: '08:45', endTime: '09:20', sortIndex: 2 },
+  { period: 0, label: '小息', kind: 'BREAK', startTime: '09:20', endTime: '09:35', sortIndex: 3 },
+  { period: 2, label: '第二節', kind: 'LESSON', startTime: '09:35', endTime: '10:15', sortIndex: 4 },
+  { period: 0, label: '小息', kind: 'BREAK', startTime: '10:15', endTime: '10:20', sortIndex: 5 },
+  { period: 3, label: '第三節', kind: 'LESSON', startTime: '10:20', endTime: '11:00', sortIndex: 6 },
+  { period: 0, label: '廣播操', kind: 'BREAK', startTime: '11:00', endTime: '11:10', sortIndex: 7 },
+  { period: 0, label: '小息', kind: 'BREAK', startTime: '11:10', endTime: '11:15', sortIndex: 8 },
+  { period: 4, label: '第四節', kind: 'LESSON', startTime: '11:15', endTime: '11:55', sortIndex: 9 },
+  { period: 0, label: '小息', kind: 'BREAK', startTime: '11:55', endTime: '12:00', sortIndex: 10 },
+  { period: 5, label: '第五節', kind: 'LESSON', startTime: '12:00', endTime: '12:40', sortIndex: 11 },
+  { period: 0, label: '午膳、午間放學', kind: 'BREAK', startTime: '12:40', endTime: '14:10', sortIndex: 12 },
+  { period: 6, label: '第六節', kind: 'LESSON', startTime: '14:10', endTime: '14:50', sortIndex: 13 },
+  { period: 0, label: '伸展操', kind: 'BREAK', startTime: '14:50', endTime: '14:55', sortIndex: 14 },
+  { period: 0, label: '小息', kind: 'BREAK', startTime: '14:55', endTime: '15:00', sortIndex: 15 },
+  { period: 7, label: '第七節', kind: 'LESSON', startTime: '15:00', endTime: '15:40', sortIndex: 16 },
+  { period: 0, label: '小息', kind: 'BREAK', startTime: '15:40', endTime: '15:45', sortIndex: 17 },
+  { period: 8, label: '第八節', kind: 'LESSON', startTime: '15:45', endTime: '16:25', sortIndex: 18 },
 ];
 const DEMO_CLASS = '高二仁';
 const WEEKDAY_LABEL = { 1: '星期一', 2: '星期二', 3: '星期三', 4: '星期四', 5: '星期五' };
@@ -3272,6 +3294,140 @@ module.exports = {
       classes: Object.keys(map).sort().map((name) => ({ name: name, slots: map[name] })),
       items: items,
       periods: DEMO_PERIODS,
+    });
+  },
+
+  // ── v1.0.2：班級與格線調堂（示範層同一套規則；真的後端在 src/routes/{admin,timetable}.ts）──
+  classes() {
+    const data = db();
+    const names = {};
+    (data.schoolClasses || []).forEach((c) => {
+      names[c.name] = c;
+    });
+    (data.timetableSlots || []).forEach((s) => {
+      if (!names[s.className]) names[s.className] = { name: s.className };
+    });
+    const items = Object.keys(names)
+      .sort()
+      .map((name) => ({
+        className: name,
+        id: names[name].id || null,
+        grade: names[name].grade || null,
+        registered: Boolean(names[name].id),
+        students: (data.users || []).filter((u) => u.className === name).length,
+        hasTimetable: (data.timetableSlots || []).some((s) => s.className === name),
+        hasHomework: (data.homework || []).some((h) => h.className === name && !h.deletedAt),
+      }));
+    return Promise.resolve({ items: items, unassigned: 0, demo: true });
+  },
+
+  createClass(body) {
+    const data = db();
+    const name = String((body && body.name) || '').trim();
+    if (!name) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請填班級名稱' });
+    data.schoolClasses = data.schoolClasses || [];
+    if (data.schoolClasses.some((c) => c.name === name)) {
+      return Promise.reject({ code: 'CONFLICT', message: '已經有這個班級' });
+    }
+    const row = { id: 'dc' + Date.now(), name: name, grade: (body && body.grade) || null };
+    data.schoolClasses.push(row);
+    save(data);
+    return Promise.resolve({ item: row, demo: true });
+  },
+
+  deleteClass(id) {
+    const data = db();
+    data.schoolClasses = data.schoolClasses || [];
+    const hit = data.schoolClasses.filter((c) => c.id === id)[0];
+    if (!hit) return Promise.reject({ code: 'NOT_FOUND', message: '找不到這個班級' });
+    const slots = (data.timetableSlots || []).filter((s) => s.className === hit.name).length;
+    if (slots) {
+      return Promise.reject({ code: 'CONFLICT', message: '這個班還有 ' + slots + ' 格課表；確認要刪就加 force=1' });
+    }
+    data.schoolClasses = data.schoolClasses.filter((c) => c.id !== hit.id);
+    save(data);
+    return Promise.resolve({ ok: true, deleted: hit.name, demo: true });
+  },
+
+  /** 整張時間表：印刷版 18 列（示範層不做替換，替換是真的後端才有的操作） */
+  timetableLayout() {
+    return Promise.resolve({
+      rows: DEMO_LAYOUT.map((r) => Object.assign({}, r)),
+      defaults: DEMO_LAYOUT.map((r) => Object.assign({}, r)),
+      demo: true,
+    });
+  },
+
+  setTimetableCell(body) {
+    const data = db();
+    const input = body || {};
+    const className = String(input.className || '');
+    const weekday = Number(input.weekday);
+    const period = Number(input.period);
+    if (!className || !(weekday >= 1 && weekday <= 5) || !(period >= 1 && period <= 8)) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '班級／星期／節次有誤' });
+    }
+    data.timetableSlots = data.timetableSlots || [];
+    const hit = data.timetableSlots.filter(
+      (s) => s.className === className && s.weekday === weekday && s.period === period,
+    )[0];
+    if (input.clear) {
+      data.timetableSlots = data.timetableSlots.filter((s) => s !== hit);
+      save(data);
+      return Promise.resolve({ cleared: true, slot: null, demo: true });
+    }
+    const subject = String(input.subject || '').trim();
+    if (!subject) return Promise.reject({ code: 'VALIDATION_FAILED', message: '請填科目' });
+    if (hit) {
+      hit.subject = subject;
+      hit.teacherName = input.teacherName || '';
+      hit.room = input.room || '';
+      save(data);
+      return Promise.resolve({ slot: shapeSlot(hit), demo: true });
+    }
+    const row = {
+      id: 'ts' + Date.now(),
+      className: className,
+      weekday: weekday,
+      period: period,
+      subject: subject,
+      teacherName: input.teacherName || '',
+      room: input.room || '',
+    };
+    data.timetableSlots.push(row);
+    save(data);
+    return Promise.resolve({ slot: shapeSlot(row), demo: true });
+  },
+
+  swapTimetable(body) {
+    const data = db();
+    const input = body || {};
+    const className = String(input.className || '');
+    const from = input.from || {};
+    const to = input.to || {};
+    if (Number(from.weekday) === Number(to.weekday) && Number(from.period) === Number(to.period)) {
+      return Promise.reject({ code: 'VALIDATION_FAILED', message: '兩格相同，不用調' });
+    }
+    data.timetableSlots = data.timetableSlots || [];
+    const find = (p) =>
+      data.timetableSlots.filter(
+        (s) => s.className === className && s.weekday === Number(p.weekday) && s.period === Number(p.period),
+      )[0];
+    const a = find(from);
+    const b = find(to);
+    if (!a && !b) return Promise.reject({ code: 'NOT_FOUND', message: '兩格都是空白，沒有東西可以調' });
+    if (a) {
+      a.weekday = Number(to.weekday);
+      a.period = Number(to.period);
+    }
+    if (b) {
+      b.weekday = Number(from.weekday);
+      b.period = Number(from.period);
+    }
+    save(data);
+    return Promise.resolve({
+      slots: data.timetableSlots.filter((s) => s.className === className).map(shapeSlot),
+      demo: true,
     });
   },
 
