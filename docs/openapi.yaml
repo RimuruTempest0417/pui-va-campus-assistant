@@ -1311,6 +1311,122 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /admin/classes/{id}:
+    patch:
+      tags: [admin]
+      summary: "改班名／年級（會連帶更新學生、課表與功課的班名）"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 32 }
+                grade: { type: string, maxLength: 16 }
+      responses:
+        '200': { description: "更新結果（renamed 帶三張表各改了幾筆）" }
+    delete:
+      tags: [admin]
+      summary: "刪班（有人或課表就 409；force=1 才清）"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: query, name: force, schema: { type: string, enum: ['1'] } }
+      responses:
+        '200': { description: "已刪除" }
+        '409': { description: "這個班還有學生／課表／功課" }
+
+  /admin/timetable/layout:
+    get:
+      tags: [admin, timetable]
+      summary: "讀整張時間表（早讀＋第 1–8 節＋小息／廣播操／午膳）"
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: "rows 與 defaults" }
+    put:
+      tags: [admin, timetable]
+      summary: "整批替換時間表（驗證格式、順序與至少一節正式課）"
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rows]
+              properties:
+                rows:
+                  type: array
+                  items:
+                    type: object
+                    required: [period, kind, startTime, endTime, sortIndex]
+                    properties:
+                      period: { type: integer, minimum: 0, maximum: 20 }
+                      label: { type: string, maxLength: 20 }
+                      kind: { type: string, enum: [READ, LESSON, BREAK] }
+                      startTime: { type: string, pattern: '^([01]\d|2[0-3]):[0-5]\d$' }
+                      endTime: { type: string, pattern: '^([01]\d|2[0-3]):[0-5]\d$' }
+                      sortIndex: { type: integer, minimum: 1, maximum: 60 }
+      responses:
+        '200': { description: "替換後的整張表" }
+        '422': { description: "格式或順序不合法" }
+
+  /admin/timetable/cell:
+    patch:
+      tags: [admin, timetable]
+      summary: "手動輸入某一班某一節（upsert；clear=true 清除）"
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [className, weekday, period]
+              properties:
+                className: { type: string, maxLength: 32 }
+                weekday: { type: integer, minimum: 1, maximum: 5 }
+                period: { type: integer, minimum: 1, maximum: 20 }
+                subject: { type: string, maxLength: 40 }
+                teacherName: { type: string, maxLength: 40 }
+                room: { type: string, maxLength: 40 }
+                clear: { type: boolean }
+      responses:
+        '200': { description: "存好的那一格（或 cleared）" }
+
+  /admin/timetable/swap:
+    post:
+      tags: [admin, timetable]
+      summary: "調堂：兩格互換（同一個交易完成，回傳調完之後那一週）"
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [className, from, to]
+              properties:
+                className: { type: string, maxLength: 32 }
+                from:
+                  type: object
+                  properties:
+                    weekday: { type: integer, minimum: 1, maximum: 5 }
+                    period: { type: integer, minimum: 1, maximum: 20 }
+                to:
+                  type: object
+                  properties:
+                    weekday: { type: integer, minimum: 1, maximum: 5 }
+                    period: { type: integer, minimum: 1, maximum: 20 }
+      responses:
+        '200': { description: "調完之後那一週的課表" }
+        '404': { description: "兩格都是空的" }
+        '422': { description: "兩格相同" }
+
   /admin/school/refresh:
     post:
       tags: [admin, school]
@@ -3473,6 +3589,23 @@ paths:
         '200': { description: OK }
 
   /admin/classes:
+    post:
+      tags: [admin]
+      summary: "新增班級（v1.0.2）"
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 32 }
+                grade: { type: string, maxLength: 16 }
+      responses:
+        '201': { description: "已建立" }
+        '409': { description: "班級已存在" }
     get:
       tags: [admin]
       summary: 班級名單視圖（班級＝User.className 的集合，含各班人數、是否有課表／功課、未分班人數）
