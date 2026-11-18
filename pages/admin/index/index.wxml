@@ -507,16 +507,6 @@
           <text wx:if="{{amError}}" class="ui-meta">{{amError}}</text>
         </pv-card>
 
-        <view wx:if="{{amRows.length}}" class="ui-list ui-list--grouped">
-          <view wx:for="{{amRows}}" wx:key="key" class="ui-card ui-card--row {{index === amRows.length - 1 ? 'ui-card--last' : ''}}">
-            <view class="ui-row-between">
-              <text class="ui-title">{{item.title}}</text>
-              <text class="ui-num">{{item.rateText}}</text>
-            </view>
-            <text class="ui-meta">{{L.k471}} {{item.students}} {{L.k472}} {{item.absent}}</text>
-          </view>
-        </view>
-
         <pv-card wx:if="{{amLoaded}}">
           <text class="ui-section">{{L.k470}} / {{L.k468}}</text>
           <view wx:if="{{amDays.length}}">

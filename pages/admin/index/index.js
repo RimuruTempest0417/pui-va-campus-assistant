@@ -1771,14 +1771,8 @@ Page({
     try {
       const res = await admin.schoolAttendanceMonthly(month);
       const sum = res.summary || { records: 0, late: 0, leave: 0, absent: 0, rate: null };
-      const rows = (res.byClass || []).map((c) => ({
-        key: (c.grade || '') + '|' + (c.className || ''),
-        title: (c.grade || '') + (c.className || ''),
-        rateText: c.rate === null || c.rate === undefined ? '—' : c.rate + '%',
-        students: c.students,
-        records: c.records,
-        absent: c.absent,
-      }));
+      // v1.0.5：後端不再回 byClass —— 月報只看全校與每日，不分班別也不分年級
+      const rows = [];
       // 只挑「有缺席或遲到」的日子，最多 5 天 —— 31 天全列在手機上沒有意義
       const days = (res.byDay || [])
         .filter((d) => d.absent > 0 || d.late > 0)

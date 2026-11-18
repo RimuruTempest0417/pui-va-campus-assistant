@@ -1718,20 +1718,7 @@ paths:
                       absent: { type: integer }
                       leave: { type: integer }
                       rate: { type: number, nullable: true }
-                  byClass:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        grade: { type: string }
-                        className: { type: string }
-                        students: { type: integer }
-                        records: { type: integer }
-                        present: { type: integer }
-                        late: { type: integer }
-                        absent: { type: integer }
-                        leave: { type: integer }
-                        rate: { type: number, nullable: true }
+                  # v1.0.5 起不再回 byClass：月報只看全校與每日，不分班別也不分年級
                   byDay:
                     type: array
                     items:
@@ -1753,7 +1740,7 @@ paths:
       summary: "出席率月報 CSV 匯出（需 school:manage）"
       description: |
         W-104。與 `GET /admin/school/attendance/monthly` **共用同一份聚合**（`src/lib/attendance-monthly.ts`），
-        所以匯出筆數一定等於月報上的班級數（`groupBy=class`）或天數（`groupBy=day`）。
+        所以匯出的合計列一定等於月報的 summary。v1.0.5 起一律按日輸出（另加一列合計），`groupBy=class` 仍然接受但輸出一樣。
         回應是 UTF-8 BOM 的 `text/csv`，欄位全包雙引號；`x-row-count` 標頭回列數（不必下載檔案就能驗）。
         每次匯出寫一筆 `attendance.export` 審計。
       security: [{ bearerAuth: [] }]
@@ -1762,7 +1749,7 @@ paths:
         - { in: query, name: yearTerm, schema: { type: string, maxLength: 16 } }
         - { in: query, name: grade, schema: { type: string, maxLength: 16 } }
         - { in: query, name: className, schema: { type: string, maxLength: 32 } }
-        - { in: query, name: groupBy, schema: { type: string, enum: [class, day], default: class }, description: class＝每班一列（校務處月底要的數字）；day＝整月一天一列 }
+        - { in: query, name: groupBy, schema: { type: string, enum: [class, day], default: day }, description: "v1.0.5 起固定按日（每天一列 ＋ 一列合計）；class 仍然接受但輸出一樣" }
       responses:
         '200':
           description: CSV（`text/csv; charset=utf-8`，帶 BOM）
