@@ -3157,6 +3157,65 @@ paths:
         '404': { description: 找不到這則公告或已經刪除 }
         '422': { description: 公告已過期，不需要再催讀 }
 
+  /admin/menu/sets:
+    get:
+      tags: [menu, admin]
+      summary: "本週 A／B／C 餐（v1.0.6）"
+      description: |
+        學校公布的菜單是「每天 A／B／C 三款套餐」。回這一週（星期一到五）三格，
+        沒填的格子回空字串（不是 undefined）。`weekStart` 不是星期一時會自動對到那一週的星期一。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: weekStart, schema: { type: string, pattern: '^\\d{4}-\\d{2}-\\d{2}$' }, description: 這一週的任何一天；留空＝本週 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  weekStart: { type: string, format: date }
+                  days:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        A: { type: string }
+                        B: { type: string }
+                        C: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [menu, admin]
+      summary: "整週覆蓋 A／B／C 餐（空字串＝清掉那一格）"
+      description: |
+        一週 15 格一次送出。後端在同一個交易內先刪整週再寫入，不會留下「半週新、半週舊」。
+        日期必須落在這一週（星期一到五），slot 只收 A／B／C，內容 ≤200 字。
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [weekStart, cells]
+              properties:
+                weekStart: { type: string, format: date }
+                cells:
+                  type: array
+                  maxItems: 15
+                  items:
+                    type: object
+                    required: [date, slot, content]
+                    properties:
+                      date: { type: string, format: date }
+                      slot: { type: string, enum: [A, B, C] }
+                      content: { type: string, maxLength: 200 }
+      responses:
+        '200': { description: "覆蓋後的這一週（與 GET 同形狀）" }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
   /admin/menu/stats:
     get:
       tags: [admin]
