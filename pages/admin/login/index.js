@@ -77,9 +77,9 @@ Page({
     this.disarmWatchdog();
     this._watchdog = setTimeout(() => {
       if (!this.data.submitting) return;
-      this.setData({ submitting: false, error: i18n.pick('連線逾時（15 秒沒有回應），請檢查網路或後端狀態') });
-      wx.showModal({ title: i18n.pick('登入逾時'), content: i18n.pick('15 秒內沒有收到後端回應。\n請確認網路，或到「資料來源」頁看後端位址是否正確。'), showCancel: false });
-    }, 15000);
+      this.setData({ submitting: false, error: i18n.pick('連線逾時（30 秒沒有回應），請檢查網路或後端狀態') });
+      wx.showModal({ title: i18n.pick('登入逾時'), content: i18n.pick('30 秒內沒有收到後端回應。\n請確認網路，或到「資料來源」頁看後端位址是否正確。'), showCancel: false });
+    }, 30000); // 家校通登入實測就 8.4 秒，加上同步可能要 12 秒；15 秒會在後端還在跑時就宣告逾時
   },
 
   disarmWatchdog() {
@@ -211,6 +211,11 @@ Page({
   /** 失敗文案：代碼＋實際打的位址，否則「登入失敗」四個字無法判斷是網路、密碼還是權限 */
   errorHint(code, msg) {
     if (code === 'NETWORK' || code === 'TIMEOUT') {
+      // 逾時 ≠ 連不到：學校系統忙的時候家校通本身就要 8 秒以上，
+      // 一律說「連不到後端」會讓使用者以為網路斷了，其實只是慢。
+      if (/timeout|超時|超时|lack of response/i.test(String(msg || ''))) {
+        return i18n.pick('後端回應太慢（學校系統可能正在忙），請再試一次。') + '（' + config.API_BASE_URL + '）';
+      }
       return msg + i18n.pick('（連不到後端：') + config.API_BASE_URL + '）';
     }
     if (code === 'RATE_LIMITED') {
