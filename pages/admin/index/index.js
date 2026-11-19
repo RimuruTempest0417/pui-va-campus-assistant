@@ -60,6 +60,7 @@ const ROLES = [
 
 
 const appearance = require('../../../utils/appearance');
+const authGuard = require('../../../utils/auth-guard');
 
 /**
  * W-42：編輯衝突保護的共用收尾。
@@ -927,6 +928,8 @@ Page({
   },
 
   onLoad() {
+    // v1.0.15：沒有登入不能用
+    if (!authGuard.guard()) return;
     this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     let user = {};
     try {

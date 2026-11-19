@@ -192,8 +192,14 @@
 
 .hw-sheet__actions { margin-top: var(--pv-sp-2); display: flex; flex-direction: row; gap: var(--pv-sp-2); }
 
-/* 家校通來源標記：小、灰、不搶標題的位子 */
-.hw-src {
+/* 來源／狀態小標籤：小、灰、不搶標題的位子；「已提交／遲交」用淡綠底與來源標籤區分 */
+.hw-tags {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.hw-tag {
   flex: 0 0 auto;
   margin-left: 8rpx;
   padding: 2rpx 10rpx;
@@ -202,4 +208,8 @@
   line-height: 1.6;
   color: var(--pv-label-3);
   background: var(--pv-fill-2);
+}
+.hw-tag--school {
+  color: var(--pv-success);
+  background: var(--pv-success-soft);
 }

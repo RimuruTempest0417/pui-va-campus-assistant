@@ -1,5 +1,5 @@
 <view class="{{themeClass}} ui-page page-root">
-  <pv-navbar title="{{L.k01}}" back="{{true}}" />
+  <pv-navbar title="{{L.k01}}" back="{{canBack}}" />
 
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="login-inner">

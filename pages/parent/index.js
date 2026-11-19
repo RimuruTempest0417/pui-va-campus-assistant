@@ -17,6 +17,7 @@ const { codeOf } = require('../../utils/errors');
 const i18n = require('../../utils/i18n');
 
 const appearance = require('../../utils/appearance');
+const authGuard = require('../../utils/auth-guard');
 
 Page({
   goSchool() {
@@ -93,6 +94,8 @@ Page({
   },
 
   onShow() {
+    // v1.0.15：沒有登入不能用（小程式第一頁是登入頁，這裡擋分享連結與逾時）
+    if (!authGuard.guard()) return;
     this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     // 從活動詳情返回時重抓（首次跳過），否則狀態會停在舊的
     if (this._loadedOnce) this.load();

@@ -2,6 +2,7 @@ const appearance = require('../../utils/appearance');
 const i18n = require('../../utils/i18n');
 const data = require('../../services/data');
 const config = require('../../config/config');
+const authGuard = require('../../utils/auth-guard');
 
 /**
  * 成績與出缺席。
@@ -50,6 +51,8 @@ Page({
   },
 
   onShow() {
+    // v1.0.15：沒有登入不能用（小程式第一頁是登入頁，這裡擋分享連結與逾時）
+    if (!authGuard.guard()) return;
     this.setData({ themeClass: appearance.themeClass() });
   },
 

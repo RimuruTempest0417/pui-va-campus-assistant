@@ -60,6 +60,7 @@ function buildHarness(role, offlineBanner) {
     Promise, Date, Math, JSON, Object, Array, String, Number, Boolean, Error, RegExp, Map, Set,
     require: (p) => {
       if (p.includes('services/data')) return dataStub;
+      if (p.includes('utils/auth-guard')) return { hasToken: () => Boolean(storage.pv_token), guard: () => Boolean(storage.pv_token), goLogin: () => false, LOGIN_PAGE: '/pages/admin/login/index' };
       if (p.includes('utils/request')) return { getToken: () => storage.pv_token || '', setToken: (v) => { storage.pv_token = v; } };
       if (p.includes('utils/i18n')) return { pick: (s) => s };
       if (p.includes('utils/appearance')) return { themeClass: () => 'theme-light' };
@@ -110,6 +111,7 @@ function buildHomeHarness(homeworkImpl) {
       if (p.includes('services/data')) return dataStub;
       if (p.includes('utils/date')) return { dateKey: () => '2026-11-06', weekday: () => '五', fromNow: () => '' };
       if (p.includes('utils/i18n')) return { pick: (s) => s, t: (k) => k, greetingByHour: () => '' };
+      if (p.includes('utils/auth-guard')) return { hasToken: () => true, guard: () => true, goLogin: () => false, LOGIN_PAGE: '/pages/admin/login/index' };
       if (p.includes('utils/nav')) return { getNav: () => ({ navTotal: 0 }) };
       if (p.includes('utils/appearance')) return { themeClass: () => 'theme-light' };
       if (p.includes('utils/venue')) return { shapeResource: () => ({ openNow: false }) };

@@ -134,9 +134,13 @@
               <view class="hw-row__main">
                 <view class="ui-row-between">
                   <text class="ui-title hw-row__title {{item.done ? 'is-done' : ''}}">{{item.subject}} · {{item.title}}</text>
-                  <!-- v1.0.14：從家校通作業查詢同步回來的，標一下來源，老師才知道不是自己出的 -->
-                  <text wx:if="{{item.source === 'SCHOOL'}}" class="hw-src">{{L.k605}}</text>
+                  <!-- v1.0.15：家校通來源＋學校端狀態（只顯示，不代學生打勾） -->
+                  <view class="hw-tags">
+                    <text wx:if="{{item.schoolStatus === '已提交' || item.schoolStatus === '遲交'}}" class="hw-tag hw-tag--school">{{item.schoolStatus}}</text>
+                    <text wx:if="{{item.source === 'SCHOOL'}}" class="hw-tag">{{L.k605}}</text>
+                  </view>
                 </view>
+                <text wx:if="{{item.schoolTeacher}}" class="ui-meta">{{L.k606}} {{item.schoolTeacher}}</text>
                 <text wx:if="{{item.detail}}" class="ui-meta">{{item.detail}}</text>
                 <view wx:if="{{item.links.length}}" class="hw-links">
                   <view

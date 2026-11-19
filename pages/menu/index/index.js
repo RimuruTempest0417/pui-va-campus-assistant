@@ -4,6 +4,7 @@ const week = require('../../../utils/week');
 const i18n = require('../../../utils/i18n');
 
 const appearance = require('../../../utils/appearance');
+const authGuard = require('../../../utils/auth-guard');
 
 Page({
   labels() {
@@ -44,6 +45,8 @@ Page({
   },
 
   onLoad() {
+    // v1.0.15：沒有登入不能用
+    if (!authGuard.guard()) return;
     this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     this.load();
   },

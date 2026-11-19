@@ -1,5 +1,6 @@
 {
   "pages": [
+    "pages/admin/login/index",
     "pages/index/index",
     "pages/search/index",
     "pages/settings/index",
@@ -43,7 +44,6 @@
     "pages/notices/list/index",
     "pages/notices/detail/index",
     "pages/calendar/index",
-    "pages/admin/login/index",
     "pages/admin/index/index",
     "pages/print/items/index",
     "pages/print/event/index",

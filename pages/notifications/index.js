@@ -2,6 +2,7 @@ const appearance = require('../../utils/appearance');
 const data = require('../../services/data');
 const i18n = require('../../utils/i18n');
 const date = require('../../utils/date');
+const authGuard = require('../../utils/auth-guard');
 
 const KIND_KEYS = {
   EVENT: i18n.pick('活動'),
@@ -42,6 +43,8 @@ Page({
   },
 
   onShow() {
+    // v1.0.15：沒有登入不能用（小程式第一頁是登入頁，這裡擋分享連結與逾時）
+    if (!authGuard.guard()) return;
     this.setData({ themeClass: appearance.themeClass() });
   },
 

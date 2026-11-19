@@ -41,6 +41,7 @@ Page({
 
   data: {
     themeClass: appearance.themeClass(),
+    canBack: false,   // v1.0.15：登入頁是第一頁時沒有「返回」（沒有上一頁可回）
     loggedIn: false,
     needCode: false,
     code: '',      // 已登入就只顯示「目前身分＋登出」，不再同時擺一份登入表單（使用者回報的怪畫面）
@@ -58,8 +59,20 @@ Page({
     currentName: '',
   },
 
-  onLoad() {
+  onLoad(options) {
     this.refreshCurrent();
+    // v1.0.15：登入頁是小程式的第一頁。
+    // 已經登入的人不該停在登入頁 → 直接進首頁（除非是從「切換帳號」帶 from=switch 進來的）。
+    const from = (options && (options.from || options.reason)) || '';
+    this._from = from;
+    this.setData({ canBack: getCurrentPages().length > 1 });
+    if (from !== 'switch' && request.getToken()) {
+      wx.reLaunch({ url: '/pages/index/index' });
+      return;
+    }
+    if (from === 'needLogin' || from === 'expired') {
+      this.setData({ error: i18n.pick('請先登入才能使用培華校園助手') });
+    }
   },
 
   onShow() {
@@ -204,8 +217,11 @@ Page({
       }
     }
     this.refreshCurrent();
-    // 登入只負責「登入」；後台入口由首頁那顆按鈕負責
-    setTimeout(() => wx.navigateBack(), 400);
+    // v1.0.15：登入頁是第一頁 → 登入成功直接進首頁（不再 navigateBack，因為沒有上一頁可回）
+    setTimeout(() => {
+      if (getCurrentPages().length > 1) wx.navigateBack();
+      else wx.reLaunch({ url: '/pages/index/index' });
+    }, 400);
   },
 
   /** 失敗文案：代碼＋實際打的位址，否則「登入失敗」四個字無法判斷是網路、密碼還是權限 */

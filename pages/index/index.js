@@ -2,6 +2,7 @@ const data = require('../../services/data');
 const { dateKey, weekday, fromNow } = require('../../utils/date');
 const i18n = require('../../utils/i18n');
 const { getNav } = require('../../utils/nav');
+const authGuard = require('../../utils/auth-guard');
 
 // 尚未實作的模組先用提示卡，實作後只要改這裡的路徑
 const MODULE_ROUTES = {
@@ -178,6 +179,8 @@ Page({
   },
 
   onShow() {
+    // v1.0.15：沒登入就回登入頁（小程式第一頁是登入頁，這裡只是擋分享連結與逾時）
+    if (!authGuard.guard()) return;
     // 登入／登出後回首頁：一定要自己重抓，不能只靠 navigateBack
     // （以前登入成功回到首頁仍是訪客畫面，實測回報「登入後沒有自動刷新」）
     const app = getApp();
