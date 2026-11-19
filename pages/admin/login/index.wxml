@@ -4,7 +4,10 @@
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}">
     <view class="login-inner">
       <view class="login-head">
+        <text class="login-school">{{L.k30}}</text>
         <text class="login-title">{{L.k02}}</text>
+        <text class="login-sub">{{L.k31}}</text>
+        <text class="login-desc">{{L.k32}}</text>
       </view>
 
       <pv-card wx:if="{{loggedIn}}">

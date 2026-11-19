@@ -2587,6 +2587,24 @@ paths:
                   status: { type: string, example: ok }
                   uptime: { type: number }
 
+  /app/version:
+    get:
+      tags: [system]
+      summary: 小程式版本檢查（v1.0.16：低於 minClient 就要求重新載入）
+      description: 不必登入。`minClient` 預設等於後端版本，可用環境變數 MIN_CLIENT_VERSION 覆寫。
+      responses:
+        '200':
+          description: 目前後端版本與小程式最低可用版本
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version: { type: string, example: 1.0.16 }
+                  minClient: { type: string, example: 1.0.16 }
+                  latest: { type: string, example: 1.0.16 }
+                  message: { type: string }
+
   /health/deep:
     get:
       tags: [system]
