@@ -71,3 +71,7 @@
 }
 .set-meal__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .set-meal__text { word-break: break-word; overflow-wrap: anywhere; }
+
+/* 湯／糖水：三款套餐共用，用中性色圓牌與套餐區分（不要讓它看起來像第四款套餐） */
+.set-meal--soup { border-top: 1px dashed var(--pv-sep); }
+.set-meal__tag--soup { background: var(--pv-fill-2); color: var(--pv-label-2); }

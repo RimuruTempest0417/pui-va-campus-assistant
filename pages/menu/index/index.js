@@ -26,6 +26,7 @@ Page({
       k601: i18n.pick("A 餐"),
       k602: i18n.pick("B 餐"),
       k603: i18n.pick("C 餐"),
+      k604: i18n.pick("湯／糖水"),
     };
   },
 
@@ -74,7 +75,8 @@ Page({
       const days = (res.days || []).map((d) => {
         const label = week.dayLabel(d.date);
         const set = setByDate[d.date] || {};
-        const hasSet = Boolean(set.A || set.B || set.C);
+        const hasSet = Boolean(set.A || set.B || set.C);   // 湯／糖水單獨存在時不算「有套餐」
+        const hasSoup = Boolean(set.soup);
         return Object.assign({}, d, {
           md: label.md,
           wd: label.wd,
@@ -82,7 +84,9 @@ Page({
           A: set.A || '',
           B: set.B || '',
           C: set.C || '',
+          soup: set.soup || '',
           hasSet: hasSet,
+          hasSoup: hasSoup,
         });
       });
 
