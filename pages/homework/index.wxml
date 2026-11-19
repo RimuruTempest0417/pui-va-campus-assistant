@@ -136,7 +136,8 @@
                   <text class="ui-title hw-row__title {{item.done ? 'is-done' : ''}}">{{item.subject}} · {{item.title}}</text>
                   <!-- v1.0.15：家校通來源＋學校端狀態（只顯示，不代學生打勾） -->
                   <view class="hw-tags">
-                    <text wx:if="{{item.schoolStatus === '已提交' || item.schoolStatus === '遲交'}}" class="hw-tag hw-tag--school">{{item.schoolStatus}}</text>
+                    <text wx:if="{{item.schoolStatus === '欠交'}}" class="hw-tag hw-tag--late">{{L.k607}}</text>
+                    <text wx:elif="{{item.schoolStatus === '已提交' || item.schoolStatus === '遲交'}}" class="hw-tag hw-tag--school">{{item.schoolStatus}}</text>
                     <text wx:if="{{item.source === 'SCHOOL'}}" class="hw-tag">{{L.k605}}</text>
                   </view>
                 </view>
