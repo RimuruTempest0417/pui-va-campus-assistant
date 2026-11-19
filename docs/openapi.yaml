@@ -3738,6 +3738,42 @@ paths:
                         pendingCells: { type: integer }
                   total: { type: integer }
 
+  /cron/school-sync:
+    post:
+      tags: [system]
+      summary: 家校通全部重新同步（v1.0.21；給 GitHub Actions 每日排程，分批呼叫直到跑完）
+      description: 需要 CRON_SECRET。一次處理一小批（預設 10 個、40 秒預算），回應帶 remaining，呼叫端看到 remaining>0 就再叫一次。
+      parameters:
+        - in: header
+          name: x-cron-secret
+          schema: { type: string }
+          description: 與 Authorization Bearer 二選一
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                limit: { type: integer, minimum: 1, maximum: 20, example: 10 }
+                budgetMs: { type: integer, minimum: 5000, maximum: 50000 }
+      responses:
+        '200':
+          description: 這一輪的結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  processed: { type: integer }
+                  success: { type: integer }
+                  failed: { type: array, items: { type: object } }
+                  remaining: { type: integer }
+                  ranAt: { type: string, format: date-time }
+        '401':
+          description: 密鑰不正確
+
   /admin/school-links/resync:
     post:
       tags: [admin]
