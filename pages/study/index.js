@@ -4,6 +4,7 @@ const i18n = require('../../utils/i18n');
 const study = require('../../utils/study');
 const week = require('../../utils/week');
 const appearance = require('../../utils/appearance');
+const authGuard = require('../../utils/auth-guard');
 
 /**
  * 測驗倒數與溫習計劃（W-69）。
@@ -111,6 +112,8 @@ Page({
   },
 
   onShow() {
+    // v1.0.15：沒有登入不能用（小程式第一頁是登入頁，這裡擋分享連結與逾時）
+    if (!authGuard.guard()) return;
     this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
     // 在成績頁同步完再回來，分數變了排序也要跟著變
     if (this._loadedOnce) this.load();

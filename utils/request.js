@@ -150,6 +150,21 @@ function request(method, url, data, options) {
       // auth:false 的呼叫（登入本身）不會走進來，所以打錯密碼不會把人踢掉。
       if (withAuth && getToken() && (err.statusCode === 401 || codeOf(err) === 'UNAUTHORIZED')) {
         dropSession();
+        // v1.0.15：登入態失效（JWT 過期／被撤銷）→ 直接回登入頁重新登入，
+        // 不要只丟一個 SESSION_EXPIRED 讓頁面停在那裡（使用者只會覺得「壞了」）。
+        try {
+          // 延遲一件 microtask，先把這個錯誤丟回呼叫端（避免在請求流程中同步 reLaunch）
+          Promise.resolve().then(() => {
+            const pages = getCurrentPages();
+            const cur = pages[pages.length - 1];
+            const route = cur ? '/' + cur.route : '';
+            if (route !== '/pages/admin/login/index') {
+              wx.reLaunch({ url: '/pages/admin/login/index?reason=expired' });
+            }
+          });
+        } catch (e) {
+          /* ignore */
+        }
         throw { code: 'SESSION_EXPIRED', message: '', statusCode: 401 };
       }
       const retryable = ['NETWORK', 'TIMEOUT', 'INTERNAL'].indexOf(codeOf(err)) !== -1;

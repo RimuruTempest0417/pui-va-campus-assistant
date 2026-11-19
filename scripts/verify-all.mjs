@@ -29,6 +29,7 @@ const STEP_TIMEOUT = 600000; // console 走查 19 頁實測約 2–4 分鐘，�
 const STEPS = [
   { key: 'project', label: '專案結構', script: 'check-project.mjs', args: [], highlight: /✅ 專案結構檢查通過[^\n]*/ },
   { key: 'openapi', label: 'API 契約', script: 'check-openapi.mjs', args: [], highlight: /✅ OpenAPI 契約檢查通過[^\n]*/ },
+  { key: 'login', label: '登入守門', script: 'check-login-first.mjs', args: [], highlight: /登入守門檢查[^\n]*/ },
   { key: 'states', label: '三態一致', script: 'check-states.mjs', args: [], highlight: /空／載入／失敗狀態：[^\n]*/ },
   { key: 'data', label: '資料層', script: 'check-data-layer.mjs', args: [], highlight: /\b(?:ALL PASS|FAIL) \d+\/\d+\b/ },
   { key: 'docs', label: '文件一致性', script: 'check-docs.mjs', args: [], highlight: /✅ 文件一致性通過[^\n]*/ },

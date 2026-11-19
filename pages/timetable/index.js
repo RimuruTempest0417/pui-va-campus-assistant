@@ -1,6 +1,7 @@
 const data = require('../../services/data');
 const i18n = require('../../utils/i18n');
 const appearance = require('../../utils/appearance');
+const authGuard = require('../../utils/auth-guard');
 
 /**
  * 班級課表（W-73）
@@ -61,6 +62,8 @@ Page({
   },
 
   onShow() {
+    // v1.0.15：沒有登入不能用（小程式第一頁是登入頁，這裡擋分享連結與逾時）
+    if (!authGuard.guard()) return;
     this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
   },
 

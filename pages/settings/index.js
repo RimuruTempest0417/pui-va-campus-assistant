@@ -6,6 +6,7 @@ const config = require('../../config/config');
 const roleLabel = require('../../utils/role').label;
 const adminApi = require('../../services/admin');
 const reporter = require('../../utils/reporter');
+const authGuard = require('../../utils/auth-guard');
 
 /**
  * W-110 訂閱校曆的天數（30／90／180）。存 storage：重新編譯、換頁再回來都還在。
@@ -178,6 +179,8 @@ Page({
   },
 
   onShow() {
+    // v1.0.15：沒有登入不能用（小程式第一頁是登入頁，這裡擋分享連結與逾時）
+    if (!authGuard.guard()) return;
     this.setData(Object.assign({ L: this.labels(), calDays: this.calDaysPref() }, this.labelOptions()));
     this.refresh();
     this.loadTwoFactor();
@@ -594,6 +597,8 @@ Page({
     }
     this.refresh();
     wx.showToast({ title: i18n.pick('已登出'), icon: 'none' });
+    // v1.0.15：登出＝不能再瀏覽任何頁面 → 直接回登入頁
+    setTimeout(() => wx.reLaunch({ url: '/pages/admin/login/index' }), 350);
   },
 
   back() {

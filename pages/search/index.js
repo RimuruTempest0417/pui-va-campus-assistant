@@ -7,6 +7,7 @@ const appearance = require('../../utils/appearance');
 const giveaway = require('../../utils/giveaway');
 const proposal = require('../../utils/proposal');
 const { fromNow, dateTimeText } = require('../../utils/date');
+const authGuard = require('../../utils/auth-guard');
 
 const RECENT_KEY = 'pv_recent_searches';
 const MAX_RECENT = 5;
@@ -307,6 +308,8 @@ Page({
   },
 
   onShow() {
+    // v1.0.15：沒有登入不能用（小程式第一頁是登入頁，這裡擋分享連結與逾時）
+    if (!authGuard.guard()) return;
     // 在別頁切了繁／簡再回來，文案要重取（L 只在 onLoad 設一次就會停在舊語言）
     this.setData({ L: this.labels(), themeClass: appearance.themeClass(), typeFilters: this.filters() });
   },

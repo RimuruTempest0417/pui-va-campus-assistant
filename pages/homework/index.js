@@ -2,6 +2,7 @@ const data = require('../../services/data');
 const i18n = require('../../utils/i18n');
 const appearance = require('../../utils/appearance');
 const reporter = require('../../utils/reporter');
+const authGuard = require('../../utils/auth-guard');
 
 /**
  * 功課（W-76）
@@ -80,6 +81,7 @@ Page({
       k54: i18n.pick('離線資料 · 上次更新'),
       // ── v1.0.13 家長檢視 ──
       k605: i18n.pick('家校通'),
+      k606: i18n.pick('任教老師'),
       k600: i18n.pick('家長檢視'),
       k601: i18n.pick('打勾由孩子本人完成，家長只能看。'),
       k602: i18n.pick('還沒有對應的子女'),
@@ -143,6 +145,8 @@ Page({
   },
 
   onShow() {
+    // v1.0.15：沒有登入不能用（小程式第一頁是登入頁，這裡擋分享連結與逾時）
+    if (!authGuard.guard()) return;
     this.setData({ L: this.labels(), themeClass: appearance.themeClass() });
   },
 
