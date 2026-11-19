@@ -70,7 +70,13 @@ const vc = read('utils/version-check.js');
 ok(vc.includes("request\n") || vc.includes(".get('/app/version'"), '版本檢查打 /app/version');
 ok(/compare\(config\.VERSION, min\) < 0/.test(vc), '版本較舊就擋 modal');
 
-// ⑦ 題庫／說明不能再寫「訪客可以看」
+// ⑦ 家校通憑證：登入時就存好，不再叫使用者另外綁定（v1.0.18）
+const loginSrc = read('pages/admin/login/index.js');
+ok(/加密保存這組帳密/.test(loginSrc), '登入頁說明「會加密保存」');
+ok(!/不會儲存你的家校通密碼/.test(loginSrc), '登入頁不再寫「不會儲存密碼」');
+ok(!/系統不會保存/.test(read('pages/help/index.js')), '使用說明不再寫「系統不會保存」');
+
+// ⑧ 題庫／說明不能再寫「訪客可以看」
 const help = read('pages/help/index.js');
 ok(!help.includes('沒登入也可以'), '使用說明不再寫「沒登入也可以看…」');
 
