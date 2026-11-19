@@ -36,6 +36,11 @@ Page({
       k20: i18n.pick("登入後不會儲存你的家校通密碼。"),
       k21: i18n.pick("學校系統暫時連不上，可改用校內帳號"),
       k22: i18n.pick("家長用 pv 開頭或純數字帳號，學生用 s 開頭帳號；登入後會自動對應子女。"),
+      // v1.0.16：入口頁要有「這是哪裡、要怎麼進」的一句話
+      k30: i18n.pick("澳門培華中學"),
+      k31: i18n.pick("用家校通帳號登入即可使用"),
+      k32: i18n.pick("查課表、功課、成績、午餐與校園公告都在裡面"),
+      k33: i18n.pick("需要管理後台？切到「校內帳號」"),
     };
   },
 
@@ -48,7 +53,8 @@ Page({
     account: '',
     password: '',
     // account＝校內帳號（openid／後台設定的密碼）；school＝直接輸入家校通帳密
-    loginMode: 'account',
+    // v1.0.16：預設停在「家校通」—— 學生與家長手上只有家校通帳號，校內帳號是少數（老師則兩種都有）
+    loginMode: 'school',
     schoolAccount: '',
     schoolPassword: '',
     pressedKey: '',

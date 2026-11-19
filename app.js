@@ -3,6 +3,7 @@ const reporter = require('./utils/reporter');
 const diagnostics = require('./utils/diagnostics');
 
 const appearance = require('./utils/appearance');
+const versionCheck = require('./utils/version-check');
 
 App({
   globalData: {
@@ -21,6 +22,10 @@ App({
       const cur = pages[pages.length - 1];
       if (cur && cur.setData) cur.setData({ themeClass: appearance.themeClass() });
     });
+
+    // v1.0.16：版本太舊就要求重新載入（舊 bundle 的行為已經跟後端不一致）
+    versionCheck.check();
+    versionCheck.watchUpdate();
   },
 
   // 全域錯誤（白屏、閃退最常見的來源）→ 送到後端，後台「錯誤」分頁看得到。

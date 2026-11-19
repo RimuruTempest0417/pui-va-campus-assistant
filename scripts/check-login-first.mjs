@@ -62,7 +62,15 @@ ok(
 const login = read('pages/admin/login/index.js');
 ok(/from !== 'switch' && request\.getToken\(\)/.test(login), '已登入自動進首頁');
 
-// ⑥ 題庫／說明不能再寫「訪客可以看」
+// ⑥ 版本過舊要擋下來（v1.0.16）
+const appJs = read('app.js');
+ok(appJs.includes('versionCheck.check()'), '開機檢查版本');
+ok(appJs.includes('versionCheck.watchUpdate()'), '接微信更新管理器');
+const vc = read('utils/version-check.js');
+ok(vc.includes("request\n") || vc.includes(".get('/app/version'"), '版本檢查打 /app/version');
+ok(/compare\(config\.VERSION, min\) < 0/.test(vc), '版本較舊就擋 modal');
+
+// ⑦ 題庫／說明不能再寫「訪客可以看」
 const help = read('pages/help/index.js');
 ok(!help.includes('沒登入也可以'), '使用說明不再寫「沒登入也可以看…」');
 
