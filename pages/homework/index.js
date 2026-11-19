@@ -78,6 +78,11 @@ Page({
       k53: i18n.pick('沒有待審假單'),
       // ── W-98 離線快取 ──
       k54: i18n.pick('離線資料 · 上次更新'),
+      // ── v1.0.13 家長檢視 ──
+      k600: i18n.pick('家長檢視'),
+      k601: i18n.pick('打勾由孩子本人完成，家長只能看。'),
+      k602: i18n.pick('還沒有對應的子女'),
+      k603: i18n.pick('請找校務處在後台綁定家長與學生。'),
       // ── W-106 本班出席率月報 ──
       k55: i18n.pick('本月出席率'),
       k56: i18n.pick('人日'),
@@ -99,6 +104,10 @@ Page({
     errorText: '',
     className: '',
     needsClass: false,
+    needsChild: false,      // v1.0.13：家長還沒綁定子女
+    canCheck: true,         // 家長只讀：不能替孩子打勾
+    viewer: 'self',         // 'self' | 'parent'
+    childName: '',
     canCreate: false,
     scope: 'todo',
     items: [],
@@ -276,6 +285,11 @@ Page({
         needLogin: false,
         className: res.className || '',
         needsClass: !!res.needsClass,
+        needsChild: !!res.needsChild,
+        // v1.0.13：家長看孩子的功課（只讀）；打勾只有孩子本人能做
+        canCheck: res.canCheck !== false,
+        viewer: res.viewer || 'self',
+        childName: res.childName || '',
         canCreate: !!res.canCreate,
         items: items,
         stats: res.stats || { total: 0, done: 0, todo: 0, overdue: 0 },

@@ -13,6 +13,16 @@
       </view>
 
       <!-- W-94：老師的班級總覽（學生看不到；取不到資料時整區不出現，不影響功課清單） -->
+      <!-- v1.0.13：家長看的是孩子的功課，只能看不能打勾 -->
+      <view wx:if="{{viewer === 'parent' && !loading && !failed && !needLogin && !needsChild}}" class="ui-list">
+        <view class="ui-card ui-card--row ui-card--last">
+          <view class="ui-row-between">
+            <text class="ui-title">{{L.k600}}{{childName ? ' · ' + childName : ''}}</text>
+          </view>
+          <text class="ui-meta">{{L.k601}}</text>
+        </view>
+      </view>
+
       <view wx:if="{{classInfo && !loading && !failed && !needLogin && !needsClass}}" class="ui-list">
         <view class="ui-card hw-ov">
           <view class="ui-row-between">
@@ -103,6 +113,7 @@
       </pv-empty>
 
       <pv-empty wx:elif="{{needsClass}}" title="{{L.k20}}" desc="{{L.k21}}" />
+      <pv-empty wx:elif="{{needsChild}}" title="{{L.k602}}" desc="{{L.k603}}" />
 
       <block wx:elif="{{items.length}}">
         <view class="ui-list ui-list--grouped">
@@ -114,10 +125,10 @@
             data-title="{{item.title}}"
             bindtouchstart="press"
             bindtouchend="release"
-            bindtap="toggle"
+            bindtap="canCheck ? 'toggle' : ''"
           >
             <view class="hw-row {{pressedId === item.id ? 'is-pressed' : ''}}">
-              <view class="hw-tick {{item.done ? 'is-done' : ''}}">
+              <view wx:if="{{canCheck}}" class="hw-tick {{item.done ? 'is-done' : ''}}">
                 <text wx:if="{{item.done}}" class="hw-tick__mark">✓</text>
               </view>
               <view class="hw-row__main">
