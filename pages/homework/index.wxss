@@ -191,3 +191,15 @@
 .hw-input--area { width: 100%; box-sizing: border-box; min-height: 120rpx; padding: var(--pv-sp-2); line-height: 1.4; }
 
 .hw-sheet__actions { margin-top: var(--pv-sp-2); display: flex; flex-direction: row; gap: var(--pv-sp-2); }
+
+/* 家校通來源標記：小、灰、不搶標題的位子 */
+.hw-src {
+  flex: 0 0 auto;
+  margin-left: 8rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 8rpx;
+  font-size: 20rpx;
+  line-height: 1.6;
+  color: var(--pv-label-3);
+  background: var(--pv-fill-2);
+}
