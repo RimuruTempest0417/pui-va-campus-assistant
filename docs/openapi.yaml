@@ -3738,6 +3738,42 @@ paths:
                         pendingCells: { type: integer }
                   total: { type: integer }
 
+  /admin/school-links/resync:
+    post:
+      tags: [admin]
+      summary: 全部重新同步（v1.0.20；分批：預設 5 個、40 秒預算）
+      description: 依 lastSyncAt 由舊到新處理已連結帳號；回應帶 remaining，還有剩就再叫一次。
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                limit: { type: integer, minimum: 1, maximum: 20, example: 5 }
+                budgetMs: { type: integer, minimum: 5000, maximum: 50000 }
+      responses:
+        '200':
+          description: 這一輪的結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  reason: { type: string, nullable: true }
+                  processed: { type: integer }
+                  success: { type: integer }
+                  failed:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId: { type: string }
+                        error: { type: string }
+                  remaining: { type: integer }
+
   /admin/school-links/{userId}:
     delete:
       tags: [admin]
