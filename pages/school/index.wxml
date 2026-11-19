@@ -35,15 +35,10 @@
 
         <pv-empty wx:elif="{{isParent}}" title="{{L.noChildren}}" desc="{{L.noChildrenHint}}" />
 
-        <!-- 家校通帳密（同步用）：沒連結才顯示輸入框 -->
+        <!-- v1.0.19：連結由後台自動管理（登入時就存好），這裡只顯示狀態，不提供連結／解除 -->
         <pv-card wx:if="{{!credLinked}}">
-          <text class="sch-title">{{L.link}}</text>
+          <text class="sch-title">{{L.linkHintTitle}}</text>
           <text class="sch-hint">{{L.linkHint}}</text>
-          <input class="sch-input" value="{{account}}" bindinput="onAccount" placeholder="{{L.account}}" />
-          <input class="sch-input" value="{{password}}" bindinput="onPassword" password placeholder="{{L.password}}" />
-          <view class="sch-actions">
-            <pv-button type="filled" loading="{{linking}}" disabled="{{linking}}" bind:tap="link">{{L.link}}</pv-button>
-          </view>
         </pv-card>
 
         <pv-card wx:else>
@@ -53,7 +48,6 @@
           </view>
           <view class="sch-actions">
             <pv-button size="sm" type="filled" loading="{{syncing}}" disabled="{{syncing}}" bind:tap="sync">{{isParent ? L.syncChild : L.sync}}</pv-button>
-            <pv-button size="sm" type="plain" bind:tap="unlink">{{L.unlink}}</pv-button>
           </view>
           <!-- 分批同步：上次沒抓完就寫在這裡，讓使用者知道「再按一次」不是重來 -->
           <text wx:if="{{pendingCells > 0}}" class="sch-hint">{{L.pendingPrefix}}{{pendingCells}}{{L.pendingSuffix}}</text>
