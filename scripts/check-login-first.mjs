@@ -9,7 +9,7 @@
  *   ③ 登出會 reLaunch 回登入頁（不是只清 token 留在原頁）
  *   ④ 401（登入態失效）也會被帶回登入頁
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = process.cwd();
@@ -76,7 +76,19 @@ ok(/加密保存這組帳密/.test(loginSrc), '登入頁說明「會加密保存
 ok(!/不會儲存你的家校通密碼/.test(loginSrc), '登入頁不再寫「不會儲存密碼」');
 ok(!/系統不會保存/.test(read('pages/help/index.js')), '使用說明不再寫「系統不會保存」');
 
-// ⑧ 題庫／說明不能再寫「訪客可以看」
+// ⑧ 家校通連結只有後台能管（v1.0.19）
+const schoolWxml = read('pages/school/index.wxml');
+ok(!schoolWxml.includes('bind:tap="link"'), '小程式成績頁沒有「連結家校通」按鈕');
+ok(!schoolWxml.includes('bind:tap="unlink"'), '小程式成績頁沒有「解除連結」按鈕');
+// 後端是同一個 workspace 的兄弟資料夾；不在就跳過（只跑前端的人不該因此紅）
+const adminPath = join(root, '../../pui-va-campus-server/public/admin.html');
+if (existsSync(adminPath)) {
+  const adminHtml = readFileSync(adminPath, 'utf8');
+  ok(adminHtml.includes('data-sec="schoolLinks"'), '網頁後台有家校通分頁');
+  ok(adminHtml.includes('/admin/school-links'), '網頁後台打 /admin/school-links');
+}
+
+// ⑨ 題庫／說明不能再寫「訪客可以看」
 const help = read('pages/help/index.js');
 ok(!help.includes('沒登入也可以'), '使用說明不再寫「沒登入也可以看…」');
 

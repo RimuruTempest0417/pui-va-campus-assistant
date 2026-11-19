@@ -3708,6 +3708,56 @@ paths:
         '200': { description: OK }
         '403': { description: '需要 user:assign:teacher（資訊管理員以上）' }
 
+  /admin/school-links:
+    get:
+      tags: [admin]
+      summary: 家校通連結清單（v1.0.19；只有 ADMIN／SUPER_ADMIN 看得到）
+      description: 帳密在登入時自動加密保存，這裡只回狀態（上次同步、錯誤、還有幾段沒抓），不含任何密文。
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 連結清單
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId: { type: string }
+                        nickname: { type: string }
+                        role: { type: string }
+                        studentNo: { type: string }
+                        studentName: { type: string }
+                        className: { type: string }
+                        lastSyncAt: { type: string, format: date-time, nullable: true }
+                        lastError: { type: string, nullable: true }
+                        pendingCells: { type: integer }
+                  total: { type: integer }
+
+  /admin/school-links/{userId}:
+    delete:
+      tags: [admin]
+      summary: 解除某個帳號的家校通連結（刪掉加密帳密；下次登入會自動再存回）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 已解除
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  removed: { type: integer }
+
   /admin/classes/{className}/members:
     post:
       tags: [admin]
@@ -3843,7 +3893,7 @@ paths:
   /school/link:
     post:
       tags: [school]
-      summary: 建立連結（先真的登入家校通一次，成功才加密儲存帳密）
+      summary: 建立連結（v1.0.19 起只有 ADMIN／SUPER_ADMIN；一般使用者 403）
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
