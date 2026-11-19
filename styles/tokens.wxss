@@ -13,6 +13,7 @@ page {
   --pv-brand-strong: #a00d24;       /* 培華紅深階：緊急公告／破壞性操作文字（後台統計卡已改中性，W-49） */
   --pv-brand-soft: #fcebec;
   --pv-danger: #d70015;             /* iOS systemRed：破壞性操作 */
+  --pv-danger-soft: rgba(215, 0, 21, 0.1); /* 危險態的淡底（欠交、錯誤標籤） */
   --pv-warning: #b25000;            /* iOS systemOrange（深） */
   --pv-warning-soft: #fff3e0;
   --pv-success: #248a3d;            /* iOS systemGreen（深） */
@@ -132,6 +133,7 @@ page {
   --pv-tint-soft: rgba(109, 63, 196, 0.24);
   --pv-brand-soft: rgba(200, 16, 46, 0.18);
   --pv-danger: #ff6961;
+  --pv-danger-soft: rgba(255, 105, 97, 0.18);
   --pv-warning: #ffb340;
   --pv-warning-soft: rgba(178, 80, 0, 0.22);
   --pv-success: #4cd964;

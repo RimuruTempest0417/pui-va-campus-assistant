@@ -213,3 +213,8 @@
   color: var(--pv-success);
   background: var(--pv-success-soft);
 }
+/* 欠交：紅底，跟「已提交」的綠分開（家長一眼看到要處理的那一筆） */
+.hw-tag--late {
+  color: var(--pv-danger);
+  background: var(--pv-danger-soft);
+}
