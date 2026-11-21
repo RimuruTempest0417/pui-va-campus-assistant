@@ -28,6 +28,7 @@ Page({
       k602: i18n.pick("B 餐"),
       k603: i18n.pick("C 餐"),
       k604: i18n.pick("湯／糖水"),
+      k607: i18n.pick("可評分"),
     };
   },
 
@@ -88,6 +89,8 @@ Page({
           B: set.B || '',
           C: set.C || '',
           soup: set.soup || '',
+          // v1.0.24：每一格的 dishId（後端用同日排菜單對名字回傳），有點到才能進詳情頁評分
+          ids: set.ids || {},
           hasSet: hasSet,
           hasSoup: hasSoup,
         });

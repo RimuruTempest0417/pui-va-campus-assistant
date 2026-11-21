@@ -74,4 +74,7 @@
 
 /* 湯／糖水：三款套餐共用，用中性色圓牌與套餐區分（不要讓它看起來像第四款套餐） */
 .set-meal--soup { border-top: 1px dashed var(--pv-sep); }
+/* 套餐可點（進詳情頁評分）：按下要有回饋，取消點擊感不要留著 */
+.set-meal--tap { transition: background 120ms ease; }
+.set-meal--pressed { background: var(--pv-fill-2); }
 .set-meal__tag--soup { background: var(--pv-fill-2); color: var(--pv-label-2); }
