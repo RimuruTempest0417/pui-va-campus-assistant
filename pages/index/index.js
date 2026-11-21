@@ -360,6 +360,9 @@ Page({
     try {
       // 首次進入先嘗試登入（沒有後端就當訪客，不阻塞畫面）
       await data.ensureLogin();
+      // W-98／v1.0.24：這一批載入有沒有吃到舊快取 —— 首頁以前沒有標示，
+      // 數字看起來是即時的，其實可能是上次抓的（實測回報「明明只有兩份功課卻寫三份」）。
+      data.offlineReset();
 
       const [me, items, events, menu, notices, lib, resources, giveaways, timetable, homework, proposals, repairs] = await Promise.all([
         // 未登入時 me() 會 401；首頁是公開頁，訪客照樣要能看到四個模組
@@ -448,6 +451,7 @@ Page({
       this._todoSrc = { role: role, homework: homework, timetable: timetable, kid: parentSummary };
       const todoRows = todo.rows(Object.assign({}, this._todoSrc, { unread: this.data.unread }));
       this.setData({
+        offlineText: data.offlineText(i18n.pick('離線資料 · 上次更新')),
         todoRows: todoRows,
         todoVisible: todoRows.length > 0,
         showAdmin: staff,

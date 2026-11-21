@@ -2,6 +2,8 @@
   <pv-refreshing />
   <scroll-view class="page-scroll" scroll-y bounces show-scrollbar="{{false}}" enhanced="{{true}}" refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
     <view class="home-inner" style="padding-top: {{navTotal}}px">
+  <!-- v1.0.24：吃到舊快取一定要寫出來（Gary 反對靜默降級：數字看起來是即時的，其實是上次抓的） -->
+  <view wx:if="{{offlineText}}" class="ui-offline">{{offlineText}}</view>
   <!-- 狀態列 + 頂部列（自訂導航）-->
   <view class="home__status" />
   <view class="home__top">

@@ -34,24 +34,24 @@
             <!-- v1.0.9：學校公布的 A／B／C 餐（套餐制）。有填就顯示，沒填不佔位 -->
             <view wx:if="{{item.hasSet}}">
               <view class="ui-section sec-title">{{L.k600}}</view>
-              <view wx:if="{{item.A}}" class="set-meal">
+              <view wx:if="{{item.A}}" class="set-meal set-meal--tap" data-id="{{item.ids.A}}" bindtap="goDish" hover-class="set-meal--pressed" hover-start-time="0">
                 <text class="set-meal__tag">A</text>
                 <view class="set-meal__main">
-                  <text class="ui-meta">{{L.k601}}</text>
+                  <text class="ui-meta">{{L.k601}}{{item.ids.A ? ' · ' + L.k607 : ''}}</text>
                   <text class="ui-body set-meal__text">{{item.A}}</text>
                 </view>
               </view>
-              <view wx:if="{{item.B}}" class="set-meal">
+              <view wx:if="{{item.B}}" class="set-meal set-meal--tap" data-id="{{item.ids.B}}" bindtap="goDish" hover-class="set-meal--pressed" hover-start-time="0">
                 <text class="set-meal__tag">B</text>
                 <view class="set-meal__main">
-                  <text class="ui-meta">{{L.k602}}</text>
+                  <text class="ui-meta">{{L.k602}}{{item.ids.B ? ' · ' + L.k607 : ''}}</text>
                   <text class="ui-body set-meal__text">{{item.B}}</text>
                 </view>
               </view>
-              <view wx:if="{{item.C}}" class="set-meal">
+              <view wx:if="{{item.C}}" class="set-meal set-meal--tap" data-id="{{item.ids.C}}" bindtap="goDish" hover-class="set-meal--pressed" hover-start-time="0">
                 <text class="set-meal__tag">C</text>
                 <view class="set-meal__main">
-                  <text class="ui-meta">{{L.k603}}</text>
+                  <text class="ui-meta">{{L.k603}}{{item.ids.C ? ' · ' + L.k607 : ''}}</text>
                   <text class="ui-body set-meal__text">{{item.C}}</text>
                 </view>
               </view>
